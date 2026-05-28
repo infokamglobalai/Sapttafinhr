@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block page_title %}Loan · {{ loan.employee.full_name }}{% endblock %}
+{% block content %}
+<div style="max-width: 760px; margin: 0 auto;">
+  <a href="{% url 'payroll:loans' %}" class="btn-base btn-ghost btn-sm" style="margin-bottom: 14px;">← Back to Loans</a>
+
+  <div class="surface" style="padding: 24px; margin-bottom: 14px;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px;">
+      <div>
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+          <h2 style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em;">{{ loan.loan_type|default:"Loan" }}</h2>
+          <span class="badge {% if loan.status == 'active' %}badge-info{% else %}badge-success{% endif %}">{{ loan.status|title }}</span>
+        </div>
+        <div style="font-size: 13.5px; color: var(--ink-500);">{{ loan.employee.full_name }} · disbursed {{ loan.disbursed_date|date:"d M Y" }}</div>
+      </div>
+      <a href="{% url 'payroll:loan_edit' loan.pk %}" class="btn-base btn-outline btn-sm">Edit</a>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; padding: 16px 0; border-top: 1px solid var(--ink-150); border-bottom: 1px solid var(--ink-150);">
+      <div>
+        <div style="font-size: 11px; font-weight: 700; color: var(--ink-500); text-transform: uppercase; letter-spacing: 0.06em;">Principal</div>
+        <div style="font-size: 22px; font-weight: 800; color: var(--ink-950); margin-top: 4px; font-variant-numeric: tabular-nums;">&#8377;{{ loan.principal_amount|floatformat:0|intcomma }}</div>
+      </div>
+      <div>
+        <div style="font-size: 11px; font-weight: 700; color: var(--ink-500); text-transform: uppercase; letter-spacing: 0.06em;">Monthly EMI</div>
+        <div style="font-size: 22px; font-weight: 800; color: var(--brand-600); margin-top: 4px; font-variant-numeric: tabular-nums;">&#8377;{{ loan.emi_amount|floatformat:0|intcomma }}</div>
+      </div>
+      <div>
+        <div style="font-size: 11px; font-weight: 700; color: var(--ink-500); text-transform: uppercase; letter-spacing: 0.06em;">Outstanding</div>
+        <div style="font-size: 22px; font-weight: 800; color: var(--err-600); margin-top: 4px; font-variant-numeric: tabular-nums;">&#8377;{{ loan.outstanding_amount|floatformat:0|intcomma }}</div>
+      </div>
+    </div>
+
+    <div style="margin-top: 18px;">
+      <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px;">
+        <span style="font-weight: 600;">{{ loan.paid_installments }} of {{ loan.total_installments }} EMIs paid</span>
+        <span style="color: var(--ink-500);">{{ progress }}%</span>
+      </div>
+      <div style="height: 10px; background: var(--ink-100); border-radius: 99px; overflow: hidden;">
+        <div style="height: 100%; width: {{ progress }}%; background: linear-gradient(90deg, #FB923C, #EA580C); transition: width 800ms;"></div>
+      </div>
+      {% if loan.interest_rate %}
+      <p style="font-size: 12px; color: var(--ink-500); margin-top: 12px;">Interest rate: {{ loan.interest_rate }}% per annum</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="alert alert-info">
+    <span style="font-size: 13px;">EMIs are deducted automatically from each monthly payroll until {{ loan.total_installments }} installments are paid.</span>
+  </div>
+</div>
+{% endblock %}

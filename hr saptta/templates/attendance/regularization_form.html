@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block page_title %}Request Attendance Correction{% endblock %}
+{% block content %}
+<div class="max-w-lg mx-auto">
+  <div class="flex items-center gap-3 mb-6">
+    <a href="{% url 'attendance:my_attendance' %}" class="btn btn-ghost btn-sm">← Back</a>
+    <h2 class="text-xl font-bold">Request Attendance Correction</h2>
+  </div>
+  <div class="card bg-base-100 shadow">
+    <div class="card-body">
+      <form method="post" action="{% url 'attendance:regularization' %}">
+        {% csrf_token %}
+        <div class="form-control mb-4">
+          <label class="label"><span class="label-text font-medium">Date *</span></label>
+          <input type="date" name="attendance_date" class="input input-bordered" required>
+        </div>
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <div class="form-control">
+            <label class="label"><span class="label-text">In Time</span></label>
+            <input type="time" name="requested_in_time" class="input input-bordered">
+          </div>
+          <div class="form-control">
+            <label class="label"><span class="label-text">Out Time</span></label>
+            <input type="time" name="requested_out_time" class="input input-bordered">
+          </div>
+        </div>
+        <div class="form-control mb-6">
+          <label class="label"><span class="label-text font-medium">Reason *</span></label>
+          <textarea name="reason" class="textarea textarea-bordered" rows="3" required placeholder="Explain why the attendance needs correction..."></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary w-full">Submit Request</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

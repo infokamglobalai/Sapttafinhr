@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block page_title %}{% if shift %}Edit Shift{% else %}New Shift{% endif %}{% endblock %}
+{% block content %}
+<div style="max-width: 720px; margin: 0 auto;">
+  <a href="{% url 'attendance:shifts' %}" class="btn-base btn-ghost btn-sm" style="margin-bottom: 14px;">← Back to Shifts</a>
+  <h2 style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 4px;">{% if shift %}Edit Shift{% else %}New Shift{% endif %}</h2>
+  <p style="font-size: 13.5px; color: var(--ink-500); margin-bottom: 22px;">Configure work hours, grace periods, and overtime rules.</p>
+
+  <form method="post">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors.0 }}</div>{% endif %}
+
+    <div class="surface" style="padding: 22px; margin-bottom: 14px;">
+      <h3 style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-500); margin-bottom: 14px;">Basic</h3>
+      <div style="margin-bottom: 14px;">
+        <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Shift Name *</label>
+        {{ form.name }}
+        {% if form.name.errors %}<div style="color: var(--err-600); font-size: 12px; margin-top: 4px;">{{ form.name.errors.0 }}</div>{% endif %}
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Start Time *</label>
+          {{ form.start_time }}
+        </div>
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">End Time *</label>
+          {{ form.end_time }}
+        </div>
+      </div>
+    </div>
+
+    <div class="surface" style="padding: 22px; margin-bottom: 14px;">
+      <h3 style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-500); margin-bottom: 14px;">Grace & Break (minutes)</h3>
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px;">
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Grace In</label>
+          {{ form.grace_in_minutes }}
+        </div>
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Grace Out</label>
+          {{ form.grace_out_minutes }}
+        </div>
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Break Duration</label>
+          {{ form.break_duration_minutes }}
+        </div>
+      </div>
+    </div>
+
+    <div class="surface" style="padding: 22px; margin-bottom: 14px;">
+      <h3 style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-500); margin-bottom: 14px;">Day Type Thresholds (minutes worked)</h3>
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px;">
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Half Day Threshold</label>
+          {{ form.half_day_threshold_minutes }}
+          <div style="font-size: 11.5px; color: var(--ink-500); margin-top: 4px;">Below this = half day</div>
+        </div>
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Full Day Threshold</label>
+          {{ form.full_day_threshold_minutes }}
+          <div style="font-size: 11.5px; color: var(--ink-500); margin-top: 4px;">Above this = full day</div>
+        </div>
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Overtime After</label>
+          {{ form.overtime_after_minutes }}
+          <div style="font-size: 11.5px; color: var(--ink-500); margin-top: 4px;">Past this = OT counts</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="surface" style="padding: 22px; margin-bottom: 14px;">
+      <h3 style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-500); margin-bottom: 14px;">Weekly Off & Flags</h3>
+      <div style="margin-bottom: 14px;">
+        <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Weekly Off Days</label>
+        {{ form.weekly_off_days }}
+        <div style="font-size: 11.5px; color: var(--ink-500); margin-top: 4px;">Comma-separated day names. Example: <code>saturday,sunday</code></div>
+      </div>
+      <div style="display: flex; gap: 24px; flex-wrap: wrap;">
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 13px;">
+          {{ form.is_night_shift }} Night shift
+        </label>
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 13px;">
+          {{ form.overtime_applicable }} Overtime applicable
+        </label>
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 13px;">
+          {{ form.is_active }} Active
+        </label>
+      </div>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; gap: 12px;">
+      <a href="{% url 'attendance:shifts' %}" class="btn-base btn-ghost">Cancel</a>
+      <button type="submit" class="btn-base btn-primary">{% if shift %}Save Changes{% else %}Create Shift{% endif %}</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

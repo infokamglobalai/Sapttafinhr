@@ -1,0 +1,53 @@
+<div class="card bg-base-100 shadow overflow-x-auto">
+  <table class="table table-zebra table-sm">
+    <thead>
+      <tr>
+        <th>Employee</th>
+        <th>In Time</th>
+        <th>Out Time</th>
+        <th>Working Hrs</th>
+        <th>Status</th>
+        <th>Late By</th>
+        <th>OT Mins</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for rec in page_obj %}
+      <tr>
+        <td>
+          <div class="font-medium text-sm">{{ rec.employee.full_name }}</div>
+          <div class="text-xs text-base-content/50">{{ rec.employee.employee_code }}</div>
+        </td>
+        <td class="text-sm">{{ rec.first_in_time|time:"H:i"|default:"—" }}</td>
+        <td class="text-sm">{{ rec.last_out_time|time:"H:i"|default:"—" }}</td>
+        <td class="text-sm">{{ rec.net_working_hours }}h</td>
+        <td>
+          <span class="badge badge-sm
+            {% if rec.status == 'present' %}badge-success
+            {% elif rec.status == 'absent' %}badge-error
+            {% elif rec.status == 'half_day' %}badge-warning
+            {% elif rec.status == 'on_leave' %}badge-info
+            {% elif rec.status == 'holiday' or rec.status == 'week_off' %}badge-ghost
+            {% else %}badge-ghost{% endif %}">
+            {{ rec.get_status_display }}
+          </span>
+        </td>
+        <td class="text-sm {% if rec.late_by_minutes > 0 %}text-warning{% endif %}">
+          {% if rec.late_by_minutes > 0 %}{{ rec.late_by_minutes }}m{% else %}—{% endif %}
+        </td>
+        <td class="text-sm">{{ rec.overtime_minutes|default:"—" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7" class="text-center py-8 text-base-content/40">No attendance records for this date.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if page_obj.has_other_pages %}
+<div class="flex justify-center mt-4 gap-1">
+  {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}&date={{ selected_date|date:'Y-m-d' }}" class="btn btn-sm btn-ghost">«</a>{% endif %}
+  <span class="btn btn-sm btn-disabled">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+  {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}&date={{ selected_date|date:'Y-m-d' }}" class="btn btn-sm btn-ghost">»</a>{% endif %}
+</div>
+{% endif %}

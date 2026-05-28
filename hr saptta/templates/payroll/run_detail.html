@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+{% block page_title %}Payroll {{ run.year }}-{{ run.month|stringformat:"02d" }}{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+  <div class="flex items-center gap-3">
+    <a href="{% url 'payroll:run_list' %}" class="btn btn-ghost btn-sm">← Back</a>
+    <h2 class="text-xl font-bold">Payroll {{ run.year }}-{{ run.month|stringformat:"02d" }}</h2>
+    <span class="badge badge-lg
+      {% if run.status == 'paid' %}badge-success
+      {% elif run.status == 'approved' %}badge-info
+      {% elif run.status == 'review' %}badge-warning
+      {% elif run.status == 'processing' %}badge-ghost
+      {% else %}badge-ghost{% endif %}">
+      {{ run.get_status_display }}
+    </span>
+  </div>
+  <div class="flex gap-2">
+    {# Excel exports available from review onwards — HR needs to verify before approving #}
+    {% if run.status in 'review,approved,paid' %}
+    <div class="dropdown dropdown-end">
+      <button tabindex="0" class="btn btn-outline btn-sm">
+        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        Export Excel ▾
+      </button>
+      <ul tabindex="0" class="dropdown-content menu menu-sm bg-base-100 rounded-box z-10 w-64 p-2 shadow-lg border">
+        <li><a href="{% url 'payroll:salary_register' run.pk %}">
+          <div>
+            <div class="font-medium">Salary Register</div>
+            <div class="text-xs text-base-content/50">Full breakdown + bank details</div>
+          </div>
+        </a></li>
+        <li><a href="{% url 'payroll:bank_advice' run.pk %}">
+          <div>
+            <div class="font-medium">Bank Advice</div>
+            <div class="text-xs text-base-content/50">For salary disbursement upload</div>
+          </div>
+        </a></li>
+        <li><a href="{% url 'payroll:pf_statement' run.pk %}">
+          <div>
+            <div class="font-medium">PF Statement (Excel)</div>
+            <div class="text-xs text-base-content/50">Internal accounting reference</div>
+          </div>
+        </a></li>
+        <li class="menu-title pt-2"><span>Statutory uploads</span></li>
+        <li><a href="{% url 'payroll:pf_ecr' run.pk %}">
+          <div>
+            <div class="font-medium">PF ECR (.txt)</div>
+            <div class="text-xs text-base-content/50">Upload to EPFO Unified Portal</div>
+          </div>
+        </a></li>
+        <li><a href="{% url 'payroll:esi_return' run.pk %}">
+          <div>
+            <div class="font-medium">ESI Return (.csv)</div>
+            <div class="text-xs text-base-content/50">Upload to ESIC portal</div>
+          </div>
+        </a></li>
+        <li><a href="{% url 'payroll:tally_xml' run.pk %}">
+          <div>
+            <div class="font-medium">Tally Journal (.xml)</div>
+            <div class="text-xs text-base-content/50">Import into TallyPrime / ERP 9</div>
+          </div>
+        </a></li>
+      </ul>
+    </div>
+    {% endif %}
+    {% if run.status == 'review' %}
+    <form method="post" action="{% url 'payroll:run_approve' run.pk %}">
+      {% csrf_token %}
+      <button class="btn btn-success btn-sm" onclick="return confirm('Approve and lock this payroll run? Records cannot be edited afterwards.')">Approve &amp; Lock</button>
+    </form>
+    {% endif %}
+    {% if run.status == 'approved' %}
+    <form method="post" action="{% url 'payroll:run_publish' run.pk %}">
+      {% csrf_token %}
+      <button class="btn btn-info btn-sm">Publish Payslips to ESS</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Summary -->
+<div class="grid grid-cols-4 gap-3 mb-4">
+  <div class="card bg-base-100 shadow p-4 text-center">
+    <div class="text-2xl font-bold">{{ run.total_employees }}</div>
+    <div class="text-xs text-base-content/60">Employees</div>
+  </div>
+  <div class="card bg-base-100 shadow p-4 text-center">
+    <div class="text-2xl font-bold text-primary">&#8377;{{ run.total_gross|floatformat:0 }}</div>
+    <div class="text-xs text-base-content/60">Gross</div>
+  </div>
+  <div class="card bg-base-100 shadow p-4 text-center">
+    <div class="text-2xl font-bold text-error">&#8377;{{ run.total_deductions|floatformat:0 }}</div>
+    <div class="text-xs text-base-content/60">Deductions</div>
+  </div>
+  <div class="card bg-success/10 shadow p-4 text-center">
+    <div class="text-2xl font-bold text-success">&#8377;{{ run.total_net|floatformat:0 }}</div>
+    <div class="text-xs text-base-content/60">Net Payable</div>
+  </div>
+</div>
+
+<!-- ── Anomaly Detection (AI feature #7 — local rules, no external API) ── -->
+{% if anomalies %}
+<div class="card" style="margin-bottom: 18px; padding: 0; overflow: hidden; border: 1px solid #FED7AA;">
+  <div style="padding: 16px 20px; background: linear-gradient(135deg, #FFF7ED 0%, #FED7AA 100%); border-bottom: 1px solid #FED7AA; display: flex; align-items: center; justify-content: space-between;">
+    <div>
+      <div style="font-weight: 700; font-size: 15px; color: #7C2D12;">
+        Pre-publish anomaly check
+      </div>
+      <div style="font-size: 12px; color: #9A3412; margin-top: 2px;">
+        Review these before approving. {{ anomalies|length }} employee{{ anomalies|length|pluralize }} flagged by automated rules.
+      </div>
+    </div>
+    <div style="display: flex; gap: 6px; font-size: 11px; font-weight: 700;">
+      {% if anomaly_counts.critical %}<span style="background: #FEE2E2; color: #991B1B; padding: 3px 10px; border-radius: 999px;">{{ anomaly_counts.critical }} critical</span>{% endif %}
+      {% if anomaly_counts.high %}<span style="background: #FEF3C7; color: #92400E; padding: 3px 10px; border-radius: 999px;">{{ anomaly_counts.high }} high</span>{% endif %}
+      {% if anomaly_counts.medium %}<span style="background: #DBEAFE; color: #1E40AF; padding: 3px 10px; border-radius: 999px;">{{ anomaly_counts.medium }} medium</span>{% endif %}
+      {% if anomaly_counts.low %}<span style="background: #F3F4F6; color: #374151; padding: 3px 10px; border-radius: 999px;">{{ anomaly_counts.low }} low</span>{% endif %}
+    </div>
+  </div>
+  <table style="width: 100%; border-collapse: collapse;">
+    <thead style="background: #FFF7ED;">
+      <tr>
+        <th style="padding: 10px 16px; text-align: left; font-size: 11.5px; color: #7C2D12;">Employee</th>
+        <th style="padding: 10px 16px; text-align: left; font-size: 11.5px; color: #7C2D12;">Flag</th>
+        <th style="padding: 10px 16px; text-align: left; font-size: 11.5px; color: #7C2D12;">Detail</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in anomalies|slice:":20" %}
+        {% for f in a.flags %}
+        <tr style="border-top: 1px solid #F3F4F6;">
+          {% if forloop.first %}
+          <td rowspan="{{ a.flags|length }}" style="padding: 12px 16px; vertical-align: top;">
+            <a href="{% url 'employees:detail' a.employee_id %}" style="color: inherit; text-decoration: none; font-weight: 600;">{{ a.employee_name }}</a>
+            <div style="font-size: 11px; color: var(--ink-500);">{{ a.employee_code }} - {{ a.department }}</div>
+          </td>
+          {% endif %}
+          <td style="padding: 12px 16px;">
+            <span style="
+              font-size: 10.5px; font-weight: 700; padding: 3px 8px; border-radius: 999px;
+              text-transform: uppercase; letter-spacing: 0.04em;
+              {% if f.severity == 'critical' %}background: #FEE2E2; color: #991B1B;{% endif %}
+              {% if f.severity == 'high' %}background: #FEF3C7; color: #92400E;{% endif %}
+              {% if f.severity == 'medium' %}background: #DBEAFE; color: #1E40AF;{% endif %}
+              {% if f.severity == 'low' %}background: #F3F4F6; color: #374151;{% endif %}
+            ">{{ f.severity }}</span>
+            <div style="font-size: 11px; color: var(--ink-500); margin-top: 4px;">{{ f.rule }}</div>
+          </td>
+          <td style="padding: 12px 16px; font-size: 13px; color: var(--ink-700);">{{ f.message }}</td>
+        </tr>
+        {% endfor %}
+      {% endfor %}
+      {% if anomalies|length > 20 %}
+      <tr><td colspan="3" style="padding: 12px 16px; text-align: center; font-size: 12px; color: var(--ink-500);">+{{ anomalies|length|add:"-20" }} more employees flagged</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card" style="margin-bottom: 18px; padding: 14px 20px; border-left: 4px solid #22C55E; background: #F0FDF4; display: flex; align-items: center; gap: 12px;">
+  <div style="width: 32px; height: 32px; background: #DCFCE7; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #15803D; font-weight: 700;">&#10003;</div>
+  <div>
+    <div style="font-weight: 600; color: #15803D;">No anomalies detected</div>
+    <div style="font-size: 12px; color: #166534;">Automated rules ran across all {{ records.count }} records and found nothing to flag.</div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Records table -->
+<div class="card bg-base-100 shadow overflow-x-auto">
+  <table class="table table-sm">
+    <thead>
+      <tr>
+        <th>Employee</th><th>Department</th><th>Days</th><th>LOP</th>
+        <th>Gross</th><th>PF</th><th>ESI</th><th>PT</th><th>TDS</th>
+        <th>Deductions</th><th>Net Pay</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for rec in records %}
+      <tr>
+        <td>
+          <div class="font-medium text-sm">{{ rec.employee.full_name }}</div>
+          <div class="text-xs text-base-content/50">{{ rec.employee.employee_code }}</div>
+        </td>
+        <td class="text-sm">{{ rec.employee.department.name|default:"—" }}</td>
+        <td class="text-sm">{{ rec.paid_days }}/{{ rec.working_days }}</td>
+        <td class="text-sm {% if rec.lop_days > 0 %}text-error{% endif %}">{{ rec.lop_days }}</td>
+        <td class="text-sm">&#8377;{{ rec.gross_earnings|floatformat:0 }}</td>
+        <td class="text-xs">&#8377;{{ rec.pf_employee|floatformat:0 }}</td>
+        <td class="text-xs">&#8377;{{ rec.esi_employee|floatformat:0 }}</td>
+        <td class="text-xs">&#8377;{{ rec.professional_tax|floatformat:0 }}</td>
+        <td class="text-xs">&#8377;{{ rec.tds|floatformat:0 }}</td>
+        <td class="text-sm text-error">&#8377;{{ rec.total_deductions|floatformat:0 }}</td>
+        <td class="font-bold text-success">&#8377;{{ rec.net_payable|floatformat:0 }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="11" class="text-center py-8 text-base-content/40">
+        {% if run.status == 'draft' or run.status == 'processing' %}
+        Payroll is being processed. Refresh in a moment.
+        {% else %}No records found.{% endif %}
+      </td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

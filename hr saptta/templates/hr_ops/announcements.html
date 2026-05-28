@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block page_title %}Announcements{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+  <h2 class="text-xl font-bold">Announcements</h2>
+  <a href="{% url 'hr_ops:announcement_create' %}" class="btn btn-primary btn-sm">+ New Announcement</a>
+</div>
+<div class="space-y-3">
+  {% for ann in announcements %}
+  <div class="card bg-base-100 shadow">
+    <div class="card-body p-5">
+      <div class="flex items-start justify-between">
+        <h3 class="font-semibold text-base">{{ ann.title }}</h3>
+        <span class="text-xs text-base-content/40 ml-4 shrink-0">{{ ann.published_at|date:"d M Y" }}</span>
+      </div>
+      <p class="text-sm text-base-content/70 mt-2">{{ ann.content }}</p>
+    </div>
+  </div>
+  {% empty %}
+  <div class="card bg-base-100 shadow">
+    <div class="card-body text-center py-12">
+      <p class="text-base-content/40">No announcements yet.</p>
+      <a href="{% url 'hr_ops:announcement_create' %}" class="btn btn-primary btn-sm mt-4">Post first announcement</a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

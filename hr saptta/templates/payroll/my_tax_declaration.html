@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="max-width: 980px; margin: 0 auto; padding: 24px;">
+
+  <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 12px; margin-bottom: 18px;">
+    <div>
+      <div style="font-size: 12px; color: var(--ink-500); text-transform: uppercase; letter-spacing: 0.06em;">Tax declaration</div>
+      <h1 style="font-size: 24px; font-weight: 700; letter-spacing: -0.025em; margin-top: 4px;">FY {{ fy }} — your investments &amp; exemptions</h1>
+      <div style="font-size: 13px; color: var(--ink-500); margin-top: 6px;">
+        We use this to calculate your monthly TDS so your take-home is accurate. You can save drafts; once submitted, contact HR for changes.
+      </div>
+    </div>
+    <div>
+      {% if declaration.status == "draft" %}
+        <span style="background: #FEF3C7; color: #92400E; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;">Draft</span>
+      {% elif declaration.status == "submitted" %}
+        <span style="background: #DBEAFE; color: #1E40AF; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;">Submitted</span>
+      {% elif declaration.status == "verified" %}
+        <span style="background: #D1FAE5; color: #065F46; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;">Verified by HR</span>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if messages %}{% for m in messages %}
+    <div class="alert alert-{% if m.tags == 'error' %}error{% else %}success{% endif %}" style="margin-bottom: 14px;"><span>{{ m }}</span></div>
+  {% endfor %}{% endif %}
+
+  <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 18px;">
+    <form method="post" {% if locked %}style="opacity:0.6; pointer-events:none;"{% endif %}>
+      {% csrf_token %}
+
+      <div class="card" style="padding: 22px;">
+        <h2 style="font-size: 15px; font-weight: 700; margin-bottom: 4px;">Choose your regime</h2>
+        <p style="font-size: 12.5px; color: var(--ink-500); margin-bottom: 14px;">New regime is default and gives lower slab rates but disallows most exemptions. Old regime allows HRA, 80C, etc.</p>
+        {{ form.regime }}
+        {% if form.regime.errors %}<div style="color:#DC2626;font-size:12px;margin-top:4px;">{{ form.regime.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div class="card" style="padding: 22px; margin-top: 14px;">
+        <h2 style="font-size: 15px; font-weight: 700; margin-bottom: 4px;">House Rent Allowance (HRA)</h2>
+        <p style="font-size: 12.5px; color: var(--ink-500); margin-bottom: 14px;">Only used if you choose Old Regime. PAN of landlord is required if annual rent &gt; ₹1,00,000.</p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+          <div><label style="font-size:12px;font-weight:600;">Annual rent paid</label>{{ form.rent_paid_annual }}</div>
+          <div><label style="font-size:12px;font-weight:600;">Metro city?</label><div style="padding-top:8px;">{{ form.is_metro_city }} <span style="font-size:12.5px;color:var(--ink-600);">Mumbai, Delhi, Chennai, Kolkata</span></div></div>
+          <div><label style="font-size:12px;font-weight:600;">Landlord name</label>{{ form.landlord_name }}</div>
+          <div><label style="font-size:12px;font-weight:600;">Landlord PAN</label>{{ form.landlord_pan }}{% if form.landlord_pan.errors %}<div style="color:#DC2626;font-size:12px;margin-top:4px;">{{ form.landlord_pan.errors.0 }}</div>{% endif %}</div>
+        </div>
+      </div>
+
+      <div class="card" style="padding: 22px; margin-top: 14px;">
+        <h2 style="font-size: 15px; font-weight: 700;">Section 80C investments</h2>
+        <p style="font-size: 12.5px; color: var(--ink-500); margin-bottom: 14px;">Total claim capped at ₹1,50,000.</p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+          <div><label style="font-size:12px;font-weight:600;">PPF</label>{{ form.sec_80c_ppf }}</div>
+          <div><label style="font-size:12px;font-weight:600;">ELSS Mutual Funds</label>{{ form.sec_80c_elss }}</div>
+          <div><label style="font-size:12px;font-weight:600;">Life Insurance Premium</label>{{ form.sec_80c_lic }}</div>
+          <div><label style="font-size:12px;font-weight:600;">Home loan principal</label>{{ form.sec_80c_home_loan_principal }}</div>
+          <div><label style="font-size:12px;font-weight:600;">Children tuition fees</label>{{ form.sec_80c_tuition_fees }}</div>
+          <div><label style="font-size:12px;font-weight:600;">Other 80C</label>{{ form.sec_80c_other }}</div>
+        </div>
+      </div>
+
+      <div class="card" style="padding: 22px; margin-top: 14px;">
+        <h2 style="font-size: 15px; font-weight: 700;">Health insurance &amp; other deductions</h2>
+        <p style="font-size: 12.5px; color: var(--ink-500); margin-bottom: 14px;">80D self + family capped at ₹25k; parents ₹25k (₹50k if senior).</p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+          <div><label style="font-size:12px;font-weight:600;">80D — Self &amp; family</label>{{ form.sec_80d_self }}</div>
+          <div><label style="font-size:12px;font-weight:600;">80D — Parents premium</label>{{ form.sec_80d_parents }}</div>
+          <div style="grid-column: span 2;"><label style="font-size:12px;">{{ form.sec_80d_parents_senior }} Parents are senior citizens</label></div>
+          <div><label style="font-size:12px;font-weight:600;">80CCD(1B) — NPS (max ₹50k)</label>{{ form.sec_80ccd_1b_nps }}</div>
+          <div><label style="font-size:12px;font-weight:600;">80E — Education loan interest</label>{{ form.sec_80e_education_loan }}</div>
+          <div><label style="font-size:12px;font-weight:600;">80G — Donations</label>{{ form.sec_80g_donations }}</div>
+          <div><label style="font-size:12px;font-weight:600;">Sec 24(b) — Home loan interest (max ₹2L)</label>{{ form.sec_24_home_loan_interest }}</div>
+          <div style="grid-column: span 2;"><label style="font-size:12px;font-weight:600;">Other income to declare (FD interest, etc.)</label>{{ form.other_income_annual }}</div>
+        </div>
+      </div>
+
+      {% if not locked %}
+      <div style="display:flex; gap: 10px; margin-top: 18px;">
+        <button name="action" value="save_draft" class="btn-base" style="background:#E5E7EB;">Save draft</button>
+        <button name="action" value="submit" class="btn-base btn-primary">Submit &amp; lock</button>
+      </div>
+      {% else %}
+      <div class="alert alert-info" style="margin-top: 14px; font-size: 13px;">
+        Your declaration is locked. Reach out to HR if you need to make changes.
+      </div>
+      {% endif %}
+    </form>
+
+    {# ── Live estimate sidebar ───────────────────────────────────────────── #}
+    <aside>
+      <div class="card" style="padding: 20px; position: sticky; top: 16px;">
+        <h2 style="font-size: 15px; font-weight: 700; margin-bottom: 12px;">Live tax estimate</h2>
+        {% if estimate %}
+        <div style="font-size: 13px; line-height: 1.6;">
+          <div style="display:flex; justify-content:space-between;">
+            <span style="color:var(--ink-500);">Regime</span>
+            <strong>{{ estimate.regime|upper }}</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span style="color:var(--ink-500);">Annual gross</span>
+            <strong>₹{{ estimate.gross_salary|floatformat:0 }}</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span style="color:var(--ink-500);">Standard deduction</span>
+            <strong>₹{{ estimate.standard_deduction|floatformat:0 }}</strong>
+          </div>
+          {% if estimate.exemptions %}
+          {% for k, v in estimate.exemptions.items %}
+          <div style="display:flex; justify-content:space-between;">
+            <span style="color:var(--ink-500);">{{ k }}</span>
+            <strong>₹{{ v|floatformat:0 }}</strong>
+          </div>
+          {% endfor %}
+          {% endif %}
+          {% if estimate.chapter_via %}
+          {% for k, v in estimate.chapter_via.items %}
+          <div style="display:flex; justify-content:space-between;">
+            <span style="color:var(--ink-500);">{{ k }}</span>
+            <strong>−₹{{ v|floatformat:0 }}</strong>
+          </div>
+          {% endfor %}
+          {% endif %}
+          <hr style="margin: 10px 0; border: none; border-top: 1px solid #E5E7EB;">
+          <div style="display:flex; justify-content:space-between;">
+            <span style="color:var(--ink-500);">Taxable income</span>
+            <strong>₹{{ estimate.taxable_income|floatformat:0 }}</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span style="color:var(--ink-500);">Tax after rebate</span>
+            <strong>₹{{ estimate.tax_after_rebate|floatformat:0 }}</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span style="color:var(--ink-500);">Cess (4%)</span>
+            <strong>₹{{ estimate.cess|floatformat:0 }}</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding: 10px; background: #FFF7ED; border-radius: 8px; margin-top: 10px;">
+            <span style="font-weight: 700; color: #7C2D12;">Annual tax</span>
+            <strong style="font-size: 16px; color: #C2410C;">₹{{ estimate.total_tax|floatformat:0 }}</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between; margin-top:8px;">
+            <span style="color:var(--ink-500);">Monthly TDS (approx)</span>
+            <strong>₹{% widthratio estimate.total_tax 12 1 %}</strong>
+          </div>
+        </div>
+        {% else %}
+        <p style="font-size: 12.5px; color: var(--ink-500);">
+          Your salary details aren&rsquo;t set yet, so we can&rsquo;t show a live estimate. HR can help.
+        </p>
+        {% endif %}
+      </div>
+    </aside>
+  </div>
+</div>
+{% endblock %}

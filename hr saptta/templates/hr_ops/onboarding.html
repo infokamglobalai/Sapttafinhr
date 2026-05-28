@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block page_title %}Onboarding{% endblock %}
+{% block content %}
+<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px;">
+  <div>
+    <h2 style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em;">Onboarding</h2>
+    <p style="font-size: 13.5px; color: var(--ink-500);">Track every new hire's checklist progress.</p>
+  </div>
+  <div style="display: flex; gap: 10px;">
+    <a href="{% url 'hr_ops:onboarding_templates' %}" class="btn-base btn-outline btn-sm">Manage Templates</a>
+  </div>
+</div>
+
+{% if onboardings %}
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 16px;">
+  {% for ob in onboardings %}
+  {% with completion=ob.completion_percentage total=ob.items.count done=ob.items.filter %}
+  <a href="{% url 'hr_ops:onboarding_detail' ob.pk %}" class="surface" style="padding: 20px; text-decoration: none; color: inherit; transition: all 200ms;">
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 14px;">
+      <div style="width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, #FB923C, #EA580C); color: white; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700;">
+        {{ ob.employee.first_name|first }}{{ ob.employee.last_name|first }}
+      </div>
+      <div style="flex: 1; min-width: 0;">
+        <div style="font-size: 14.5px; font-weight: 700; color: var(--ink-900);">{{ ob.employee.full_name }}</div>
+        <div style="font-size: 12px; color: var(--ink-500);">{{ ob.employee.designation.name|default:"" }} · joined {{ ob.employee.date_of_joining|date:"d M" }}</div>
+      </div>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px;">
+      <span style="color: var(--ink-700); font-weight: 600;">{{ completion }}% complete</span>
+      <span style="color: var(--ink-500);">{{ ob.items.count }} tasks</span>
+    </div>
+    <div style="height: 6px; background: var(--ink-100); border-radius: 99px; overflow: hidden;">
+      <div style="height: 100%; width: {{ completion }}%; background: linear-gradient(90deg, #FB923C, #EA580C); border-radius: 99px; transition: width 600ms;"></div>
+    </div>
+  </a>
+  {% endwith %}
+  {% endfor %}
+</div>
+{% else %}
+<div class="surface" style="padding: 80px 24px; text-align: center;">
+  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.4" style="width: 64px; height: 64px; margin: 0 auto 16px; opacity: 0.35;"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+  <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 6px;">No active onboardings</h3>
+  <p style="font-size: 13.5px; color: var(--ink-500); max-width: 420px; margin: 0 auto 20px;">When you create a new employee with a default template configured, onboarding starts automatically.</p>
+  <a href="{% url 'hr_ops:onboarding_template_create' %}" class="btn-base btn-primary">Set up your first template</a>
+</div>
+{% endif %}
+{% endblock %}

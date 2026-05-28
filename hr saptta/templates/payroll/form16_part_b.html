@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Form 16 Part B — {{ employee.full_name }} — FY{{ fy }}</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; font-size: 10pt; color: #1F2937; line-height: 1.4; }
+  .wrap { padding: 28px 32px; }
+  h1 { font-size: 14pt; text-align: center; margin-bottom: 4px; color: #7C2D12; }
+  h2 { font-size: 11pt; text-align: center; color: #C2410C; margin-bottom: 4px; }
+  h3 { font-size: 11pt; margin: 16px 0 6px 0; color: #7C2D12; padding-bottom: 4px; border-bottom: 1px solid #FED7AA; }
+  p.subtitle { text-align: center; font-size: 9pt; color: #6B7280; margin-bottom: 16px; }
+
+  table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+  th { background: #FFF7ED; text-align: left; padding: 6px 8px; font-size: 9pt; font-weight: 700; border: 1px solid #FED7AA; color: #7C2D12; }
+  td { padding: 5px 8px; font-size: 9pt; border: 1px solid #E5E7EB; }
+  td.r { text-align: right; }
+  td.b { font-weight: 700; }
+  tr.total td { background: #FFF7ED; font-weight: 700; }
+
+  .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+               border: 1px solid #E5E7EB; margin-bottom: 16px; }
+  .meta-cell { padding: 6px 10px; border-right: 1px solid #E5E7EB; border-bottom: 1px solid #E5E7EB; }
+  .meta-cell:nth-child(even) { border-right: none; }
+  .meta-label { font-size: 8pt; color: #6B7280; text-transform: uppercase; letter-spacing: 0.04em; }
+  .meta-value { font-size: 10pt; font-weight: 500; }
+
+  .foot { margin-top: 24px; font-size: 8pt; color: #6B7280; border-top: 1px solid #E5E7EB; padding-top: 10px; }
+  .signature { margin-top: 36px; display: flex; justify-content: space-between; font-size: 9pt; }
+  .stamp { background: #FEF3C7; color: #92400E; padding: 4px 8px; border-radius: 4px; font-size: 9pt; font-weight: 700; display: inline-block; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>FORM No. 16 — PART B</h1>
+  <h2>{{ tenant.name }}</h2>
+  <p class="subtitle">
+    Certificate under Section 203 of the Income-tax Act, 1961 for tax deducted at source from income chargeable under the head &ldquo;Salaries&rdquo;.
+    <br><strong>Computer-generated.</strong> Signature not required.
+  </p>
+
+  <div class="meta-grid">
+    <div class="meta-cell"><div class="meta-label">Employee name</div><div class="meta-value">{{ employee.full_name }}</div></div>
+    <div class="meta-cell"><div class="meta-label">Employee code</div><div class="meta-value">{{ employee.employee_code }}</div></div>
+    <div class="meta-cell"><div class="meta-label">PAN of employee</div><div class="meta-value">{{ employee.pan_number|default:"—" }}</div></div>
+    <div class="meta-cell"><div class="meta-label">Designation</div><div class="meta-value">{{ employee.designation.name|default:"—" }}</div></div>
+    <div class="meta-cell"><div class="meta-label">Financial year</div><div class="meta-value">{{ fy }}</div></div>
+    <div class="meta-cell"><div class="meta-label">Assessment year</div><div class="meta-value">{{ assessment_year }}</div></div>
+    <div class="meta-cell"><div class="meta-label">Employer (deductor)</div><div class="meta-value">{{ tenant.name }}</div></div>
+    <div class="meta-cell"><div class="meta-label">Tax regime</div><div class="meta-value"><span class="stamp">{{ form16.regime|upper }}</span></div></div>
+    <div class="meta-cell"><div class="meta-label">Deductor TAN</div><div class="meta-value">{{ tenant.tan|default:"—" }}</div></div>
+    <div class="meta-cell"><div class="meta-label">Deductor PAN</div><div class="meta-value">{{ tenant.pan|default:"—" }}</div></div>
+  </div>
+
+  <h3>1. Gross salary</h3>
+  <table>
+    <tr><td>(a) Salary as per provisions in Sec 17(1) — Annual basic, HRA, allowances</td><td class="r">{{ totals.gross|floatformat:2 }}</td></tr>
+    <tr><td>(b) Value of perquisites under section 17(2)</td><td class="r">0.00</td></tr>
+    <tr><td>(c) Profits in lieu of salary under section 17(3)</td><td class="r">0.00</td></tr>
+    <tr class="total"><td>Total gross salary</td><td class="r">{{ totals.gross|floatformat:2 }}</td></tr>
+  </table>
+
+  <h3>2. Less: Exemptions under section 10</h3>
+  <table>
+    {% for code, amount in tax_calc.exemptions.items %}
+    <tr><td>{{ code }} exemption</td><td class="r">{{ amount|floatformat:2 }}</td></tr>
+    {% empty %}
+    <tr><td colspan="2" style="text-align: center; color: #9CA3AF;">No section-10 exemptions claimed under the {{ form16.regime }} regime.</td></tr>
+    {% endfor %}
+    <tr class="total"><td>Total exemptions</td><td class="r">{{ form16.total_exemptions|floatformat:2 }}</td></tr>
+  </table>
+
+  <h3>3. Standard deduction (Sec 16)</h3>
+  <table>
+    <tr><td>Standard deduction</td><td class="r">{{ form16.standard_deduction|floatformat:2 }}</td></tr>
+    <tr><td>Professional Tax (Sec 16(iii))</td><td class="r">{{ totals.pt|floatformat:2 }}</td></tr>
+  </table>
+
+  <h3>4. Deductions under Chapter VI-A</h3>
+  <table>
+    {% for code, amount in tax_calc.chapter_via.items %}
+    <tr><td>Section {{ code }}</td><td class="r">{{ amount|floatformat:2 }}</td></tr>
+    {% empty %}
+    <tr><td colspan="2" style="text-align: center; color: #9CA3AF;">No Chapter VI-A deductions claimed under the {{ form16.regime }} regime.</td></tr>
+    {% endfor %}
+    <tr class="total"><td>Total Chapter VI-A deductions</td><td class="r">{{ form16.chapter_via_deductions|floatformat:2 }}</td></tr>
+  </table>
+
+  <h3>5. Tax computation</h3>
+  <table>
+    <tr><td>Taxable income (rounded)</td><td class="r b">{{ form16.taxable_income|floatformat:2 }}</td></tr>
+    <tr><td>Tax on total income (before rebate)</td><td class="r">{{ tax_calc.tax_before_rebate|floatformat:2 }}</td></tr>
+    <tr><td>Less: Rebate under Section 87A</td><td class="r">{{ tax_calc.rebate_87a|floatformat:2 }}</td></tr>
+    <tr><td>Tax after rebate</td><td class="r">{{ tax_calc.tax_after_rebate|floatformat:2 }}</td></tr>
+    <tr><td>Add: Health &amp; Education Cess (4%)</td><td class="r">{{ tax_calc.cess|floatformat:2 }}</td></tr>
+    <tr class="total"><td>Total tax liability</td><td class="r">{{ form16.tax_payable|floatformat:2 }}</td></tr>
+  </table>
+
+  <h3>6. Tax deducted at source (TDS)</h3>
+  <table>
+    <tr><td>Total TDS deducted &amp; deposited (per payroll records)</td><td class="r b">{{ form16.tds_deducted|floatformat:2 }}</td></tr>
+    <tr><td>Balance refundable / (payable)</td><td class="r">
+      {% if form16.tds_deducted >= form16.tax_payable %}
+        Refundable: {{ form16.tds_deducted|floatformat:2 }}
+      {% else %}
+        Payable: {{ form16.tax_payable|floatformat:2 }}
+      {% endif %}
+    </td></tr>
+  </table>
+
+  <h3>7. Verification</h3>
+  <p style="font-size: 9pt; padding: 10px; background: #FFF7ED; border-radius: 4px;">
+    I, on behalf of {{ tenant.name }}, certify that the information given above is true and correct based on the books of accounts, documents and other available records maintained by the Deductor.
+  </p>
+
+  <div class="signature">
+    <div>
+      <div>Place: ________________</div>
+      <div>Date: {{ generated_on|date:"d M Y" }}</div>
+    </div>
+    <div>
+      <div>For {{ tenant.name }}</div>
+      <div style="margin-top: 28px;">_______________________________</div>
+      <div>Authorised Signatory</div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <strong>Disclaimer:</strong> This is Form 16 Part B (Annexure to Form 16 issued by the Deductor).
+    Part A is generated by TRACES from the TDS return filed by the deductor; please obtain it
+    from your employer and read this Part B together with Part A. Any tax-payable balance must be
+    discharged through self-assessment tax before filing the ITR.
+  </div>
+</div>
+</body>
+</html>

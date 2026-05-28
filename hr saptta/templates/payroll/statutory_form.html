@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block page_title %}{% if setting %}Edit{% else %}New{% endif %} Statutory Setting{% endblock %}
+{% block content %}
+<div style="max-width: 720px; margin: 0 auto;">
+  <a href="{% url 'payroll:statutory' %}" class="btn-base btn-ghost btn-sm" style="margin-bottom: 14px;">← Back</a>
+  <h2 style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 4px;">{% if setting %}Edit{% else %}New{% endif %} Statutory Setting</h2>
+  <p style="font-size: 13.5px; color: var(--ink-500); margin-bottom: 22px;">Configure PF / ESI / Professional Tax / LWF rates.</p>
+
+  <div class="alert alert-warning" style="margin-bottom: 14px;">
+    <span style="font-size: 13px;"><strong>Legal flag:</strong> Verify these rates with your CA before running payroll.</span>
+  </div>
+
+  <form method="post">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors.0 }}</div>{% endif %}
+
+    <div class="surface" style="padding: 22px; margin-bottom: 14px;">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Type *</label>
+          {{ form.statutory_type }}
+        </div>
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">State Code</label>
+          {{ form.state_code }}
+          <div style="font-size: 11.5px; color: var(--ink-500); margin-top: 4px;">For PT/LWF: IN-KA, IN-MH. Blank for PF/ESI (national).</div>
+        </div>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Employee Rate</label>
+          {{ form.employee_rate }}
+          <div style="font-size: 11.5px; color: var(--ink-500); margin-top: 4px;">As decimal. 12% = 0.12</div>
+        </div>
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Employer Rate</label>
+          {{ form.employer_rate }}
+        </div>
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Wage Ceiling (₹)</label>
+          {{ form.wage_ceiling }}
+          <div style="font-size: 11.5px; color: var(--ink-500); margin-top: 4px;">PF: 15000, ESI: 21000</div>
+        </div>
+      </div>
+      <div style="margin-bottom: 14px;">
+        <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">{{ form.slabs_text.label }}</label>
+        {{ form.slabs_text }}
+        <div style="font-size: 11.5px; color: var(--ink-500); margin-top: 4px;">{{ form.slabs_text.help_text }}</div>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr auto; gap: 14px; align-items: end;">
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Effective Date *</label>
+          {{ form.effective_date }}
+        </div>
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; padding-bottom: 10px;">{{ form.is_active }} Active</label>
+      </div>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; gap: 12px;">
+      <a href="{% url 'payroll:statutory' %}" class="btn-base btn-ghost">Cancel</a>
+      <button type="submit" class="btn-base btn-primary">{% if setting %}Save Changes{% else %}Create Setting{% endif %}</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

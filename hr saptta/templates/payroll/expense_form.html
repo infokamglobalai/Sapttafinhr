@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block page_title %}{% if claim %}Edit Claim{% else %}Submit Expense Claim{% endif %}{% endblock %}
+{% block content %}
+<div style="max-width: 640px; margin: 0 auto;">
+  <a href="{% url 'payroll:my_expenses' %}" class="btn-base btn-ghost btn-sm" style="margin-bottom: 14px;">← Back to my expenses</a>
+  <h2 style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 4px;">{% if claim %}Edit Expense Claim{% else %}Submit Expense Claim{% endif %}</h2>
+  <p style="font-size: 13.5px; color: var(--ink-500); margin-bottom: 22px;">Once approved, the amount adds to your next salary payment.</p>
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors.0 }}</div>{% endif %}
+
+    <div class="surface" style="padding: 22px; margin-bottom: 14px;">
+      <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 14px; margin-bottom: 14px;">
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Category *</label>
+          {{ form.category }}
+          <div style="font-size: 11.5px; color: var(--ink-500); margin-top: 4px;">Travel · Internet · Meals · Software · Other</div>
+        </div>
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Amount (₹) *</label>
+          {{ form.amount }}
+        </div>
+      </div>
+
+      <div style="margin-bottom: 14px;">
+        <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Description *</label>
+        {{ form.description }}
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 14px;">
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Expense Date *</label>
+          {{ form.expense_date }}
+        </div>
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Receipt</label>
+          {{ form.receipt }}
+          <div style="font-size: 11.5px; color: var(--ink-500); margin-top: 4px;">Optional. PDF, image, or scanned bill.</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; gap: 12px;">
+      <a href="{% url 'payroll:my_expenses' %}" class="btn-base btn-ghost">Cancel</a>
+      <button type="submit" class="btn-base btn-primary">{% if claim %}Save Changes{% else %}Submit Claim{% endif %}</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+{% block extra_head %}
+<style>
+  .signup-wrap {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr;
+    background: var(--bg-app);
+  }
+  @media (min-width: 1024px) { .signup-wrap { grid-template-columns: 1.05fr 1fr; } }
+
+  .signup-pitch {
+    display: none;
+    padding: 56px 64px;
+    background: var(--brand-100);
+    border-right: 1px solid var(--border-light);
+    color: var(--ink-900);
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  @media (min-width: 1024px) { .signup-pitch { display: flex; } }
+
+  .pitch-title {
+    font-size: clamp(2rem, 3.5vw, 2.75rem);
+    font-family: var(--font-sans);
+    font-style: normal;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    color: var(--ink-950);
+  }
+  .pitch-sub { font-size: 15px; color: var(--ink-600); margin-top: 14px; line-height: 1.6; max-width: 460px; font-weight: 300; }
+
+  .pitch-list { list-style: none; padding: 0; margin: 36px 0 0 0; }
+  .pitch-list li {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 14px 0; border-top: 1px solid var(--ink-150);
+    font-size: 14px; color: var(--ink-700);
+    font-weight: 300;
+  }
+  .pitch-list li strong {
+    font-weight: 600;
+    color: var(--ink-900);
+  }
+  .pitch-list li:first-child { border-top: none; }
+  .pitch-list .ico {
+    width: 28px; height: 28px; flex-shrink: 0;
+    background: rgba(37, 99, 235, 0.08); border-radius: var(--r-sm);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--brand-500); font-weight: 700;
+  }
+
+  .signup-form-side {
+    display: flex; align-items: center; justify-content: center; padding: 32px;
+  }
+  .signup-card {
+    width: 100%; max-width: 460px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--r-xl);
+    box-shadow: none;
+    padding: 40px;
+    transition: all var(--motion-default);
+  }
+  .signup-card:hover {
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+
+  .signup-title {
+    font-size: 24px;
+    font-family: var(--font-sans);
+    font-style: normal;
+    font-weight: 600;
+    color: var(--ink-950);
+  }
+  .signup-sub { font-size: 13.5px; color: var(--ink-500); margin-top: 4px; margin-bottom: 24px; font-weight: 300; }
+
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 13px; font-weight: 600; color: var(--ink-700); margin-bottom: 6px; }
+  .field input { width: 100%; padding: 10px 12px; border: 1.5px solid var(--ink-200); border-radius: var(--r-md); font-size: 14px; transition: border-color var(--motion-quick); background: var(--bg-card); color: var(--ink-950); }
+  .field input:focus { outline: none; border-color: var(--brand-500); box-shadow: none; }
+
+  .subdomain-row {
+    display: flex; align-items: stretch;
+    border: 1.5px solid var(--ink-200); border-radius: var(--r-md); overflow: hidden;
+    background: var(--bg-card);
+  }
+  .subdomain-row input {
+    border: none !important; border-radius: 0 !important;
+    flex: 1; padding: 10px 12px;
+  }
+  .subdomain-row input:focus { box-shadow: none; }
+  .subdomain-row:focus-within {
+    border-color: var(--brand-500);
+  }
+  .subdomain-suffix {
+    background: var(--ink-100); color: var(--ink-700);
+    padding: 10px 14px; font-size: 13px; font-weight: 600;
+    border-left: 1.5px solid var(--ink-200);
+    display: flex; align-items: center;
+  }
+
+  .terms-row {
+    display: flex; align-items: flex-start; gap: 10px;
+    margin: 18px 0 22px 0;
+    font-size: 12.5px; color: var(--ink-600); line-height: 1.5;
+  }
+  .terms-row input { width: 16px; height: 16px; margin-top: 2px; accent-color: var(--brand-500); }
+  .terms-row a { color: var(--brand-500); text-decoration: none; }
+
+  .signup-btn {
+    width: 100%; padding: 12px;
+    background: transparent;
+    color: var(--brand-500);
+    border: 1px solid var(--brand-500);
+    font-weight: 500; font-size: 14.5px;
+    border-radius: var(--r-sm); cursor: pointer;
+    box-shadow: none;
+    transition: all var(--motion-quick);
+  }
+  .signup-btn:hover {
+    background: var(--brand-500);
+    color: #FFFFFF;
+  }
+  .signup-btn:active { transform: scale(0.985); }
+
+  .signup-foot { text-align: center; font-size: 13px; color: var(--ink-500); margin-top: 18px; font-weight: 300; }
+  .signup-foot a { color: var(--brand-500); font-weight: 500; text-decoration: none; }
+
+  .err {
+    background: var(--err-50); color: #C32B2B;
+    border-left: 3px solid var(--err-500);
+    padding: 10px 12px; border-radius: var(--r-md);
+    font-size: 13px; margin-bottom: 16px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="signup-wrap">
+  <aside class="signup-pitch">
+    <div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:48px;">
+        <div style="width:42px;height:42px;background:var(--bg-card);border:1px solid var(--border-light);border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;color:var(--brand-500);font-weight:600;font-size:18px;">H</div>
+        <div style="font-weight:600;font-size:18px;color:var(--ink-950);">HRMS</div>
+      </div>
+      <h1 class="pitch-title">Set up your HR<br>workspace in 60 seconds.</h1>
+      <p class="pitch-sub">Free 14-day trial. No card required. Import your team, run payroll, approve leave — all from one calm dashboard built for Indian businesses.</p>
+ 
+      <ul class="pitch-list">
+        <li><span class="ico">&#8377;</span><span><strong>Indian payroll built-in</strong> — PF, ESI, PT, TDS, gratuity calculated automatically each month.</span></li>
+        <li><span class="ico">&#10003;</span><span><strong>Geo-fenced attendance</strong> with shift management and regularization workflows.</span></li>
+        <li><span class="ico">&#9733;</span><span><strong>Performance reviews</strong>, structured ratings, goals and acknowledgement.</span></li>
+        <li><span class="ico">&#9993;</span><span><strong>Bank advice export</strong> ready to upload to ICICI, HDFC, Axis and SBI corporate banking.</span></li>
+      </ul>
+    </div>
+    <div style="font-size:12px;color:var(--ink-500);">&copy; HRMS &middot; Made for Indian HR teams</div>
+  </aside>
+
+  <main class="signup-form-side">
+    <div class="signup-card">
+      <h2 class="signup-title">Start your free trial</h2>
+      <p class="signup-sub">14 days. No credit card. Up to 25 employees on the trial plan.</p>
+
+      {% if error %}<div class="err">{{ error }}</div>{% endif %}
+
+      <form method="post" autocomplete="off">
+        {% csrf_token %}
+
+        <div class="field">
+          <label for="company_name">Company name</label>
+          <input id="company_name" type="text" name="company_name" required autofocus
+                 value="{{ initial.company_name }}" placeholder="Acme Pvt Ltd">
+        </div>
+
+        <div class="field">
+          <label for="subdomain">Workspace URL</label>
+          <div class="subdomain-row">
+            <input id="subdomain" type="text" name="subdomain" required
+                   value="{{ initial.subdomain }}" placeholder="acme"
+                   pattern="[a-z][a-z0-9-]{2,49}"
+                   title="3-50 chars, lowercase letters, numbers, dashes; must start with a letter">
+            <span class="subdomain-suffix">.hrms.app</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="admin_email">Your email (HR admin)</label>
+          <input id="admin_email" type="email" name="admin_email" required
+                 value="{{ initial.admin_email }}" placeholder="you@acme.com">
+        </div>
+
+        <div class="field">
+          <label for="admin_password">Password</label>
+          <input id="admin_password" type="password" name="admin_password" required
+                 minlength="8" placeholder="At least 8 characters">
+        </div>
+
+        <div class="field">
+          <label for="admin_password2">Confirm password</label>
+          <input id="admin_password2" type="password" name="admin_password2" required minlength="8">
+        </div>
+
+        <label class="terms-row">
+          <input type="checkbox" name="accept_terms" required>
+          <span>I agree to the <a href="{% url 'tenants:legal_terms' %}" target="_blank">Terms of Service</a> and <a href="{% url 'tenants:legal_privacy' %}" target="_blank">Privacy Policy</a>, and confirm I&rsquo;m authorised to create this workspace.</span>
+        </label>
+
+        <button type="submit" class="signup-btn">Create my workspace &rarr;</button>
+      </form>
+
+      <p class="signup-foot">
+        Already have an account? <a href="{% url 'accounts:login' %}">Sign in</a>
+      </p>
+    </div>
+  </main>
+</div>
+
+<script>
+  // Auto-suggest subdomain from company name
+  (function () {
+    const company = document.getElementById('company_name');
+    const sub = document.getElementById('subdomain');
+    let touched = sub.value.length > 0;
+    sub.addEventListener('input', () => { touched = true; });
+    company.addEventListener('input', () => {
+      if (touched) return;
+      const v = company.value.toLowerCase()
+        .replace(/[^a-z0-9-]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .replace(/-{2,}/g, '-')
+        .slice(0, 30);
+      sub.value = v;
+    });
+  })();
+</script>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block page_title %}{% if template %}Edit{% else %}New{% endif %} Letter Template{% endblock %}
+{% block content %}
+<div style="max-width: 920px; margin: 0 auto;">
+  <a href="{% url 'hr_ops:letter_templates' %}" class="btn-base btn-ghost btn-sm" style="margin-bottom: 14px;">← Back to Templates</a>
+  <h2 style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 4px;">{% if template %}Edit{% else %}New{% endif %} Letter Template</h2>
+  <p style="font-size: 13.5px; color: var(--ink-500); margin-bottom: 22px;">Write HTML with Jinja2 placeholders. The system fills in employee + tenant data on generation.</p>
+
+  <form method="post">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors.0 }}</div>{% endif %}
+
+    <div class="surface" style="padding: 22px; margin-bottom: 14px;">
+      <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 14px; margin-bottom: 14px;">
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Letter Type *</label>
+          {{ form.letter_type }}
+        </div>
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Template Name *</label>
+          {{ form.name }}
+        </div>
+      </div>
+      <label style="display: flex; align-items: center; gap: 8px; font-size: 13px;">{{ form.is_active }} Active</label>
+    </div>
+
+    <div class="surface" style="padding: 22px; margin-bottom: 14px;">
+      <h3 style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-500); margin-bottom: 6px;">Template HTML</h3>
+      {% verbatim %}
+      <p style="font-size: 12.5px; color: var(--ink-500); margin-bottom: 12px;">
+        Available variables:
+        <code style="background: #F1F5F9; padding: 2px 6px; border-radius: 4px;">{{ employee.full_name }}</code>,
+        <code style="background: #F1F5F9; padding: 2px 6px; border-radius: 4px;">{{ employee.designation.name }}</code>,
+        <code style="background: #F1F5F9; padding: 2px 6px; border-radius: 4px;">{{ employee.date_of_joining }}</code>,
+        <code style="background: #F1F5F9; padding: 2px 6px; border-radius: 4px;">{{ tenant.name }}</code>,
+        <code style="background: #F1F5F9; padding: 2px 6px; border-radius: 4px;">{{ today_formatted }}</code>
+      </p>
+      {% endverbatim %}
+      {{ form.template_html }}
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; gap: 12px;">
+      <a href="{% url 'hr_ops:letter_templates' %}" class="btn-base btn-ghost">Cancel</a>
+      <button type="submit" class="btn-base btn-primary">{% if template %}Save Changes{% else %}Create Template{% endif %}</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block page_title %}My Profile{% endblock %}
+{% block content %}
+<div class="max-w-lg mx-auto">
+  <h2 class="text-xl font-bold mb-4">My Profile</h2>
+  <div class="card bg-base-100 shadow">
+    <div class="card-body">
+      <div class="flex items-center gap-4 mb-6">
+        <div class="avatar placeholder">
+          <div class="bg-primary text-primary-content rounded-full w-16">
+            <span class="text-2xl">{{ user.get_full_name|first|upper }}</span>
+          </div>
+        </div>
+        <div>
+          <p class="font-bold text-lg">{{ user.get_full_name }}</p>
+          <p class="text-base-content/60">{{ user.email }}</p>
+        </div>
+      </div>
+      {% if user.employee_profile %}
+      <div class="grid grid-cols-2 gap-4 text-sm">
+        <div><span class="text-base-content/60">Employee Code</span><p class="font-mono font-medium">{{ user.employee_profile.employee_code }}</p></div>
+        <div><span class="text-base-content/60">Department</span><p>{{ user.employee_profile.department.name|default:"—" }}</p></div>
+        <div><span class="text-base-content/60">Designation</span><p>{{ user.employee_profile.designation.name|default:"—" }}</p></div>
+        <div><span class="text-base-content/60">Joined</span><p>{{ user.employee_profile.date_of_joining|date:"d M Y" }}</p></div>
+      </div>
+      {% endif %}
+      <div class="divider"></div>
+      <a href="{% url 'accounts:change_password' %}" class="btn btn-outline btn-sm">Change Password</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block page_title %}{{ employee.full_name }}{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+  <div class="flex items-center gap-3">
+    <a href="{% url 'employees:list' %}" class="btn btn-ghost btn-sm">← Back</a>
+    <h2 class="text-xl font-bold">{{ employee.full_name }}</h2>
+    <span class="badge {% if employee.employment_status == 'active' %}badge-success{% else %}badge-warning{% endif %}">
+      {{ employee.get_employment_status_display }}
+    </span>
+  </div>
+  <div class="flex gap-2">
+    <a href="{% url 'employees:id_card' employee.pk %}" class="btn btn-outline btn-sm" target="_blank">ID Card PDF</a>
+    <a href="{% url 'employees:edit' employee.pk %}" class="btn btn-primary btn-sm">Edit</a>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+  <!-- Left: core info -->
+  <div class="col-span-2 space-y-4">
+    <!-- Personal info card -->
+    <div class="card bg-base-100 shadow">
+      <div class="card-body">
+        <h3 class="card-title text-base">Personal Information</h3>
+        <div class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm mt-2">
+          <div><span class="text-base-content/60">Employee Code</span><p class="font-mono font-medium">{{ employee.employee_code }}</p></div>
+          <div><span class="text-base-content/60">Date of Birth</span><p>{{ employee.date_of_birth|date:"d M Y"|default:"—" }}</p></div>
+          <div><span class="text-base-content/60">Gender</span><p>{{ employee.get_gender_display|default:"—" }}</p></div>
+          <div><span class="text-base-content/60">Blood Group</span><p>{{ employee.blood_group|default:"—" }}</p></div>
+          <div><span class="text-base-content/60">Personal Email</span><p>{{ employee.personal_email|default:"—" }}</p></div>
+          <div><span class="text-base-content/60">Official Email</span><p>{{ employee.official_email|default:"—" }}</p></div>
+          <div><span class="text-base-content/60">Phone</span><p>{{ employee.phone_primary|default:"—" }}</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Employment info -->
+    <div class="card bg-base-100 shadow">
+      <div class="card-body">
+        <h3 class="card-title text-base">Employment</h3>
+        <div class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm mt-2">
+          <div><span class="text-base-content/60">Department</span><p>{{ employee.department.name|default:"—" }}</p></div>
+          <div><span class="text-base-content/60">Designation</span><p>{{ employee.designation.name|default:"—" }}</p></div>
+          <div><span class="text-base-content/60">Reporting Manager</span><p>{{ employee.reporting_manager.full_name|default:"—" }}</p></div>
+          <div><span class="text-base-content/60">Location</span><p>{{ employee.location.name|default:"—" }}</p></div>
+          <div><span class="text-base-content/60">Type</span><p>{{ employee.get_employment_type_display }}</p></div>
+          <div><span class="text-base-content/60">Date of Joining</span><p>{{ employee.date_of_joining|date:"d M Y" }}</p></div>
+          <div><span class="text-base-content/60">Confirmation Date</span><p>{{ employee.date_of_confirmation|date:"d M Y"|default:"—" }}</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Documents -->
+    <div class="card bg-base-100 shadow">
+      <div class="card-body">
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="card-title text-base">Documents</h3>
+          <button class="btn btn-outline btn-sm"
+                  hx-get="{% url 'employees:document_upload' employee.pk %}"
+                  hx-target="#doc-upload-modal"
+                  hx-swap="innerHTML"
+                  onclick="document.getElementById('doc-modal').showModal()">
+            + Upload
+          </button>
+        </div>
+        <div id="document-list">
+          {% include "employees/partials/documents_list.html" with documents=documents employee=employee %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: actions & summary -->
+  <div class="space-y-4">
+    <!-- Photo & quick stats -->
+    <div class="card bg-base-100 shadow">
+      <div class="card-body items-center text-center">
+        {% if employee.profile_photo %}
+        <div class="avatar"><div class="w-24 rounded-full ring ring-primary ring-offset-2"><img src="{{ employee.profile_photo.url }}" alt="{{ employee.full_name }}"></div></div>
+        {% else %}
+        <div class="avatar placeholder"><div class="bg-primary text-primary-content rounded-full w-24"><span class="text-2xl">{{ employee.first_name|first }}{{ employee.last_name|first }}</span></div></div>
+        {% endif %}
+        <p class="font-bold mt-2">{{ employee.full_name }}</p>
+        <p class="text-sm text-base-content/60">{{ employee.designation.name|default:"" }}</p>
+      </div>
+    </div>
+
+    <!-- Quick actions -->
+    <div class="card bg-base-100 shadow">
+      <div class="card-body">
+        <h3 class="font-semibold text-sm mb-2">Actions</h3>
+        <div class="flex flex-col gap-2">
+          <a href="{% url 'hr_ops:letter_templates' %}" class="btn btn-outline btn-sm w-full">Generate Letter</a>
+          <form method="post" action="{% url 'hr_ops:onboarding_start' employee.pk %}">
+            {% csrf_token %}
+            <button class="btn btn-outline btn-sm w-full">Start Onboarding</button>
+          </form>
+          <details class="w-full" style="border: 1px solid #FECACA; border-radius: 10px;">
+            <summary class="btn btn-outline btn-error btn-sm w-full" style="list-style: none; cursor: pointer;">Create Exit Request</summary>
+            <form method="post" action="{% url 'hr_ops:exit_create' employee.pk %}" style="padding: 12px; background: #FEF2F2; border-radius: 0 0 10px 10px;">
+              {% csrf_token %}
+              <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px; color: #991B1B;">Resignation date</label>
+              <input type="date" name="resignation_date" value="{% now 'Y-m-d' %}" required
+                     style="width: 100%; padding: 6px 10px; border: 1px solid #FCA5A5; border-radius: 6px; font-size: 13px; margin-bottom: 8px;">
+              <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px; color: #991B1B;">Reason (optional)</label>
+              <textarea name="exit_reason" rows="2" placeholder="Brief reason"
+                        style="width: 100%; padding: 6px 10px; border: 1px solid #FCA5A5; border-radius: 6px; font-size: 13px; font-family: inherit; margin-bottom: 8px;"></textarea>
+              <button class="btn btn-error btn-sm w-full"
+                      onclick="return confirm('This will mark {{ employee.full_name }} as on notice. Continue?')">
+                Confirm Exit Request
+              </button>
+            </form>
+          </details>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Document upload modal -->
+<dialog id="doc-modal" class="modal">
+  <div class="modal-box">
+    <div id="doc-upload-modal"></div>
+    <div class="modal-action"><button class="btn" onclick="document.getElementById('doc-modal').close()">Close</button></div>
+  </div>
+</dialog>
+{% endblock %}

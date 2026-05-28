@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block page_title %}Bulk Import Employees{% endblock %}
+{% block content %}
+<div class="max-w-4xl mx-auto">
+  <div class="flex items-center gap-3 mb-6">
+    <a href="{% url 'employees:list' %}" class="btn btn-ghost btn-sm">← Back</a>
+    <h2 class="text-xl font-bold">Bulk Import Employees</h2>
+  </div>
+
+  <!-- Format guide -->
+  <div class="card bg-base-100 shadow mb-4">
+    <div class="card-body">
+      <h3 class="font-semibold text-base mb-3">CSV Columns</h3>
+      <p class="text-sm text-base-content/60 mb-3"><strong>Date format:</strong> <code class="bg-base-200 px-1 rounded">DD-MM-YYYY</code>, <code class="bg-base-200 px-1 rounded">DD/MM/YYYY</code>, or <code class="bg-base-200 px-1 rounded">YYYY-MM-DD</code></p>
+
+      <div class="overflow-x-auto">
+        <table class="table table-xs">
+          <thead><tr><th>Column</th><th>Required?</th><th>Example</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr class="bg-error/5"><td><code>first_name</code></td>      <td><span class="badge badge-error badge-xs">Required</span></td><td>Ravi</td>           <td>—</td></tr>
+            <tr class="bg-error/5"><td><code>last_name</code></td>       <td><span class="badge badge-error badge-xs">Required</span></td><td>Kumar</td>          <td>—</td></tr>
+            <tr class="bg-error/5"><td><code>date_of_joining</code></td> <td><span class="badge badge-error badge-xs">Required</span></td><td>15-01-2024</td>     <td>DD-MM-YYYY accepted</td></tr>
+            <tr class="bg-error/5"><td><code>official_email</code></td>  <td><span class="badge badge-error badge-xs">Required</span></td><td>ravi@company.com</td><td>Unique — used as login</td></tr>
+            <tr class="bg-error/5"><td><code>ctc_annual</code></td>      <td><span class="badge badge-error badge-xs">Required</span></td><td>600000</td>         <td>Annual CTC in &#8377; (no commas)</td></tr>
+
+            <tr><td><code>basic_monthly</code></td>      <td><span class="badge badge-warning badge-xs">Auto</span></td><td>20000</td>          <td>Defaults to 40% of CTC ÷ 12</td></tr>
+            <tr><td><code>department</code></td>         <td><span class="badge badge-ghost badge-xs">Optional</span></td><td>Engineering</td> <td>Auto-created if new</td></tr>
+            <tr><td><code>designation</code></td>        <td><span class="badge badge-ghost badge-xs">Optional</span></td><td>Software Engineer</td><td>Auto-created if new</td></tr>
+            <tr><td><code>employment_type</code></td>    <td><span class="badge badge-ghost badge-xs">Optional</span></td><td>full_time</td>   <td>full_time / part_time / contract / intern</td></tr>
+            <tr><td><code>gender</code></td>             <td><span class="badge badge-ghost badge-xs">Optional</span></td><td>male</td>         <td>male / female / other</td></tr>
+            <tr><td><code>phone_primary</code></td>      <td><span class="badge badge-ghost badge-xs">Optional</span></td><td>9876543210</td>   <td>—</td></tr>
+            <tr><td><code>personal_email</code></td>     <td><span class="badge badge-ghost badge-xs">Optional</span></td><td>ravi@gmail.com</td><td>—</td></tr>
+            <tr><td><code>middle_name</code></td>        <td><span class="badge badge-ghost badge-xs">Optional</span></td><td>K</td>             <td>—</td></tr>
+
+            <tr class="bg-warning/5"><td><code>pan</code></td>             <td><span class="badge badge-warning badge-xs">Compliance</span></td><td>ABCDE1234F</td>   <td>For TDS — encrypted on disk</td></tr>
+            <tr class="bg-warning/5"><td><code>aadhaar</code></td>         <td><span class="badge badge-warning badge-xs">Compliance</span></td><td>1234 5678 9012</td><td>Encrypted on disk</td></tr>
+            <tr class="bg-warning/5"><td><code>work_state_code</code></td> <td><span class="badge badge-warning badge-xs">Compliance</span></td><td>IN-KA</td>         <td>Drives Professional Tax (IN-KA, IN-MH...)</td></tr>
+
+            <tr class="bg-info/5"><td><code>bank_name</code></td>     <td><span class="badge badge-info badge-xs">Payroll</span></td><td>HDFC Bank</td>      <td>For salary disbursement</td></tr>
+            <tr class="bg-info/5"><td><code>bank_account</code></td>  <td><span class="badge badge-info badge-xs">Payroll</span></td><td>50100123456789</td> <td>Encrypted on disk</td></tr>
+            <tr class="bg-info/5"><td><code>ifsc_code</code></td>     <td><span class="badge badge-info badge-xs">Payroll</span></td><td>HDFC0001234</td>    <td>—</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4 class="font-semibold text-sm mt-4 mb-2">Example row</h4>
+      <div class="p-3 bg-base-200 rounded text-xs font-mono overflow-x-auto whitespace-nowrap">
+        first_name,last_name,date_of_joining,official_email,ctc_annual,department,designation,phone_primary,pan,work_state_code,bank_name,bank_account,ifsc_code<br>
+        Ravi,Kumar,15-01-2024,ravi@company.com,600000,Engineering,Software Engineer,9876543210,ABCDE1234F,IN-KA,HDFC Bank,50100123456789,HDFC0001234<br>
+        Priya,Sharma,01-02-2024,priya@company.com,720000,HR,HR Executive,9876543211,FGHIJ5678K,IN-KA,ICICI Bank,602501234567,ICIC0006025
+      </div>
+
+      <a href="/static/sample_employees.csv" download class="btn btn-outline btn-xs mt-3">Download sample CSV</a>
+    </div>
+  </div>
+
+  <!-- Upload form -->
+  <div class="card bg-base-100 shadow">
+    <div class="card-body">
+      <form method="post" action="{% url 'employees:bulk_import' %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="form-control mb-4">
+          <label class="label"><span class="label-text font-medium">Upload CSV File</span></label>
+          <input type="file" name="csv_file" accept=".csv" class="file-input file-input-bordered w-full" required>
+        </div>
+        <button type="submit" class="btn btn-primary w-full">Import Employees</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

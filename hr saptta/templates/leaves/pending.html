@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block page_title %}Pending Leave Requests{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+  <h2 class="text-xl font-bold">Pending Leave Requests</h2>
+  <span class="badge badge-warning badge-lg">{{ page_obj.paginator.count }} pending</span>
+</div>
+
+<div id="leave-list">
+  {% include "leaves/partials/pending_list.html" %}
+</div>
+{% endblock %}

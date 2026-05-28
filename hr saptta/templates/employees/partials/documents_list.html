@@ -1,0 +1,13 @@
+<div class="space-y-2">
+  {% for doc in documents %}
+  <div class="flex items-center justify-between p-2 rounded-lg bg-base-200">
+    <div>
+      <p class="text-sm font-medium">{{ doc.document_name }}</p>
+      <p class="text-xs text-base-content/50">{{ doc.get_document_type_display }} · {{ doc.uploaded_at|date:"d M Y" }}</p>
+    </div>
+    <a href="{{ doc.file.url }}" target="_blank" class="btn btn-ghost btn-xs">View</a>
+  </div>
+  {% empty %}
+  <p class="text-sm text-base-content/40 text-center py-4">No documents uploaded yet.</p>
+  {% endfor %}
+</div>

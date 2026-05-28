@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block page_title %}Audit Log{% endblock %}
+{% block content %}
+<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px;">
+  <div>
+    <h2 style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em;">Audit Log</h2>
+    <p style="font-size: 13.5px; color: var(--ink-500);">Who did what, when. {{ page.paginator.count|intcomma }} action{{ page.paginator.count|pluralize }} recorded.</p>
+  </div>
+</div>
+
+<!-- Filter bar -->
+<div class="surface" style="padding: 14px 18px; margin-bottom: 14px;">
+  <form method="get" style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; align-items: center;">
+    <input type="text" name="q" value="{{ filters.q }}" placeholder="Search summary or resource..." class="input input-bordered input-sm">
+    <select name="action" class="select select-bordered select-sm">
+      <option value="">All actions</option>
+      {% for a in actions %}<option value="{{ a }}" {% if filters.action == a %}selected{% endif %}>{{ a|title }}</option>{% endfor %}
+    </select>
+    <select name="resource" class="select select-bordered select-sm">
+      <option value="">All resources</option>
+      {% for r in resources %}<option value="{{ r }}" {% if filters.resource == r %}selected{% endif %}>{{ r }}</option>{% endfor %}
+    </select>
+    <button type="submit" class="btn-base btn-primary btn-sm">Filter</button>
+  </form>
+</div>
+
+<div class="surface" style="padding: 0; overflow: hidden;">
+  <table class="table">
+    <thead>
+      <tr>
+        <th style="width: 140px;">When</th>
+        <th style="width: 160px;">Who</th>
+        <th style="width: 100px;">Action</th>
+        <th style="width: 120px;">Resource</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for log in page %}
+      <tr>
+        <td style="font-size: 12px; color: var(--ink-500); white-space: nowrap;">
+          {{ log.created_at|naturaltime }}
+          <div style="font-size: 11px; color: var(--ink-400); margin-top: 2px;">{{ log.created_at|date:"d M, H:i" }}</div>
+        </td>
+        <td>
+          <div style="font-weight: 600; font-size: 13px;">{{ log.actor_name|default:"system" }}</div>
+        </td>
+        <td>
+          <span class="badge {% if log.action == 'create' %}badge-success{% elif log.action == 'approve' %}badge-info{% elif log.action == 'reject' or log.action == 'delete' %}badge-error{% elif log.action == 'publish' or log.action == 'submit' %}badge-warning{% else %}badge-ghost{% endif %}">
+            {{ log.get_action_display }}
+          </span>
+        </td>
+        <td>
+          <div style="font-size: 12.5px; font-weight: 600;">{{ log.resource_type }}</div>
+          {% if log.resource_label %}<div style="font-size: 11.5px; color: var(--ink-500);">{{ log.resource_label|truncatechars:30 }}</div>{% endif %}
+        </td>
+        <td>
+          <div style="font-size: 13px;">{{ log.summary }}</div>
+          {% if log.details %}<div style="font-size: 11px; color: var(--ink-400); margin-top: 2px; font-family: 'JetBrains Mono', monospace;">{{ log.details|truncatechars:120 }}</div>{% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" style="text-align: center; padding: 60px 0; color: var(--ink-400);">
+        <div style="font-size: 15px; font-weight: 600; color: var(--ink-700);">No audit entries match these filters.</div>
+        <div style="font-size: 13px; margin-top: 4px;">Try clearing filters or do some HR activity in the app.</div>
+      </td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if page.has_other_pages %}
+<div style="display: flex; justify-content: center; gap: 6px; margin-top: 14px;">
+  {% if page.has_previous %}<a href="?page={{ page.previous_page_number }}" class="btn-base btn-outline btn-sm">← Previous</a>{% endif %}
+  <span style="padding: 8px 14px; font-size: 13px; color: var(--ink-700); font-weight: 600;">Page {{ page.number }} / {{ page.paginator.num_pages }}</span>
+  {% if page.has_next %}<a href="?page={{ page.next_page_number }}" class="btn-base btn-outline btn-sm">Next →</a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

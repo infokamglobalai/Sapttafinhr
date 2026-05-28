@@ -1,0 +1,23 @@
+<div class="space-y-1 mt-2">
+  {% for item in onboarding.items.all %}
+  <div class="flex items-center gap-2 text-sm">
+    <span class="{% if item.status == 'completed' %}text-success{% elif item.status == 'skipped' %}text-base-content/30{% else %}text-base-content/60{% endif %}">
+      {% if item.status == 'completed' %}&#10003;{% elif item.status == 'skipped' %}&#8212;{% else %}&#9675;{% endif %}
+    </span>
+    <span class="{% if item.status == 'completed' %}line-through text-base-content/40{% endif %}">
+      {{ item.task.task_name }}
+    </span>
+    <span class="text-xs text-base-content/40 ml-auto">{{ item.task.get_responsible_party_display }}</span>
+    {% if item.status == 'pending' %}
+    <form method="post" action="{% url 'hr_ops:onboarding_item_complete' item.pk %}"
+          hx-post="{% url 'hr_ops:onboarding_item_complete' item.pk %}"
+          hx-target="closest .space-y-1" hx-swap="outerHTML">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-ghost btn-xs">Done</button>
+    </form>
+    {% endif %}
+  </div>
+  {% empty %}
+  <p class="text-xs text-base-content/40">No tasks.</p>
+  {% endfor %}
+</div>

@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block page_title %}{% if template %}Edit{% else %}New{% endif %} Onboarding Template{% endblock %}
+{% block content %}
+<div style="max-width: 1000px; margin: 0 auto;">
+  <a href="{% url 'hr_ops:onboarding_templates' %}" class="btn-base btn-ghost btn-sm" style="margin-bottom: 14px;">← Back to Templates</a>
+  <h2 style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 4px;">{% if template %}Edit{% else %}New{% endif %} Onboarding Template</h2>
+  <p style="font-size: 13.5px; color: var(--ink-500); margin-bottom: 22px;">Define the checklist of tasks every new hire goes through.</p>
+
+  <form method="post">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors.0 }}</div>{% endif %}
+
+    <div class="surface" style="padding: 22px; margin-bottom: 14px;">
+      <div style="display: grid; grid-template-columns: 2fr auto; gap: 14px; align-items: end;">
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Template Name *</label>
+          {{ form.name }}
+        </div>
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; padding-bottom: 10px;">{{ form.is_default }} Default template</label>
+      </div>
+      <div style="font-size: 11.5px; color: var(--ink-500); margin-top: 6px;">Default template auto-runs for every new hire.</div>
+    </div>
+
+    <div class="surface" style="padding: 22px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+        <div>
+          <h3 style="font-size: 14px; font-weight: 700; color: var(--ink-700); text-transform: uppercase; letter-spacing: 0.06em;">Checklist Tasks</h3>
+          <p style="font-size: 12px; color: var(--ink-500); margin-top: 2px;">Each task is due X days after the hire's start date.</p>
+        </div>
+        <button type="button" onclick="addTask()" class="btn-base btn-outline btn-sm">+ Add Task</button>
+      </div>
+
+      {{ formset.management_form }}
+      <div id="task-rows" style="display: flex; flex-direction: column; gap: 10px;">
+        {% for taskform in formset %}
+        <div class="task-row" style="display: grid; grid-template-columns: 2fr 1fr 1fr 90px 80px auto; gap: 8px; padding: 12px; background: var(--ink-50); border-radius: 10px; align-items: end;">
+          {% if taskform.instance.pk %}{{ taskform.id }}{% endif %}
+          <div>
+            {% if forloop.first %}<label style="display:block; font-size:11px; font-weight:700; color: var(--ink-500); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom:4px;">Task name *</label>{% endif %}
+            {{ taskform.task_name }}
+          </div>
+          <div>
+            {% if forloop.first %}<label style="display:block; font-size:11px; font-weight:700; color: var(--ink-500); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom:4px;">Description</label>{% endif %}
+            {{ taskform.description }}
+          </div>
+          <div>
+            {% if forloop.first %}<label style="display:block; font-size:11px; font-weight:700; color: var(--ink-500); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom:4px;">Owner</label>{% endif %}
+            {{ taskform.responsible_party }}
+          </div>
+          <div>
+            {% if forloop.first %}<label style="display:block; font-size:11px; font-weight:700; color: var(--ink-500); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom:4px;">Due (days)</label>{% endif %}
+            {{ taskform.due_days_offset }}
+          </div>
+          <div>
+            {% if forloop.first %}<label style="display:block; font-size:11px; font-weight:700; color: var(--ink-500); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom:4px;">Order</label>{% endif %}
+            {{ taskform.sequence_order }}
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            {% if taskform.instance.pk %}
+            <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--err-600);">{{ taskform.DELETE }} Remove</label>
+            {% else %}
+            <button type="button" onclick="this.closest('.task-row').remove()" class="btn-base btn-ghost btn-sm" style="color: var(--err-600);">✕</button>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 14px;">
+      <a href="{% url 'hr_ops:onboarding_templates' %}" class="btn-base btn-ghost">Cancel</a>
+      <button type="submit" class="btn-base btn-primary">{% if template %}Save Changes{% else %}Create Template{% endif %}</button>
+    </div>
+  </form>
+</div>
+
+<script>
+// Dynamically add empty task rows via formset
+function addTask() {
+  const formset = document.querySelector('#id_tasks-TOTAL_FORMS');
+  const idx = parseInt(formset.value);
+  const container = document.getElementById('task-rows');
+  const first = container.querySelector('.task-row');
+  const clone = first.cloneNode(true);
+  // Replace -0- with new idx in all inputs
+  clone.querySelectorAll('input, select, textarea').forEach(el => {
+    if (el.name) el.name = el.name.replace(/tasks-\d+-/, `tasks-${idx}-`);
+    if (el.id) el.id = el.id.replace(/tasks-\d+-/, `tasks-${idx}-`);
+    if (el.type === 'checkbox') el.checked = false;
+    else if (el.tagName === 'SELECT') el.selectedIndex = 0;
+    else el.value = '';
+  });
+  // Hide labels in cloned (only first row shows labels)
+  clone.querySelectorAll('label').forEach(l => {
+    if (l.tagName === 'LABEL' && !l.querySelector('input')) l.style.display = 'none';
+  });
+  // Replace remove control with X button
+  const last = clone.lastElementChild;
+  last.innerHTML = '<button type="button" onclick="this.closest(\'.task-row\').remove()" class="btn-base btn-ghost btn-sm" style="color: var(--err-600);">✕</button>';
+  container.appendChild(clone);
+  formset.value = idx + 1;
+}
+</script>
+{% endblock %}

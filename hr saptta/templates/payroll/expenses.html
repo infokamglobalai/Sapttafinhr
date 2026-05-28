@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block page_title %}Reimbursements{% endblock %}
+{% block content %}
+<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px;">
+  <div>
+    <h2 style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em;">Reimbursements</h2>
+    <p style="font-size: 13.5px; color: var(--ink-500);">Review employee expense claims. Approved claims auto-pay in the next payroll.</p>
+  </div>
+</div>
+
+<!-- Stats -->
+<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 16px;">
+  <div class="surface" style="padding: 16px 18px;">
+    <div style="font-size: 11px; font-weight: 700; color: var(--warn-600); text-transform: uppercase; letter-spacing: 0.06em;">Pending Approval</div>
+    <div style="display: flex; align-items: baseline; gap: 8px; margin-top: 4px;">
+      <div style="font-size: 26px; font-weight: 800; color: var(--ink-950);">{{ stats.pending_count }}</div>
+      <div style="font-size: 13px; color: var(--ink-500); font-variant-numeric: tabular-nums;">claim{{ stats.pending_count|pluralize }} · &#8377;{{ stats.pending_total|floatformat:0|intcomma }}</div>
+    </div>
+  </div>
+  <div class="surface" style="padding: 16px 18px;">
+    <div style="font-size: 11px; font-weight: 700; color: var(--ok-600); text-transform: uppercase; letter-spacing: 0.06em;">Approved &amp; Awaiting Payroll</div>
+    <div style="display: flex; align-items: baseline; gap: 8px; margin-top: 4px;">
+      <div style="font-size: 26px; font-weight: 800; color: var(--ink-950);">{{ stats.to_pay_count }}</div>
+      <div style="font-size: 13px; color: var(--ink-500); font-variant-numeric: tabular-nums;">claim{{ stats.to_pay_count|pluralize }} · &#8377;{{ stats.to_pay_total|floatformat:0|intcomma }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Status filter -->
+<div style="display: flex; gap: 6px; margin-bottom: 14px;">
+  <a href="?status=pending" class="btn-base {% if status_filter == 'pending' %}btn-primary{% else %}btn-outline{% endif %} btn-sm">Pending</a>
+  <a href="?status=approved" class="btn-base {% if status_filter == 'approved' %}btn-primary{% else %}btn-outline{% endif %} btn-sm">Approved</a>
+  <a href="?status=paid" class="btn-base {% if status_filter == 'paid' %}btn-primary{% else %}btn-outline{% endif %} btn-sm">Paid</a>
+  <a href="?status=rejected" class="btn-base {% if status_filter == 'rejected' %}btn-primary{% else %}btn-outline{% endif %} btn-sm">Rejected</a>
+  <a href="?status=" class="btn-base {% if not status_filter %}btn-primary{% else %}btn-outline{% endif %} btn-sm">All</a>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px;">
+  {% for e in expenses %}
+  <div class="surface" style="padding: 16px 20px;">
+    <div style="display: flex; align-items: flex-start; gap: 14px;">
+      <div style="width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, #FB923C, #EA580C); color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0;">
+        {{ e.employee.first_name|first }}{{ e.employee.last_name|first }}
+      </div>
+      <div style="flex: 1; min-width: 0;">
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <span style="font-size: 14.5px; font-weight: 700;">{{ e.employee.full_name }}</span>
+          {% if e.category %}<span class="badge badge-outline">{{ e.category }}</span>{% endif %}
+          <span class="badge {% if e.status == 'pending' %}badge-warning{% elif e.status == 'approved' %}badge-info{% elif e.status == 'paid' %}badge-success{% else %}badge-error{% endif %}">{{ e.status|title }}</span>
+        </div>
+        {% if e.description %}<div style="font-size: 13px; color: var(--ink-700); margin-top: 4px;">{{ e.description }}</div>{% endif %}
+        <div style="font-size: 11.5px; color: var(--ink-500); margin-top: 4px;">
+          Expense date: {{ e.expense_date|date:"d M Y" }}
+          {% if e.receipt %} · <a href="{{ e.receipt.url }}" target="_blank" style="color: var(--brand-600);">View receipt →</a>{% endif %}
+        </div>
+      </div>
+      <div style="text-align: right; flex-shrink: 0;">
+        <div style="font-size: 20px; font-weight: 800; color: var(--ink-950); font-variant-numeric: tabular-nums;">&#8377;{{ e.amount|floatformat:0|intcomma }}</div>
+        {% if e.status == 'pending' %}
+        <div style="display: flex; gap: 6px; margin-top: 8px;">
+          <form method="post" action="{% url 'payroll:expense_action' e.pk %}" style="display: inline;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="approve">
+            <button type="submit" class="btn-base btn-primary btn-sm">Approve</button>
+          </form>
+          <form method="post" action="{% url 'payroll:expense_action' e.pk %}" style="display: inline;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="reject">
+            <button type="submit" class="btn-base btn-outline btn-sm" style="color: var(--err-600); border-color: var(--err-200);" onclick="return confirm('Reject this claim?')">Reject</button>
+          </form>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="surface" style="padding: 60px 24px; text-align: center; color: var(--ink-400);">
+    No {{ status_filter|default:"" }} expense claims.
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

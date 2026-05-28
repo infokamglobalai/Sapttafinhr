@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+{% block page_title %}Review: {{ employee.full_name }}{% endblock %}
+{% block content %}
+<div class="max-w-4xl mx-auto">
+  <div class="flex items-center gap-3 mb-6">
+    <a href="{% url 'performance:team_reviews' %}" class="btn btn-ghost btn-sm">← Back</a>
+    <div class="flex-1">
+      <h2 class="text-xl font-bold">Performance Review</h2>
+      <p class="text-sm text-base-content/60">
+        <strong>{{ employee.full_name }}</strong> ({{ employee.employee_code }}) ·
+        {{ employee.designation }} · {{ cycle.name }}
+      </p>
+    </div>
+    <span class="badge badge-lg {% if review.status == 'draft' %}badge-warning{% elif review.status == 'submitted' %}badge-info{% else %}badge-success{% endif %}">
+      {{ review.get_status_display }}
+    </span>
+  </div>
+
+  {# ── AI Draft Assistant ── #}
+  <div id="ai-assistant" style="background: linear-gradient(135deg, #FFF7ED 0%, #FED7AA 100%); border: 1px solid #FED7AA; border-radius: 16px; padding: 18px 20px; margin-bottom: 18px;">
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px;">
+      <div>
+        <div style="font-weight: 700; color: #7C2D12; font-size: 14px;">
+          AI Draft Assistant
+          <span style="font-size: 10.5px; background: #fff; color: #C2410C; padding: 2px 8px; border-radius: 999px; margin-left: 6px; font-weight: 600;">Optional</span>
+        </div>
+        <div style="font-size: 12.5px; color: #9A3412;">Paste rough bullet notes &mdash; the assistant turns them into structured paragraphs. You always review &amp; edit before saving.</div>
+      </div>
+      <button type="button" id="ai-toggle" style="background: #fff; border: 1px solid #FED7AA; color: #C2410C; padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;">Show</button>
+    </div>
+    <div id="ai-panel" style="display: none; margin-top: 8px;">
+      <textarea id="ai-notes" rows="6" placeholder="e.g.
+- Shipped the new bank-advice export feature on time
+- Mentored 2 juniors through onboarding
+- Sometimes misses standups when context-switching
+- Needs to be more proactive in sharing blockers" style="width: 100%; padding: 10px 12px; border: 1px solid #FED7AA; border-radius: 10px; font-family: inherit; font-size: 13.5px; resize: vertical;"></textarea>
+      <div style="display: flex; align-items: center; gap: 10px; margin-top: 10px;">
+        <button type="button" id="ai-draft-btn" style="background: linear-gradient(180deg, #F97316, #EA580C); color: #fff; padding: 9px 20px; border: none; border-radius: 10px; font-weight: 600; font-size: 13px; cursor: pointer; box-shadow: 0 4px 12px rgba(249,115,22,0.30);">Draft from notes</button>
+        <div id="ai-status" style="font-size: 12px; color: #9A3412;"></div>
+      </div>
+      <div id="ai-bias" style="display: none; margin-top: 12px; padding: 10px 12px; background: #FEF2F2; border-left: 3px solid #DC2626; border-radius: 8px; font-size: 12.5px;"></div>
+      <div id="ai-rating" style="display: none; margin-top: 8px; font-size: 12.5px; color: #7C2D12;"></div>
+    </div>
+  </div>
+
+  <form method="post">
+    {% csrf_token %}
+
+    <!-- Period being reviewed -->
+    <div class="alert alert-info mb-4">
+      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      <span class="text-sm">Review period: <strong>{{ cycle.review_period_start|date:"d M Y" }}</strong> → <strong>{{ cycle.review_period_end|date:"d M Y" }}</strong></span>
+    </div>
+
+    <!-- Ratings -->
+    <div class="card bg-base-100 shadow mb-4">
+      <div class="card-body">
+        <h3 class="card-title text-base mb-4">Ratings (1 = below, 5 = outstanding)</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="form-control">
+            <label class="label"><span class="label-text font-medium">Technical Skills</span></label>
+            {{ form.technical_rating }}
+            <div class="label"><span class="label-text-alt text-base-content/50">Skill, expertise, output quality</span></div>
+          </div>
+          <div class="form-control">
+            <label class="label"><span class="label-text font-medium">Communication</span></label>
+            {{ form.communication_rating }}
+            <div class="label"><span class="label-text-alt text-base-content/50">Clarity, responsiveness, collaboration</span></div>
+          </div>
+          <div class="form-control">
+            <label class="label"><span class="label-text font-medium">Ownership</span></label>
+            {{ form.ownership_rating }}
+            <div class="label"><span class="label-text-alt text-base-content/50">Initiative, accountability, follow-through</span></div>
+          </div>
+          <div class="form-control">
+            <label class="label"><span class="label-text font-medium">Teamwork</span></label>
+            {{ form.teamwork_rating }}
+            <div class="label"><span class="label-text-alt text-base-content/50">Collaboration, mentorship, team spirit</span></div>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div class="form-control">
+          <label class="label"><span class="label-text font-medium text-base">Overall Rating *</span></label>
+          {{ form.overall_rating }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Narrative -->
+    <div class="card bg-base-100 shadow mb-4">
+      <div class="card-body">
+        <h3 class="card-title text-base mb-4">Narrative</h3>
+        <div class="space-y-4">
+          <div class="form-control">
+            <label class="label"><span class="label-text font-medium">Key Achievements</span></label>
+            {{ form.key_achievements }}
+          </div>
+          <div class="form-control">
+            <label class="label"><span class="label-text font-medium">Strengths</span></label>
+            {{ form.strengths }}
+          </div>
+          <div class="form-control">
+            <label class="label"><span class="label-text font-medium">Areas for Improvement</span></label>
+            {{ form.areas_for_improvement }}
+          </div>
+          <div class="form-control">
+            <label class="label"><span class="label-text font-medium">Goals for Next Period</span></label>
+            {{ form.goals_next_period }}
+          </div>
+          <div class="form-control">
+            <label class="label"><span class="label-text font-medium">Manager Comments</span></label>
+            {{ form.manager_comments }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex justify-end gap-3">
+      <a href="{% url 'performance:team_reviews' %}" class="btn btn-ghost">Cancel</a>
+      <button type="submit" name="action" value="save_draft" class="btn btn-outline">Save as Draft</button>
+      <button type="submit" name="action" value="submit" class="btn btn-primary"
+              onclick="return confirm('Submit this review to {{ employee.full_name }}? They will be notified and asked to acknowledge.')">
+        Submit to Employee
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+(function () {
+  const toggle = document.getElementById('ai-toggle');
+  const panel  = document.getElementById('ai-panel');
+  const btn    = document.getElementById('ai-draft-btn');
+  const notes  = document.getElementById('ai-notes');
+  const status = document.getElementById('ai-status');
+  const bias   = document.getElementById('ai-bias');
+  const rating = document.getElementById('ai-rating');
+
+  toggle.addEventListener('click', () => {
+    const open = panel.style.display !== 'none';
+    panel.style.display = open ? 'none' : 'block';
+    toggle.textContent = open ? 'Show' : 'Hide';
+  });
+
+  function setField(name, value) {
+    if (!value) return;
+    const el = document.querySelector(`[name="${name}"]`);
+    if (el) el.value = value;
+  }
+
+  btn.addEventListener('click', async () => {
+    const text = notes.value.trim();
+    if (text.length < 20) {
+      status.textContent = 'Write at least a couple of sentences.';
+      status.style.color = '#DC2626';
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = 'Drafting...';
+    status.style.color = '#9A3412';
+    status.textContent = 'Calling AI assistant...';
+    bias.style.display = 'none';
+    rating.style.display = 'none';
+
+    try {
+      const csrf = document.querySelector('[name="csrfmiddlewaretoken"]').value;
+      const fd = new FormData();
+      fd.append('notes', text);
+      fd.append('csrfmiddlewaretoken', csrf);
+
+      const url = "{% url 'performance:ai_draft_review' employee.pk cycle.pk %}";
+      const r = await fetch(url, {
+        method: 'POST',
+        body: fd,
+        headers: { 'X-CSRFToken': csrf },
+      });
+      const data = await r.json();
+      if (!r.ok) {
+        status.textContent = data.error || 'AI service failed.';
+        status.style.color = '#DC2626';
+        return;
+      }
+      const d = data.draft;
+      setField('key_achievements',      d.key_achievements);
+      setField('strengths',             d.strengths);
+      setField('areas_for_improvement', d.areas_for_improvement);
+      setField('goals_next_period',     d.goals_next_period);
+      setField('manager_comments',      d.manager_comments);
+      // Suggested rating
+      const overall = document.querySelector('[name="overall_rating"]');
+      if (overall && d.suggested_overall) {
+        overall.value = String(d.suggested_overall);
+      }
+
+      status.style.color = '#15803D';
+      status.textContent = 'Draft inserted. Review and edit before saving.';
+
+      if (d.rating_rationale) {
+        rating.style.display = 'block';
+        rating.innerHTML = '<strong>Suggested overall:</strong> ' + d.suggested_overall + '/5 &middot; ' + d.rating_rationale;
+      }
+      if (d.bias_flags && d.bias_flags.length) {
+        bias.style.display = 'block';
+        let html = '<strong style="color:#991B1B;">Potential bias detected in your notes:</strong><ul style="margin: 6px 0 0 18px; padding: 0;">';
+        d.bias_flags.forEach(f => {
+          html += `<li><code style="background:#fff;padding:1px 5px;border-radius:3px;">${f.term}</code> &mdash; ${f.explanation}</li>`;
+        });
+        html += '</ul>';
+        bias.innerHTML = html;
+      }
+    } catch (err) {
+      status.textContent = 'Network error: ' + err.message;
+      status.style.color = '#DC2626';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Draft from notes';
+    }
+  });
+})();
+</script>
+{% endblock %}

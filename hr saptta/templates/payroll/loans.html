@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block page_title %}Loans & Advances{% endblock %}
+{% block content %}
+<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px;">
+  <div>
+    <h2 style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em;">Loans &amp; Advances</h2>
+    <p style="font-size: 13.5px; color: var(--ink-500);">Track employee loans. EMIs deduct from payroll automatically.</p>
+  </div>
+  <a href="{% url 'payroll:loan_create' %}" class="btn-base btn-primary btn-sm">+ New Loan</a>
+</div>
+
+<!-- Stats -->
+<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 16px;">
+  <div class="surface" style="padding: 16px 18px;">
+    <div style="font-size: 11px; font-weight: 700; color: var(--ink-500); text-transform: uppercase; letter-spacing: 0.06em;">Active Loans</div>
+    <div style="font-size: 26px; font-weight: 800; color: var(--ink-950); margin-top: 4px;">{{ stats.active_count }}</div>
+  </div>
+  <div class="surface" style="padding: 16px 18px;">
+    <div style="font-size: 11px; font-weight: 700; color: var(--ink-500); text-transform: uppercase; letter-spacing: 0.06em;">Total Disbursed</div>
+    <div style="font-size: 26px; font-weight: 800; color: var(--ink-950); margin-top: 4px; font-variant-numeric: tabular-nums;">&#8377;{{ stats.total_principal|floatformat:0|intcomma }}</div>
+  </div>
+  <div class="surface" style="padding: 16px 18px;">
+    <div style="font-size: 11px; font-weight: 700; color: var(--ink-500); text-transform: uppercase; letter-spacing: 0.06em;">Outstanding</div>
+    <div style="font-size: 26px; font-weight: 800; color: var(--err-600); margin-top: 4px; font-variant-numeric: tabular-nums;">&#8377;{{ stats.total_outstanding|floatformat:0|intcomma }}</div>
+  </div>
+</div>
+
+<!-- Filter pills -->
+<div style="display: flex; gap: 6px; margin-bottom: 14px;">
+  <a href="?status=active" class="btn-base {% if status_filter == 'active' %}btn-primary{% else %}btn-outline{% endif %} btn-sm">Active</a>
+  <a href="?status=closed" class="btn-base {% if status_filter == 'closed' %}btn-primary{% else %}btn-outline{% endif %} btn-sm">Closed</a>
+  <a href="?status=" class="btn-base {% if not status_filter %}btn-primary{% else %}btn-outline{% endif %} btn-sm">All</a>
+</div>
+
+<div class="surface" style="padding: 0; overflow: hidden;">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Employee</th>
+        <th>Type</th>
+        <th style="text-align: right;">Principal</th>
+        <th style="text-align: right;">EMI</th>
+        <th style="text-align: center;">Progress</th>
+        <th style="text-align: right;">Outstanding</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for l in loans %}
+      <tr style="cursor: pointer;" onclick="window.location='{% url 'payroll:loan_detail' l.pk %}'">
+        <td>
+          <div style="font-weight: 600;">{{ l.employee.full_name }}</div>
+          <div style="font-size: 11.5px; color: var(--ink-500);">{{ l.employee.employee_code }}</div>
+        </td>
+        <td>{{ l.loan_type|default:"—" }}</td>
+        <td style="text-align: right; font-variant-numeric: tabular-nums; font-weight: 600;">&#8377;{{ l.principal_amount|floatformat:0|intcomma }}</td>
+        <td style="text-align: right; font-variant-numeric: tabular-nums;">&#8377;{{ l.emi_amount|floatformat:0|intcomma }}</td>
+        <td style="text-align: center; min-width: 140px;">
+          <div style="font-size: 11px; color: var(--ink-500); margin-bottom: 2px;">{{ l.paid_installments }} / {{ l.total_installments }}</div>
+          <div style="height: 6px; background: var(--ink-100); border-radius: 99px; overflow: hidden;">
+            {% widthratio l.paid_installments l.total_installments 100 as pct %}
+            <div style="height: 100%; width: {{ pct }}%; background: linear-gradient(90deg, #FB923C, #EA580C);"></div>
+          </div>
+        </td>
+        <td style="text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; color: var(--err-600);">&#8377;{{ l.outstanding_amount|floatformat:0|intcomma }}</td>
+        <td><span class="badge {% if l.status == 'active' %}badge-info{% else %}badge-success{% endif %}">{{ l.status|title }}</span></td>
+        <td><a href="{% url 'payroll:loan_detail' l.pk %}" class="btn-base btn-ghost btn-sm">View</a></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="8" style="text-align: center; padding: 40px 0; color: var(--ink-400);">No loans found.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block page_title %}Exit Management{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+  <h2 class="text-xl font-bold">Exit Requests</h2>
+</div>
+<div class="card bg-base-100 shadow overflow-x-auto">
+  <table class="table table-sm">
+    <thead><tr><th>Employee</th><th>Resignation Date</th><th>Last Working Day</th><th>Status</th><th>FnF</th><th>Assets</th></tr></thead>
+    <tbody>
+      {% for exit in exits %}
+      <tr>
+        <td>
+          <div class="font-medium text-sm">{{ exit.employee.full_name }}</div>
+          <div class="text-xs text-base-content/50">{{ exit.employee.department.name|default:"" }}</div>
+        </td>
+        <td>{{ exit.resignation_date|date:"d M Y" }}</td>
+        <td>{{ exit.last_working_date|date:"d M Y"|default:"TBD" }}</td>
+        <td>
+          <span class="badge badge-sm
+            {% if exit.status == 'accepted' %}badge-success
+            {% elif exit.status == 'rejected' %}badge-error
+            {% elif exit.status == 'pending' %}badge-warning
+            {% else %}badge-ghost{% endif %}">
+            {{ exit.get_status_display }}
+          </span>
+        </td>
+        <td>{% if exit.fnf_cleared %}<span class="badge badge-success badge-xs">Done</span>{% else %}<span class="badge badge-ghost badge-xs">Pending</span>{% endif %}</td>
+        <td>{% if exit.assets_returned %}<span class="badge badge-success badge-xs">Returned</span>{% else %}<span class="badge badge-warning badge-xs">Pending</span>{% endif %}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="text-center py-8 text-base-content/40">No exit requests. Initiate from an employee's profile page.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

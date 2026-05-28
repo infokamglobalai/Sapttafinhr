@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block page_title %}Attendance Register{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+  <h2 class="text-xl font-bold">Attendance Register</h2>
+  <div class="flex gap-2">
+    <a href="{% url 'attendance:regularizations' %}" class="btn btn-outline btn-sm">Pending Corrections</a>
+    <a href="{% url 'attendance:shifts' %}" class="btn btn-outline btn-sm">Shifts</a>
+  </div>
+</div>
+
+<!-- Date filter -->
+<div class="card bg-base-100 shadow mb-4">
+  <div class="card-body p-4">
+    <form hx-get="{% url 'attendance:register' %}"
+          hx-target="#attendance-table"
+          hx-push-url="true"
+          class="flex gap-3 items-end flex-wrap">
+      <div class="form-control">
+        <label class="label"><span class="label-text text-xs">Date</span></label>
+        <input type="date" name="date" value="{{ selected_date|date:'Y-m-d' }}" class="input input-bordered input-sm">
+      </div>
+      <div class="form-control">
+        <label class="label"><span class="label-text text-xs">Department</span></label>
+        <select name="department" class="select select-bordered select-sm">
+          <option value="">All</option>
+          {% for dept in departments %}
+          <option value="{{ dept.id }}" {% if selected_dept == dept.id|stringformat:"s" %}selected{% endif %}>{{ dept.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-control">
+        <input type="text" name="q" value="{{ search }}" placeholder="Search employee..." class="input input-bordered input-sm">
+      </div>
+      <button type="submit" class="btn btn-sm btn-neutral">Search</button>
+    </form>
+  </div>
+</div>
+
+<div id="attendance-table">
+  {% include "attendance/partials/attendance_table.html" %}
+</div>
+{% endblock %}

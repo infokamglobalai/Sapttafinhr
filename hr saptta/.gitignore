@@ -1,0 +1,65 @@
+# ─────────── Secrets & environment ───────────
+.env
+.env.*
+!.env.example
+*.env.local
+.envrc
+
+# ─────────── Python ───────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.mypy_cache/
+.ruff_cache/
+
+# ─────────── Django ───────────
+staticfiles/
+media/
+*.sqlite3
+*.sqlite3-journal
+local_settings.py
+
+# ─────────── Backups & dumps ───────────
+backups/
+*.sql
+*.sql.gz
+*.dump
+*.gz
+
+# ─────────── IDE / editors ───────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-*
+
+# ─────────── OS ───────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─────────── Logs ───────────
+*.log
+logs/
+
+# ─────────── Virtual environments ───────────
+venv/
+env/
+.venv/
+ENV/
+
+# ─────────── Project-local scratch / temp ───────────
+_smoke_*.py
+_scratch_*.py
+*.bak
+.claude/

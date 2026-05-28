@@ -1,0 +1,96 @@
+{% extends "legal/_base_legal.html" %}
+{% block eyebrow %}Privacy{% endblock %}
+{% block legal_title %}Privacy Policy{% endblock %}
+
+{% block legal_body %}
+<div class="callout">
+  <strong>Plain English:</strong> We collect only the information your HR team needs to run payroll
+  and people operations. We don&rsquo;t sell your data, and we encrypt sensitive identifiers
+  (PAN, Aadhaar, bank accounts) at rest. This is a draft policy; please have it reviewed by a
+  qualified lawyer before launch.
+</div>
+
+<h2>1. Who we are</h2>
+<p>
+  HRMS (&ldquo;the Service&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;) is a multi-tenant
+  human resources platform operated from India. Each customer organization
+  (&ldquo;Workspace Owner&rdquo;) is the <strong>data fiduciary</strong> for the personal data of
+  its employees stored in the Service. HRMS acts as a <strong>data processor</strong> on the
+  Workspace Owner&rsquo;s instructions.
+</p>
+
+<h2>2. What we collect</h2>
+<p>For each employee in a Workspace, the Workspace Owner may upload or generate:</p>
+<ul>
+  <li>Identity data: name, date of birth, gender, photograph, email, phone</li>
+  <li>Employment data: designation, department, salary, attendance, leave, performance reviews</li>
+  <li>Statutory identifiers: PAN, Aadhaar, UAN, ESI, bank account &mdash; <strong>encrypted at rest</strong></li>
+  <li>System usage data: IP address, browser, login timestamps, audit-log events</li>
+</ul>
+
+<h2>3. How we use it</h2>
+<ul>
+  <li>To provide the Service contracted by the Workspace Owner (payroll, attendance, leave, reviews)</li>
+  <li>To send transactional emails (password reset, notifications, payslips)</li>
+  <li>To detect abuse and secure the platform (rate-limiting, audit logs, anomaly detection)</li>
+  <li>To comply with Indian statutory obligations applicable to the Service operator</li>
+</ul>
+<p>We do <strong>not</strong> use your data to train models, sell to advertisers, or share with
+third parties beyond what is described in section 5.</p>
+
+<h2>4. Legal basis (DPDPA 2023)</h2>
+<p>Under India&rsquo;s Digital Personal Data Protection Act, 2023, the lawful grounds for
+processing personal data of Data Principals (employees) are:</p>
+<ul>
+  <li><strong>Contract:</strong> processing is necessary to perform the employment relationship</li>
+  <li><strong>Legitimate use:</strong> for payroll, statutory compliance and reasonable HR operations</li>
+  <li><strong>Consent:</strong> where required, the Workspace Owner is responsible for obtaining it</li>
+</ul>
+
+<h2>5. Sub-processors</h2>
+<p>We rely on the following sub-processors to operate the Service:</p>
+<ul>
+  <li><strong>DigitalOcean</strong> (Bangalore region) &mdash; hosting and object storage</li>
+  <li><strong>Amazon Web Services (Mumbai)</strong> &mdash; transactional email (Amazon SES)</li>
+  <li><strong>Sentry</strong> &mdash; error monitoring (no PII, only stack traces)</li>
+</ul>
+<p>An up-to-date list is maintained in our <a href="{% url 'tenants:legal_dpa' %}">Data Processing Addendum</a>.</p>
+
+<h2>6. Security</h2>
+<ul>
+  <li>All traffic is encrypted in transit (TLS 1.2+)</li>
+  <li>Statutory identifiers (PAN, Aadhaar, bank accounts) are encrypted at rest using Fernet (AES-128)</li>
+  <li>Database backups are encrypted and stored in object storage with private ACL</li>
+  <li>Access controls are tenant-isolated; rate-limiting protects against brute-force</li>
+  <li>An audit log records all sensitive operations (export, role grant, salary change)</li>
+</ul>
+
+<h2>7. Data retention</h2>
+<p>While a Workspace is active, employee data is retained for the duration of the
+employment relationship. After an employee is marked &ldquo;exited&rdquo;, salary,
+attendance and tax records are retained for the minimum period required by Indian
+labour law (typically 7 years). If a Workspace is cancelled, data is deleted within
+90 days of cancellation unless statutory retention applies.</p>
+
+<h2>8. Your rights</h2>
+<p>If you are an employee whose data is processed by us on behalf of your employer, please
+direct rights requests (access, correction, erasure) to your employer&rsquo;s HR or Privacy
+Officer in the first instance. They are the Data Fiduciary. We will support them in
+fulfilling your request within statutory timelines.</p>
+
+<h2>9. Children</h2>
+<p>The Service is not directed at children under 18 and we do not knowingly collect their
+data.</p>
+
+<h2>10. Cross-border transfers</h2>
+<p>All production data is stored on infrastructure located in India. Backups may be replicated
+within the Asia-Pacific region in line with disaster-recovery best practices.</p>
+
+<h2>11. Contact</h2>
+<p>For privacy enquiries, email <a href="mailto:privacy@yourbrand.com">privacy@yourbrand.com</a>.
+Our Grievance Officer can be contacted at <a href="mailto:grievance@yourbrand.com">grievance@yourbrand.com</a>.</p>
+
+<h2>12. Changes</h2>
+<p>We may update this policy. We will notify Workspace Owners by email at least 30 days
+before material changes take effect.</p>
+{% endblock %}

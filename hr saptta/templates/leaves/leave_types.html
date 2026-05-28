@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block page_title %}Leave Types{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+  <h2 class="text-xl font-bold">Leave Types</h2>
+  <a href="{% url 'leaves:leave_type_create' %}" class="btn btn-primary btn-sm">+ Add Leave Type</a>
+</div>
+<div class="card bg-base-100 shadow overflow-x-auto">
+  <table class="table table-sm">
+    <thead><tr><th>Name</th><th>Code</th><th>Paid</th><th>Accrual</th><th>Annual Cap</th><th>Carry Forward</th><th>Half Day</th><th>Status</th></tr></thead>
+    <tbody>
+      {% for lt in leave_types %}
+      <tr>
+        <td class="font-medium">{{ lt.name }}</td>
+        <td><span class="badge badge-outline badge-sm">{{ lt.code }}</span></td>
+        <td>{% if lt.is_paid %}<span class="badge badge-success badge-sm">Paid</span>{% else %}<span class="badge badge-ghost badge-sm">Unpaid</span>{% endif %}</td>
+        <td class="text-sm">{{ lt.get_accrual_type_display }}<br><span class="text-xs text-base-content/50">{{ lt.accrual_value }} days</span></td>
+        <td>{{ lt.max_annual_balance|default:"Unlimited" }}</td>
+        <td>{{ lt.max_carry_forward }}</td>
+        <td>{% if lt.allow_half_day %}Yes{% else %}No{% endif %}</td>
+        <td><span class="badge badge-sm {% if lt.is_active %}badge-success{% else %}badge-ghost{% endif %}">{% if lt.is_active %}Active{% else %}Off{% endif %}</span></td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="8" class="text-center py-8">
+          <p class="text-base-content/40 mb-3">No leave types configured.</p>
+          <a href="{% url 'leaves:leave_type_create' %}" class="btn btn-primary btn-sm">Create leave types</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
