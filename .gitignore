@@ -48,6 +48,11 @@ venv/
 env/
 ENV/
 
+# Celery runtime
+celerybeat-schedule
+celerybeat-schedule.*
+celerybeat.pid
+
 # ─────────── Django ───────────
 *.log
 local_settings.py
