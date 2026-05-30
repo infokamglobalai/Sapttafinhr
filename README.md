@@ -47,11 +47,22 @@ Requires Docker. From the repo root:
 
 ```bash
 cp .env.example .env
-# set HR_FIELD_ENCRYPTION_KEY (a Fernet key):
-python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+# Fill in .env — generate real secrets (do NOT ship the examples):
+python -c "import secrets; print('FIN_SECRET_KEY=' + secrets.token_urlsafe(48))"
+python -c "import secrets; print('HR_SECRET_KEY=' + secrets.token_urlsafe(48))"
+python -c "from cryptography.fernet import Fernet; print('HR_FIELD_ENCRYPTION_KEY=' + Fernet.generate_key().decode())"
 
 docker compose up --build
 ```
+
+> **Hosts file (required on Windows; usually automatic on Linux/macOS).**
+> The stack routes by subdomain, so `*.localhost` must resolve to 127.0.0.1.
+> Most Linux/macOS resolve `*.localhost` automatically. On **Windows**, add to
+> `C:\Windows\System32\drivers\etc\hosts`:
+> ```
+> 127.0.0.1 localhost acme.localhost hr.localhost
+> ```
+> Add one line per workspace subdomain you create.
 
 Then:
 
