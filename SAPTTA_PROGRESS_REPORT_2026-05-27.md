@@ -9,9 +9,9 @@ Prepared for: Project Documentation
 ## 1. Executive Summary
 
 This progress report is prepared by reviewing the current codebase across:
-- HR platform: hr saptta
-- Accounts platform: fin saptta
-- Website and marketing portal: sappta
+- HR platform: apps/hr (formerly "hr saptta")
+- Accounts platform: apps/finance (formerly "fin saptta")
+- Website and marketing portal: apps/web (formerly "sappta")
 
 Current implementation maturity:
 - HRMS services: approximately 79 percent completed

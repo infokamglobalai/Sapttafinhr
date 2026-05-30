@@ -1,0 +1,151 @@
+# ─────────────────────────────────────────────────────────────────────────
+# Saptta — unified dev stack (one command brings up the whole platform).
+#
+#   nginx (the front door) ........ http://localhost:8080
+#     ├── /            → web (SPA: marketing + app shell)
+#     ├── /api/v1      → fin-backend  (auth/saas on localhost; tenant on
+#     │                                {workspace}.localhost)
+#     └── /hr/         → hr-backend   (existing HR pages, embedded)
+#
+# Bring up:   docker compose up --build
+# Seed FIN:   docker compose exec fin-backend python manage.py bootstrap_dev
+# Seed HR:    docker compose exec hr-backend python manage.py create_tenant ...
+#
+# Then open http://localhost:8080  and sign in with the FIN dev user
+# (admin@acme.test / admin12345 after bootstrap_dev).
+#
+# NOTE: add `127.0.0.1 acme.localhost` to your hosts file if your OS does not
+# already resolve *.localhost (most Linux/macOS do; Windows may need it).
+# ─────────────────────────────────────────────────────────────────────────
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-finsaptta}
+      POSTGRES_USER: ${POSTGRES_USER:-finsaptta}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-finsaptta}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-finsaptta}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── FIN (fin-saptta): django-tenants + DRF + JWT ──────────────────────
+  fin-backend:
+    build:
+      context: ./apps/finance/backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+      DJANGO_SECRET_KEY: ${FIN_SECRET_KEY:-insecure-dev-key-change-me}
+      DJANGO_DEBUG: "True"
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,.localhost,fin-backend
+      POSTGRES_DB: ${POSTGRES_DB:-finsaptta}
+      POSTGRES_USER: ${POSTGRES_USER:-finsaptta}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-finsaptta}
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+      REDIS_URL: redis://redis:6379/0
+      # SPA is served from the nginx front door on :8080 (both hosts).
+      CORS_ALLOWED_ORIGINS: http://localhost:8080,http://127.0.0.1:8080
+    volumes:
+      - ./apps/finance/backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "python manage.py migrate_schemas --shared &&
+             python manage.py bootstrap_dev &&
+             python manage.py runserver 0.0.0.0:8000"
+
+  fin-worker:
+    build:
+      context: ./apps/finance/backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+      POSTGRES_DB: ${POSTGRES_DB:-finsaptta}
+      POSTGRES_USER: ${POSTGRES_USER:-finsaptta}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-finsaptta}
+      POSTGRES_HOST: db
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ./apps/finance/backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: celery -A config worker -B -l info
+
+  # ── HR (saptta HR): row-level tenancy, server-rendered pages ──────────
+  # Dev uses SQLite (its development settings) for a zero-extra-DB demo.
+  hr-backend:
+    build:
+      context: ./apps/hr
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      DJANGO_SETTINGS_MODULE: hrms.settings.development
+      SECRET_KEY: ${HR_SECRET_KEY:-insecure-dev-hr-key-change-me}
+      DEBUG: "True"
+      ALLOWED_HOSTS: localhost,127.0.0.1,hr-backend
+      # HR resolves the tenant from the logged-in user when host is localhost.
+      SUPERADMIN_DOMAIN: localhost
+      TENANT_DOMAIN: localhost
+      FIELD_ENCRYPTION_KEY: ${HR_FIELD_ENCRYPTION_KEY:?set HR_FIELD_ENCRYPTION_KEY in .env (Fernet key)}
+    volumes:
+      - ./apps/hr:/app
+    # Override the prod gunicorn CMD: migrate then run the dev server.
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+
+  # ── Unified SPA (the marketing site + app shell = the product) ────────
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      # All API traffic flows through the nginx front door on :8080.
+      VITE_PLATFORM_API_BASE_URL: http://localhost:8080/api/v1
+      VITE_TENANT_API_BASE_URL: http://{workspace}.localhost:8080/api/v1
+      VITE_DEFAULT_WORKSPACE: acme
+      VITE_HR_BASE_URL: http://hr.localhost:8080
+    volumes:
+      - ./apps/web:/app
+      - /app/node_modules
+    command: npm run dev -- --host 0.0.0.0
+
+  # ── The front door ────────────────────────────────────────────────────
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - web
+      - fin-backend
+      - hr-backend
+
+volumes:
+  pgdata:

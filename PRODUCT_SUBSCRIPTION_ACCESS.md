@@ -44,14 +44,14 @@ HR:
 1. Run FIN migrations:
 
    ```powershell
-   cd "fin saptta/backend"
+   cd apps/finance/backend
    python manage.py migrate_schemas --shared
    ```
 
 2. Run HR migrations:
 
    ```powershell
-   cd "hr saptta"
+   cd apps/hr
    python manage.py migrate
    ```
 

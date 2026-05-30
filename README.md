@@ -1,88 +1,141 @@
 # Saptta — HRMS & Finance SaaS Platform
 
-Two separate SaaS products built on a shared platform — **Saptta HR** (HRMS) and **fin-saptta** (Accounts & Finance) — targeting the Indian market with built-in GST, PF, ESI, TDS compliance.
+Two SaaS products — **Saptta HR** (HRMS) and **fin-saptta** (Accounts & Finance) —
+sold under one roof, behind one website, one login, and per-product subscriptions.
+Targeted at the Indian market with built-in GST, PF, ESI, TDS compliance.
 
-## Products
+## Architecture — one front door, two backends
 
-| Product | Path | Description |
-|---------|------|-------------|
-| **Saptta HR** | `/app/hrms` | Employee management, attendance, leave, payroll, recruitment, performance |
-| **fin-saptta** | `/app/finance` | GST invoicing, ledger, banking, vendor bills, reports |
+```
+                         ┌──────────────────────────────┐
+   browser ──────────────►  nginx front door  :8080      │  (deploy/nginx.conf)
+                         └───────────────┬──────────────┘
+        http://localhost:8080            │
+        http://acme.localhost:8080       │
+          (workspace = subdomain)        │
+                                         │
+        ┌────────────────────────────────┼───────────────────────────────┐
+        ▼                                 ▼                                ▼
+   web (SPA)                        fin-backend                      hr-backend
+   apps/web  React+Vite+AntD        apps/finance/backend             apps/hr
+   marketing + app shell            Django + DRF + JWT               Django (server-rendered)
+   one login, product switcher      django-tenants (schema/tenant)   row-level tenancy
+                                     /api/v1/* REST                   existing HR pages
+```
 
-Customers can subscribe to either product or both. If both are owned, a product switcher at `/app` lets users jump between them.
+Why two backends instead of one merged project: **FIN and HR use incompatible
+multi-tenancy** (FIN = django-tenants schema-per-tenant + JWT; HR = row-level
+tenant FK + session auth + server-rendered templates). Merging would mean
+rewriting HR end-to-end. Instead, the **`apps/web` website is the single front
+door**: it owns marketing, login, and the subscription/entitlement gating, then
+routes users into FIN (via its REST API, rendered in the AntD dashboard) and HR
+(its existing pages) — so customers experience one product.
 
-## Tech Stack
+| Product | In the app | Backend | How it's served |
+|---------|-----------|---------|-----------------|
+| **fin-saptta** | `/app/finance` | `apps/finance/backend` | SPA calls `/api/v1/*` (JWT) |
+| **Saptta HR** | `/app/hrms` | `apps/hr` | existing HR pages, embedded |
 
-- **Frontend:** React 18 + Vite 5 + TypeScript + Ant Design 5
-- **Routing:** React Router v6
-- **State:** React Context (Auth, Notifications)
-- **Backend (planned):** Django 5 + DRF + PostgreSQL 16 (django-tenants schema-per-tenant) + Redis 7 + Celery
+Subscriptions live in FIN's `apps.saas` (`Plan`, `Subscription`,
+`SubscriptionEntitlement` with `ProductCode.FIN`/`HR`). The SPA reads them to
+unlock/lock each product in the switcher. See
+[PRODUCT_SUBSCRIPTION_ACCESS.md](PRODUCT_SUBSCRIPTION_ACCESS.md).
 
-## Getting Started
+## Run the whole stack (one command)
+
+Requires Docker. From the repo root:
 
 ```bash
-cd sappta
+cp .env.example .env
+# set HR_FIELD_ENCRYPTION_KEY (a Fernet key):
+python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+
+docker compose up --build
+```
+
+Then:
+
+| URL | What |
+|-----|------|
+| http://localhost:8080 | the website (marketing + login) |
+| http://acme.localhost:8080 | the `acme` workspace app (after sign-in) |
+| http://hr.localhost:8080 | HR backend pages |
+| http://localhost:8080/admin/ | FIN Django admin |
+
+FIN seeds a dev tenant automatically (`bootstrap_dev`): workspace **acme**,
+login **admin@acme.test / admin12345** (FIN entitlement active).
+
+Provision an HR workspace + admin:
+
+```bash
+docker compose exec hr-backend python manage.py seed_permissions
+docker compose exec hr-backend python manage.py create_tenant \
+  --name "Acme Pvt Ltd" --subdomain acme --email admin@acme.test --password admin12345
+```
+
+> `*.localhost` resolves to 127.0.0.1 automatically on most Linux/macOS. On
+> Windows, add `127.0.0.1 acme.localhost hr.localhost` to
+> `C:\Windows\System32\drivers\etc\hosts`.
+
+### Front-end only (mock-free, against a running FIN backend)
+
+```bash
+cd apps/web
 npm install
-npm run dev
+cp .env.example .env.local      # point VITE_*_API_BASE_URL at your backend
+npm run dev                      # http://localhost:5173
 ```
 
-Open http://localhost:5173 and sign in (any email/password works in mock mode).
+The SPA talks to two API surfaces (see [apps/web/src/lib/api.ts](apps/web/src/lib/api.ts)):
+- **platform** (`VITE_PLATFORM_API_BASE_URL`, bare host) — auth + saas (public schema)
+- **tenant** (`VITE_TENANT_API_BASE_URL` with `{workspace}`) — business resources
 
-## Project Structure
+## Repository layout
 
 ```
-sappta/
-├── src/
-│   ├── pages/
-│   │   ├── Home.tsx, About.tsx, Pricing.tsx, ...    # Public marketing
-│   │   ├── Login.tsx, Signup.tsx, Setup.tsx         # Onboarding
-│   │   ├── app/
-│   │   │   ├── ProductSwitcher.tsx                  # /app — choose product
-│   │   │   ├── hrms/
-│   │   │   │   ├── HrmsLayout.tsx                   # HRMS sidebar (orange)
-│   │   │   │   └── HrmsHome.tsx                     # HRMS dashboard
-│   │   │   └── finance/
-│   │   │       ├── FinanceLayout.tsx                # Finance sidebar (green)
-│   │   │       └── FinanceHome.tsx                  # Finance dashboard
-│   │   └── dashboard/                               # Shared module pages
-│   │       ├── Employees.tsx, Attendance.tsx, ...   # HRMS modules
-│   │       └── Invoices.tsx, Ledger.tsx, ...        # Finance modules
-│   ├── contexts/
-│   │   ├── AuthContext.tsx
-│   │   └── NotificationContext.tsx
-│   ├── data/
-│   │   ├── hrms-mock.ts                             # HR mock data
-│   │   └── finance-mock.ts                          # Finance mock data
-│   └── types/index.ts                               # Plans, Users, Setup types
+saptta/
+├── docker-compose.yml          # the unified dev stack
+├── deploy/nginx.conf           # the front door (host-based routing)
+├── .env.example                # stack-wide env
+└── apps/
+    ├── web/                    # THE WEBSITE = the product (React+Vite+AntD)
+    │   ├── src/lib/api.ts      #   real API client (JWT + refresh, 2 surfaces)
+    │   ├── src/contexts/AuthContext.tsx   # real login/me/logout + entitlements→products
+    │   ├── src/pages/          #   marketing, auth, /app switcher, dashboards
+    │   └── Dockerfile
+    ├── finance/                # FIN backend (Django + DRF + django-tenants)
+    │   └── backend/apps/…      #   identity, saas, masters, ledger, billing, …
+    └── hr/                     # HR backend (Django, server-rendered)
+        └── apps/…              #   accounts, employees, attendance, payroll, …
 ```
 
-## Features
+## Status & known gaps
 
-### Saptta HR (HRMS)
-- Employee Management — CRUD with detail drawer
-- Attendance — geofenced punch tracking with status summary
-- Leave Management — approve/reject workflow + balances
-- Payroll — process runs, generate payslips with PF/ESI/PT/TDS
-- Recruitment — ATS with applicant pipeline
-- Performance — reviews with star ratings, OKRs with progress
-- Expense Claims — submit, approve, reimburse with journal sync
+Done:
+- Unified front door (nginx + docker compose), single git repo.
+- Real SPA auth against FIN JWT (login + refresh), entitlement→product gating
+  in the product switcher.
+- **Self-serve signup** — `POST /api/v1/saas/signup/` provisions a workspace
+  (tenant schema + owner user + subscription/entitlements + company/COA/FY) and
+  signs the user straight in. Wired to the website Signup page.
+- **HR embedded** — `/app/hrms/workspace` renders the live HR Django app inside
+  the shell (iframe + "open in new tab"); HR sidebar has a "Live HR App" entry.
+- **FIN live data path proven** — the Finance dashboard calls the real tenant
+  API (`/masters/*`) and shows a live/demo connection banner.
+- JWT now carries `email`/`full_name` and login returns a `user` object.
 
-### fin-saptta (Accounts & Finance)
-- GST Invoicing — CGST/SGST/IGST with HSN codes
-- Customer Receipts — multi-mode (cash/bank/UPI/cheque) with invoice allocation
-- Purchase — PO → GRN → Vendor Bill with 3-way match
-- Banking — multi-account with statement reconciliation
-- Ledger — double-entry journal entries + trial balance
-- Reports — P&L, Balance Sheet, AR Aging, GSTR-1/3B exports
-- Portal — Customer/vendor self-service access management
+Remaining gaps for full production SaaS:
+1. **HR SSO** — HR uses its own Django session login; there's no token handoff
+   from the FIN identity yet, so users sign in to HR once inside the embed.
+   Signup also provisions only the FIN side; an HR workspace is created via
+   `create_tenant` (see above).
+2. **No "my subscription" endpoint** and **no tenant claim in the JWT** — the
+   SPA infers products from the subscription list as a stopgap, and the active
+   workspace is tracked client-side.
+3. **Most dashboard pages still use demo data** — only the Finance home is
+   wired to live APIs; the per-module pages (Invoices, Ledger, …) are next.
 
-### Shared
-- AI Audit Assistant (Claude-powered)
-- Notification center with module tags
-- Team & Role-Based Access Control
-- Settings — Company profile, API keys, integrations
-
-## Subscription Plans
+## Subscription plans
 
 | Plan | Products | Price |
 |------|----------|-------|
@@ -92,7 +145,7 @@ sappta/
 | Finance Pro | fin-saptta full | ₹8,999/mo |
 | **Saptta Complete** | Both products + Portal + AI | ₹14,999/mo |
 
-All plans include 14-day free trial. Annual billing saves 17%.
+All plans include a 14-day free trial. Annual billing saves 17%.
 
 ## License
 
