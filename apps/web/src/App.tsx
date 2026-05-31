@@ -32,6 +32,7 @@ import HrmsHome from './pages/app/hrms/HrmsHome';
 import HrWorkspace from './pages/app/hrms/HrWorkspace';
 import FinanceLayout from './pages/app/finance/FinanceLayout';
 import FinanceHome from './pages/app/finance/FinanceHome';
+import Billing from './pages/dashboard/Billing';
 
 // Shared dashboard pages (reused across both products)
 import Employees from './pages/dashboard/Employees';
@@ -107,6 +108,7 @@ function AppLayout() {
             <Route path="ai-assistant" element={<AuditAssistant />} />
             <Route path="reports" element={<Reports />} />
             <Route path="team" element={<Team />} />
+            <Route path="billing" element={<Billing />} />
             <Route path="settings" element={<Settings />} />
             <Route path="notifications" element={<Notifications />} />
           </Route>
@@ -123,6 +125,7 @@ function AppLayout() {
             <Route path="portal" element={<Portal />} />
             <Route path="ai-assistant" element={<AuditAssistant />} />
             <Route path="team" element={<Team />} />
+            <Route path="billing" element={<Billing />} />
             <Route path="settings" element={<Settings />} />
             <Route path="notifications" element={<Notifications />} />
           </Route>

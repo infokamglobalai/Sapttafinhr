@@ -9,6 +9,8 @@ class Tenant(TenantMixin):
     name = models.CharField(max_length=200)
     created_on = models.DateField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
+    # Where dunning / lifecycle email goes (set to the owner's email at signup).
+    billing_email = models.EmailField(blank=True)
 
     auto_create_schema = True
     auto_drop_schema = False  # never silently drop in prod

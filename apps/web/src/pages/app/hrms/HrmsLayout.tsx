@@ -51,6 +51,7 @@ const navSections: { label: string; items: NavItem[] }[] = [
       { path: '/app/hrms/ai-assistant', label: 'AI Assistant', icon: <ThunderboltOutlined /> },
       { path: '/app/hrms/reports', label: 'Reports', icon: <BarChartOutlined /> },
       { path: '/app/hrms/team', label: 'Team', icon: <UsergroupAddOutlined /> },
+      { path: '/app/hrms/billing', label: 'Billing', icon: <WalletOutlined /> },
       { path: '/app/hrms/settings', label: 'Settings', icon: <SettingOutlined /> },
     ],
   },

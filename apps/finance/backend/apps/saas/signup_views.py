@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import re
 
+from django.conf import settings
 from django.db import IntegrityError
 from django_tenants.utils import schema_context
 from rest_framework import serializers, status
@@ -101,7 +102,11 @@ class SignupView(APIView):
         schema_name = _unique_schema_name(_slugify_company(data["company_name"]))
 
         # 1) Tenant (+ schema auto-created & migrated) and its domain.
-        tenant = Tenant.objects.create(schema_name=schema_name, name=data["company_name"])
+        tenant = Tenant.objects.create(
+            schema_name=schema_name,
+            name=data["company_name"],
+            billing_email=data["email"],
+        )
         Domain.objects.get_or_create(
             domain=f"{schema_name}.localhost", tenant=tenant, defaults={"is_primary": True}
         )
@@ -125,8 +130,16 @@ class SignupView(APIView):
             code=data.get("plan_id") or "saptta-complete",
             defaults={"name": data.get("plan_id") or "Saptta Complete"},
         )
+        from datetime import date, timedelta
+
+        trial_days = getattr(settings, "TRIAL_PERIOD_DAYS", 14)
         sub, _ = Subscription.objects.get_or_create(
-            tenant=tenant, defaults={"plan": plan, "status": Subscription.Status.TRIAL}
+            tenant=tenant,
+            defaults={
+                "plan": plan,
+                "status": Subscription.Status.TRIAL,
+                "trial_ends_at": date.today() + timedelta(days=trial_days),
+            },
         )
         for product in products:
             SubscriptionEntitlement.objects.update_or_create(

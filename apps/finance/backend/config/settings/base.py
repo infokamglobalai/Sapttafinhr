@@ -183,6 +183,16 @@ SERVER_EMAIL = DEFAULT_FROM_EMAIL
 # Public base URL of the SPA front door — used to build links in emails.
 FRONTEND_BASE_URL = env("FRONTEND_BASE_URL", default="http://localhost:8080")
 
+# ===== Billing (payment gateway) =====
+RAZORPAY_KEY_ID = env("RAZORPAY_KEY_ID", default="")
+RAZORPAY_KEY_SECRET = env("RAZORPAY_KEY_SECRET", default="")
+RAZORPAY_WEBHOOK_SECRET = env("RAZORPAY_WEBHOOK_SECRET", default="")
+
+# ===== Subscription lifecycle =====
+TRIAL_PERIOD_DAYS = env.int("TRIAL_PERIOD_DAYS", default=14)
+SUBSCRIPTION_GRACE_DAYS = env.int("SUBSCRIPTION_GRACE_DAYS", default=7)
+TRIAL_REMINDER_DAYS = env.int("TRIAL_REMINDER_DAYS", default=3)
+
 # Account security policy.
 # When True, unverified users cannot obtain JWT tokens (login is blocked until
 # they verify). Kept False by default so dev/demo flows aren't interrupted.
@@ -227,6 +237,19 @@ CELERY_TASK_TRACK_STARTED = True
 from celery.schedules import crontab  # noqa: E402
 
 CELERY_BEAT_SCHEDULE = {
+    # ── SaaS subscription lifecycle ──────────────────────────────────────
+    "expire-trials-daily": {
+        "task": "apps.saas.tasks.expire_trials",
+        "schedule": crontab(hour=1, minute=0),
+    },
+    "expire-overdue-subscriptions-daily": {
+        "task": "apps.saas.tasks.expire_overdue_subscriptions",
+        "schedule": crontab(hour=1, minute=15),
+    },
+    "trial-ending-reminders-daily": {
+        "task": "apps.saas.tasks.send_trial_ending_reminders",
+        "schedule": crontab(hour=9, minute=0),
+    },
     # Materialize recurring invoice templates every morning
     "recurring-invoices-daily": {
         "task": "apps.billing.tasks.run_recurring_invoices",

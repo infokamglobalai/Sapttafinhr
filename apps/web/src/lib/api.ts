@@ -277,6 +277,27 @@ export async function signup(payload: {
   return data;
 }
 
+// ─── Billing (subscription checkout) ──────────────────────────────────────
+export interface BillingOrder {
+  order_id: string;
+  amount: number; // paise
+  currency: string;
+  key_id: string;
+  plan: string;
+}
+
+/**
+ * Create a payment-gateway order for a plan. Throws ApiError(503) when billing
+ * isn't configured on the server — callers should surface a friendly message.
+ */
+export function createBillingOrder(planId: string, cycle: 'monthly' | 'annual' = 'monthly'): Promise<BillingOrder> {
+  return request<BillingOrder>('/saas/billing/order/', {
+    surface: 'platform',
+    method: 'POST',
+    body: { plan_id: planId, cycle },
+  });
+}
+
 // ─── Entitlements / products ──────────────────────────────────────────────
 export type ProductCode = 'FIN' | 'HR';
 export type ProductSlug = 'finance' | 'hrms';

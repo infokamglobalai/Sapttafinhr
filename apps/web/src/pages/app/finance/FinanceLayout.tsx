@@ -57,6 +57,7 @@ const navSections: { label: string; items: NavItem[] }[] = [
       { path: '/app/finance/ai-assistant', label: 'AI Assistant', icon: <ThunderboltOutlined /> },
       { path: '/app/finance/reports', label: 'Reports', icon: <BarChartOutlined /> },
       { path: '/app/finance/team', label: 'Team', icon: <UsergroupAddOutlined /> },
+      { path: '/app/finance/billing', label: 'Billing', icon: <DollarOutlined /> },
       { path: '/app/finance/settings', label: 'Settings', icon: <SettingOutlined /> },
     ],
   },
