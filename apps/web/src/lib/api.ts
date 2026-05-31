@@ -219,6 +219,33 @@ export async function fetchMe(): Promise<BackendUser> {
   return request<BackendUser>('/auth/me/', { surface: 'platform' });
 }
 
+// ─── Account safety: password reset + email verification ──────────────────
+type Msg = { detail: string };
+
+export function requestPasswordReset(email: string): Promise<Msg> {
+  return rawRequest<Msg>('/auth/password/reset/', { surface: 'platform', method: 'POST', body: { email }, auth: false }, null);
+}
+
+export function confirmPasswordReset(uid: string, token: string, newPassword: string): Promise<Msg> {
+  return rawRequest<Msg>(
+    '/auth/password/reset/confirm/',
+    { surface: 'platform', method: 'POST', body: { uid, token, new_password: newPassword }, auth: false },
+    null,
+  );
+}
+
+export function requestEmailVerification(email: string): Promise<Msg> {
+  return rawRequest<Msg>('/auth/verify-email/request/', { surface: 'platform', method: 'POST', body: { email }, auth: false }, null);
+}
+
+export function confirmEmailVerification(token: string): Promise<Msg & { email?: string }> {
+  return rawRequest<Msg & { email?: string }>(
+    '/auth/verify-email/confirm/',
+    { surface: 'platform', method: 'POST', body: { token }, auth: false },
+    null,
+  );
+}
+
 export interface SignupResult {
   access: string;
   refresh: string;

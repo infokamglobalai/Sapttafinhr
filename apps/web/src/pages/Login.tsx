@@ -71,9 +71,9 @@ export default function Login() {
               </Form.Item>
 
               <div style={{ textAlign: 'right', marginTop: -8, marginBottom: 20 }}>
-                <span className="card-hover" style={{ color: '#FF6D00', fontSize: 13.5, cursor: 'pointer', fontWeight: 500, transition: 'all 0.2s' }}>
+                <Link to="/forgot-password" className="card-hover" style={{ color: '#FF6D00', fontSize: 13.5, cursor: 'pointer', fontWeight: 500, transition: 'all 0.2s' }}>
                   Forgot password?
-                </span>
+                </Link>
               </div>
 
               <Form.Item>

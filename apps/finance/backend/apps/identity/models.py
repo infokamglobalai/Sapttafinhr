@@ -23,6 +23,7 @@ class UserManager(BaseUserManager):
     def create_superuser(self, email, password, **extra):
         extra.setdefault("is_staff", True)
         extra.setdefault("is_superuser", True)
+        extra.setdefault("is_verified", True)  # platform admins are pre-verified
         return self._create_user(email, password, **extra)
 
 
@@ -31,6 +32,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     full_name = models.CharField(max_length=200, blank=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
+    # Email verification: gates sensitive actions. Login is allowed when
+    # unverified unless settings.REQUIRE_EMAIL_VERIFICATION is True.
+    is_verified = models.BooleanField(default=False)
     date_joined = models.DateTimeField(auto_now_add=True)
 
     USERNAME_FIELD = "email"

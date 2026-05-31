@@ -21,6 +21,9 @@ import Login from './pages/Login';
 import Pricing from './pages/Pricing';
 import Signup from './pages/Signup';
 import Setup from './pages/Setup';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+import VerifyEmail from './pages/VerifyEmail';
 
 // Product switcher & layouts
 import ProductSwitcher from './pages/app/ProductSwitcher';
@@ -52,7 +55,7 @@ import Team from './pages/dashboard/Team';
 import Settings from './pages/dashboard/Settings';
 import Notifications from './pages/dashboard/Notifications';
 
-const HIDE_CHROME_ROUTES = ['/setup', '/app', '/signup'];
+const HIDE_CHROME_ROUTES = ['/setup', '/app', '/signup', '/login', '/forgot-password', '/reset-password', '/verify-email'];
 
 function AppLayout() {
   const location = useLocation();
@@ -76,6 +79,9 @@ function AppLayout() {
           <Route path="/contact" element={<Contact />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
 
           {/* Setup wizard (post-signup) */}
           <Route path="/setup" element={<ProtectedRoute><Setup /></ProtectedRoute>} />

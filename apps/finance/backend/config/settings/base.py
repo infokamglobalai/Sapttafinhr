@@ -156,7 +156,40 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 50,
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    # Brute-force protection: scoped throttles applied per auth endpoint.
+    "DEFAULT_THROTTLE_CLASSES": (
+        "rest_framework.throttling.ScopedRateThrottle",
+    ),
+    "DEFAULT_THROTTLE_RATES": {
+        "login": env("THROTTLE_LOGIN", default="10/min"),
+        "signup": env("THROTTLE_SIGNUP", default="5/hour"),
+        "password_reset": env("THROTTLE_PASSWORD_RESET", default="5/hour"),
+        "email_verify": env("THROTTLE_EMAIL_VERIFY", default="5/hour"),
+    },
 }
+
+# ===== Email =====
+# Dev defaults to console (prints to logs). Set EMAIL_BACKEND + SMTP/SES vars in
+# prod so password-reset / verification / dunning mail actually sends.
+EMAIL_BACKEND = env("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
+EMAIL_HOST = env("EMAIL_HOST", default="")
+EMAIL_PORT = env.int("EMAIL_PORT", default=587)
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
+EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="Saptta <no-reply@saptta.com>")
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
+
+# Public base URL of the SPA front door — used to build links in emails.
+FRONTEND_BASE_URL = env("FRONTEND_BASE_URL", default="http://localhost:8080")
+
+# Account security policy.
+# When True, unverified users cannot obtain JWT tokens (login is blocked until
+# they verify). Kept False by default so dev/demo flows aren't interrupted.
+REQUIRE_EMAIL_VERIFICATION = env.bool("REQUIRE_EMAIL_VERIFICATION", default=False)
+# Email-verification + password-reset link lifetime (hours / Django default).
+EMAIL_VERIFICATION_TIMEOUT_HOURS = env.int("EMAIL_VERIFICATION_TIMEOUT_HOURS", default=48)
+PASSWORD_RESET_TIMEOUT = env.int("PASSWORD_RESET_TIMEOUT", default=60 * 60 * 24)  # 24h (seconds)
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=env.int("JWT_ACCESS_LIFETIME_MIN", default=15)),

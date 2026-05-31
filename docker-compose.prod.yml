@@ -1,0 +1,146 @@
+# ─────────────────────────────────────────────────────────────────────────
+# Saptta PRODUCTION stack. Differs from docker-compose.yml (dev) by:
+#   - gunicorn (not runserver), DEBUG=False, config.settings.prod
+#   - no source-code bind mounts (images are immutable artifacts)
+#   - front door builds + serves the SPA statically over TLS
+#   - restart: always; secrets from .env.prod
+#
+# Bring up:
+#   cp .env.prod.example .env.prod   # fill in real values
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+# Migrations run automatically on fin/hr start (see commands).
+# ─────────────────────────────────────────────────────────────────────────
+services:
+  db:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  fin-backend:
+    build:
+      context: ./apps/finance/backend
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.prod
+      DJANGO_SECRET_KEY: ${FIN_SECRET_KEY}
+      DJANGO_DEBUG: "False"
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_HOST: db
+      REDIS_URL: redis://redis:6379/0
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
+      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS}
+      EMAIL_BACKEND: ${EMAIL_BACKEND}
+      EMAIL_HOST: ${EMAIL_HOST}
+      EMAIL_PORT: ${EMAIL_PORT}
+      EMAIL_HOST_USER: ${EMAIL_HOST_USER}
+      EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD}
+      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL}
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL}
+      REQUIRE_EMAIL_VERIFICATION: ${REQUIRE_EMAIL_VERIFICATION:-True}
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    command: >
+      sh -c "python manage.py migrate_schemas --shared --noinput &&
+             python manage.py collectstatic --noinput &&
+             gunicorn config.wsgi:application --bind 0.0.0.0:8000
+             --workers 4 --timeout 120 --access-logfile -"
+
+  fin-worker:
+    build:
+      context: ./apps/finance/backend
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.prod
+      DJANGO_SECRET_KEY: ${FIN_SECRET_KEY}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_HOST: db
+      REDIS_URL: redis://redis:6379/0
+      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL}
+      EMAIL_BACKEND: ${EMAIL_BACKEND}
+      EMAIL_HOST: ${EMAIL_HOST}
+      EMAIL_PORT: ${EMAIL_PORT}
+      EMAIL_HOST_USER: ${EMAIL_HOST_USER}
+      EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD}
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    command: celery -A config worker -B -l info
+
+  hr-backend:
+    build:
+      context: ./apps/hr
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      DJANGO_SETTINGS_MODULE: hrms.settings.production
+      SECRET_KEY: ${HR_SECRET_KEY}
+      DEBUG: "False"
+      ALLOWED_HOSTS: ${HR_ALLOWED_HOSTS}
+      DB_NAME: ${POSTGRES_DB}
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_HOST: db
+      DB_PORT: "5432"
+      REDIS_URL: redis://redis:6379/1
+      FIELD_ENCRYPTION_KEY: ${HR_FIELD_ENCRYPTION_KEY}
+      SUPERADMIN_DOMAIN: ${HR_SUPERADMIN_DOMAIN}
+      TENANT_DOMAIN: ${HR_TENANT_DOMAIN}
+      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL}
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             gunicorn hrms.wsgi:application --bind 0.0.0.0:8000
+             --workers 4 --timeout 120 --access-logfile -"
+
+  frontdoor:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.frontdoor
+      args:
+        VITE_PLATFORM_API_BASE_URL: ${VITE_PLATFORM_API_BASE_URL}
+        VITE_TENANT_API_BASE_URL: ${VITE_TENANT_API_BASE_URL}
+        VITE_HR_BASE_URL: ${VITE_HR_BASE_URL}
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # Mount your TLS cert + key here (e.g. from certbot/Let's Encrypt).
+      - ${TLS_CERT_DIR:-./deploy/certs}:/etc/nginx/certs:ro
+      - certbot-webroot:/var/www/certbot
+    depends_on:
+      - fin-backend
+      - hr-backend
+
+volumes:
+  pgdata:
+  certbot-webroot:

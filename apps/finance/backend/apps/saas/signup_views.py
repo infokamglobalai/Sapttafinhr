@@ -139,7 +139,16 @@ class SignupView(APIView):
         if ProductCode.FIN in products:
             self._seed_finance(schema_name, data["company_name"])
 
-        # 5) Tokens for immediate sign-in.
+        # 5) Send the email-verification link (best-effort; never block signup
+        #    if the mail backend is down).
+        try:
+            from apps.identity.auth_views import send_verification_email
+
+            send_verification_email(user)
+        except Exception:  # noqa: BLE001
+            pass
+
+        # 6) Tokens for immediate sign-in.
         refresh = RefreshToken.for_user(user)
         return Response(
             {

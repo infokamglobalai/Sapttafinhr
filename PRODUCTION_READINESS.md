@@ -7,6 +7,14 @@ trust first.
 
 Status legend: 🔴 blocker · 🟠 important · 🟡 polish · ✅ done
 
+> **Phase 1 (Production Safety) — IMPLEMENTED & verified 2026-05-31.** Password
+> reset, email verification, configurable email backend, login/signup rate
+> limiting (verified 429 after 10), gunicorn prod runtime
+> (`docker-compose.prod.yml`), and TLS/HSTS/secure-cookies
+> (`deploy/nginx.prod.conf` + `config.settings.prod`). See
+> [SECURITY.md](SECURITY.md). Findings #3, #4, #5, #6, #8 are now done; remaining
+> work is Phases 2–4 (billing, HR SSO, ops).
+
 ---
 
 ## 0. What already works (verified by running it)
