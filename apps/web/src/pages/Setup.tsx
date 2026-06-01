@@ -8,8 +8,31 @@ import {
 import { SapttaLogo } from '../components/layout/Navbar';
 import { useAuth } from '../contexts/AuthContext';
 import { INDIAN_STATES, INDUSTRIES } from '../types';
+import { api, ApiError } from '../lib/api';
 
 const { Option } = Select;
+
+/**
+ * Persist the company profile collected in the wizard to the FIN tenant API.
+ * Signup already seeds a default Company, so we PATCH the first one. The 2-digit
+ * GST state code is derived from the GSTIN prefix. Best-effort: a backend hiccup
+ * shouldn't trap the user in the wizard.
+ */
+async function persistCompanyProfile(data: Record<string, string>): Promise<void> {
+  const companies = await api.get<{ results?: { id: number }[] } | { id: number }[]>('/masters/companies/');
+  const list = Array.isArray(companies) ? companies : companies.results ?? [];
+  const companyId = list[0]?.id;
+  if (!companyId) return; // nothing seeded yet — skip silently
+
+  const stateCode = (data.gstin || '').slice(0, 2);
+  await api.patch(`/masters/companies/${companyId}/`, {
+    name: data.name,
+    legal_name: data.legalName,
+    gstin: data.gstin,
+    pan: data.pan,
+    ...(stateCode ? { state_code: stateCode } : {}),
+  });
+}
 
 export default function Setup() {
   const navigate = useNavigate();
@@ -78,7 +101,14 @@ export default function Setup() {
   const handleLaunch = async () => {
     setIsSubmitting(true);
     try {
-      await new Promise(r => setTimeout(r, 1500));
+      // Persist the company profile to the real FIN tenant API. Don't let a
+      // backend error trap the user mid-onboarding — log + continue.
+      try {
+        await persistCompanyProfile({ ...companyData, ...companyForm.getFieldsValue() });
+      } catch (err) {
+        if (!(err instanceof ApiError)) throw err;
+        message.warning('Saved your setup, but could not sync the company profile — you can edit it later in Settings.');
+      }
       updateUser({ setupComplete: true });
       message.success('Your company is set up! Welcome to Saptta.');
       navigate('/app');
