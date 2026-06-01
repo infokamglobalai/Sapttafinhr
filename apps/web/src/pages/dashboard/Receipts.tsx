@@ -1,9 +1,36 @@
-import { useState } from 'react';
-import { Table, Tag, Button, Input, Select, message } from 'antd';
+import { useState, useMemo } from 'react';
+import { Table, Tag, Button, Input, Select, Alert } from 'antd';
 import { PlusOutlined, SearchOutlined, DownloadOutlined } from '@ant-design/icons';
 import { MOCK_RECEIPTS, formatINR, type Receipt } from '../../data/finance-mock';
+import { useApiResource, asList } from '../../hooks/useApiResource';
 
 const { Option } = Select;
+
+// ── API shape (ReceiptReadSerializer) → page Receipt view-model ───────────
+interface ApiReceiptAllocation { invoice_no?: string }
+interface ApiReceipt {
+  id: number; receipt_no: string; date: string; customer_name: string;
+  amount: string; mode: string; reference: string; status: string;
+  allocations?: ApiReceiptAllocation[];
+}
+const num = (v: unknown): number => Number(v ?? 0) || 0;
+
+function receiptFromApi(a: ApiReceipt): Receipt {
+  const mode = (a.mode || '').toLowerCase();
+  const status = (a.status || '').toLowerCase();
+  return {
+    id: String(a.id),
+    number: a.receipt_no,
+    date: a.date,
+    partyId: '',
+    partyName: a.customer_name || '—',
+    amount: num(a.amount),
+    mode: (['cash', 'bank_transfer', 'upi', 'cheque'].includes(mode) ? mode : 'bank_transfer') as Receipt['mode'],
+    reference: a.reference || '',
+    invoicesAllocated: (a.allocations || []).map(x => x.invoice_no).filter(Boolean) as string[],
+    status: (['received', 'deposited', 'bounced'].includes(status) ? status : 'received') as Receipt['status'],
+  };
+}
 
 const statusCfg: Record<string, { color: string; label: string }> = {
   received: { color: 'orange', label: 'Received' },
@@ -19,7 +46,11 @@ const modeCfg: Record<string, { color: string; label: string }> = {
 };
 
 export default function Receipts() {
-  const [receipts] = useState<Receipt[]>(MOCK_RECEIPTS);
+  const { data, loading, error } = useApiResource<unknown>('/payments/receipts/');
+  const live = useMemo(() => asList<ApiReceipt>(data).map(receiptFromApi), [data]);
+  const usingLive = !loading && !error && live.length > 0;
+  const receipts: Receipt[] = usingLive ? live : MOCK_RECEIPTS;
+
   const [search, setSearch] = useState('');
   const [modeFilter, setModeFilter] = useState<string | null>(null);
 
@@ -97,6 +128,14 @@ export default function Receipts() {
           </Button>
         </div>
       </div>
+
+      {usingLive ? (
+        <Alert type="success" showIcon style={{ marginBottom: 16, borderRadius: 10 }}
+          message={<span style={{ fontSize: 13 }}><strong>Live</strong> — {live.length} receipt{live.length !== 1 ? 's' : ''} from your workspace.</span>} />
+      ) : (
+        <Alert type="info" showIcon style={{ marginBottom: 16, borderRadius: 10 }}
+          message={<span style={{ fontSize: 13 }}>{loading ? 'Loading receipts…' : 'Showing demo data — record receipts in your workspace to see them here.'}</span>} />
+      )}
 
       {/* Mode summary */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 24 }}>
