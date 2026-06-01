@@ -1,18 +1,64 @@
-import { useState } from 'react';
-import { Table, Tag, Button, Tabs } from 'antd';
+import { useState, useMemo, useEffect } from 'react';
+import { Table, Tag, Button, Tabs, Alert } from 'antd';
 import { BankOutlined, CheckOutlined, SwapOutlined } from '@ant-design/icons';
 import { MOCK_BANK_ACCOUNTS, MOCK_BANK_TRANSACTIONS, formatINR, type BankAccount, type BankTransaction } from '../../data/finance-mock';
+import { useApiResource, asList } from '../../hooks/useApiResource';
+
+const bnum = (v: unknown): number => Number(v ?? 0) || 0;
+
+// ── API shapes → page view-models ─────────────────────────────────────────
+interface ApiBankAccount { id: number; name: string; bank_name: string; account_number: string; branch: string; opening_balance: string }
+interface ApiStatementLine { id: number; date: string; description: string; reference: string; debit: string; credit: string; balance: string; status: string }
+
+function accountFromApi(a: ApiBankAccount): BankAccount {
+  // The backend has no running-balance/unreconciled fields; opening_balance is
+  // the best available figure and reconciliation state lives on statement lines.
+  return {
+    id: String(a.id), bankName: a.bank_name || a.name, accountNumber: a.account_number,
+    type: a.branch || 'Current', balance: bnum(a.opening_balance), unreconciled: 0,
+    lastReconciled: new Date().toISOString(),
+  } as BankAccount;
+}
+function lineFromApi(l: ApiStatementLine, bankAccountId: string): BankTransaction {
+  return {
+    id: String(l.id), bankAccountId, date: l.date, description: l.description,
+    reference: l.reference || '', debit: bnum(l.debit), credit: bnum(l.credit),
+    balance: bnum(l.balance), reconciled: (l.status || '').toUpperCase() === 'MATCHED',
+  } as BankTransaction;
+}
 
 export default function Banking() {
-  const [selectedBank, setSelectedBank] = useState<string>(MOCK_BANK_ACCOUNTS[0].id);
-  const [transactions, setTransactions] = useState<BankTransaction[]>(MOCK_BANK_TRANSACTIONS);
+  // Live bank accounts; fall back to demo accounts.
+  const acctRes = useApiResource<unknown>('/banking/bank-accounts/');
+  const liveAccounts = useMemo(() => asList<ApiBankAccount>(acctRes.data).map(accountFromApi), [acctRes.data]);
+  const usingLiveAccounts = !acctRes.loading && !acctRes.error && liveAccounts.length > 0;
+  const accounts: BankAccount[] = usingLiveAccounts ? liveAccounts : MOCK_BANK_ACCOUNTS;
 
-  const totalBalance = MOCK_BANK_ACCOUNTS.reduce((s, a) => s + a.balance, 0);
-  const totalUnreconciled = MOCK_BANK_ACCOUNTS.reduce((s, a) => s + a.unreconciled, 0);
-  const bankTxns = transactions.filter(t => t.bankAccountId === selectedBank);
+  const [selectedBank, setSelectedBank] = useState<string>(accounts[0]?.id ?? '');
+  // Keep the selection valid when the account list resolves (live vs mock).
+  useEffect(() => {
+    if (accounts.length && !accounts.some(a => a.id === selectedBank)) {
+      setSelectedBank(accounts[0].id);
+    }
+  }, [accounts, selectedBank]);
+
+  // Live statement lines for the selected live account; else mock transactions.
+  const linesRes = useApiResource<unknown>(
+    usingLiveAccounts && selectedBank ? `/banking/statement-lines/?statement__bank_account=${selectedBank}` : null,
+  );
+  const [mockTxns, setMockTxns] = useState<BankTransaction[]>(MOCK_BANK_TRANSACTIONS);
+  const liveLines = useMemo(
+    () => asList<ApiStatementLine>(linesRes.data).map(l => lineFromApi(l, selectedBank)),
+    [linesRes.data, selectedBank],
+  );
+  const usingLiveLines = usingLiveAccounts && !linesRes.loading && !linesRes.error && liveLines.length > 0;
+
+  const totalBalance = accounts.reduce((s, a) => s + a.balance, 0);
+  const totalUnreconciled = accounts.reduce((s, a) => s + a.unreconciled, 0);
+  const bankTxns = usingLiveLines ? liveLines : mockTxns.filter(t => t.bankAccountId === selectedBank);
 
   const handleReconcile = (id: string) => {
-    setTransactions(prev => prev.map(t => t.id === id ? { ...t, reconciled: true } : t));
+    setMockTxns(prev => prev.map(t => t.id === id ? { ...t, reconciled: true } : t));
   };
 
   const txnColumns = [
@@ -59,10 +105,18 @@ export default function Banking() {
 
   return (
     <div>
-      <div style={{ marginBottom: 24 }}>
+      <div style={{ marginBottom: 16 }}>
         <h2 style={{ fontSize: 22, fontWeight: 800, color: 'var(--color-text-primary)', marginBottom: 4, letterSpacing: '-0.5px' }}>Banking</h2>
         <p style={{ color: 'var(--color-text-secondary)', fontSize: 13 }}>Bank accounts, statement reconciliation & PDC tracking</p>
       </div>
+
+      {usingLiveAccounts ? (
+        <Alert type="success" showIcon style={{ marginBottom: 16, borderRadius: 10 }}
+          message={<span style={{ fontSize: 13 }}><strong>Live</strong> — {liveAccounts.length} bank account{liveAccounts.length !== 1 ? 's' : ''} from your workspace{usingLiveLines ? `; ${liveLines.length} statement line${liveLines.length !== 1 ? 's' : ''} for the selected account` : ''}.</span>} />
+      ) : (
+        <Alert type="info" showIcon style={{ marginBottom: 16, borderRadius: 10 }}
+          message={<span style={{ fontSize: 13 }}>{acctRes.loading ? 'Loading bank accounts…' : 'Showing demo data — add bank accounts in your workspace to see them here.'}</span>} />
+      )}
 
       {/* Summary */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 24 }}>
@@ -72,7 +126,7 @@ export default function Banking() {
         </div>
         <div style={{ background: '#FFFFFF', borderRadius: 12, padding: '16px 18px', border: '1px solid var(--color-border)' }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>Accounts</div>
-          <div style={{ fontSize: 24, fontWeight: 900, color: 'var(--color-text-primary)' }}>{MOCK_BANK_ACCOUNTS.length}</div>
+          <div style={{ fontSize: 24, fontWeight: 900, color: 'var(--color-text-primary)' }}>{accounts.length}</div>
         </div>
         <div style={{ background: '#FFFFFF', borderRadius: 12, padding: '16px 18px', border: '1px solid var(--color-border)' }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>Unreconciled</div>
@@ -83,7 +137,7 @@ export default function Banking() {
 
       {/* Bank account cards */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
-        {MOCK_BANK_ACCOUNTS.map(acc => (
+        {accounts.map(acc => (
           <div
             key={acc.id}
             onClick={() => setSelectedBank(acc.id)}
@@ -118,7 +172,7 @@ export default function Banking() {
       <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
         <SwapOutlined /> Transactions
         <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--color-text-muted)' }}>
-          — {MOCK_BANK_ACCOUNTS.find(a => a.id === selectedBank)?.bankName}
+          — {accounts.find(a => a.id === selectedBank)?.bankName}
         </span>
       </h3>
       <div style={{ background: '#FFFFFF', borderRadius: 14, border: '1px solid var(--color-border)', overflow: 'hidden' }}>
