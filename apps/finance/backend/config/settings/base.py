@@ -245,6 +245,11 @@ CELERY_TASK_TRACK_STARTED = True
 from celery.schedules import crontab  # noqa: E402
 
 CELERY_BEAT_SCHEDULE = {
+    # ── Platform: nightly database backup ────────────────────────────────
+    "db-backup-nightly": {
+        "task": "apps.core.tasks.run_db_backup",
+        "schedule": crontab(hour=2, minute=30),
+    },
     # ── SaaS subscription lifecycle ──────────────────────────────────────
     "expire-trials-daily": {
         "task": "apps.saas.tasks.expire_trials",

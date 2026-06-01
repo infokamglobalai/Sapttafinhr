@@ -90,6 +90,11 @@ services:
       EMAIL_PORT: ${EMAIL_PORT}
       EMAIL_HOST_USER: ${EMAIL_HOST_USER}
       EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD}
+      BACKUP_DIR: /backups
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+    volumes:
+      # Mount a durable host path / network volume for off-box backup storage.
+      - ${BACKUP_DIR:-./backups}:/backups
     depends_on:
       db: { condition: service_healthy }
       redis: { condition: service_healthy }

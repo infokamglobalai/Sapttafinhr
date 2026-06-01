@@ -87,8 +87,10 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-finsaptta}
       POSTGRES_HOST: db
       REDIS_URL: redis://redis:6379/0
+      BACKUP_DIR: /backups
     volumes:
       - ./apps/finance/backend:/app
+      - backups:/backups
     depends_on:
       db:
         condition: service_healthy
@@ -153,3 +155,4 @@ services:
 
 volumes:
   pgdata:
+  backups:
