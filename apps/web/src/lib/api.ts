@@ -298,6 +298,36 @@ export function createBillingOrder(planId: string, cycle: 'monthly' | 'annual' =
   });
 }
 
+// ─── Customer billing portal: my subscription ─────────────────────────────
+export interface SaasInvoiceDTO {
+  id: number;
+  period_start: string;
+  period_end: string;
+  amount: string;
+  due_date: string;
+  status: 'OPEN' | 'PAID' | 'VOID';
+  paid_at: string | null;
+}
+export interface MySubscription {
+  workspace: string;
+  company: string;
+  plan: { code: string; name: string; monthly_price: string; annual_price: string };
+  status: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELLED';
+  is_active: boolean;
+  trial_ends_at: string | null;
+  current_period_start: string | null;
+  current_period_end: string | null;
+  cancelled_at: string | null;
+  products: ('FIN' | 'HR')[];
+  entitlements: { product: string; status: string; current_period_end: string | null }[];
+  invoices: SaasInvoiceDTO[];
+}
+
+/** The signed-in workspace's subscription (resolved from the tenant subdomain). */
+export function fetchMySubscription(): Promise<MySubscription> {
+  return request<MySubscription>('/saas/my-subscription/', { surface: 'tenant' });
+}
+
 // ─── Entitlements / products ──────────────────────────────────────────────
 export type ProductCode = 'FIN' | 'HR';
 export type ProductSlug = 'finance' | 'hrms';

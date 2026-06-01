@@ -4,8 +4,14 @@ from django.urls import include, path
 
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
+from apps.saas.portal_views import MySubscriptionView
+
 urlpatterns = [
     path("admin/", admin.site.urls),
+
+    # Customer billing portal — resolves the subscription from the workspace
+    # subdomain (request.tenant). saas models live in the public schema.
+    path("api/v1/saas/my-subscription/", MySubscriptionView.as_view(), name="my_subscription"),
 
     path("api/v1/auth/", include("apps.identity.urls")),
     path("api/v1/masters/", include("apps.masters.urls")),
