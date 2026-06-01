@@ -1,9 +1,41 @@
-import { useState } from 'react';
-import { Table, Tag, Button, Tabs, Input, Select } from 'antd';
+import { useState, useMemo } from 'react';
+import { Table, Tag, Button, Tabs, Input, Select, Alert } from 'antd';
 import { PlusOutlined, SearchOutlined, DownloadOutlined, EyeOutlined, CheckCircleFilled } from '@ant-design/icons';
 import { MOCK_PURCHASE_ORDERS, MOCK_VENDOR_BILLS, formatINR, type PurchaseOrder, type VendorBill } from '../../data/finance-mock';
+import { useApiResource, asList } from '../../hooks/useApiResource';
 
 const { Option } = Select;
+
+const numv = (v: unknown): number => Number(v ?? 0) || 0;
+
+// ── API shapes → page view-models ─────────────────────────────────────────
+interface ApiPO { id: number; po_no: string; date: string; vendor_name: string; status: string; grand_total: string }
+interface ApiVBill {
+  id: number; bill_no: string; date: string; due_date: string | null; vendor_name: string;
+  status: string; taxable_amount: string; cgst: string; sgst: string; igst: string;
+  grand_total: string; amount_paid: string; balance_due: string; purchase_order: number | null;
+}
+
+function poFromApi(a: ApiPO): PurchaseOrder {
+  const s = (a.status || '').toLowerCase();
+  return {
+    id: String(a.id), number: a.po_no, date: a.date, vendorId: '', vendorName: a.vendor_name || '—',
+    status: (['draft', 'sent', 'acknowledged', 'received', 'billed', 'cancelled'].includes(s) ? s : 'sent') as PurchaseOrder['status'],
+    items: [], total: numv(a.grand_total),
+  };
+}
+function billFromApi(a: ApiVBill): VendorBill {
+  let s = (a.status || '').toLowerCase();
+  const due = a.due_date ? new Date(a.due_date) : null;
+  if (s === 'approved' && due && due < new Date() && numv(a.balance_due) > 0) s = 'overdue';
+  if (!['draft', 'approved', 'paid', 'overdue'].includes(s)) s = 'approved';
+  return {
+    id: String(a.id), number: a.bill_no, vendorBillNo: a.bill_no, date: a.date, dueDate: a.due_date || a.date,
+    vendorId: '', vendorName: a.vendor_name || '—', status: s as VendorBill['status'],
+    subtotal: numv(a.taxable_amount), gst: numv(a.cgst) + numv(a.sgst) + numv(a.igst), tds: 0,
+    total: numv(a.grand_total), poRef: a.purchase_order ? String(a.purchase_order) : '',
+  } as VendorBill;
+}
 
 const poStatusCfg: Record<string, { color: string; label: string }> = {
   draft: { color: 'default', label: 'Draft' },
@@ -26,16 +58,29 @@ export default function Purchase() {
   const [poSearch, setPoSearch] = useState('');
   const [billSearch, setBillSearch] = useState('');
 
-  const filteredPOs = MOCK_PURCHASE_ORDERS.filter(po =>
+  // Live data from the FIN tenant API; fall back to demo data per-list.
+  const poRes = useApiResource<unknown>('/procurement/purchase-orders/');
+  const billRes = useApiResource<unknown>('/procurement/vendor-bills/');
+  const livePOs = useMemo(() => asList<ApiPO>(poRes.data).map(poFromApi), [poRes.data]);
+  const liveBills = useMemo(() => asList<ApiVBill>(billRes.data).map(billFromApi), [billRes.data]);
+  const poLive = !poRes.loading && !poRes.error && livePOs.length > 0;
+  const billLive = !billRes.loading && !billRes.error && liveBills.length > 0;
+  const anyLive = poLive || billLive;
+  const loading = poRes.loading || billRes.loading;
+
+  const purchaseOrders: PurchaseOrder[] = poLive ? livePOs : MOCK_PURCHASE_ORDERS;
+  const vendorBills: VendorBill[] = billLive ? liveBills : MOCK_VENDOR_BILLS;
+
+  const filteredPOs = purchaseOrders.filter(po =>
     !poSearch || `${po.number} ${po.vendorName}`.toLowerCase().includes(poSearch.toLowerCase())
   );
 
-  const filteredBills = MOCK_VENDOR_BILLS.filter(vb =>
+  const filteredBills = vendorBills.filter(vb =>
     !billSearch || `${vb.number} ${vb.vendorName} ${vb.vendorBillNo}`.toLowerCase().includes(billSearch.toLowerCase())
   );
 
-  const totalPayable = MOCK_VENDOR_BILLS.filter(b => b.status !== 'paid').reduce((s, b) => s + b.total, 0);
-  const totalOverdue = MOCK_VENDOR_BILLS.filter(b => b.status === 'overdue').reduce((s, b) => s + b.total, 0);
+  const totalPayable = vendorBills.filter(b => b.status !== 'paid').reduce((s, b) => s + b.total, 0);
+  const totalOverdue = vendorBills.filter(b => b.status === 'overdue').reduce((s, b) => s + b.total, 0);
 
   const poColumns = [
     {
@@ -131,6 +176,14 @@ export default function Purchase() {
         </div>
       </div>
 
+      {anyLive ? (
+        <Alert type="success" showIcon style={{ marginBottom: 16, borderRadius: 10 }}
+          message={<span style={{ fontSize: 13 }}><strong>Live</strong> — {livePOs.length} purchase order{livePOs.length !== 1 ? 's' : ''}, {liveBills.length} vendor bill{liveBills.length !== 1 ? 's' : ''} from your workspace.</span>} />
+      ) : (
+        <Alert type="info" showIcon style={{ marginBottom: 16, borderRadius: 10 }}
+          message={<span style={{ fontSize: 13 }}>{loading ? 'Loading procurement data…' : 'Showing demo data — create POs and vendor bills in your workspace to see them here.'}</span>} />
+      )}
+
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 24 }}>
         <div style={{ background: '#FFFFFF', borderRadius: 12, padding: '16px 18px', border: '1px solid var(--color-border)' }}>
@@ -143,18 +196,18 @@ export default function Purchase() {
         </div>
         <div style={{ background: '#FFFFFF', borderRadius: 12, padding: '16px 18px', border: '1px solid var(--color-border)' }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>Open POs</div>
-          <div style={{ fontSize: 22, fontWeight: 900, color: '#0EA5E9' }}>{MOCK_PURCHASE_ORDERS.filter(p => p.status !== 'billed' && p.status !== 'cancelled').length}</div>
+          <div style={{ fontSize: 22, fontWeight: 900, color: '#0EA5E9' }}>{purchaseOrders.filter(p => p.status !== 'billed' && p.status !== 'cancelled').length}</div>
         </div>
         <div style={{ background: '#FFFFFF', borderRadius: 12, padding: '16px 18px', border: '1px solid var(--color-border)' }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>GST Input Credit</div>
-          <div style={{ fontSize: 22, fontWeight: 900, color: '#10B981' }}>{formatINR(MOCK_VENDOR_BILLS.reduce((s, b) => s + b.gst, 0))}</div>
+          <div style={{ fontSize: 22, fontWeight: 900, color: '#10B981' }}>{formatINR(vendorBills.reduce((s, b) => s + b.gst, 0))}</div>
         </div>
       </div>
 
       <Tabs activeKey={tab} onChange={setTab} items={[
         {
           key: 'orders',
-          label: `Purchase Orders (${MOCK_PURCHASE_ORDERS.length})`,
+          label: `Purchase Orders (${purchaseOrders.length})`,
           children: (
             <>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
@@ -169,7 +222,7 @@ export default function Purchase() {
         },
         {
           key: 'bills',
-          label: <span>Vendor Bills ({MOCK_VENDOR_BILLS.length}) {MOCK_VENDOR_BILLS.some(b => b.status === 'overdue') && <Tag color="red" style={{ marginLeft: 4, borderRadius: 10, fontSize: 10 }}>!</Tag>}</span>,
+          label: <span>Vendor Bills ({vendorBills.length}) {vendorBills.some(b => b.status === 'overdue') && <Tag color="red" style={{ marginLeft: 4, borderRadius: 10, fontSize: 10 }}>!</Tag>}</span>,
           children: (
             <>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
