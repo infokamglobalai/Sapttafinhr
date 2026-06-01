@@ -1,16 +1,46 @@
-import { useState } from 'react';
-import { Button, Select, Tabs } from 'antd';
+import { useState, useMemo } from 'react';
+import { Button, Select, Tabs, Alert } from 'antd';
 import { DownloadOutlined, BarChartOutlined, PieChartOutlined, LineChartOutlined, FileTextOutlined } from '@ant-design/icons';
 import { MOCK_PNL, MOCK_INVOICES, MOCK_PARTIES, formatINR } from '../../data/finance-mock';
+import { useApiResource, asList } from '../../hooks/useApiResource';
 
 const { Option } = Select;
+
+const pnlNum = (v: unknown): number => Number(v ?? 0) || 0;
+
+// Live PnL API → the page's grouped {category, items, total} shape. The API
+// returns flat per-account rows; we present income/expense as one group each.
+interface ApiPnLRow { name: string; code: string; amount: string | number }
+interface ApiPnL { income?: ApiPnLRow[]; expense?: ApiPnLRow[] }
+function groupRows(rows: ApiPnLRow[], category: string) {
+  const items = rows.map(r => ({ name: r.name, amount: pnlNum(r.amount) }));
+  return { category, items, total: items.reduce((s, i) => s + i.amount, 0) };
+}
 
 export default function Reports() {
   const [tab, setTab] = useState('pnl');
   const [period, setPeriod] = useState('apr2026');
 
-  const totalIncome = MOCK_PNL.income.reduce((s, c) => s + c.total, 0);
-  const totalExpenses = MOCK_PNL.expenses.reduce((s, c) => s + c.total, 0);
+  // Live P&L from the FIN tenant API (needs a company id).
+  const companies = useApiResource<unknown>('/masters/companies/');
+  const companyId = useMemo(() => asList<{ id: number }>(companies.data)[0]?.id ?? null, [companies.data]);
+  const pnlRes = useApiResource<ApiPnL>(companyId ? `/reports/pnl/?company=${companyId}` : null);
+
+  const livePnl = useMemo(() => {
+    const inc = pnlRes.data?.income ?? [];
+    const exp = pnlRes.data?.expense ?? [];
+    if (inc.length === 0 && exp.length === 0) return null;
+    return {
+      income: inc.length ? [groupRows(inc, 'Income')] : [],
+      expenses: exp.length ? [groupRows(exp, 'Expenses')] : [],
+    };
+  }, [pnlRes.data]);
+
+  const usingLivePnl = !!livePnl;
+  const pnl = livePnl ?? MOCK_PNL;
+
+  const totalIncome = pnl.income.reduce((s, c) => s + c.total, 0);
+  const totalExpenses = pnl.expenses.reduce((s, c) => s + c.total, 0);
   const netProfit = totalIncome - totalExpenses;
 
   const receivables = MOCK_INVOICES.filter(i => i.balanceDue > 0 && i.status !== 'cancelled');
@@ -76,6 +106,14 @@ export default function Reports() {
           label: 'Profit & Loss',
           children: (
             <div>
+              {usingLivePnl ? (
+                <Alert type="success" showIcon style={{ marginBottom: 16, borderRadius: 10 }}
+                  message={<span style={{ fontSize: 13 }}><strong>Live</strong> — Profit &amp; Loss computed from posted journal entries in your workspace.</span>} />
+              ) : (
+                <Alert type="info" showIcon style={{ marginBottom: 16, borderRadius: 10 }}
+                  message={<span style={{ fontSize: 13 }}>{pnlRes.loading ? 'Loading P&L from your workspace…' : 'Showing demo data — post journal entries to see your real P&L.'}</span>} />
+              )}
+
               {/* P&L Summary */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 24 }}>
                 <SummaryCard label="Total Income" value={formatINR(totalIncome)} color="#10B981" />
@@ -87,7 +125,7 @@ export default function Reports() {
                 {/* Income */}
                 <div style={{ background: '#FFFFFF', borderRadius: 14, border: '1px solid var(--color-border)', padding: '24px' }}>
                   <div style={{ fontSize: 14, fontWeight: 700, color: '#10B981', marginBottom: 16 }}>Income</div>
-                  {MOCK_PNL.income.map(cat => (
+                  {pnl.income.map(cat => (
                     <div key={cat.category} style={{ marginBottom: 16 }}>
                       <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>{cat.category}</div>
                       {cat.items.map(item => (
@@ -111,7 +149,7 @@ export default function Reports() {
                 {/* Expenses */}
                 <div style={{ background: '#FFFFFF', borderRadius: 14, border: '1px solid var(--color-border)', padding: '24px' }}>
                   <div style={{ fontSize: 14, fontWeight: 700, color: '#EF4444', marginBottom: 16 }}>Expenses</div>
-                  {MOCK_PNL.expenses.map(cat => (
+                  {pnl.expenses.map(cat => (
                     <div key={cat.category} style={{ marginBottom: 16 }}>
                       <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>{cat.category}</div>
                       {cat.items.map(item => (
