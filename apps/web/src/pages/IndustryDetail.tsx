@@ -3,80 +3,105 @@ import { Row, Col, Button } from 'antd';
 import industries from '../data/industries-data';
 import CTABanner from '../components/shared/CTABanner';
 import ScrollReveal from '../components/shared/ScrollReveal';
+import HomeSectionHeader from '../components/shared/HomeSectionHeader';
+import IndustryHeroVisual from '../components/marketing/IndustryHeroVisual';
+import MarketingImageFrame from '../components/marketing/MarketingImageFrame';
+import { industryImageKey } from '../data/marketing-images';
 
 export default function IndustryDetail() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const industry = industries.find(i => i.slug === slug);
+  const industry = industries.find((i) => i.slug === slug);
 
   if (!industry) {
     return (
-      <div style={{ minHeight: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-        <h2 style={{ color: '#0A1128' }}>Industry not found</h2>
-        <Button type="primary" onClick={() => navigate('/industries')} style={{ background: '#FF6D00', border: 'none' }}>
-          Back to Industries
+      <div className="marketing-page" style={{ minHeight: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+        <h2 className="home-card-title">Industry not found</h2>
+        <Button type="primary" className="marketing-btn marketing-btn--primary" onClick={() => navigate('/industries')}>
+          Back to industries
         </Button>
       </div>
     );
   }
 
   return (
-    <div style={{ background: '#FAFAFC', overflow: 'hidden' }}>
-
-      {/* ── Header ── */}
-      <div className="page-header" style={{ position: 'relative', overflow: 'hidden' }}>
-        <div className="orb-orange" style={{ width: 450, height: 450, top: -160, left: -100, opacity: 0.08 }} />
-        <div className="orb-purple" style={{ width: 450, height: 450, bottom: -160, right: -100, opacity: 0.08 }} />
-        <div style={{ position: 'relative', zIndex: 5 }}>
+    <div className="marketing-page">
+      <section className="marketing-hero" style={{ background: industry.gradient, position: 'relative', overflow: 'hidden' }}>
+        <div className="marketing-section__inner" style={{ position: 'relative', zIndex: 1 }}>
           <ScrollReveal animation="fade-in-down">
-            <Link
-              to="/industries"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: industry.accent, marginBottom: 16, textDecoration: 'none' }}
-            >
-              ← All Industries
+            <Link to="/industries" className="marketing-back-link" style={{ color: industry.accent }}>
+              ← All industries
             </Link>
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 8,
-              background: `${industry.accent}12`, border: `1px solid ${industry.accent}30`,
-              borderRadius: 24, padding: '6px 16px', marginBottom: 20,
-            }}>
-              <span style={{ fontWeight: 800, fontSize: 12, color: industry.accent, letterSpacing: '0.5px' }}>
-                {industry.code} · INDUSTRY SOLUTIONS
-              </span>
-            </div>
-            <h1 style={{ marginBottom: 12 }}>{industry.title}</h1>
-            <p style={{ color: 'rgba(10,17,40,0.6)', fontWeight: 500, maxWidth: 560 }}>{industry.tagline}</p>
+            <Row gutter={[40, 32]} align="middle" style={{ marginTop: 16 }}>
+              <Col xs={24} lg={14}>
+                <span
+                  className="home-section-eyebrow"
+                  style={{ color: industry.accent, background: 'rgba(255,255,255,0.85)', borderColor: `${industry.accent}30` }}
+                >
+                  {industry.code} · Industry solution
+                </span>
+                <h1 className="home-hero-title" style={{ color: '#0f172a', marginTop: 12 }}>
+                  {industry.title}
+                </h1>
+                <p className="home-hero-subtitle" style={{ color: '#475569', maxWidth: 520 }}>
+                  {industry.tagline}
+                </p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 20 }}>
+                  <Button
+                    className="marketing-btn marketing-btn--primary"
+                    style={{ background: industry.accent, borderColor: industry.accent }}
+                    onClick={() => navigate(industry.primarySolutionPath)}
+                  >
+                    {industry.primarySolutionLabel}
+                  </Button>
+                  <Button className="marketing-btn marketing-btn--ghost" onClick={() => navigate('/solutions')}>
+                    Compare solutions
+                  </Button>
+                </div>
+              </Col>
+              <Col xs={24} lg={10}>
+                <IndustryHeroVisual industry={industry} large />
+              </Col>
+            </Row>
           </ScrollReveal>
         </div>
-      </div>
+      </section>
 
-      {/* ── Overview ── */}
-      <section style={{ padding: '72px 24px', background: '#FFFFFF', borderBottom: '1px solid #EAECEF' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-          <Row gutter={[56, 40]} align="middle">
+      <section className="marketing-section marketing-section--white">
+        <div className="marketing-section__inner">
+          <Row gutter={[48, 40]} align="middle">
             <Col xs={24} lg={12}>
               <ScrollReveal animation="fade-in-left">
-                <h2 style={{ fontSize: '2rem', fontWeight: 900, color: '#0A1128', letterSpacing: '-1px', marginBottom: 20 }}>
-                  Built for the unique demands of {industry.title}.
-                </h2>
-                <p style={{ color: 'rgba(10,17,40,0.65)', fontSize: 14.5, lineHeight: 1.85 }}>{industry.overview}</p>
+                <HomeSectionHeader
+                  eyebrow="Overview"
+                  title={`Built for ${industry.title}`}
+                  subtitle={industry.overview}
+                  align="left"
+                  theme="navy"
+                  maxWidth={520}
+                />
               </ScrollReveal>
             </Col>
             <Col xs={24} lg={12}>
               <ScrollReveal animation="fade-in-right">
-                <Row gutter={[16, 16]}>
-                  {industry.stats.map(stat => (
+                {industryImageKey[industry.slug] ? (
+                  <div style={{ marginBottom: 20 }}>
+                    <MarketingImageFrame
+                      imageKey={industryImageKey[industry.slug]}
+                      variant="bento"
+                      aspect="16/10"
+                      overlayTitle={industry.title}
+                    />
+                  </div>
+                ) : null}
+                <Row gutter={[12, 12]}>
+                  {industry.stats.map((stat) => (
                     <Col key={stat.label} xs={12}>
-                      <div style={{
-                        padding: '24px 20px', borderRadius: 14, background: '#FAFAFC',
-                        border: `1.5px solid ${industry.accent}20`, textAlign: 'center',
-                      }}>
-                        <div style={{ fontSize: '1.9rem', fontWeight: 900, color: industry.accent, lineHeight: 1 }}>
+                      <div className="marketing-stat-tile" style={{ borderColor: `${industry.accent}30` }}>
+                        <div className="marketing-stat__value" style={{ color: industry.accent }}>
                           {stat.value}
                         </div>
-                        <div style={{ fontSize: 12.5, color: 'rgba(10,17,40,0.55)', fontWeight: 600, marginTop: 6 }}>
-                          {stat.label}
-                        </div>
+                        <div className="marketing-stat__label">{stat.label}</div>
                       </div>
                     </Col>
                   ))}
@@ -87,30 +112,18 @@ export default function IndustryDetail() {
         </div>
       </section>
 
-      {/* ── Challenges ── */}
-      <section style={{ padding: '72px 24px', background: '#FAFAFC' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+      <section className="marketing-section marketing-section--muted">
+        <div className="marketing-section__inner">
           <ScrollReveal animation="fade-in-down">
-            <div style={{ textAlign: 'center', marginBottom: 52 }}>
-              <h2 style={{ fontSize: '2rem', fontWeight: 900, color: '#0A1128', letterSpacing: '-1px', marginBottom: 10 }}>
-                Key Challenges We Solve
-              </h2>
-              <p style={{ color: 'rgba(10,17,40,0.55)', fontSize: '1.05rem' }}>
-                Industry-specific problems that generic HR software can't handle.
-              </p>
-            </div>
+            <HomeSectionHeader eyebrow="Challenges" title="Problems we solve" titleHighlight="in this sector" theme="purple" maxWidth={560} />
           </ScrollReveal>
           <Row gutter={[20, 20]}>
-            {industry.challenges.map((c, i) => (
-              <Col key={c.title} xs={24} sm={12}>
-                <ScrollReveal animation="fade-in-up" delay={i * 70}>
-                  <div className="card-hover" style={{
-                    padding: '28px 28px', borderRadius: 14, background: '#FFFFFF',
-                    borderLeft: `4px solid ${industry.accent}`,
-                    boxShadow: '0 4px 20px rgba(10,17,40,0.03)', height: '100%',
-                  }}>
-                    <h4 style={{ fontWeight: 800, color: '#0A1128', fontSize: 15, marginBottom: 8 }}>{c.title}</h4>
-                    <p style={{ color: 'rgba(10,17,40,0.6)', fontSize: 13.5, lineHeight: 1.7, margin: 0 }}>{c.body}</p>
+            {industry.challenges.map((c, idx) => (
+              <Col key={c.title} xs={24} md={12}>
+                <ScrollReveal animation="fade-in-up" delay={idx * 60}>
+                  <div className="marketing-feature-tile">
+                    <h4 className="home-card-h4">{c.title}</h4>
+                    <p className="home-card-body">{c.body}</p>
                   </div>
                 </ScrollReveal>
               </Col>
@@ -119,37 +132,18 @@ export default function IndustryDetail() {
         </div>
       </section>
 
-      {/* ── Features ── */}
-      <section style={{ padding: '72px 24px', background: '#FFFFFF', borderTop: '1px solid #EAECEF', borderBottom: '1px solid #EAECEF' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+      <section className="marketing-section marketing-section--white">
+        <div className="marketing-section__inner">
           <ScrollReveal animation="fade-in-down">
-            <div style={{ textAlign: 'center', marginBottom: 52 }}>
-              <h2 style={{ fontSize: '2rem', fontWeight: 900, color: '#0A1128', letterSpacing: '-1px', marginBottom: 10 }}>
-                Purpose-Built Features
-              </h2>
-              <p style={{ color: 'rgba(10,17,40,0.55)', fontSize: '1.05rem' }}>
-                Every feature designed around how {industry.title} businesses actually operate.
-              </p>
-            </div>
+            <HomeSectionHeader eyebrow="Capabilities" title="Saptta features" titleHighlight="for you" theme="green" maxWidth={560} />
           </ScrollReveal>
-          <Row gutter={[20, 20]}>
-            {industry.features.map((f, i) => (
-              <Col key={f.label} xs={24} sm={12} lg={8}>
-                <ScrollReveal animation="fade-in-up" delay={i * 60}>
-                  <div className="card-hover" style={{
-                    padding: '24px 22px', borderRadius: 14, background: '#FAFAFC',
-                    border: '1.5px solid #EAECEF',
-                    boxShadow: '0 4px 20px rgba(10,17,40,0.02)', height: '100%',
-                  }}>
-                    <div style={{
-                      width: 36, height: 36, borderRadius: 9, marginBottom: 14,
-                      background: `${industry.accent}12`,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                      <span style={{ width: 10, height: 10, borderRadius: '50%', background: industry.accent, display: 'block' }} />
-                    </div>
-                    <h4 style={{ fontWeight: 800, color: '#0A1128', fontSize: 14, marginBottom: 6 }}>{f.label}</h4>
-                    <p style={{ color: 'rgba(10,17,40,0.6)', fontSize: 13, lineHeight: 1.65, margin: 0 }}>{f.detail}</p>
+          <Row gutter={[16, 16]}>
+            {industry.features.map((f, idx) => (
+              <Col key={f.label} xs={24} md={12} lg={8}>
+                <ScrollReveal animation="fade-in-up" delay={idx * 50}>
+                  <div className="marketing-module-card" style={{ borderTopColor: industry.accent }}>
+                    <h4 className="home-card-h4">{f.label}</h4>
+                    <p className="home-card-body">{f.detail}</p>
                   </div>
                 </ScrollReveal>
               </Col>
@@ -158,87 +152,61 @@ export default function IndustryDetail() {
         </div>
       </section>
 
-      {/* ── Compliance & Use Cases ── */}
-      <section style={{ padding: '72px 24px', background: '#FAFAFC' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-          <Row gutter={[48, 40]}>
-            <Col xs={24} lg={12}>
-              <ScrollReveal animation="fade-in-left">
-                <h3 style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0A1128', marginBottom: 24 }}>
-                  Compliance Coverage
-                </h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {industry.compliancePoints.map(pt => (
-                    <div key={pt} style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                      <span style={{
-                        width: 20, height: 20, borderRadius: '50%',
-                        background: `${industry.accent}15`, color: industry.accent,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 11, fontWeight: 900, flexShrink: 0, marginTop: 1,
-                      }}>✓</span>
-                      <span style={{ fontSize: 13.5, color: 'rgba(10,17,40,0.7)', lineHeight: 1.5 }}>{pt}</span>
-                    </div>
-                  ))}
-                </div>
-              </ScrollReveal>
-            </Col>
-            <Col xs={24} lg={12}>
-              <ScrollReveal animation="fade-in-right">
-                <h3 style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0A1128', marginBottom: 24 }}>
-                  Common Use Cases
-                </h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {industry.useCases.map(uc => (
-                    <div key={uc} style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                      <span style={{
-                        width: 20, height: 20, borderRadius: '50%',
-                        background: 'rgba(10,17,40,0.05)', color: '#0A1128',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 11, fontWeight: 900, flexShrink: 0, marginTop: 1,
-                      }}>→</span>
-                      <span style={{ fontSize: 13.5, color: 'rgba(10,17,40,0.7)', lineHeight: 1.5 }}>{uc}</span>
-                    </div>
-                  ))}
-                </div>
-              </ScrollReveal>
-            </Col>
-          </Row>
+      <section className="marketing-section marketing-section--muted">
+        <div className="marketing-section__inner marketing-section__inner--narrow">
+          <ScrollReveal animation="fade-in-down">
+            <HomeSectionHeader
+              eyebrow="Compliance"
+              title="Statutory coverage"
+              titleHighlight={industry.title}
+              subtitle="Registers and filings your team needs — built into workflows, not bolted on."
+              theme="indigo"
+              maxWidth={560}
+            />
+            <div className="home-section-pills" style={{ justifyContent: 'center', marginTop: -8 }}>
+              {industry.compliancePoints.map((badge) => (
+                <span key={badge} className="home-section-badge">
+                  {badge}
+                </span>
+              ))}
+            </div>
+          </ScrollReveal>
         </div>
       </section>
 
-      {/* ── Other Industries ── */}
-      <section style={{ padding: '60px 24px', background: '#FFFFFF', borderTop: '1px solid #EAECEF' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-          <ScrollReveal animation="fade-in-down">
-            <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#0A1128', marginBottom: 24, textAlign: 'center' }}>
-              Explore Other Industries
-            </h3>
-          </ScrollReveal>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center' }}>
-            {industries.filter(i => i.slug !== slug).map(ind => (
-              <Link
-                key={ind.slug}
-                to={`/industries/${ind.slug}`}
-                style={{
-                  padding: '8px 18px', borderRadius: 24, fontSize: 13.5, fontWeight: 600,
-                  border: `1.5px solid ${ind.accent}30`, color: ind.accent,
-                  background: `${ind.accent}08`, textDecoration: 'none',
-                  transition: 'all 0.2s',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background = `${ind.accent}18`; }}
-                onMouseLeave={e => { e.currentTarget.style.background = `${ind.accent}08`; }}
-              >
-                {ind.title}
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
+      <HighlightFeatureCard
+        title={`Ready to deploy Saptta for ${industry.title}?`}
+        description={`Start with ${industry.primarySolutionLabel.replace('Explore ', '').replace(' for IT', '')} or book a walkthrough tailored to your sector.`}
+        ctaLabel="Book a demo"
+        ctaTo="/contact"
+      />
 
       <CTABanner
-        title={`Ready to transform HR for your ${industry.title} business?`}
-        subtitle="Schedule a free sector-specific demo with our implementation consultants."
+        title={`Scale ${industry.title} with Saptta`}
+        subtitle="Modular HRMS and Accounts — combine when you need payroll-to-ledger sync and unified compliance."
       />
     </div>
+  );
+}
+
+function HighlightFeatureCard({ title, description, ctaLabel, ctaTo }: { title: string; description: string; ctaLabel: string; ctaTo: string }) {
+  const navigate = useNavigate();
+  return (
+    <section className="marketing-section marketing-section--white" style={{ paddingTop: 0 }}>
+      <div className="marketing-section__inner">
+        <ScrollReveal animation="fade-in-up">
+          <div className="marketing-highlight-card">
+            <div className="marketing-highlight-card__icon">→</div>
+            <div>
+              <h3 className="marketing-highlight-card__title">{title}</h3>
+              <p className="marketing-highlight-card__desc">{description}</p>
+              <button type="button" className="marketing-highlight-card__btn" onClick={() => navigate(ctaTo)}>
+                {ctaLabel} →
+              </button>
+            </div>
+          </div>
+        </ScrollReveal>
+      </div>
+    </section>
   );
 }

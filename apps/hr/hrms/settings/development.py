@@ -38,3 +38,8 @@ INTERNAL_IPS = ["127.0.0.1"]
 STATICFILES_STORAGE = "django.contrib.staticfiles.storage.StaticFilesStorage"
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+# Local subdomain routing: sapttadev.localhost:8001
+HRMS_TENANT_DOMAIN = "localhost"
+HRMS_SUPERADMIN_DOMAIN = "localhost"
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", ".localhost"]

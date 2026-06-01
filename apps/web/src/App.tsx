@@ -14,9 +14,13 @@ import HrmsSolutions from './pages/HrmsSolutions';
 import AccountsSolutions from './pages/AccountsSolutions';
 import MobileApp from './pages/MobileApp';
 import Features from './pages/Features';
+import Products from './pages/Products';
 import Industries from './pages/Industries';
 import IndustryDetail from './pages/IndustryDetail';
 import Contact from './pages/Contact';
+import Resources from './pages/Resources';
+import Solutions from './pages/Solutions';
+import Careers from './pages/Careers';
 import Login from './pages/Login';
 import Pricing from './pages/Pricing';
 import Signup from './pages/Signup';
@@ -24,6 +28,11 @@ import Setup from './pages/Setup';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import VerifyEmail from './pages/VerifyEmail';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsOfService from './pages/TermsOfService';
+import SecurityPage from './pages/SecurityPage';
+import StatusPage from './pages/StatusPage';
+import CookieConsent from './components/legal/CookieConsent';
 
 // Product switcher & layouts
 import ProductSwitcher from './pages/app/ProductSwitcher';
@@ -70,14 +79,22 @@ function AppLayout() {
           {/* Public marketing pages */}
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
+          <Route path="/products" element={<Products />} />
           <Route path="/hrms" element={<HrmsSolutions />} />
           <Route path="/accounts" element={<AccountsSolutions />} />
           <Route path="/mobile-app" element={<MobileApp />} />
           <Route path="/features" element={<Features />} />
+          <Route path="/solutions" element={<Solutions />} />
+          <Route path="/resources" element={<Resources />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/industries" element={<Industries />} />
           <Route path="/industries/:slug" element={<IndustryDetail />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/careers" element={<Careers />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/security" element={<SecurityPage />} />
+          <Route path="/status" element={<StatusPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -135,6 +152,7 @@ function AppLayout() {
         </Routes>
       </main>
       {!hideChrome && <Footer />}
+      {!hideChrome && <CookieConsent />}
     </div>
   );
 }

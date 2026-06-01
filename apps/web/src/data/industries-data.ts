@@ -3,8 +3,13 @@ export interface IndustryData {
   code: string;
   title: string;
   accent: string;
+  gradient: string;
+  icon: string;
   tagline: string;
   overview: string;
+  primarySolutionPath: string;
+  primarySolutionLabel: string;
+  relatedProductPath: string;
   challenges: { title: string; body: string }[];
   features: { label: string; detail: string }[];
   stats: { value: string; label: string }[];
@@ -17,10 +22,15 @@ const industries: IndustryData[] = [
     slug: 'it',
     code: 'IT',
     title: 'IT & Technology',
-    accent: '#FF6D00',
+    accent: '#6C3BFF',
+    gradient: 'linear-gradient(135deg, #6C3BFF 0%, #8B5CF6 45%, #EEF2FF 100%)',
+    icon: '💻',
     tagline: 'Built for distributed teams, flexible shifts, and project-based payroll.',
     overview:
-      'Technology companies face unique HR challenges — remote workforces spread across cities, variable shift cycles tied to project sprints, and pay structures that combine fixed CTC with project bonuses. SAPTTA unifies attendance, payroll, and accounts into one compliant platform purpose-built for IT firms.',
+      'Technology companies face unique HR challenges — remote workforces spread across cities, variable shift cycles tied to project sprints, and pay structures that combine fixed CTC with project bonuses. Saptta unifies attendance, payroll, and accounts into one compliant platform purpose-built for IT firms.',
+    primarySolutionPath: '/hrms',
+    primarySolutionLabel: 'Explore HRMS for IT',
+    relatedProductPath: '/accounts',
     challenges: [
       { title: 'Remote Attendance Verification', body: 'GPS punch-in with IP whitelisting ensures authentic remote attendance without physical hardware.' },
       { title: 'Flexi-Shift Management', body: 'Configure multiple shift templates per project and auto-calculate overtime against CLRA norms.' },
@@ -60,10 +70,15 @@ const industries: IndustryData[] = [
     slug: 'manufacturing',
     code: 'MF',
     title: 'Manufacturing',
-    accent: '#FF6D00',
+    accent: '#1E2A78',
+    gradient: 'linear-gradient(135deg, #1E2A78 0%, #3d4fad 50%, #EEF2FF 100%)',
+    icon: '🏭',
     tagline: 'High-volume factory payroll, contract labor registers, and shift automation.',
     overview:
-      'Manufacturing plants operate across multiple shifts with contract and permanent workers, heavy statutory obligations under the Factories Act, and complex attendance systems tied to physical biometric hardware. SAPTTA integrates with ZKTeco and eSSL devices and automates everything from shift rosters to PF challan generation.',
+      'Manufacturing plants operate across multiple shifts with contract and permanent workers, heavy statutory obligations under the Factories Act, and complex attendance systems tied to physical biometric hardware. Saptta integrates with ZKTeco and eSSL devices and automates everything from shift rosters to PF challan generation.',
+    primarySolutionPath: '/hrms',
+    primarySolutionLabel: 'Manufacturing HRMS',
+    relatedProductPath: '/mobile-app',
     challenges: [
       { title: 'Biometric Integration', body: 'Direct sync with ZKTeco and eSSL punch machines eliminates manual attendance entry.' },
       { title: 'Contract Labor Management', body: 'Separate contractor registers, ESI cards, and salary disbursements with contractor-wise reports.' },
@@ -103,10 +118,15 @@ const industries: IndustryData[] = [
     slug: 'retail',
     code: 'RT',
     title: 'Retail & FMCG',
-    accent: '#FF6D00',
+    accent: '#D69A2D',
+    gradient: 'linear-gradient(135deg, #D69A2D 0%, #E2AD4A 40%, #FFF8EC 100%)',
+    icon: '🛒',
     tagline: 'Multi-store payroll, sales commission ledgers, and part-time shift management.',
     overview:
-      'Retail and FMCG companies manage large, geographically distributed workforces across stores and depots, with high attrition, part-time and contractual staff, and commission-linked pay structures. SAPTTA handles multi-branch HR, sales incentive calculations, and real-time store-level accounts — all from a single dashboard.',
+      'Retail and FMCG companies manage large, geographically distributed workforces across stores and depots, with high attrition, part-time and contractual staff, and commission-linked pay structures. Saptta handles multi-branch HR, sales incentive calculations, and real-time store-level accounts — all from a single dashboard.',
+    primarySolutionPath: '/accounts',
+    primarySolutionLabel: 'Retail finance solution',
+    relatedProductPath: '/hrms',
     challenges: [
       { title: 'Multi-Branch HR Sync', body: 'Centralized HR data across all store locations with branch-level payroll P&L visibility.' },
       { title: 'Sales Commission Calculation', body: 'Auto-calculate commissions on net sales, product categories, and individual targets.' },
@@ -146,10 +166,15 @@ const industries: IndustryData[] = [
     slug: 'healthcare',
     code: 'HC',
     title: 'Healthcare',
-    accent: '#FF6D00',
+    accent: '#2BB673',
+    gradient: 'linear-gradient(135deg, #2BB673 0%, #34d399 42%, #ECFDF5 100%)',
+    icon: '🏥',
     tagline: '24/7 duty rosters, rotating shift caps, and medical staff credential management.',
     overview:
-      'Hospitals, clinics, and diagnostic chains run 24-hour operations with complex rotating rosters across departments, strict credentialing requirements, and compliance with Clinical Establishments Act norms. SAPTTA manages medical staff duty cycles, night shift allowances, and credential expiry tracking in one unified platform.',
+      'Hospitals, clinics, and diagnostic chains run 24-hour operations with complex rotating rosters across departments, strict credentialing requirements, and compliance with Clinical Establishments Act norms. Saptta manages medical staff duty cycles, night shift allowances, and credential expiry tracking in one unified platform.',
+    primarySolutionPath: '/hrms',
+    primarySolutionLabel: 'Healthcare HRMS',
+    relatedProductPath: '/mobile-app',
     challenges: [
       { title: '24/7 Roster Management', body: 'Auto-generate rotating duty rosters for doctors, nurses, and paramedics across all departments.' },
       { title: 'Credential & License Tracking', body: 'Track expiry of medical licenses, BLS/ACLS certifications, and auto-alert HR before lapse.' },
@@ -189,10 +214,15 @@ const industries: IndustryData[] = [
     slug: 'logistics',
     code: 'LG',
     title: 'Logistics',
-    accent: '#FF6D00',
+    accent: '#2563EB',
+    gradient: 'linear-gradient(135deg, #2563EB 0%, #3b82f6 45%, #EAF1FF 100%)',
+    icon: '🚚',
     tagline: 'Driver geofence attendance, route expense allowances, and fleet payroll automation.',
     overview:
-      'Logistics and transport companies manage mobile workforces spread across routes and hubs with no fixed location. Attendance cannot rely on traditional punch machines, and pay structures mix fixed wages with route allowances, fuel reimbursements, and performance bonuses. SAPTTA solves this with GPS-based attendance and route-linked payroll.',
+      'Logistics and transport companies manage mobile workforces spread across routes and hubs with no fixed location. Attendance cannot rely on traditional punch machines, and pay structures mix fixed wages with route allowances, fuel reimbursements, and performance bonuses. Saptta solves this with GPS-based attendance and route-linked payroll.',
+    primarySolutionPath: '/mobile-app',
+    primarySolutionLabel: 'Mobile for fleet teams',
+    relatedProductPath: '/hrms',
     challenges: [
       { title: 'GPS-Based Attendance', body: 'Geofenced punch-in for drivers and field staff verified against depot and route coordinates.' },
       { title: 'Route Allowance Automation', body: 'Pre-defined route-wise allowance tables auto-apply on each trip log for payroll.' },
@@ -232,10 +262,15 @@ const industries: IndustryData[] = [
     slug: 'financial',
     code: 'FS',
     title: 'Financial Services',
-    accent: '#FF6D00',
+    accent: '#4338CA',
+    gradient: 'linear-gradient(135deg, #4338CA 0%, #6366f1 48%, #EEF2FF 100%)',
+    icon: '📊',
     tagline: 'Commission payroll, multi-branch accounts, and regulatory compliance automation.',
     overview:
-      'Banks, NBFCs, insurance agencies, and wealth management firms operate complex incentive structures, multi-branch hierarchies, and stringent RBI/IRDA compliance requirements. SAPPTA automates commission-linked payroll, integrates branch-level accounts, and generates audit-ready statutory reports for financial services organizations.',
+      'Banks, NBFCs, insurance agencies, and wealth management firms operate complex incentive structures, multi-branch hierarchies, and stringent compliance requirements. Saptta automates commission-linked payroll, integrates branch-level accounts, and generates audit-ready statutory reports.',
+    primarySolutionPath: '/accounts',
+    primarySolutionLabel: 'Finance for FS teams',
+    relatedProductPath: '/hrms',
     challenges: [
       { title: 'Commission & Incentive Payroll', body: 'Multi-tier commission structures on products sold, policies renewed, and AUM managed.' },
       { title: 'Branch Accounts Integration', body: 'Real-time consolidation of branch P&L, suspense clearing, and inter-branch settlements.' },

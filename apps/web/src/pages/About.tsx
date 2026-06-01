@@ -2,9 +2,12 @@ import { useState } from 'react';
 import { Row, Col, Button } from 'antd';
 import CTABanner from '../components/shared/CTABanner';
 import ScrollReveal from '../components/shared/ScrollReveal';
+import MarketingImageFrame from '../components/marketing/MarketingImageFrame';
+import HomeSectionHeader from '../components/shared/HomeSectionHeader';
+import useBreakpoint from '../hooks/useBreakpoint';
 
 export default function About() {
-  /* Interactive Flow State */
+  const { isMobile } = useBreakpoint();
   const [activeFlow, setActiveFlow] = useState<'hrms' | 'payroll' | 'accounts'>('hrms');
   const [visualizerKey, setVisualizerKey] = useState(0);
 
@@ -37,18 +40,25 @@ export default function About() {
   return (
     <div style={{ background: '#FAFAFC', overflow: 'hidden' }}>
       {/* Page Header */}
-      <div className="page-header" style={{ position: 'relative', overflow: 'hidden' }}>
-        <div className="orb-orange" style={{ width: 450, height: 450, top: -160, left: -100, opacity: 0.08 }} />
-        <div className="orb-purple" style={{ width: 450, height: 450, bottom: -150, right: -100, opacity: 0.08 }} />
-        <div style={{ position: 'relative', zIndex: 5 }}>
-          <ScrollReveal animation="fade-in-down">
-            <h1 style={{ letterSpacing: '-1.5px', fontWeight: 900 }}>Operational Thesis & Philosophy</h1>
-            <p style={{ color: 'rgba(10,17,40,0.6)', fontWeight: 500 }}>
-              Unified workforce coordinates and automated double-entry ledger bookkeeping.
-            </p>
+      <section className={`marketing-hero${isMobile ? ' marketing-hero--stacked' : ''}`} style={{ background: 'linear-gradient(135deg, #FFF8F0 0%, #F5F3FF 50%, #FFFFFF 100%)', paddingTop: 88 }}>
+        <div className="marketing-hero__inner marketing-hero__inner--split">
+          <ScrollReveal animation="fade-in-left">
+            <HomeSectionHeader
+              eyebrow="About Saptta"
+              title="HR & Finance"
+              titleHighlight="built for India"
+              subtitle="Unified workforce operations and automated statutory bookkeeping — honest data, no placeholder metrics."
+              align="left"
+              theme="navy"
+              isMobile={isMobile}
+              maxWidth={480}
+            />
+          </ScrollReveal>
+          <ScrollReveal animation="fade-in-right">
+            <MarketingImageFrame imageKey="aboutOffice" variant="split" aspect="16/10" />
           </ScrollReveal>
         </div>
-      </div>
+      </section>
 
       {/* ── 1. The Operations Paradigm Shift ── */}
       <section style={{ padding: '80px 24px', background: '#FFFFFF', borderBottom: '1px solid #EAECEF' }}>
@@ -86,9 +96,11 @@ export default function About() {
               </ScrollReveal>
             </Col>
 
-            {/* Interactive Flow Visualizer */}
             <Col xs={24} lg={13}>
               <ScrollReveal animation="fade-in-right">
+                <div style={{ marginBottom: 20 }}>
+                  <MarketingImageFrame imageKey="aboutTeam" variant="glass" aspect="21/9" />
+                </div>
                 <div style={{
                   background: '#FAFAFC', border: '1.5px solid rgba(255,109,0,0.15)',
                   borderRadius: 24, padding: 32, boxShadow: '0 16px 48px rgba(10,17,40,0.03)',
@@ -235,6 +247,54 @@ export default function About() {
               </Col>
             ))}
           </Row>
+        </div>
+      </section>
+
+      {/* ── 2.5 The Journey / Timeline ── */}
+      <section style={{ padding: '80px 24px', background: '#FFFFFF', borderBottom: '1px solid #EAECEF' }}>
+        <div style={{ maxWidth: 1000, margin: '0 auto' }}>
+          <ScrollReveal animation="fade-in-down">
+            <div style={{ textAlign: 'center', marginBottom: 56 }}>
+              <h2 style={{ fontSize: '2.1rem', fontWeight: 900, color: '#0A1128', marginBottom: 10, letterSpacing: '-1px' }}>
+                Our Journey & Milestones
+              </h2>
+              <p style={{ color: 'rgba(10, 17, 40, 0.55)', fontSize: '1.05rem', fontWeight: 500 }}>
+                How we built a unified accounting and workforce ecosystem for India.
+              </p>
+            </div>
+          </ScrollReveal>
+
+          <div className="about-timeline">
+            {[
+              {
+                year: '2024',
+                title: 'Saptta Founded',
+                desc: 'Launched in Mumbai to tackle the fragmented, manual payroll and bookkeeping systems used by mid-market Indian enterprises.',
+              },
+              {
+                year: '2025',
+                title: 'AI Audits Release',
+                desc: 'Introduced the automated PF, ESI, and salary TDS discrepancy checking engine, saving finance directors days of manual reconciliation.',
+              },
+              {
+                year: '2026',
+                title: 'Unified Ledger Sync',
+                desc: 'Achieved true end-to-end integration: payroll runs post directly to double-entry ledger books and generate GSTR-ready records.',
+              },
+            ].map((milestone, idx) => (
+              <div key={idx} className="about-timeline-item">
+                <div className="about-timeline-badge">{milestone.year}</div>
+                <div className="about-timeline-card">
+                  <h4 style={{ fontWeight: 800, color: '#0A1128', fontSize: 16, marginBottom: 8 }}>
+                    {milestone.title}
+                  </h4>
+                  <p style={{ color: 'rgba(10, 17, 40, 0.6)', fontSize: 13.5, lineHeight: 1.6, margin: 0 }}>
+                    {milestone.desc}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
