@@ -3,7 +3,7 @@
 ## Create / refresh demo account
 
 ```powershell
-cd "hr saptta"
+cd "apps\hr"
 $env:DJANGO_SETTINGS_MODULE = "hrms.settings.development"
 .\venv\Scripts\activate
 python manage.py seed_dummy_login

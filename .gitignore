@@ -93,3 +93,8 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+
+# ─────────── Legacy local folders (pre-monorepo; do not use) ───────────
+/sappta/
+/hr saptta/
+/fin saptta/
