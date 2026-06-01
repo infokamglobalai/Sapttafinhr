@@ -62,6 +62,9 @@ services:
       REQUIRE_EMAIL_VERIFICATION: ${REQUIRE_EMAIL_VERIFICATION:-True}
       SSO_SHARED_SECRET: ${SSO_SHARED_SECRET}
       HR_INTERNAL_BASE_URL: http://hr-backend:8000
+      SENTRY_DSN: ${FIN_SENTRY_DSN:-}
+      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
+      SENTRY_RELEASE: ${SENTRY_RELEASE:-}
     depends_on:
       db: { condition: service_healthy }
       redis: { condition: service_healthy }
@@ -90,6 +93,8 @@ services:
       EMAIL_PORT: ${EMAIL_PORT}
       EMAIL_HOST_USER: ${EMAIL_HOST_USER}
       EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD}
+      SENTRY_DSN: ${FIN_SENTRY_DSN:-}
+      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
       BACKUP_DIR: /backups
       BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
     volumes:
@@ -121,6 +126,8 @@ services:
       TENANT_DOMAIN: ${HR_TENANT_DOMAIN}
       DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL}
       SSO_SHARED_SECRET: ${SSO_SHARED_SECRET}
+      SENTRY_DSN: ${HR_SENTRY_DSN:-}
+      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
     depends_on:
       db: { condition: service_healthy }
       redis: { condition: service_healthy }
