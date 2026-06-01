@@ -1,9 +1,9 @@
-"""Tests for billing webhook security (the security-critical path).
+"""Tests for billing webhook signature security (the security-critical path).
 
-Runs without any gateway credentials — exercises HMAC signature verification.
-The subscription activation state machine is verified live (expired trial ->
-PAST_DUE -> tenant API 403 -> reactivate -> 200); a DB test for it needs the
-django-tenants shared-schema test harness, so it's covered by the live check.
+Pure HMAC verification — no DB, no gateway credentials. The subscription
+activation state machine is verified live (expired trial -> PAST_DUE -> tenant
+API 403 -> webhook activate -> 200); a hermetic DB test for it needs more
+django-tenants test-isolation plumbing than is worthwhile here.
 """
 import hashlib
 import hmac
