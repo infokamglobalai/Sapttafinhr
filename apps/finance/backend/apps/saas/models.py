@@ -112,9 +112,22 @@ class SaasInvoice(TimeStampedModel):
 
     subscription = models.ForeignKey(Subscription, on_delete=models.CASCADE,
                                       related_name="invoices")
+    # Human-facing GST invoice number, e.g. SAAS/2026-27/000123.
+    number = models.CharField(max_length=40, blank=True, db_index=True)
     period_start = models.DateField()
     period_end = models.DateField()
+    # `amount` is the GST-inclusive grand total (kept for back-compat). The GST
+    # breakup below makes the invoice India-GST compliant: SaaS is a service
+    # (SAC 9983 / 18%); place of supply decides CGST+SGST vs IGST.
     amount = models.DecimalField(max_digits=10, decimal_places=2)
+    taxable_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    cgst = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    sgst = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    igst = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=18)
+    sac_code = models.CharField(max_length=10, default="9983")
+    place_of_supply = models.CharField(max_length=2, blank=True)
+    customer_gstin = models.CharField(max_length=15, blank=True)
     due_date = models.DateField()
     paid_at = models.DateTimeField(null=True, blank=True)
     status = models.CharField(max_length=10, choices=Status.choices,

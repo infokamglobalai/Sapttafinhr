@@ -301,8 +301,17 @@ export function createBillingOrder(planId: string, cycle: 'monthly' | 'annual' =
 // ─── Customer billing portal: my subscription ─────────────────────────────
 export interface SaasInvoiceDTO {
   id: number;
+  number: string;
   period_start: string;
   period_end: string;
+  taxable_amount: string;
+  cgst: string;
+  sgst: string;
+  igst: string;
+  tax_rate: string;
+  sac_code: string;
+  place_of_supply: string;
+  customer_gstin: string;
   amount: string;
   due_date: string;
   status: 'OPEN' | 'PAID' | 'VOID';

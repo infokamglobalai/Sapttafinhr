@@ -98,9 +98,14 @@ export default function Billing() {
             <Table
               dataSource={sub.invoices} rowKey="id" size="small" pagination={false}
               columns={[
+                { title: 'Invoice #', dataIndex: 'number', key: 'number', render: (v: string) => <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{v || '—'}</span> },
                 { title: 'Period', key: 'period', render: (_: unknown, r: SaasInvoiceDTO) => `${new Date(r.period_start).toLocaleDateString('en-IN')} – ${new Date(r.period_end).toLocaleDateString('en-IN')}` },
-                { title: 'Amount', key: 'amount', render: (_: unknown, r: SaasInvoiceDTO) => INR(r.amount) },
-                { title: 'Due', dataIndex: 'due_date', key: 'due', render: (d: string) => new Date(d).toLocaleDateString('en-IN') },
+                { title: 'Taxable', key: 'taxable', render: (_: unknown, r: SaasInvoiceDTO) => INR(r.taxable_amount) },
+                { title: 'GST', key: 'gst', render: (_: unknown, r: SaasInvoiceDTO) => {
+                  const igst = Number(r.igst) || 0;
+                  return igst > 0 ? `IGST ${INR(r.igst)}` : `C+S ${INR((Number(r.cgst) || 0) + (Number(r.sgst) || 0))}`;
+                } },
+                { title: 'Total', key: 'amount', render: (_: unknown, r: SaasInvoiceDTO) => <strong>{INR(r.amount)}</strong> },
                 { title: 'Status', key: 'status', render: (_: unknown, r: SaasInvoiceDTO) => <Tag color={r.status === 'PAID' ? 'green' : r.status === 'OPEN' ? 'orange' : 'default'} style={{ borderRadius: 6 }}>{r.status}</Tag> },
               ]}
             />

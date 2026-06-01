@@ -44,6 +44,72 @@ def verify_webhook_signature(body: bytes, signature: str, secret: str) -> bool:
     return hmac.compare_digest(expected, signature)
 
 
+def _fy_label(d: date) -> str:
+    """Indian fiscal year label for a date, e.g. 2026-27."""
+    start = d.year if d.month >= 4 else d.year - 1
+    return f"{start}-{str(start + 1)[-2:]}"
+
+
+# Home state for the SaaS vendor (place of supply comparison). Maharashtra (27)
+# by default; override via settings.SAAS_VENDOR_STATE_CODE.
+def _vendor_state() -> str:
+    from django.conf import settings
+    return getattr(settings, "SAAS_VENDOR_STATE_CODE", "27")
+
+
+def generate_gst_invoice(subscription, *, period_start: date, period_end: date,
+                         gross_amount, customer_gstin: str = "", place_of_supply: str = ""):
+    """Create a GST-compliant SaaS invoice (idempotent per subscription+period).
+
+    SaaS is a service under SAC 9983 at 18% GST. `gross_amount` is treated as
+    GST-inclusive; we back out the taxable value and split the tax into CGST+SGST
+    (intra-state) or IGST (inter-state) based on place of supply vs vendor state.
+    """
+    from decimal import Decimal, ROUND_HALF_UP
+    from .models import SaasInvoice
+
+    existing = SaasInvoice.objects.filter(
+        subscription=subscription, period_start=period_start, period_end=period_end
+    ).first()
+    if existing:
+        return existing
+
+    rate = Decimal("18")
+    gross = Decimal(str(gross_amount))
+    taxable = (gross / (Decimal("1") + rate / Decimal("100"))).quantize(Decimal("0.01"), ROUND_HALF_UP)
+    tax = (gross - taxable).quantize(Decimal("0.01"), ROUND_HALF_UP)
+
+    pos = (place_of_supply or "").strip()
+    intra = bool(pos) and pos == _vendor_state()
+    cgst = sgst = igst = Decimal("0")
+    if not pos or intra:
+        cgst = (tax / 2).quantize(Decimal("0.01"), ROUND_HALF_UP)
+        sgst = tax - cgst
+    else:
+        igst = tax
+
+    # Sequential number within the fiscal year.
+    fy = _fy_label(period_end)
+    seq = SaasInvoice.objects.filter(number__contains=f"/{fy}/").count() + 1
+    number = f"SAAS/{fy}/{seq:06d}"
+
+    return SaasInvoice.objects.create(
+        subscription=subscription,
+        number=number,
+        period_start=period_start,
+        period_end=period_end,
+        amount=gross,
+        taxable_amount=taxable,
+        cgst=cgst, sgst=sgst, igst=igst, tax_rate=rate,
+        sac_code="9983",
+        place_of_supply=pos,
+        customer_gstin=customer_gstin,
+        due_date=period_start,
+        status=SaasInvoice.Status.PAID,  # generated on successful payment
+        paid_at=None,
+    )
+
+
 def activate_subscription_for_tenant(schema_name: str, *, period_days: int = 30) -> bool:
     """Mark a tenant's subscription ACTIVE with a fresh paid period + entitlements.
 
@@ -70,8 +136,37 @@ def activate_subscription_for_tenant(schema_name: str, *, period_days: int = 30)
         "trial_ends_at", "updated_at",
     ])
     sub.entitlements.update(status=SubscriptionEntitlement.Status.ACTIVE)
+
+    # Issue a GST-compliant SaaS invoice for the paid period (idempotent).
+    try:
+        gross = sub.plan.monthly_price if period_days <= 31 else sub.plan.annual_price
+        if gross and float(gross) > 0:
+            # Place of supply / GSTIN come from the tenant's FIN company if set.
+            pos, gstin = _tenant_gst_info(schema_name)
+            generate_gst_invoice(
+                sub, period_start=sub.current_period_start, period_end=sub.current_period_end,
+                gross_amount=gross, customer_gstin=gstin, place_of_supply=pos,
+            )
+    except Exception:  # noqa: BLE001 — invoicing must not fail activation
+        logger.exception("SaaS invoice generation failed for %s", schema_name)
+
     logger.info("activate_subscription: %s ACTIVE until %s", schema_name, sub.current_period_end)
     return True
+
+
+def _tenant_gst_info(schema_name: str) -> tuple[str, str]:
+    """Best-effort place-of-supply (state code) + GSTIN from the tenant company."""
+    try:
+        from django_tenants.utils import schema_context
+        from apps.masters.models import Company
+
+        with schema_context(schema_name):
+            c = Company.objects.first()
+            if c:
+                return (c.state_code or "", c.gstin or "")
+    except Exception:  # noqa: BLE001
+        pass
+    return ("", "")
 
 
 class CreateOrderView(APIView):

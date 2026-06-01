@@ -25,7 +25,12 @@ class EntitlementOut(serializers.ModelSerializer):
 class SaasInvoiceOut(serializers.ModelSerializer):
     class Meta:
         model = SaasInvoice
-        fields = ("id", "period_start", "period_end", "amount", "due_date", "status", "paid_at")
+        fields = (
+            "id", "number", "period_start", "period_end",
+            "taxable_amount", "cgst", "sgst", "igst", "tax_rate", "sac_code",
+            "place_of_supply", "customer_gstin", "amount",
+            "due_date", "status", "paid_at",
+        )
 
 
 class MySubscriptionView(APIView):
