@@ -7,6 +7,22 @@ import { useApiResource, asList } from '../../hooks/useApiResource';
 const { Option } = Select;
 
 const pnlNum = (v: unknown): number => Number(v ?? 0) || 0;
+const agNum = (v: unknown): number => Number(v ?? 0) || 0;
+
+// /reports/ar-aging/ row: per-customer outstanding split into aging buckets.
+interface ApiAgingRow {
+  customer_id: number; customer_name: string; total: string | number;
+  '0-30': string | number; '31-60': string | number; '61-90': string | number; '90+': string | number;
+}
+
+// /reports/balance-sheet/ — flat account rows per section + totals.
+interface ApiBSRow { code: string; name: string; amount: string | number }
+interface ApiBalanceSheet {
+  as_of: string;
+  assets?: ApiBSRow[]; liabilities?: ApiBSRow[]; equity?: ApiBSRow[];
+  current_period_pl?: number; total_assets?: number; total_liabilities?: number;
+  total_equity?: number; is_balanced?: boolean;
+}
 
 // Live PnL API → the page's grouped {category, items, total} shape. The API
 // returns flat per-account rows; we present income/expense as one group each.
@@ -43,13 +59,36 @@ export default function Reports() {
   const totalExpenses = pnl.expenses.reduce((s, c) => s + c.total, 0);
   const netProfit = totalIncome - totalExpenses;
 
+  // Live AR-aging from /reports/ar-aging/?company=.
+  const agingRes = useApiResource<{ rows?: ApiAgingRow[] }>(companyId ? `/reports/ar-aging/?company=${companyId}` : null);
+  const liveAgingRows = useMemo(() => agingRes.data?.rows ?? [], [agingRes.data]);
+  const usingLiveAging = !agingRes.loading && !agingRes.error && liveAgingRows.length > 0;
+
+  // Live Balance Sheet from /reports/balance-sheet/?company=.
+  const bsRes = useApiResource<ApiBalanceSheet>(companyId ? `/reports/balance-sheet/?company=${companyId}` : null);
+  const bs = bsRes.data;
+  const usingLiveBs = !bsRes.loading && !bsRes.error && !!bs &&
+    ((bs.assets?.length ?? 0) + (bs.liabilities?.length ?? 0) + (bs.equity?.length ?? 0)) > 0;
+
   const receivables = MOCK_INVOICES.filter(i => i.balanceDue > 0 && i.status !== 'cancelled');
-  const agingBuckets = [
-    { label: '0–30 days', color: '#10B981', amount: receivables.filter(i => daysSince(i.dueDate) <= 30).reduce((s, i) => s + i.balanceDue, 0) },
-    { label: '31–60 days', color: '#F59E0B', amount: receivables.filter(i => { const d = daysSince(i.dueDate); return d > 30 && d <= 60; }).reduce((s, i) => s + i.balanceDue, 0) },
-    { label: '61–90 days', color: '#FF6D00', amount: receivables.filter(i => { const d = daysSince(i.dueDate); return d > 60 && d <= 90; }).reduce((s, i) => s + i.balanceDue, 0) },
-    { label: '90+ days', color: '#EF4444', amount: receivables.filter(i => daysSince(i.dueDate) > 90).reduce((s, i) => s + i.balanceDue, 0) },
+  const mockAgingBuckets = [
+    { label: '0–30 days', key: '0-30', color: '#10B981', amount: receivables.filter(i => daysSince(i.dueDate) <= 30).reduce((s, i) => s + i.balanceDue, 0) },
+    { label: '31–60 days', key: '31-60', color: '#F59E0B', amount: receivables.filter(i => { const d = daysSince(i.dueDate); return d > 30 && d <= 60; }).reduce((s, i) => s + i.balanceDue, 0) },
+    { label: '61–90 days', key: '61-90', color: '#FF6D00', amount: receivables.filter(i => { const d = daysSince(i.dueDate); return d > 60 && d <= 90; }).reduce((s, i) => s + i.balanceDue, 0) },
+    { label: '90+ days', key: '90+', color: '#EF4444', amount: receivables.filter(i => daysSince(i.dueDate) > 90).reduce((s, i) => s + i.balanceDue, 0) },
   ];
+  // Prefer live AR-aging when available (computed below from the API).
+  const agingBuckets = usingLiveAging
+    ? ([
+        { label: '0–30 days', key: '0-30', color: '#10B981' },
+        { label: '31–60 days', key: '31-60', color: '#F59E0B' },
+        { label: '61–90 days', key: '61-90', color: '#FF6D00' },
+        { label: '90+ days', key: '90+', color: '#EF4444' },
+      ] as const).map(b => ({
+        ...b,
+        amount: liveAgingRows.reduce((s, r) => s + agNum((r as any)[b.key]), 0),
+      }))
+    : mockAgingBuckets;
 
   const reportCards = [
     { label: 'Profit & Loss', icon: <BarChartOutlined />, color: '#10B981', desc: 'Income vs expenses by account group' },
@@ -194,10 +233,47 @@ export default function Reports() {
           ),
         },
         {
+          key: 'balance',
+          label: 'Balance Sheet',
+          children: (
+            <div>
+              {usingLiveBs ? (
+                <Alert type={bs?.is_balanced ? 'success' : 'warning'} showIcon style={{ marginBottom: 16, borderRadius: 10 }}
+                  message={<span style={{ fontSize: 13 }}><strong>Live</strong> — balance sheet as of {bs?.as_of}.{bs?.is_balanced === false ? ' Imbalance detected.' : ''}</span>} />
+              ) : (
+                <Alert type="info" showIcon style={{ marginBottom: 16, borderRadius: 10 }}
+                  message={<span style={{ fontSize: 13 }}>{bsRes.loading ? 'Loading balance sheet…' : 'No posted entries yet — the balance sheet will populate once you post journal entries.'}</span>} />
+              )}
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 24 }}>
+                <SummaryCard label="Total Assets" value={formatINR(agNum(bs?.total_assets))} color="#10B981" />
+                <SummaryCard label="Total Liabilities" value={formatINR(agNum(bs?.total_liabilities))} color="#EF4444" />
+                <SummaryCard label="Total Equity" value={formatINR(agNum(bs?.total_equity))} color="#6366F1" />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+                <BalanceColumn title="Assets" color="#10B981" rows={bs?.assets ?? []} total={agNum(bs?.total_assets)} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                  <BalanceColumn title="Liabilities" color="#EF4444" rows={bs?.liabilities ?? []} total={agNum(bs?.total_liabilities)} />
+                  <BalanceColumn title="Equity" color="#6366F1" rows={bs?.equity ?? []} total={agNum(bs?.total_equity)}
+                    extra={bs?.current_period_pl != null ? { name: 'Current Period P&L', amount: agNum(bs.current_period_pl) } : undefined} />
+                </div>
+              </div>
+            </div>
+          ),
+        },
+        {
           key: 'aging',
           label: 'AR Aging',
           children: (
             <div>
+              {usingLiveAging ? (
+                <Alert type="success" showIcon style={{ marginBottom: 16, borderRadius: 10 }}
+                  message={<span style={{ fontSize: 13 }}><strong>Live</strong> — receivables aging for {liveAgingRows.length} customer{liveAgingRows.length !== 1 ? 's' : ''} from your workspace.</span>} />
+              ) : (
+                <Alert type="info" showIcon style={{ marginBottom: 16, borderRadius: 10 }}
+                  message={<span style={{ fontSize: 13 }}>{agingRes.loading ? 'Loading receivables aging…' : 'Showing demo data — post invoices to see real aging.'}</span>} />
+              )}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 24 }}>
                 {agingBuckets.map(b => (
                   <div key={b.label} style={{ background: '#FFFFFF', borderRadius: 12, padding: '16px 18px', border: '1px solid var(--color-border)' }}>
@@ -234,15 +310,27 @@ export default function Reports() {
               {/* Customer-wise aging */}
               <div style={{ background: '#FFFFFF', borderRadius: 14, border: '1px solid var(--color-border)', overflow: 'hidden' }}>
                 <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)', fontSize: 14, fontWeight: 700 }}>Customer-wise Outstanding</div>
-                {MOCK_PARTIES.filter(p => p.type === 'customer' && p.balance > 0).map(party => (
-                  <div key={party.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px', borderBottom: '1px solid #F5F5F5' }}>
-                    <div>
-                      <div style={{ fontSize: 14, fontWeight: 600 }}>{party.name}</div>
-                      <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{party.city}, {party.state}</div>
+                {usingLiveAging
+                  ? liveAgingRows.map(r => (
+                    <div key={r.customer_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px', borderBottom: '1px solid #F5F5F5' }}>
+                      <div>
+                        <div style={{ fontSize: 14, fontWeight: 600 }}>{r.customer_name}</div>
+                        <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>
+                          0–30: {formatINR(agNum(r['0-30']))} · 31–60: {formatINR(agNum(r['31-60']))} · 61–90: {formatINR(agNum(r['61-90']))} · 90+: {formatINR(agNum(r['90+']))}
+                        </div>
+                      </div>
+                      <span style={{ fontSize: 16, fontWeight: 800, color: '#EF4444' }}>{formatINR(agNum(r.total))}</span>
                     </div>
-                    <span style={{ fontSize: 16, fontWeight: 800, color: '#EF4444' }}>{formatINR(party.balance)}</span>
-                  </div>
-                ))}
+                  ))
+                  : MOCK_PARTIES.filter(p => p.type === 'customer' && p.balance > 0).map(party => (
+                    <div key={party.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px', borderBottom: '1px solid #F5F5F5' }}>
+                      <div>
+                        <div style={{ fontSize: 14, fontWeight: 600 }}>{party.name}</div>
+                        <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{party.city}, {party.state}</div>
+                      </div>
+                      <span style={{ fontSize: 16, fontWeight: 800, color: '#EF4444' }}>{formatINR(party.balance)}</span>
+                    </div>
+                  ))}
               </div>
             </div>
           ),
@@ -288,6 +376,45 @@ function SummaryCard({ label, value, color }: { label: string; value: string; co
       <div style={{ position: 'absolute', top: -20, right: -20, width: 80, height: 80, background: `${color}08`, borderRadius: '50%' }} />
       <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>{label}</div>
       <div style={{ fontSize: 26, fontWeight: 900, color, letterSpacing: '-0.5px' }}>{value}</div>
+    </div>
+  );
+}
+
+function BalanceColumn({ title, color, rows, total, extra }: {
+  title: string; color: string;
+  rows: { code: string; name: string; amount: string | number }[];
+  total: number;
+  extra?: { name: string; amount: number };
+}) {
+  const n = (v: string | number) => Number(v ?? 0) || 0;
+  return (
+    <div style={{ background: '#FFFFFF', borderRadius: 14, border: '1px solid var(--color-border)', padding: '24px' }}>
+      <div style={{ fontSize: 14, fontWeight: 700, color, marginBottom: 16 }}>{title}</div>
+      {rows.length === 0 && !extra ? (
+        <div style={{ fontSize: 13, color: 'var(--color-text-muted)', padding: '8px 0' }}>No balances.</div>
+      ) : (
+        <>
+          {rows.map(r => (
+            <div key={r.code} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', fontSize: 13 }}>
+              <span style={{ color: 'var(--color-text-secondary)' }}>
+                <span style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--color-text-muted)', marginRight: 8 }}>{r.code}</span>
+                {r.name}
+              </span>
+              <span style={{ fontWeight: 600 }}>{formatINR(n(r.amount))}</span>
+            </div>
+          ))}
+          {extra && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', fontSize: 13 }}>
+              <span style={{ color: 'var(--color-text-secondary)' }}>{extra.name}</span>
+              <span style={{ fontWeight: 600 }}>{formatINR(extra.amount)}</span>
+            </div>
+          )}
+        </>
+      )}
+      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderTop: '2px solid var(--color-border)', marginTop: 8 }}>
+        <span style={{ fontSize: 14, fontWeight: 800 }}>Total {title}</span>
+        <span style={{ fontSize: 16, fontWeight: 900, color }}>{formatINR(total)}</span>
+      </div>
     </div>
   );
 }
