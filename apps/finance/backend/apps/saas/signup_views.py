@@ -152,6 +152,15 @@ class SignupView(APIView):
         if ProductCode.FIN in products:
             self._seed_finance(schema_name, data["company_name"])
 
+        # 4b) If the plan includes HR, provision the HR workspace too (the HR
+        #     backend is a separate service — call its internal endpoint). The
+        #     user will SSO into it from the app shell. Best-effort: a billing
+        #     success must not be undone by an HR outage; failures are logged.
+        if ProductCode.HR in products:
+            self._provision_hr(
+                name=data["company_name"], subdomain=schema_name, email=data["email"]
+            )
+
         # 5) Send the email-verification link (best-effort; never block signup
         #    if the mail backend is down).
         try:
@@ -173,6 +182,30 @@ class SignupView(APIView):
             },
             status=status.HTTP_201_CREATED,
         )
+
+    @staticmethod
+    def _provision_hr(*, name: str, subdomain: str, email: str) -> None:
+        """Call the HR backend's internal provisioning endpoint (best-effort)."""
+        import logging
+
+        secret = getattr(settings, "SSO_SHARED_SECRET", "")
+        base = getattr(settings, "HR_INTERNAL_BASE_URL", "")
+        if not (secret and base):
+            logging.getLogger(__name__).info(
+                "HR provisioning skipped (SSO_SHARED_SECRET / HR_INTERNAL_BASE_URL unset)"
+            )
+            return
+        try:
+            import requests
+
+            requests.post(
+                f"{base.rstrip('/')}/internal/provision/",
+                headers={"Authorization": f"Bearer {secret}"},
+                json={"name": name, "subdomain": subdomain, "email": email},
+                timeout=15,
+            )
+        except Exception:  # noqa: BLE001 — HR outage must not fail FIN signup
+            logging.getLogger(__name__).exception("HR provisioning call failed for %s", subdomain)
 
     @staticmethod
     def _seed_finance(schema_name: str, company_name: str) -> None:

@@ -17,12 +17,20 @@ class TenantMiddleware:
 
     CACHE_PREFIX = "tenant_subdomain:"
     CACHE_TTL = 300  # 5 minutes
-    EXEMPT_PREFIXES = ("/static/", "/media/", "/superadmin/")
+    EXEMPT_PREFIXES = ("/static/", "/media/", "/superadmin/", "/auth/sso/", "/internal/")
 
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
+        # Exempt paths (static, superadmin, SSO entry, internal control-plane)
+        # bypass tenant resolution entirely — they either don't need a tenant or
+        # establish it themselves, and must not 404 on an unknown Host header
+        # (e.g. server-to-server calls to `hr-backend:8000`).
+        if self._is_exempt_path(request.path):
+            request.tenant = None
+            return self.get_response(request)
+
         request.tenant = self._resolve_tenant(request)
 
         # Tag Sentry events with tenant info so errors are searchable by tenant.

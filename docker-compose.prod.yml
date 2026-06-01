@@ -60,6 +60,8 @@ services:
       DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL}
       FRONTEND_BASE_URL: ${FRONTEND_BASE_URL}
       REQUIRE_EMAIL_VERIFICATION: ${REQUIRE_EMAIL_VERIFICATION:-True}
+      SSO_SHARED_SECRET: ${SSO_SHARED_SECRET}
+      HR_INTERNAL_BASE_URL: http://hr-backend:8000
     depends_on:
       db: { condition: service_healthy }
       redis: { condition: service_healthy }
@@ -113,6 +115,7 @@ services:
       SUPERADMIN_DOMAIN: ${HR_SUPERADMIN_DOMAIN}
       TENANT_DOMAIN: ${HR_TENANT_DOMAIN}
       DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL}
+      SSO_SHARED_SECRET: ${SSO_SHARED_SECRET}
     depends_on:
       db: { condition: service_healthy }
       redis: { condition: service_healthy }

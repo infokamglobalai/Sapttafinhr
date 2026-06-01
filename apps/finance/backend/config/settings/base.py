@@ -183,6 +183,14 @@ SERVER_EMAIL = DEFAULT_FROM_EMAIL
 # Public base URL of the SPA front door — used to build links in emails.
 FRONTEND_BASE_URL = env("FRONTEND_BASE_URL", default="http://localhost:8080")
 
+# ===== HR single sign-on (shared secret with the HR backend) =====
+# When set, FIN can mint short-lived handoff tokens so the embedded HR app
+# logs the user in without a second prompt. Must match HR's SSO_SHARED_SECRET.
+SSO_SHARED_SECRET = env("SSO_SHARED_SECRET", default="")
+# Internal base URL of the HR backend (Docker service DNS), for server-to-server
+# HR workspace provisioning at signup. Empty disables auto-provisioning.
+HR_INTERNAL_BASE_URL = env("HR_INTERNAL_BASE_URL", default="http://hr-backend:8000")
+
 # ===== Billing (payment gateway) =====
 RAZORPAY_KEY_ID = env("RAZORPAY_KEY_ID", default="")
 RAZORPAY_KEY_SECRET = env("RAZORPAY_KEY_SECRET", default="")

@@ -7,6 +7,7 @@ from .auth_views import (
     VerifyEmailConfirmView,
     VerifyEmailRequestView,
 )
+from .hr_sso import HrSsoTokenView
 from .jwt import SapttaTokenObtainPairView
 from .views import MeView
 
@@ -14,6 +15,7 @@ urlpatterns = [
     path("login/", SapttaTokenObtainPairView.as_view(), name="token_obtain"),
     path("refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("me/", MeView.as_view(), name="me"),
+    path("hr-sso-token/", HrSsoTokenView.as_view(), name="hr_sso_token"),
 
     # Email verification
     path("verify-email/request/", VerifyEmailRequestView.as_view(), name="verify_email_request"),

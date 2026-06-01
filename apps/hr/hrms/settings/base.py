@@ -235,3 +235,11 @@ HRMS_TENANT_DOMAIN = config("TENANT_DOMAIN", default="yourbrand.com")
 ANTHROPIC_API_KEY = config("ANTHROPIC_API_KEY", default="")
 ANTHROPIC_MODEL = config("ANTHROPIC_MODEL", default="claude-sonnet-4-6")
 AI_FEATURES_ENABLED = bool(ANTHROPIC_API_KEY)
+
+# ---------------------------------------------------------------------------
+# SSO handoff from the FIN platform (shared secret with apps/finance backend).
+# When set, /auth/sso/?token=... exchanges a FIN-minted token for an HR session
+# so the embedded HR app doesn't ask the user to log in a second time.
+# ---------------------------------------------------------------------------
+SSO_SHARED_SECRET = config("SSO_SHARED_SECRET", default="")
+SSO_TOKEN_MAX_AGE_SECONDS = config("SSO_TOKEN_MAX_AGE_SECONDS", default=120, cast=int)

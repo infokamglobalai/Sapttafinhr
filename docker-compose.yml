@@ -61,6 +61,8 @@ services:
       REDIS_URL: redis://redis:6379/0
       # SPA is served from the nginx front door on :8080 (both hosts).
       CORS_ALLOWED_ORIGINS: http://localhost:8080,http://127.0.0.1:8080
+      # Shared with hr-backend so FIN can mint HR SSO handoff tokens.
+      SSO_SHARED_SECRET: ${SSO_SHARED_SECRET:-dev-sso-shared-secret-change-me}
     volumes:
       - ./apps/finance/backend:/app
     depends_on:
@@ -110,6 +112,8 @@ services:
       SUPERADMIN_DOMAIN: localhost
       TENANT_DOMAIN: localhost
       FIELD_ENCRYPTION_KEY: ${HR_FIELD_ENCRYPTION_KEY:?set HR_FIELD_ENCRYPTION_KEY in .env (Fernet key)}
+      # Same value as fin-backend so HR can verify FIN-minted SSO tokens.
+      SSO_SHARED_SECRET: ${SSO_SHARED_SECRET:-dev-sso-shared-secret-change-me}
     volumes:
       - ./apps/hr:/app
     # Override the prod gunicorn CMD: migrate then run the dev server.
