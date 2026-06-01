@@ -1,4 +1,7 @@
-from django.contrib import admin
+from django.contrib import admin, messages
+from django.utils import timezone
+
+from apps.core.models import AuditLog
 
 from .models import Plan, SaasInvoice, Subscription, SubscriptionEntitlement
 
@@ -15,9 +18,45 @@ class PlanAdmin(admin.ModelAdmin):
 
 @admin.register(Subscription)
 class SubAdmin(admin.ModelAdmin):
-    list_display = ("tenant", "plan", "status", "current_period_end")
+    list_display = ("tenant", "plan", "status", "is_commercially_active", "current_period_end", "trial_ends_at")
     list_filter = ("status",)
+    search_fields = ("tenant__name", "tenant__schema_name")
     inlines = [SubscriptionEntitlementInline]
+    actions = ("suspend_subscriptions", "reactivate_subscriptions")
+
+    @admin.action(description="Suspend (set PAST_DUE → blocks tenant access)")
+    def suspend_subscriptions(self, request, queryset):
+        n = 0
+        for sub in queryset:
+            sub.status = Subscription.Status.PAST_DUE
+            sub.save(update_fields=["status", "updated_at"])
+            sub.entitlements.update(status=SubscriptionEntitlement.Status.SUSPENDED)
+            AuditLog.record(
+                actor_email=getattr(request.user, "email", ""),
+                action="subscription.suspend", target=sub.tenant.schema_name,
+                previous_status=str(sub.status),
+            )
+            n += 1
+        self.message_user(request, f"Suspended {n} subscription(s).", messages.WARNING)
+
+    @admin.action(description="Reactivate (set ACTIVE for 30 days)")
+    def reactivate_subscriptions(self, request, queryset):
+        from datetime import timedelta
+
+        n = 0
+        for sub in queryset:
+            sub.status = Subscription.Status.ACTIVE
+            sub.current_period_start = timezone.now().date()
+            sub.current_period_end = timezone.now().date() + timedelta(days=30)
+            sub.cancelled_at = None
+            sub.save(update_fields=["status", "current_period_start", "current_period_end", "cancelled_at", "updated_at"])
+            sub.entitlements.update(status=SubscriptionEntitlement.Status.ACTIVE)
+            AuditLog.record(
+                actor_email=getattr(request.user, "email", ""),
+                action="subscription.reactivate", target=sub.tenant.schema_name,
+            )
+            n += 1
+        self.message_user(request, f"Reactivated {n} subscription(s).", messages.SUCCESS)
 
 
 @admin.register(SubscriptionEntitlement)

@@ -47,3 +47,31 @@ class IdempotencyKey(models.Model):
 
     class Meta:
         indexes = [models.Index(fields=["created_at"])]
+
+
+class AuditLog(models.Model):
+    """Append-only record of operator/admin actions on the platform.
+
+    Lives in the public schema (operator actions are cross-tenant). Written by
+    admin actions and sensitive control-plane operations (suspend/reactivate a
+    workspace, etc.) so there's an accountable trail of who did what.
+    """
+
+    actor_email = models.CharField(max_length=254, blank=True)
+    action = models.CharField(max_length=80, db_index=True)
+    target = models.CharField(max_length=255, blank=True, help_text="e.g. tenant schema / object")
+    detail = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["action", "created_at"])]
+
+    def __str__(self) -> str:
+        return f"{self.created_at:%Y-%m-%d %H:%M} {self.actor_email} {self.action} {self.target}"
+
+    @classmethod
+    def record(cls, *, actor_email: str = "", action: str, target: str = "", **detail) -> "AuditLog":
+        return cls.objects.create(
+            actor_email=actor_email or "", action=action, target=target or "", detail=detail or {}
+        )

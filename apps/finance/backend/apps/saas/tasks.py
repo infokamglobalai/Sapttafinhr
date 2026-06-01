@@ -30,6 +30,15 @@ GRACE_DAYS = getattr(settings, "SUBSCRIPTION_GRACE_DAYS", 7)
 TRIAL_REMINDER_DAYS = getattr(settings, "TRIAL_REMINDER_DAYS", 3)
 
 
+def _audit(action: str, target: str, **detail) -> None:
+    """Record an automated lifecycle action in the audit log (best-effort)."""
+    try:
+        from apps.core.models import AuditLog
+        AuditLog.record(actor_email="system:celery", action=action, target=target, **detail)
+    except Exception:  # noqa: BLE001
+        logger.exception("audit log write failed for %s/%s", action, target)
+
+
 def _email(subscription, subject: str, body: str) -> None:
     """Best-effort dunning/notification mail to the tenant billing contact."""
     recipient = getattr(subscription.tenant, "billing_email", None)
@@ -57,6 +66,7 @@ def expire_trials() -> int:
     for sub in qs.select_related("tenant"):
         sub.status = Subscription.Status.PAST_DUE
         sub.save(update_fields=["status", "updated_at"])
+        _audit("subscription.trial_expired", sub.tenant.schema_name)
         _email(
             sub,
             "Your Saptta trial has ended",
@@ -102,6 +112,7 @@ def expire_overdue_subscriptions() -> int:
         sub.status = Subscription.Status.CANCELLED
         sub.cancelled_at = timezone.now()
         sub.save(update_fields=["status", "cancelled_at", "updated_at"])
+        _audit("subscription.auto_cancel", sub.tenant.schema_name)
         _email(
             sub,
             "Your Saptta subscription has been cancelled",
