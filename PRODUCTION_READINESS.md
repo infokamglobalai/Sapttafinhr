@@ -1,169 +1,126 @@
 # Saptta — Production Readiness Roadmap
 
-What's missing to take this from "runs locally, demoable" to "a SaaS you can
-charge customers for." Findings are from inspecting the code on 2026-05-30 and
-running the full stack via `docker compose`. Ordered by what blocks revenue and
-trust first.
+What's left to take Saptta from "runs and trials in dev" to "a SaaS you can
+charge customers for in production." Rewritten **2026-06-02** after the pivot to
+real standalone products (see below). Ordered by what blocks revenue/trust first.
 
 Status legend: 🔴 blocker · 🟠 important · 🟡 polish · ✅ done
 
-> **Phase 1 (Production Safety) — IMPLEMENTED & verified 2026-05-31.** Password
-> reset, email verification, configurable email backend, login/signup rate
-> limiting (verified 429 after 10), gunicorn prod runtime
-> (`docker-compose.prod.yml`), and TLS/HSTS/secure-cookies
-> (`deploy/nginx.prod.conf` + `config.settings.prod`). See
-> [SECURITY.md](SECURITY.md). Findings #3, #4, #5, #6, #8 are now done; remaining
-> work is Phases 2–4 (billing, HR SSO, ops).
+---
+
+## Architecture (current, post-pivot)
+
+Three apps under `apps/`, two of them the **real products**:
+
+| App | Role | Stack |
+|-----|------|-------|
+| `apps/web` | Marketing + auth + pricing + signup + **product switcher** + billing page only | React/Vite/AntD |
+| `apps/finance/frontend` | **The real Finance product** (20+ live pages) | React/Vite + react-query + axios |
+| `apps/finance/backend` | Finance API (shared by both) | Django + DRF + django-tenants |
+| `apps/hr` | **The real HR product** | Django (server-rendered) |
+
+Dev flow (verified in-browser): signup → switcher → **hands off** into the real
+Finance app at `{workspace}.localhost:8080` (JWT via `?handoff=`), or the real HR
+app at `hr.localhost:8080` (SSO). The old mock dashboards in `apps/web` were
+**deleted**. nginx (`deploy/nginx.conf`) routes: bare `localhost`=marketing,
+`{ws}.localhost`=Finance app + tenant API, `hr.localhost`=HR.
 
 ---
 
-## 0. What already works (verified by running it)
-- ✅ Unified front door (nginx) — one origin, host-based routing to SPA / FIN API / HR
-- ✅ Real login → JWT (email/full_name claims), `/auth/me`, token refresh
-- ✅ Multi-tenant data isolation (django-tenants schema-per-tenant; `acme.localhost` → Acme's data)
-- ✅ Per-product entitlement gating (FIN/HR) enforced in middleware
-- ✅ Self-serve signup provisions a FIN workspace (schema + user + subscription + company/COA/FY)
-- ✅ CORS correct for SPA→tenant calls; strong JWT secret; HR iframe embeddable
+## ✅ Done & verified (don't redo)
+- Auth: JWT login/refresh, `/auth/me`, **password reset**, **email verification**,
+  login/signup **rate limiting**, **workspace claim** in JWT (resolves the user's tenant).
+- Self-serve **signup** provisions FIN tenant (schema+COA+FY) and, for HR plans,
+  the HR workspace too (internal provision endpoint).
+- **HR SSO** handoff (FIN JWT → HR session) + **Finance JWT handoff** (verified E2E).
+- **Trial opens the real products** with the user's own empty workspace (no dummy data).
+- Billing: **my-subscription** endpoint + customer **billing portal**; **GST-compliant
+  SaaS invoices** (CGST/SGST/IGST split); trial **lifecycle** Celery jobs (expire→PAST_DUE→cancel).
+- Ops: nightly **DB backups** (pg_dump), **Sentry** wiring (env-gated), **admin
+  suspend/reactivate + audit log**, **CI** (for apps/web + backends).
+- Security: prod settings (HSTS, secure cookies, SSL redirect), TLS nginx for the
+  marketing/back ends. See [SECURITY.md](SECURITY.md).
 
 ---
 
-## 1. 🔴 Revenue path — you cannot charge anyone yet
-**Finding:** no payment integration anywhere in `apps/saas` (the SaaS billing layer).
-`Subscription`/`SubscriptionEntitlement` models exist, but nothing collects money.
+## 🔴 Blockers — the pivot only works in DEV right now
 
-Needed:
-- **Checkout** — Razorpay (India-first; `razorpay` SDK already used in `apps/banking`)
-  or Stripe. "Subscribe"/"Upgrade" button → hosted checkout.
-- **Webhooks** — on payment success, flip `Subscription.status` → `ACTIVE` and set
-  `current_period_end`; on failure/chargeback → `PAST_DUE`.
-- **Plan ↔ price mapping** — `Plan.monthly_price`/`annual_price` already exist;
-  wire them to real processor price IDs.
-- **Idempotency** — `apps.core.IdempotencyKey` already exists; use it on webhook handlers.
+### 1. Finance product not deployable in production
+`finance-web` exists only in `docker-compose.yml` (dev). It is **absent from
+`docker-compose.prod.yml`** and **`deploy/nginx.prod.conf`** has no tenant-host /
+Finance routing. → In prod a trial has nowhere to hand off to.
+**Do:** add a `finance-web` prod service + tenant-host server block in prod nginx.
 
-## 2. 🔴 Subscription lifecycle automation — trials never expire
-**Finding:** `trial_ends_at` / `PAST_DUE` are defined on the model but **nothing
-sets them**. A trial tenant stays usable forever; a non-payer is never suspended.
+### 2. Finance frontend has no production build
+`apps/finance/frontend/Dockerfile` runs `npm run dev` (Vite dev server). Prod must
+**build static assets and serve via nginx** (mirror `deploy/Dockerfile.frontdoor`).
+**Do:** multi-stage build (vite build → nginx) baking `VITE_API_BASE_URL=/api/v1`.
 
-Needed (Celery is already wired — `fin-worker` runs beat):
-- Daily job: `trial_ends_at < today` and unpaid → `PAST_DUE` → (grace) → suspend.
-- The entitlement middleware already blocks suspended tenants — just needs the
-  status transitions to actually happen.
-- Dunning emails before suspension.
-
-## 3. 🔴 Account recovery — no password reset or email verification
-**Finding:** FIN `identity` app has **no** password-reset or email-verification flow.
-A customer who forgets their password is locked out permanently.
-
-Needed:
-- `POST /auth/password/reset/` + reset-confirm (DRF + signed token).
-- Email verification on signup (currently anyone can register any email).
-- Frontend `/forgot-password` + `/reset-password` pages (don't exist).
-
-## 4. 🔴 Transactional email — nothing can actually send mail
-**Finding:** FIN has **no `EMAIL_BACKEND`** set → defaults to console (prints to
-logs). HR has anymail/SES configured but FIN doesn't. Password reset, dunning,
-invoices, signup verification all depend on this.
-
-Needed: real backend (AWS SES via `django-anymail`, or SMTP) in FIN settings;
-`DEFAULT_FROM_EMAIL`; verified sending domain (SPF/DKIM).
-
-## 5. 🔴 HTTPS / TLS — everything is plaintext HTTP
-**Finding:** `deploy/nginx.conf` listens on port 80 only; no `ssl_certificate`,
-no 443. JWTs and passwords would cross the wire unencrypted in production.
-
-Needed: TLS termination at nginx (Let's Encrypt/Caddy, or a cloud LB),
-HTTP→HTTPS redirect, `SESSION_COOKIE_SECURE`/`CSRF_COOKIE_SECURE` (FIN `prod.py`
-already sets these — just needs the prod settings module actually used).
-
-## 6. 🔴 Production runtime — running Django's dev server
-**Finding:** `docker-compose.yml` runs both backends with `manage.py runserver`
-and `DEBUG=True`. The dev server is single-threaded, leaks stack traces, and is
-explicitly "do not use in production."
-
-Needed: gunicorn (HR Dockerfile already has the CMD; compose overrides it),
-`DEBUG=False`, `DJANGO_SETTINGS_MODULE=config.settings.prod`, real
-`ALLOWED_HOSTS`. Split dev vs prod compose files.
+### 3. CI doesn't build the Finance product
+`.github/workflows/ci.yml` builds `apps/web` and checks the backends but **never
+builds `apps/finance/frontend`** — the app you actually ship. Breakage goes uncaught.
+**Do:** add a CI job: install + `tsc -b` + `vite build` for `apps/finance/frontend`.
 
 ---
 
-## 7. 🟠 HR is not actually integrated (the "one product" illusion breaks)
-Three linked gaps:
-- **No HR SSO** — embedded HR shows its *own* Django login; FIN session isn't
-  handed off. User logs in twice.
-- **HR not auto-seeded** — FIN seeds `acme`; HR doesn't, so the embed 404s until
-  `create_tenant` is run manually.
-- **Signup is FIN-only** — a "Saptta Complete" purchase provisions FIN but no HR
-  workspace.
+## 🟠 Important — trial/revenue completeness
 
-Needed: a signed handoff endpoint on HR that trusts the front door and starts a
-Django session for the matching user; HR bootstrap command in compose; extend
-`signup_views.py` to provision the HR side when the plan includes HR.
+### 4. HR trial workspace is empty (inconsistent first impression)
+Finance has a "get started in 4 steps" onboarding; a freshly provisioned HR tenant
+has **zero seed data**, so HR opens blank. **Do:** seed a few demo employees /
+leave types on HR provision, or add an HR empty-state onboarding.
 
-## 8. 🟠 Login brute-force protection — none
-**Finding:** no throttling/rate-limiting (no `django-axes`, no DRF throttle
-classes). Login is open to credential stuffing.
+### 5. Email still goes to the console
+`EMAIL_BACKEND` defaults to console in all settings. Verification + password-reset
++ dunning emails **never reach the user**. **Do:** set a real SMTP/SES backend in
+prod (vars already plumbed in `.env.prod.example`) and verify a send.
 
-Needed: DRF `DEFAULT_THROTTLE_RATES` on auth endpoints, or `django-axes` for
-lockout; rate-limit signup too (it provisions a DB schema per call — abuse =
-resource exhaustion).
+### 6. Payments not live (no conversion path)
+No `RAZORPAY_*` keys → checkout returns 503. Trials work but **nobody can pay**.
+**Do:** add real keys, test order→checkout→webhook→`activate_subscription` E2E,
+confirm a GST invoice is issued.
 
-## 9. 🟠 Setup wizard doesn't persist
-**Finding:** `apps/web/src/pages/Setup.tsx` makes **no API calls** — the
-onboarding wizard collects company profile / departments / COA choices into local
-state and throws them away. Signup already seeds a default company, so this is
-purely cosmetic right now.
-
-Needed: wire the wizard to real endpoints (company profile PATCH, HR departments,
-COA template selection) or remove it to avoid a false impression.
-
-## 10. 🟠 SaaS operator tooling — only raw Django admin
-**Finding:** no workflows to suspend a tenant, cancel/refund a subscription, or
-impersonate a user for support. Only model-level CRUD in Django admin.
-
-Needed: a minimal internal ops surface (even Django admin actions): suspend/
-reactivate tenant, view subscription state, support impersonation (audited).
-
-## 11. 🟠 No backups / disaster recovery
-**Finding:** compose has healthchecks for db/redis but **no backup job** and no
-app-container healthchecks. Postgres holds every tenant's schema — losing it
-loses all customers.
-
-Needed: automated `pg_dump` (per-schema or full) to off-box storage; restore
-runbook; healthchecks on backend containers.
+### 7. Subscription gating not enforced at the product edge
+Entitlement middleware exists, but confirm a **PAST_DUE/cancelled** tenant is
+actually blocked from the real Finance app + tenant API (not just the marketing
+switcher). **Do:** verify the lifecycle → middleware → real-product path end-to-end.
 
 ---
 
-## 12. 🟡 Legal & compliance (required before processors will onboard you)
-- **No Terms of Service / Privacy Policy / Refund pages** — Razorpay/Stripe
-  require these live before activating a merchant account. SPA has no such routes.
-- **PII handling** — HR stores Aadhaar/PAN/bank (Fernet-encrypted ✅), but no
-  documented data-retention/deletion policy (India DPDP Act).
-- **GST on your own SaaS invoices** — you'll need to raise GST-compliant invoices
-  *to your customers* for the subscription (ironic given the product does exactly
-  this — could dogfood `apps/billing`).
+## 🟡 Quality / hardening
 
-## 13. 🟡 Observability
-- FIN has JSON logging + Sentry hooks; HR has Sentry. Neither is wired to a real
-  DSN. No uptime monitoring, no error alerting, no request metrics.
+### 8. Thin automated tests on critical paths
+Only ~2 backend test files. **Nothing** covers signup provisioning, JWT workspace
+resolution, the SSO/JWT handoffs, my-subscription, or the Finance frontend.
+**Do:** add backend tests for signup + handoff token; a smoke/e2e (Playwright) for
+trial → real product.
 
-## 14. 🟡 Tests & CI
-- FIN has `pytest` config and a `ledger/tests` dir; coverage is thin and there's
-  no CI pipeline (GitHub Actions) running tests/migrations-check on push.
+### 9. Docs lag the architecture
+README only lightly reflects the marketing-shell→real-products model; older
+progress notes describe the deleted mock era. **Do:** refresh README +
+SAPTTA_PROGRESS_REPORT to the current architecture.
 
-## 15. 🟡 Frontend polish
-- Most dashboard module pages still render **mock data** (only Finance home +
-  Invoices are live). Receipts, Ledger, Banking, Reports, all HR module pages.
-- 1.5 MB JS bundle, no code-splitting (Vite warns on build).
+### 10. Operability leftovers
+- No DB **restore** runbook (backups exist; restore untested).
+- Sentry/email/Razorpay are env-gated but **no real DSN/keys** wired.
+- HR dev `ALLOWED_HOSTS` ignores the compose env (hardcoded) — fine in dev, but a
+  prod footgun; the FIN→HR proxy works around it with `Host: localhost`.
+- 1.5 MB JS bundles, no code-splitting (both React apps).
+
+### 11. Legal/compliance (needed before a payment processor approves you)
+Terms/Privacy/Security/Status pages exist in `apps/web` ✅ — confirm they're
+linked from signup/checkout and that a real refund policy + GST-on-own-SaaS
+invoicing to customers are in place.
 
 ---
 
-## Suggested sequencing
-1. **Make it safe for real users** (even hand-provisioned): #3 password reset,
-   #4 email, #5 HTTPS, #6 prod runtime, #8 rate-limit.
-2. **Make it sellable**: #1 billing + #2 lifecycle + #12 legal pages.
-3. **Make it feel finished**: #7 HR SSO/seed, #9 setup wizard, #15 live pages.
-4. **Make it operable**: #10 ops tooling, #11 backups, #13 observability, #14 CI.
+## Suggested order
+1. **#1–#3** — make the Finance product prod-deployable + CI'd (without this the
+   whole pivot is dev-only).
+2. **#5, #6** — email + payments (turn on trust + revenue).
+3. **#4, #7** — HR trial seed + verify gating at the product edge.
+4. **#8–#11** — tests, docs, operability, legal polish.
 
-> None of this contradicts the architecture — it's the operational layer a SaaS
-> needs on top of working features. The product logic (HRMS + Finance) is the
-> hard part and it's largely built; this list is mostly "the business around it."
+> Reality check: the hard product + integration work is done and verified in dev.
+> The remaining blockers are mostly **"productionize the new architecture"** —
+> packaging the real Finance app for prod, then turning on email/payments.
