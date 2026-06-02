@@ -1,3 +1,4 @@
+from django.utils import timezone
 from rest_framework import viewsets
 from rest_framework import serializers as drf_serializers
 from rest_framework.permissions import AllowAny
@@ -36,6 +37,9 @@ class PortalInvoicesView(APIView):
             access = PortalAccess.objects.select_related("party").get(token=token, is_active=True)
         except PortalAccess.DoesNotExist:
             return Response({"detail": "invalid token"}, status=403)
+
+        # Record the visit so admins can see when a customer last opened their portal.
+        PortalAccess.objects.filter(pk=access.pk).update(last_login_at=timezone.now())
 
         invoices = Invoice.objects.filter(customer=access.party, status=Invoice.Status.POSTED).order_by("-date")
         return Response({

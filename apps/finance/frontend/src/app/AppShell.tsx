@@ -4,7 +4,7 @@ import {
   Package, Receipt, Scale, TrendingUp, Users, FileMinus, Wallet, BookText,
   ShoppingCart, Truck, FileInput, Landmark, Calendar, Warehouse, Boxes,
   Building2, ReceiptText, CalendarDays, Settings, FileCheck2,
-  BarChart3, Briefcase, BookCopy, ChevronRight, Plus, Menu, X as XIcon, Webhook,
+  BarChart3, Briefcase, BookCopy, ChevronRight, Plus, Menu, X as XIcon, Webhook, Share2,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { cn } from '@/lib/cn';
@@ -51,11 +51,12 @@ import AuditLogPage from '@/features/reports/AuditLogPage';
 import BudgetVsActualPage from '@/features/reports/BudgetVsActualPage';
 import CostCenterPnLPage from '@/features/reports/CostCenterPnLPage';
 import ConsolidationPage from '@/features/reports/ConsolidationPage';
+import PortalAccessPage from '@/features/portal/PortalAccessPage';
 
 type RouteId =
   | 'dashboard'
   | 'parties' | 'items' | 'cost-centers' | 'projects'
-  | 'quotations' | 'sales-orders' | 'invoices' | 'credit-notes' | 'receipts' | 'recurring-invoices'
+  | 'quotations' | 'sales-orders' | 'invoices' | 'credit-notes' | 'receipts' | 'recurring-invoices' | 'portal-access'
   | 'purchase-orders' | 'vendor-bills' | 'vendor-payments'
   | 'bank-accounts' | 'pdcs' | 'reconciliation'
   | 'warehouses' | 'stock-movements' | 'stock-summary'
@@ -93,6 +94,7 @@ const SECTIONS: Section[] = [
     { id: 'credit-notes', label: 'Credit Notes', icon: FileMinus, description: 'Reverse a posted invoice' },
     { id: 'receipts', label: 'Customer Receipts', icon: Receipt, description: 'Money received from customers' },
     { id: 'recurring-invoices', label: 'Recurring Invoices', icon: FileCheck2, description: 'Auto-generate invoices on a schedule' },
+    { id: 'portal-access', label: 'Customer Portal', icon: Share2, description: 'Private links for customers to view their invoices' },
   ]},
 
   { id: 'purchase', label: 'Purchase', icon: Briefcase, children: [
@@ -366,6 +368,7 @@ export default function AppShell() {
           {route === 'api-keys' && <APIKeysPage />}
           {route === 'webhooks' && <WebhooksPage />}
           {route === 'recurring-invoices' && <RecurringInvoicesPage />}
+          {route === 'portal-access' && <PortalAccessPage />}
           {route === 'reconciliation' && <ReconciliationPage />}
           {route === 'hsn-summary' && <HSNSummaryPage />}
           {route === 'gstr-export' && <GSTRExportPage />}
