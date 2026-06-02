@@ -8,7 +8,7 @@ from django.views.decorators.http import require_POST
 
 from .models import Employee, Department, Designation, OfficeLocation, EmployeeDocument, AttritionScore
 from .forms import EmployeeForm, DepartmentForm, DesignationForm, OfficeLocationForm, DocumentUploadForm
-from .services import create_employee, bulk_import_employees, provision_employee_login
+from .services import create_employee, bulk_import_employees, provision_employee_login, email_login_credentials
 from utils.pdf import render_pdf_response
 
 
@@ -117,12 +117,22 @@ def employee_create_login(request, pk):
         user, password = provision_employee_login(employee, created_by=request.user, reset_password=reset)
         if password:
             verb = "reset" if reset else "created"
-            messages.success(
-                request,
-                f"Self-service login {verb} for {employee.full_name}. "
-                f"Email: {user.email} · Temporary password: {password} "
-                f"— share it securely; they can change it after signing in.",
-            )
+            from django.urls import reverse
+            login_url = request.build_absolute_uri(reverse("accounts:login"))
+            emailed = email_login_credentials(employee, password, login_url)
+            if emailed:
+                messages.success(
+                    request,
+                    f"Self-service login {verb} for {employee.full_name} and emailed to {user.email}.",
+                )
+            else:
+                # Email not sent (no mail backend / send failed) — fall back to on-screen.
+                messages.success(
+                    request,
+                    f"Self-service login {verb} for {employee.full_name}. "
+                    f"Email: {user.email} · Temporary password: {password} "
+                    f"— share it securely; they can change it after signing in.",
+                )
         else:
             messages.info(request, f"{employee.full_name} already has a login ({user.email}).")
     except Exception as exc:

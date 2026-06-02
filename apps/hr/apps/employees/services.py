@@ -154,6 +154,44 @@ def provision_employee_login(employee, created_by=None, reset_password: bool = F
     return user, password
 
 
+def email_login_credentials(employee, password: str, login_url: str) -> bool:
+    """Email an employee their new self-service credentials. Returns True if sent.
+
+    Best-effort: never raises — provisioning a login must not fail because mail is
+    misconfigured. In dev (console email backend) this just prints to the logs.
+    """
+    from django.conf import settings
+    from django.core.mail import EmailMultiAlternatives
+    from django.template.loader import render_to_string
+    from django.utils.html import strip_tags
+
+    user = employee.user
+    if not user or not user.email or not password:
+        return False
+    # The dev console/dummy backends don't actually reach the employee — report
+    # "not sent" so the caller shows the password on screen instead.
+    backend = getattr(settings, "EMAIL_BACKEND", "")
+    if any(b in backend for b in ("console", "dummy")):
+        return False
+    tenant = employee.tenant
+    try:
+        html = render_to_string("auth/emails/login_credentials.html", {
+            "user": user, "password": password, "login_url": login_url,
+            "tenant": tenant, "first_name": employee.first_name,
+        })
+        msg = EmailMultiAlternatives(
+            subject=f"Your {tenant.name if tenant else 'HRMS'} login",
+            body=strip_tags(html),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[user.email],
+        )
+        msg.attach_alternative(html, "text/html")
+        msg.send(fail_silently=False)
+        return True
+    except Exception:
+        return False
+
+
 def bulk_import_employees(tenant, csv_file, created_by=None) -> dict:
     """
     Import employees from a CSV upload — complete onboarding in one row.

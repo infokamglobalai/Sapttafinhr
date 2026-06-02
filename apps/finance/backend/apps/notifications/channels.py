@@ -1,12 +1,14 @@
 """Notification channels — email (Django built-in), WhatsApp & SMS as stubs."""
 import os
 
+from django.conf import settings
 from django.core.mail import send_mail
 
 from .models import OutboundMessage
 
 
-def send_email(to: str, subject: str, body: str, *, from_email: str = "noreply@finsaptta.in") -> OutboundMessage:
+def send_email(to: str, subject: str, body: str, *, from_email: str = "") -> OutboundMessage:
+    from_email = from_email or settings.DEFAULT_FROM_EMAIL
     msg = OutboundMessage.objects.create(
         channel=OutboundMessage.Channel.EMAIL, to=to,
         subject=subject, body=body, status=OutboundMessage.Status.QUEUED,
