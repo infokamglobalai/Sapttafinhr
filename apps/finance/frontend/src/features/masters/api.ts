@@ -138,6 +138,53 @@ export const useDeleteParty = () => {
   });
 };
 
+// ── Document number series ──────────────────────────────────────────────────
+export type DocType =
+  | 'invoice' | 'credit_note' | 'quotation' | 'sales_order'
+  | 'purchase_order' | 'vendor_bill' | 'receipt' | 'vendor_payment';
+
+export interface NumberSeries {
+  id: number; company: number; doc_type: DocType; doc_type_display: string;
+  prefix: string; padding: number; start_number: number; is_active: boolean;
+  next_number: string;
+}
+
+export const useNumberSeries = (company?: number) =>
+  useQuery({
+    queryKey: ['number-series', company],
+    enabled: company != null,
+    queryFn: async () =>
+      (await api.get<Paginated<NumberSeries>>('/masters/number-series/', {
+        params: { company, page_size: 100 },
+      })).data.results,
+  });
+
+export const useUpdateNumberSeries = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...data }: Partial<NumberSeries> & { id: number }) =>
+      (await api.patch(`/masters/number-series/${id}/`, data)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['number-series'] }),
+  });
+};
+
+export const useSeedNumberSeries = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (company: number) =>
+      (await api.post('/masters/number-series/seed_defaults/', { company })).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['number-series'] }),
+  });
+};
+
+/** Suggest the next document number to prefill a create form (no side effects). */
+export async function peekNumber(company: number, docType: DocType): Promise<string> {
+  const r = await api.get<{ doc_type: string; number: string }>('/masters/number-series/peek/', {
+    params: { company, doc_type: docType },
+  });
+  return r.data.number;
+}
+
 export const useItems = (company?: number) =>
   useQuery({
     queryKey: ['items', company],

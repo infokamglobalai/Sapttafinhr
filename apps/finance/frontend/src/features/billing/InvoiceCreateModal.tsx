@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import Modal from '@/components/Modal';
 import { useActiveCompany } from '@/hooks/useActiveCompany';
-import { useItems, useParties } from '@/features/masters/api';
+import { useItems, useParties, peekNumber } from '@/features/masters/api';
 import { useCreateInvoice, type InvoiceLineInput } from './api';
 import { D, formatINR, sum } from '@/lib/money';
 import { toast } from '@/components/Toaster';
@@ -32,6 +32,14 @@ export default function InvoiceCreateModal({ open, onClose }: Props) {
   const [notes, setNotes] = useState('');
   const [lines, setLines] = useState<DraftLine[]>([emptyLine()]);
   const [err, setErr] = useState<string | null>(null);
+
+  // Suggest the next invoice number from the server whenever the modal opens,
+  // so it follows the company's configured series instead of always "INV-0001".
+  useEffect(() => {
+    if (open && companyId != null) {
+      peekNumber(companyId, 'invoice').then(setInvoiceNo).catch(() => {});
+    }
+  }, [open, companyId]);
 
   // Auto-set place of supply when customer selected
   useEffect(() => {

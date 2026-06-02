@@ -4,7 +4,7 @@ import {
   Package, Receipt, Scale, TrendingUp, Users, FileMinus, Wallet, BookText,
   ShoppingCart, Truck, FileInput, Landmark, Calendar, Warehouse, Boxes,
   Building2, ReceiptText, CalendarDays, Settings, FileCheck2,
-  BarChart3, Briefcase, BookCopy, ChevronRight, Plus, Menu, X as XIcon, Webhook, Share2,
+  BarChart3, Briefcase, BookCopy, ChevronRight, Plus, Menu, X as XIcon, Webhook, Share2, Hash,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { cn } from '@/lib/cn';
@@ -53,6 +53,7 @@ import CostCenterPnLPage from '@/features/reports/CostCenterPnLPage';
 import ConsolidationPage from '@/features/reports/ConsolidationPage';
 import PortalAccessPage from '@/features/portal/PortalAccessPage';
 import NotificationBell from '@/features/notifications/NotificationBell';
+import NumberSeriesPage from '@/features/settings/NumberSeriesPage';
 
 type RouteId =
   | 'dashboard'
@@ -66,7 +67,7 @@ type RouteId =
   | 'pnl' | 'balance-sheet' | 'cash-flow' | 'day-book' | 'party-ledger'
   | 'ar-aging' | 'sales-register' | 'hsn-summary' | 'gstr-export' | 'audit-log'
   | 'budget-vs-actual' | 'cost-center-pnl' | 'consolidation'
-  | 'settings' | 'company-profile' | 'api-keys' | 'webhooks';
+  | 'settings' | 'company-profile' | 'api-keys' | 'webhooks' | 'number-series';
 
 interface SubItem { id: RouteId; label: string; icon: LucideIcon; description?: string; }
 
@@ -142,6 +143,7 @@ const SECTIONS: Section[] = [
 
   { id: 'settings', label: 'Settings', icon: Settings, children: [
     { id: 'company-profile', label: 'Company Profile', icon: Settings, description: 'GSTIN, address, branding' },
+    { id: 'number-series', label: 'Number Series', icon: Hash, description: 'Document number prefixes & sequences' },
     { id: 'api-keys', label: 'API Keys', icon: Settings, description: 'Programmatic access tokens' },
     { id: 'webhooks', label: 'Webhooks', icon: Webhook, description: 'Push events to your URL' },
     { id: 'settings', label: 'Books Closing & Export', icon: Settings, description: 'Period lock, full data export' },
@@ -367,6 +369,7 @@ export default function AppShell() {
           {route === 'sales-register' && <SalesRegisterPage />}
           {route === 'settings' && <SettingsPage />}
           {route === 'company-profile' && <CompanyProfilePage />}
+          {route === 'number-series' && <NumberSeriesPage />}
           {route === 'cost-centers' && <CostCentersPage />}
           {route === 'projects' && <ProjectsPage />}
           {route === 'api-keys' && <APIKeysPage />}

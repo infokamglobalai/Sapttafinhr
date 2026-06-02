@@ -1,6 +1,9 @@
 from rest_framework import viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
 
-from .models import Account, Branch, Company, CostCenter, FiscalYear, HSNCode, Item, Party, Project
+from .models import Account, Branch, Company, CostCenter, FiscalYear, HSNCode, Item, NumberSeries, Party, Project
+from .numbering import ensure_defaults, peek_next
 from .serializers import (
     AccountSerializer,
     BranchSerializer,
@@ -9,6 +12,7 @@ from .serializers import (
     FiscalYearSerializer,
     HSNCodeSerializer,
     ItemSerializer,
+    NumberSeriesSerializer,
     PartySerializer,
     ProjectSerializer,
 )
@@ -76,3 +80,34 @@ class ItemViewSet(viewsets.ModelViewSet):
     search_fields = ("sku", "name")
     ordering_fields = ("name", "sku", "sale_price")
     ordering = ("name",)
+
+
+class NumberSeriesViewSet(viewsets.ModelViewSet):
+    queryset = NumberSeries.objects.select_related("company").all()
+    serializer_class = NumberSeriesSerializer
+    filterset_fields = ("company", "doc_type", "is_active")
+    ordering = ("doc_type",)
+
+    @action(detail=False, methods=["get"])
+    def peek(self, request):
+        """GET /masters/number-series/peek/?company=&doc_type= → {number} to prefill a form."""
+        company_id = request.query_params.get("company")
+        doc_type = request.query_params.get("doc_type")
+        if not company_id or not doc_type:
+            return Response({"detail": "company and doc_type are required"}, status=400)
+        try:
+            company = Company.objects.get(pk=company_id)
+        except Company.DoesNotExist:
+            return Response({"detail": "company not found"}, status=404)
+        return Response({"doc_type": doc_type, "number": peek_next(company, doc_type)})
+
+    @action(detail=False, methods=["post"])
+    def seed_defaults(self, request):
+        """POST /masters/number-series/seed_defaults/ {company} → create default series rows."""
+        company_id = request.data.get("company")
+        try:
+            company = Company.objects.get(pk=company_id)
+        except Company.DoesNotExist:
+            return Response({"detail": "company not found"}, status=404)
+        created = ensure_defaults(company)
+        return Response({"created": created})

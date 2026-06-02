@@ -11,6 +11,7 @@ from .views import (
     FiscalYearViewSet,
     HSNCodeViewSet,
     ItemViewSet,
+    NumberSeriesViewSet,
     PartyViewSet,
     ProjectViewSet,
 )
@@ -25,6 +26,7 @@ router.register("hsn-codes", HSNCodeViewSet)
 router.register("items", ItemViewSet)
 router.register("cost-centers", CostCenterViewSet)
 router.register("projects", ProjectViewSet)
+router.register("number-series", NumberSeriesViewSet)
 
 urlpatterns = [
     path("setup/status/", SetupStatusView.as_view(), name="setup-status"),

@@ -220,3 +220,39 @@ class Party(TimeStampedModel):
     @property
     def has_bank_details(self) -> bool:
         return bool(self.bank_account_number and self.bank_ifsc)
+
+
+class NumberSeries(TimeStampedModel):
+    """Per-company document numbering format (prefix + zero-padded running number).
+
+    The next number is *derived* from the highest existing document of that type
+    for the company (see masters.numbering.peek_next), so it stays correct without
+    a stored counter to drift — and needs no changes to the document create flows.
+    """
+
+    class DocType(models.TextChoices):
+        INVOICE = "invoice", "Tax Invoice"
+        CREDIT_NOTE = "credit_note", "Credit Note"
+        QUOTATION = "quotation", "Quotation"
+        SALES_ORDER = "sales_order", "Sales Order"
+        PURCHASE_ORDER = "purchase_order", "Purchase Order"
+        VENDOR_BILL = "vendor_bill", "Vendor Bill"
+        RECEIPT = "receipt", "Customer Receipt"
+        VENDOR_PAYMENT = "vendor_payment", "Vendor Payment"
+
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="number_series")
+    doc_type = models.CharField(max_length=20, choices=DocType.choices)
+    prefix = models.CharField(max_length=20, blank=True, default="", help_text="e.g. INV- or INV/2025/")
+    padding = models.PositiveSmallIntegerField(default=4, help_text="Zero-pad the running number to this width")
+    start_number = models.PositiveIntegerField(default=1, help_text="First number to use when none exist yet")
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = ("company", "doc_type")
+        verbose_name_plural = "Number series"
+
+    def __str__(self) -> str:
+        return f"{self.company.name} · {self.get_doc_type_display()} ({self.prefix})"
+
+    def format(self, n: int) -> str:
+        return f"{self.prefix}{str(n).zfill(self.padding)}"
