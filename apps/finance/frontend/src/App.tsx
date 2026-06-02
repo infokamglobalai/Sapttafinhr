@@ -10,9 +10,34 @@ const queryClient = new QueryClient({
   defaultOptions: { queries: { refetchOnWindowFocus: false, staleTime: 30_000 } },
 });
 
+/**
+ * SSO handoff from the marketing site: it opens this app with
+ *   ?handoff=<accessToken>~<refreshToken>
+ * We consume those into the auth store once, then strip them from the URL so
+ * tokens don't linger in history. Runs before first render of the gate below.
+ */
+function consumeHandoff(): boolean {
+  try {
+    const url = new URL(window.location.href);
+    const h = url.searchParams.get('handoff');
+    if (!h || !h.includes('~')) return false;
+    const [access, refresh] = h.split('~');
+    if (access && refresh) {
+      useAuthStore.getState().setTokens(access, refresh);
+    }
+    url.searchParams.delete('handoff');
+    window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+    return !!(access && refresh);
+  } catch {
+    return false;
+  }
+}
+
+const HANDOFF_DONE = consumeHandoff();
+
 export default function App() {
   const { accessToken, user, setUser, logout } = useAuthStore();
-  const [bootstrapped, setBootstrapped] = useState(!accessToken);
+  const [bootstrapped, setBootstrapped] = useState(!accessToken && !HANDOFF_DONE);
 
   useEffect(() => {
     if (accessToken && !user) {

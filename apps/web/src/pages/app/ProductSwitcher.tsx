@@ -6,19 +6,21 @@ import {
 } from '@ant-design/icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { SapttaLogo } from '../../components/layout/Navbar';
+import { openFinanceApp } from '../../lib/products';
 
 export default function ProductSwitcher() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const products = user?.products || [];
 
-  // Auto-redirect if user owns only one product
+  // Auto-open the single owned product. Finance is a separate real app (hand off
+  // the JWT); HR opens via its SSO embed route.
   useEffect(() => {
     if (products.length === 1) {
       if (products[0] === 'hrms') navigate('/app/hrms', { replace: true });
-      if (products[0] === 'finance') navigate('/app/finance', { replace: true });
+      if (products[0] === 'finance') openFinanceApp(user?.tenantId);
     }
-  }, [products, navigate]);
+  }, [products, navigate, user?.tenantId]);
 
   const handleLogout = () => { logout(); navigate('/'); };
 
@@ -105,7 +107,7 @@ export default function ProductSwitcher() {
               title="Accounts & Finance"
               description="GST invoicing, ledger, banking, vendor bills, GSTR returns & financial reports."
               features={['GST Invoicing', 'Double-Entry Ledger', 'Bank Reconciliation', 'P&L, Balance Sheet, GSTR']}
-              onClick={() => navigate('/app/finance')}
+              onClick={() => openFinanceApp(user?.tenantId)}
             />
           ) : (
             <LockedProductCard

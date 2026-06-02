@@ -29,5 +29,8 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 5173,
+    // Served behind the nginx front door on :8080 as {workspace}.localhost.
+    allowedHosts: ['localhost', '.localhost'],
+    hmr: { clientPort: 8080 },
   },
 });

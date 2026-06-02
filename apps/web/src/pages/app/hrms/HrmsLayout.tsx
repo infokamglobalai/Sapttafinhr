@@ -10,6 +10,7 @@ import {
 } from '@ant-design/icons';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useNotifications } from '../../../contexts/NotificationContext';
+import { openFinanceApp } from '../../../lib/products';
 
 interface NavItem {
   path: string;
@@ -89,7 +90,7 @@ export default function HrmsLayout() {
       ...(hasFinance ? [{
         key: 'finance', icon: <BankOutlined style={{ color: '#10B981' }} />,
         label: <div><div style={{ fontWeight: 700 }}>fin-saptta</div><div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>Switch to Finance</div></div>,
-        onClick: () => navigate('/app/finance'),
+        onClick: () => openFinanceApp(user?.tenantId),
       }] : []),
       { type: 'divider' as const },
       { key: 'switcher', label: 'All Products', onClick: () => navigate('/app') },
@@ -230,7 +231,7 @@ export default function HrmsLayout() {
               <Tag style={{ background: 'rgba(255,109,0,0.08)', color: '#FF6D00', border: 'none', fontWeight: 700, borderRadius: 6 }}>SAPTTA HR</Tag>
               <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>HRMS Platform</span>
             </div>
-            <Button size="small" icon={<BankOutlined />} onClick={() => navigate('/app/finance')}
+            <Button size="small" icon={<BankOutlined />} onClick={() => openFinanceApp(user?.tenantId)}
               style={{ borderRadius: 8, fontWeight: 600, fontSize: 12, borderColor: '#10B981', color: '#10B981' }}>
               Switch to fin-saptta
             </Button>
