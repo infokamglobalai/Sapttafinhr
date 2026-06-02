@@ -33,14 +33,18 @@ export default function HrmsHome() {
     return 'Good evening';
   };
 
+  // `live !== null` means the HR backend responded for this workspace — even
+  // with zero employees. In that case we must NOT show demo employees/leaves/
+  // activity (it would look like fake data in a real, empty workspace).
+  const hrConnected = live !== null;
   const activeEmps = MOCK_EMPLOYEES.filter(e => e.status === 'active' || e.status === 'probation').length;
   const presentToday = MOCK_ATTENDANCE.filter(a => a.status === 'present' || a.status === 'late').length;
-  const pendingLeaves = MOCK_LEAVE_REQUESTS.filter(l => l.status === 'pending').length;
+  const pendingLeaves = hrConnected ? (live?.pending_leave_approvals ?? 0) : MOCK_LEAVE_REQUESTS.filter(l => l.status === 'pending').length;
   const lastPayroll = MOCK_PAYROLL_RUNS.find(p => p.status === 'completed');
   const probation = MOCK_EMPLOYEES.filter(e => e.status === 'probation').length;
   const lateCount = MOCK_ATTENDANCE.filter(a => a.status === 'late').length;
 
-  const hrmsNotifications = notifications.filter(n => n.module === 'hrms').slice(0, 5);
+  const hrmsNotifications = hrConnected ? [] : notifications.filter(n => n.module === 'hrms').slice(0, 5);
 
   const quickLinks = [
     { label: 'Employees', desc: 'Manage records', icon: <TeamOutlined />, path: '/app/hrms/employees', color: '#FF6D00' },
@@ -135,8 +139,9 @@ export default function HrmsHome() {
         ))}
       </div>
 
-      {/* Pending Approvals */}
-      {pendingLeaves > 0 && (
+      {/* Pending Approvals (demo detail only; live approvals are actioned in
+          the embedded HR workspace) */}
+      {!hrConnected && pendingLeaves > 0 && (
         <>
           <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 16 }}>Pending Approvals</h3>
           <div style={{ background: '#FFFFFF', borderRadius: 14, border: '1px solid var(--color-border)', overflow: 'hidden', marginBottom: 32 }}>

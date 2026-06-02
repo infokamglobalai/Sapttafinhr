@@ -98,10 +98,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string, workspace?: string) => {
     setIsLoading(true);
     try {
-      const { access } = await apiLogin(email, password, workspace);
+      // apiLogin persists the workspace the backend resolved for this user.
+      const res = await apiLogin(email, password, workspace);
+      const resolvedWs = workspace ?? res.workspace ?? getWorkspace();
       const [me, products] = await Promise.all([fetchMe(), fetchProducts()]);
-      setUser(toAppUser(me, products ?? [], workspace ?? getWorkspace()));
-      setToken(access);
+      setUser(toAppUser(me, products ?? [], resolvedWs));
+      setToken(res.access);
     } finally {
       setIsLoading(false);
     }

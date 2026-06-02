@@ -6,19 +6,26 @@ import {
 import { useAuth } from '../../../contexts/AuthContext';
 import { useNotifications } from '../../../contexts/NotificationContext';
 import { MOCK_INVOICES, MOCK_VENDOR_BILLS, MOCK_BANK_ACCOUNTS, MOCK_RECEIPTS, formatINR } from '../../../data/finance-mock';
-import { useApiResource, asCount } from '../../../hooks/useApiResource';
+import { useApiResource, asCount, asList } from '../../../hooks/useApiResource';
 import { getWorkspace } from '../../../lib/api';
+
+const fhNum = (v: unknown): number => Number(v ?? 0) || 0;
 
 export default function FinanceHome() {
   const { user } = useAuth();
   const { notifications, unreadCount } = useNotifications();
   const navigate = useNavigate();
 
-  // ── Live probe: hits the real FIN tenant API (masters). Proves the data
-  //    path end-to-end; the figures below remain demo data for now.
+  // ── Live data from the real FIN tenant API. "connected" = the calls
+  //    succeeded; an empty trial workspace then shows real zeros (not demo).
+  //    Demo figures are used only when the backend is unreachable.
   const companies = useApiResource('/masters/companies/');
-  const items = useApiResource('/masters/items/');
-  const parties = useApiResource('/masters/parties/');
+  const invoicesRes = useApiResource<unknown>('/billing/invoices/');
+  const billsRes = useApiResource<unknown>('/procurement/vendor-bills/');
+  const receiptsRes = useApiResource<unknown>('/payments/receipts/');
+  const banksRes = useApiResource<unknown>('/banking/bank-accounts/');
+
+  const connected = !companies.loading && !companies.error;
   const liveCompanyName =
     (companies.data && (companies.data as any).results?.[0]?.name) ||
     (Array.isArray(companies.data) && (companies.data as any)[0]?.name) ||
@@ -31,15 +38,36 @@ export default function FinanceHome() {
     return 'Good evening';
   };
 
-  const totalReceivables = MOCK_INVOICES.filter(i => i.balanceDue > 0).reduce((s, i) => s + i.balanceDue, 0);
-  const overdue = MOCK_INVOICES.filter(i => i.status === 'overdue').reduce((s, i) => s + i.balanceDue, 0);
-  const totalPayables = MOCK_VENDOR_BILLS.filter(b => b.status !== 'paid').reduce((s, b) => s + b.total, 0);
-  const overduePayables = MOCK_VENDOR_BILLS.filter(b => b.status === 'overdue').reduce((s, b) => s + b.total, 0);
-  const totalBankBalance = MOCK_BANK_ACCOUNTS.reduce((s, a) => s + a.balance, 0);
-  const collected = MOCK_RECEIPTS.reduce((s, r) => s + r.amount, 0);
-  const gstLiability = MOCK_INVOICES.reduce((s, i) => s + i.totalTax, 0);
+  // Live aggregates (fall back to demo only when not connected).
+  type AnyRow = Record<string, unknown>;
+  const liveInvoices = asList<AnyRow>(invoicesRes.data);
+  const liveBills = asList<AnyRow>(billsRes.data);
+  const liveReceipts = asList<AnyRow>(receiptsRes.data);
+  const liveBanks = asList<AnyRow>(banksRes.data);
 
-  const financeNotifications = notifications.filter(n => n.module === 'finance').slice(0, 5);
+  const totalReceivables = connected
+    ? liveInvoices.reduce((s, i) => s + fhNum(i.balance_due), 0)
+    : MOCK_INVOICES.filter(i => i.balanceDue > 0).reduce((s, i) => s + i.balanceDue, 0);
+  const overdue = connected
+    ? liveInvoices.filter(i => String(i.status).toUpperCase() === 'SENT' && i.due_date && new Date(String(i.due_date)) < new Date() && fhNum(i.balance_due) > 0).reduce((s, i) => s + fhNum(i.balance_due), 0)
+    : MOCK_INVOICES.filter(i => i.status === 'overdue').reduce((s, i) => s + i.balanceDue, 0);
+  const totalPayables = connected
+    ? liveBills.reduce((s, b) => s + fhNum(b.balance_due), 0)
+    : MOCK_VENDOR_BILLS.filter(b => b.status !== 'paid').reduce((s, b) => s + b.total, 0);
+  const overduePayables = connected ? 0 : MOCK_VENDOR_BILLS.filter(b => b.status === 'overdue').reduce((s, b) => s + b.total, 0);
+  const totalBankBalance = connected
+    ? liveBanks.reduce((s, a) => s + fhNum(a.opening_balance), 0)
+    : MOCK_BANK_ACCOUNTS.reduce((s, a) => s + a.balance, 0);
+  const collected = connected
+    ? liveReceipts.reduce((s, r) => s + fhNum(r.amount), 0)
+    : MOCK_RECEIPTS.reduce((s, r) => s + r.amount, 0);
+  const gstLiability = connected
+    ? liveInvoices.reduce((s, i) => s + fhNum(i.cgst) + fhNum(i.sgst) + fhNum(i.igst), 0)
+    : MOCK_INVOICES.reduce((s, i) => s + i.totalTax, 0);
+
+  // The notification feed is demo content; don't show it for a live workspace
+  // (it would surface fake activity like "TechCorp invoice overdue").
+  const financeNotifications = connected ? [] : notifications.filter(n => n.module === 'finance').slice(0, 5);
 
   const quickLinks = [
     { label: 'Invoices', desc: 'GST invoicing', icon: <FileTextOutlined />, path: '/app/finance/invoices', color: '#10B981' },
@@ -64,27 +92,27 @@ export default function FinanceHome() {
 
       {/* Live backend status — real FIN tenant API */}
       <LiveDataBanner
-        loading={companies.loading || items.loading || parties.loading}
-        error={companies.error || items.error || parties.error}
+        loading={companies.loading}
+        error={companies.error}
         companyName={liveCompanyName}
         workspace={getWorkspace()}
-        itemCount={asCount(items.data)}
-        partyCount={asCount(parties.data)}
+        connected={connected}
+        invoiceCount={connected ? liveInvoices.length : MOCK_INVOICES.length}
       />
 
       {/* Finance KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginBottom: 32 }}>
-        <KPICard label="Receivables" value={formatINR(totalReceivables)} color="#10B981" trend={`${MOCK_INVOICES.filter(i => i.status === 'overdue').length} overdue`} />
+        <KPICard label="Receivables" value={formatINR(totalReceivables)} color="#10B981" trend={connected ? `${liveInvoices.length} invoices` : `${MOCK_INVOICES.filter(i => i.status === 'overdue').length} overdue`} />
         <KPICard label="Payables" value={formatINR(totalPayables)} color="#EF4444" trend={overduePayables > 0 ? `${formatINR(overduePayables)} overdue` : 'On track'} />
-        <KPICard label="Bank Balance" value={formatINR(totalBankBalance)} color="#6366F1" trend={`${MOCK_BANK_ACCOUNTS.length} accounts`} />
+        <KPICard label="Bank Balance" value={formatINR(totalBankBalance)} color="#6366F1" trend={`${connected ? liveBanks.length : MOCK_BANK_ACCOUNTS.length} accounts`} />
         <KPICard label="GST Liability" value={formatINR(gstLiability)} color="#F59E0B" trend="Current period" />
       </div>
 
       {/* Secondary row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginBottom: 32 }}>
-        <KPICard label="Collected (FY)" value={formatINR(collected)} color="#10B981" trend={`${MOCK_RECEIPTS.length} receipts`} />
-        <KPICard label="Open Invoices" value={String(MOCK_INVOICES.filter(i => i.status === 'sent' || i.status === 'overdue').length)} color="#0EA5E9" trend="Awaiting payment" />
-        <KPICard label="Pending Bills" value={String(MOCK_VENDOR_BILLS.filter(b => b.status !== 'paid').length)} color="#FF6D00" trend="To approve/pay" />
+        <KPICard label="Collected (FY)" value={formatINR(collected)} color="#10B981" trend={`${connected ? liveReceipts.length : MOCK_RECEIPTS.length} receipts`} />
+        <KPICard label="Open Invoices" value={String(connected ? liveInvoices.filter(i => fhNum(i.balance_due) > 0).length : MOCK_INVOICES.filter(i => i.status === 'sent' || i.status === 'overdue').length)} color="#0EA5E9" trend="Awaiting payment" />
+        <KPICard label="Pending Bills" value={String(connected ? liveBills.filter(b => fhNum(b.balance_due) > 0).length : MOCK_VENDOR_BILLS.filter(b => b.status !== 'paid').length)} color="#FF6D00" trend="To approve/pay" />
       </div>
 
       {/* Quick Access */}
@@ -113,8 +141,9 @@ export default function FinanceHome() {
         ))}
       </div>
 
-      {/* Overdue invoices */}
-      {MOCK_INVOICES.filter(i => i.status === 'overdue').length > 0 && (
+      {/* Overdue invoices (demo view only; live overdue is summarised in KPIs
+          and actioned on the Invoices page) */}
+      {!connected && MOCK_INVOICES.filter(i => i.status === 'overdue').length > 0 && (
         <>
           <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 16 }}>Overdue Invoices</h3>
           <div style={{ background: '#FFFFFF', borderRadius: 14, border: '1px solid var(--color-border)', overflow: 'hidden', marginBottom: 32 }}>
@@ -192,18 +221,18 @@ function timeAgo(ts: string): string {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
-function LiveDataBanner({ loading, error, companyName, workspace, itemCount, partyCount }: {
+function LiveDataBanner({ loading, error, companyName, workspace, connected, invoiceCount }: {
   loading: boolean;
   error: string | null;
   companyName: string | null;
   workspace: string | null;
-  itemCount: number;
-  partyCount: number;
+  connected: boolean;
+  invoiceCount: number;
 }) {
-  const connected = !loading && !error && !!companyName;
-  const bg = connected ? 'rgba(16,185,129,0.06)' : error ? 'rgba(245,158,11,0.06)' : 'rgba(107,114,128,0.05)';
-  const border = connected ? 'rgba(16,185,129,0.25)' : error ? 'rgba(245,158,11,0.3)' : 'var(--color-border)';
-  const dot = connected ? '#10B981' : error ? '#F59E0B' : '#9CA3AF';
+  const bg = connected ? 'rgba(16,185,129,0.06)' : 'rgba(245,158,11,0.06)';
+  const border = connected ? 'rgba(16,185,129,0.25)' : 'rgba(245,158,11,0.3)';
+  const dot = connected ? '#10B981' : '#F59E0B';
+  if (loading) return null;
 
   return (
     <div style={{
@@ -213,23 +242,18 @@ function LiveDataBanner({ loading, error, companyName, workspace, itemCount, par
     }}>
       <span style={{ width: 10, height: 10, borderRadius: '50%', background: dot, flexShrink: 0 }} />
       <div style={{ flex: 1, minWidth: 200 }}>
-        {loading && (
-          <span style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>
-            Connecting to your finance workspace…
-          </span>
-        )}
-        {!loading && connected && (
+        {connected ? (
           <span style={{ fontSize: 13, color: 'var(--color-text-primary)' }}>
-            <strong style={{ color: '#059669' }}>Live</strong> — connected to{' '}
-            <strong>{companyName}</strong>
+            <strong style={{ color: '#059669' }}>Live</strong> — your workspace
+            {companyName ? <> <strong>{companyName}</strong></> : null}
             {workspace ? <span style={{ color: 'var(--color-text-muted)' }}> ({workspace})</span> : null}
-            {' · '}{itemCount} item{itemCount !== 1 ? 's' : ''}, {partyCount} part{partyCount !== 1 ? 'ies' : 'y'} from the real backend.
+            {invoiceCount === 0
+              ? '. No transactions yet — create an invoice to get started.'
+              : `. ${invoiceCount} invoice${invoiceCount !== 1 ? 's' : ''} on record.`}
           </span>
-        )}
-        {!loading && !connected && (
+        ) : (
           <span style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>
-            Showing demo data — {error || 'no live finance workspace found'}. Start the
-            backend and sign in to your workspace to see live figures.
+            Showing sample data — can't reach your workspace{error ? ` (${error})` : ''}. Check that the backend is running.
           </span>
         )}
       </div>

@@ -204,14 +204,18 @@ export async function login(
   email: string,
   password: string,
   workspace?: string,
-): Promise<{ access: string; refresh: string }> {
-  const data = await rawRequest<{ access: string; refresh: string }>(
+): Promise<{ access: string; refresh: string; workspace?: string | null }> {
+  const data = await rawRequest<{ access: string; refresh: string; workspace?: string | null }>(
     '/auth/login/',
     { surface: 'platform', method: 'POST', body: { email, password }, auth: false },
     null,
   );
   setTokens(data.access, data.refresh);
-  if (workspace) setWorkspace(workspace);
+  // Prefer an explicitly passed workspace, else the one the backend resolved for
+  // this user (their owned tenant). Without this the SPA would fall back to the
+  // default workspace and show another tenant's data.
+  const ws = workspace || data.workspace || null;
+  if (ws) setWorkspace(ws);
   return data;
 }
 
