@@ -53,30 +53,12 @@ def _email(subscription, subject: str, body: str) -> None:
 
 @shared_task
 def expire_trials() -> int:
-    """TRIAL subscriptions past trial_ends_at -> PAST_DUE. Returns count changed."""
-    from .models import Subscription
+    """No-op: Saptta is pay-first (no free trials).
 
-    today = timezone.now().date()
-    qs = Subscription.objects.filter(
-        status=Subscription.Status.TRIAL,
-        trial_ends_at__isnull=False,
-        trial_ends_at__lt=today,
-    )
-    count = 0
-    for sub in qs.select_related("tenant"):
-        sub.status = Subscription.Status.PAST_DUE
-        sub.save(update_fields=["status", "updated_at"])
-        _audit("subscription.trial_expired", sub.tenant.schema_name)
-        _email(
-            sub,
-            "Your Saptta trial has ended",
-            "Your free trial has ended. Add a payment method to keep your "
-            "workspace active. Access is paused until you subscribe.",
-        )
-        count += 1
-    if count:
-        logger.info("expire_trials: %s trials moved to PAST_DUE", count)
-    return count
+    Retained so any existing Celery beat entry / legacy reference keeps working.
+    New signups never enter TRIAL; access requires a paid (ACTIVE) subscription.
+    """
+    return 0
 
 
 @shared_task
@@ -128,20 +110,5 @@ def expire_overdue_subscriptions() -> int:
 
 @shared_task
 def send_trial_ending_reminders() -> int:
-    """Nudge trials ending in TRIAL_REMINDER_DAYS days."""
-    from .models import Subscription
-
-    target = timezone.now().date() + timedelta(days=TRIAL_REMINDER_DAYS)
-    qs = Subscription.objects.filter(
-        status=Subscription.Status.TRIAL, trial_ends_at=target
-    ).select_related("tenant")
-    count = 0
-    for sub in qs:
-        _email(
-            sub,
-            f"Your Saptta trial ends in {TRIAL_REMINDER_DAYS} days",
-            "Your free trial is ending soon. Subscribe now to keep your "
-            "workspace running without interruption.",
-        )
-        count += 1
-    return count
+    """No-op: pay-first, no trials to remind about. Retained for beat compat."""
+    return 0

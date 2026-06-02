@@ -28,7 +28,8 @@ class Plan(TimeStampedModel):
 
 class Subscription(TimeStampedModel):
     class Status(models.TextChoices):
-        TRIAL = "TRIAL", "Trial"
+        PENDING = "PENDING", "Pending Payment"   # signed up, not paid → NO access
+        TRIAL = "TRIAL", "Trial"                 # retained for legacy rows
         ACTIVE = "ACTIVE", "Active"
         PAST_DUE = "PAST_DUE", "Past Due"
         CANCELLED = "CANCELLED", "Cancelled"
@@ -36,8 +37,10 @@ class Subscription(TimeStampedModel):
     tenant = models.OneToOneField(Tenant, on_delete=models.CASCADE,
                                    related_name="subscription")
     plan = models.ForeignKey(Plan, on_delete=models.PROTECT)
+    # Pay-first: new signups start PENDING and gain access only after payment
+    # flips them to ACTIVE (see billing.activate_subscription_for_tenant).
     status = models.CharField(max_length=10, choices=Status.choices,
-                               default=Status.TRIAL)
+                               default=Status.PENDING)
     trial_ends_at = models.DateField(null=True, blank=True)
     current_period_start = models.DateField(null=True, blank=True)
     current_period_end = models.DateField(null=True, blank=True)
@@ -45,7 +48,8 @@ class Subscription(TimeStampedModel):
 
     @property
     def is_commercially_active(self) -> bool:
-        return self.status in {self.Status.TRIAL, self.Status.ACTIVE}
+        # No free trials: only a paid (ACTIVE) subscription grants product access.
+        return self.status == self.Status.ACTIVE
 
     def allows_product(self, product_code: str) -> bool:
         """Return True when this subscription includes an active product seat."""
@@ -71,19 +75,21 @@ class SubscriptionEntitlement(TimeStampedModel):
     """Product access granted by a subscription, e.g. FIN only, HR only, or both."""
 
     class Status(models.TextChoices):
+        PENDING = "PENDING", "Pending Payment"
         TRIAL = "TRIAL", "Trial"
         ACTIVE = "ACTIVE", "Active"
         PAST_DUE = "PAST_DUE", "Past Due"
         SUSPENDED = "SUSPENDED", "Suspended"
         CANCELLED = "CANCELLED", "Cancelled"
 
-    ACTIVE_STATUSES = (Status.TRIAL, Status.ACTIVE)
+    # No free trials: only paid (ACTIVE) seats count as access.
+    ACTIVE_STATUSES = (Status.ACTIVE,)
 
     subscription = models.ForeignKey(
         Subscription, on_delete=models.CASCADE, related_name="entitlements"
     )
     product = models.CharField(max_length=10, choices=ProductCode.choices)
-    status = models.CharField(max_length=12, choices=Status.choices, default=Status.TRIAL)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.PENDING)
     external_product_tenant_id = models.CharField(
         max_length=100,
         blank=True,

@@ -125,27 +125,23 @@ class SignupView(APIView):
                 status=status.HTTP_409_CONFLICT,
             )
 
-        # 3) Subscription + per-product entitlements (trial).
+        # 3) Subscription + per-product entitlements — PENDING (no free trial).
+        #    The workspace is provisioned but grants NO product access until a
+        #    successful payment flips it to ACTIVE (billing webhook). The user is
+        #    routed to checkout, not into the product.
         plan, _ = Plan.objects.get_or_create(
             code=data.get("plan_id") or "saptta-complete",
             defaults={"name": data.get("plan_id") or "Saptta Complete"},
         )
-        from datetime import date, timedelta
-
-        trial_days = getattr(settings, "TRIAL_PERIOD_DAYS", 14)
         sub, _ = Subscription.objects.get_or_create(
             tenant=tenant,
-            defaults={
-                "plan": plan,
-                "status": Subscription.Status.TRIAL,
-                "trial_ends_at": date.today() + timedelta(days=trial_days),
-            },
+            defaults={"plan": plan, "status": Subscription.Status.PENDING},
         )
         for product in products:
             SubscriptionEntitlement.objects.update_or_create(
                 subscription=sub,
                 product=product,
-                defaults={"status": SubscriptionEntitlement.Status.TRIAL},
+                defaults={"status": SubscriptionEntitlement.Status.PENDING},
             )
 
         # 4) Company + COA + fiscal year inside the new tenant schema.

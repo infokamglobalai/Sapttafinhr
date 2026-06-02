@@ -250,18 +250,11 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.core.tasks.run_db_backup",
         "schedule": crontab(hour=2, minute=30),
     },
-    # ── SaaS subscription lifecycle ──────────────────────────────────────
-    "expire-trials-daily": {
-        "task": "apps.saas.tasks.expire_trials",
-        "schedule": crontab(hour=1, minute=0),
-    },
+    # ── SaaS subscription lifecycle (pay-first: no trial jobs) ───────────
+    # Lapsed paid subs: ACTIVE past period -> PAST_DUE -> CANCELLED after grace.
     "expire-overdue-subscriptions-daily": {
         "task": "apps.saas.tasks.expire_overdue_subscriptions",
         "schedule": crontab(hour=1, minute=15),
-    },
-    "trial-ending-reminders-daily": {
-        "task": "apps.saas.tasks.send_trial_ending_reminders",
-        "schedule": crontab(hour=9, minute=0),
     },
     # Materialize recurring invoice templates every morning
     "recurring-invoices-daily": {
