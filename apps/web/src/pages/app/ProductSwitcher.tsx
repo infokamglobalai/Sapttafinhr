@@ -6,7 +6,7 @@ import {
 } from '@ant-design/icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { SapttaLogo } from '../../components/layout/Navbar';
-import { openFinanceApp } from '../../lib/products';
+import { openFinanceApp, openHrApp } from '../../lib/products';
 
 export default function ProductSwitcher() {
   const { user, logout } = useAuth();
@@ -17,10 +17,10 @@ export default function ProductSwitcher() {
   // the JWT); HR opens via its SSO embed route.
   useEffect(() => {
     if (products.length === 1) {
-      if (products[0] === 'hrms') navigate('/app/hrms', { replace: true });
+      if (products[0] === 'hrms') openHrApp();
       if (products[0] === 'finance') openFinanceApp(user?.tenantId);
     }
-  }, [products, navigate, user?.tenantId]);
+  }, [products, user?.tenantId]);
 
   const handleLogout = () => { logout(); navigate('/'); };
 
@@ -82,7 +82,7 @@ export default function ProductSwitcher() {
               title="HR & Workforce"
               description="Manage employees, attendance, leave, payroll, recruitment & performance — all in one place."
               features={['Employee Management', 'Geofenced Attendance', 'Payroll & Compliance', 'Recruitment & ATS']}
-              onClick={() => navigate('/app/hrms')}
+              onClick={() => openHrApp()}
             />
           ) : (
             <LockedProductCard

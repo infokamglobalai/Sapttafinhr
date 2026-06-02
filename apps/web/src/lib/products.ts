@@ -12,6 +12,7 @@
  * workspace — not the mock dashboards that used to live in apps/web.
  */
 import { getAccessToken, getRefreshToken, getWorkspace } from './api';
+import { hrSsoEntryUrl, hrUrl } from './hr';
 
 const FINANCE_TEMPLATE: string =
   import.meta.env.VITE_FINANCE_APP_BASE_URL || 'http://{workspace}.localhost:8080';
@@ -30,5 +31,19 @@ export function openFinanceApp(workspace?: string): void {
   const access = getAccessToken();
   const refresh = getRefreshToken();
   const url = access && refresh ? `${base}/?handoff=${access}~${refresh}` : base;
+  window.location.assign(url);
+}
+
+/**
+ * Open the real HR product, signed in via the SSO handoff (FIN JWT → HR Django
+ * session). Falls back to HR's own login if SSO is unavailable.
+ */
+export async function openHrApp(): Promise<void> {
+  let url: string;
+  try {
+    url = await hrSsoEntryUrl('/');
+  } catch {
+    url = hrUrl('/');
+  }
   window.location.assign(url);
 }

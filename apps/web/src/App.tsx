@@ -34,36 +34,9 @@ import SecurityPage from './pages/SecurityPage';
 import StatusPage from './pages/StatusPage';
 import CookieConsent from './components/legal/CookieConsent';
 
-// Product switcher & layouts
+// Product switcher (hands off to the real standalone products) + account billing.
 import ProductSwitcher from './pages/app/ProductSwitcher';
-import HrmsLayout from './pages/app/hrms/HrmsLayout';
-import HrmsHome from './pages/app/hrms/HrmsHome';
-import HrWorkspace from './pages/app/hrms/HrWorkspace';
-import FinanceLayout from './pages/app/finance/FinanceLayout';
-import FinanceHome from './pages/app/finance/FinanceHome';
 import Billing from './pages/dashboard/Billing';
-
-// Shared dashboard pages (reused across both products)
-import Employees from './pages/dashboard/Employees';
-import Attendance from './pages/dashboard/Attendance';
-import Leave from './pages/dashboard/Leave';
-import Payroll from './pages/dashboard/Payroll';
-import Departments from './pages/dashboard/Departments';
-import Holidays from './pages/dashboard/Holidays';
-import Recruitment from './pages/dashboard/Recruitment';
-import Performance from './pages/dashboard/Performance';
-import Expenses from './pages/dashboard/Expenses';
-import Invoices from './pages/dashboard/Invoices';
-import Receipts from './pages/dashboard/Receipts';
-import Purchase from './pages/dashboard/Purchase';
-import Banking from './pages/dashboard/Banking';
-import Ledger from './pages/dashboard/Ledger';
-import Reports from './pages/dashboard/Reports';
-import Portal from './pages/dashboard/Portal';
-import AuditAssistant from './pages/dashboard/AuditAssistant';
-import Team from './pages/dashboard/Team';
-import Settings from './pages/dashboard/Settings';
-import Notifications from './pages/dashboard/Notifications';
 
 const HIDE_CHROME_ROUTES = ['/setup', '/app', '/signup', '/login', '/forgot-password', '/reset-password', '/verify-email'];
 
@@ -104,50 +77,17 @@ function AppLayout() {
           {/* Setup wizard (post-signup) */}
           <Route path="/setup" element={<ProtectedRoute><Setup /></ProtectedRoute>} />
 
-          {/* Product Switcher — landing after login */}
+          {/* Product Switcher — landing after login. Opens the REAL products
+              (Finance app on the workspace host; HR app via SSO). */}
           <Route path="/app" element={<ProtectedRoute><ProductSwitcher /></ProtectedRoute>} />
 
-          {/* Saptta HR Product */}
-          <Route path="/app/hrms" element={<ProtectedRoute><HrmsLayout /></ProtectedRoute>}>
-            <Route index element={<HrmsHome />} />
-            {/* Live HR app (real Django backend), embedded in-shell */}
-            <Route path="workspace" element={<HrWorkspace />} />
-            <Route path="workspace/:section" element={<HrWorkspace />} />
-            <Route path="employees" element={<Employees />} />
-            <Route path="attendance" element={<Attendance />} />
-            <Route path="leave" element={<Leave />} />
-            <Route path="payroll" element={<Payroll />} />
-            <Route path="departments" element={<Departments />} />
-            <Route path="holidays" element={<Holidays />} />
-            <Route path="recruitment" element={<Recruitment />} />
-            <Route path="performance" element={<Performance />} />
-            <Route path="expenses" element={<Expenses />} />
-            <Route path="ai-assistant" element={<AuditAssistant />} />
-            <Route path="reports" element={<Reports />} />
-            <Route path="team" element={<Team />} />
-            <Route path="billing" element={<Billing />} />
-            <Route path="settings" element={<Settings />} />
-            <Route path="notifications" element={<Notifications />} />
-          </Route>
+          {/* Account billing/subscription (stays in the marketing shell). */}
+          <Route path="/app/billing" element={<ProtectedRoute><Billing /></ProtectedRoute>} />
 
-          {/* fin-saptta Product */}
-          <Route path="/app/finance" element={<ProtectedRoute><FinanceLayout /></ProtectedRoute>}>
-            <Route index element={<FinanceHome />} />
-            <Route path="invoices" element={<Invoices />} />
-            <Route path="receipts" element={<Receipts />} />
-            <Route path="purchase" element={<Purchase />} />
-            <Route path="banking" element={<Banking />} />
-            <Route path="ledger" element={<Ledger />} />
-            <Route path="reports" element={<Reports />} />
-            <Route path="portal" element={<Portal />} />
-            <Route path="ai-assistant" element={<AuditAssistant />} />
-            <Route path="team" element={<Team />} />
-            <Route path="billing" element={<Billing />} />
-            <Route path="settings" element={<Settings />} />
-            <Route path="notifications" element={<Notifications />} />
-          </Route>
-
-          {/* Legacy /dashboard → redirect to product switcher */}
+          {/* The product UIs now live in their own apps. Old in-shell mock
+              dashboard routes redirect to the switcher, which hands off. */}
+          <Route path="/app/hrms/*" element={<Navigate to="/app" replace />} />
+          <Route path="/app/finance/*" element={<Navigate to="/app" replace />} />
           <Route path="/dashboard/*" element={<Navigate to="/app" replace />} />
         </Routes>
       </main>
