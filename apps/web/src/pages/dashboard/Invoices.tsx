@@ -81,11 +81,14 @@ function fromApi(a: ApiInvoice): Invoice {
 }
 
 export default function Invoices() {
-  // Live data from the FIN tenant API; falls back to mock if unavailable.
+  // Live data from the FIN tenant API. We're "connected" whenever the call
+  // succeeds — even with zero rows (a new/empty workspace shows its real empty
+  // state). Demo data is only a fallback when the backend is unreachable.
   const { data, loading, error } = useApiResource<unknown>('/billing/invoices/');
   const live = useMemo(() => asList<ApiInvoice>(data).map(fromApi), [data]);
-  const usingLive = !loading && !error && live.length > 0;
-  const invoices: Invoice[] = usingLive ? live : MOCK_INVOICES;
+  const connected = !loading && !error;
+  const usingLive = connected;
+  const invoices: Invoice[] = connected ? live : MOCK_INVOICES;
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
@@ -181,19 +184,16 @@ export default function Invoices() {
         </div>
       </div>
 
-      {/* Live/demo data status */}
-      {usingLive ? (
-        <Alert type="success" showIcon style={{ marginBottom: 16, borderRadius: 10 }}
-          message={<span style={{ fontSize: 13 }}><strong>Live</strong> — {live.length} invoice{live.length !== 1 ? 's' : ''} from your finance workspace.</span>} />
+      {/* Connection status. Only fall back to demo data when the backend is
+          unreachable; an empty live workspace shows its real (empty) state. */}
+      {loading ? null : connected ? (
+        live.length === 0 ? (
+          <Alert type="info" showIcon style={{ marginBottom: 16, borderRadius: 10 }}
+            message={<span style={{ fontSize: 13 }}>No invoices yet — click <strong>New Invoice</strong> to create your first one.</span>} />
+        ) : null
       ) : (
-        <Alert type="info" showIcon style={{ marginBottom: 16, borderRadius: 10 }}
-          message={
-            <span style={{ fontSize: 13 }}>
-              {loading
-                ? 'Loading invoices from your workspace…'
-                : `Showing demo data${error ? ` — ${error}` : ' (no live invoices yet)'}. Sign in to your workspace with the backend running to see live invoices.`}
-            </span>
-          } />
+        <Alert type="warning" showIcon style={{ marginBottom: 16, borderRadius: 10 }}
+          message={<span style={{ fontSize: 13 }}>Can't reach your workspace{error ? ` (${error})` : ''} — showing sample data. Check that the backend is running.</span>} />
       )}
 
       {/* KPIs */}

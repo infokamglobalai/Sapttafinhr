@@ -48,8 +48,11 @@ const modeCfg: Record<string, { color: string; label: string }> = {
 export default function Receipts() {
   const { data, loading, error } = useApiResource<unknown>('/payments/receipts/');
   const live = useMemo(() => asList<ApiReceipt>(data).map(receiptFromApi), [data]);
-  const usingLive = !loading && !error && live.length > 0;
-  const receipts: Receipt[] = usingLive ? live : MOCK_RECEIPTS;
+  // Connected = the API call succeeded (even with zero rows). Demo data only
+  // when the backend is unreachable, so a new empty workspace shows real state.
+  const connected = !loading && !error;
+  const usingLive = connected;
+  const receipts: Receipt[] = connected ? live : MOCK_RECEIPTS;
 
   const [search, setSearch] = useState('');
   const [modeFilter, setModeFilter] = useState<string | null>(null);
@@ -129,12 +132,14 @@ export default function Receipts() {
         </div>
       </div>
 
-      {usingLive ? (
-        <Alert type="success" showIcon style={{ marginBottom: 16, borderRadius: 10 }}
-          message={<span style={{ fontSize: 13 }}><strong>Live</strong> — {live.length} receipt{live.length !== 1 ? 's' : ''} from your workspace.</span>} />
+      {loading ? null : connected ? (
+        live.length === 0 ? (
+          <Alert type="info" showIcon style={{ marginBottom: 16, borderRadius: 10 }}
+            message={<span style={{ fontSize: 13 }}>No receipts yet — click <strong>Record Receipt</strong> to add your first one.</span>} />
+        ) : null
       ) : (
-        <Alert type="info" showIcon style={{ marginBottom: 16, borderRadius: 10 }}
-          message={<span style={{ fontSize: 13 }}>{loading ? 'Loading receipts…' : 'Showing demo data — record receipts in your workspace to see them here.'}</span>} />
+        <Alert type="warning" showIcon style={{ marginBottom: 16, borderRadius: 10 }}
+          message={<span style={{ fontSize: 13 }}>Can't reach your workspace — showing sample data. Check that the backend is running.</span>} />
       )}
 
       {/* Mode summary */}

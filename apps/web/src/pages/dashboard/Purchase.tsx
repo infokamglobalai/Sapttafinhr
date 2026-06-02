@@ -63,8 +63,9 @@ export default function Purchase() {
   const billRes = useApiResource<unknown>('/procurement/vendor-bills/');
   const livePOs = useMemo(() => asList<ApiPO>(poRes.data).map(poFromApi), [poRes.data]);
   const liveBills = useMemo(() => asList<ApiVBill>(billRes.data).map(billFromApi), [billRes.data]);
-  const poLive = !poRes.loading && !poRes.error && livePOs.length > 0;
-  const billLive = !billRes.loading && !billRes.error && liveBills.length > 0;
+  // Connected = API call succeeded (even empty). Demo only when unreachable.
+  const poLive = !poRes.loading && !poRes.error;
+  const billLive = !billRes.loading && !billRes.error;
   const anyLive = poLive || billLive;
   const loading = poRes.loading || billRes.loading;
 
@@ -176,12 +177,14 @@ export default function Purchase() {
         </div>
       </div>
 
-      {anyLive ? (
-        <Alert type="success" showIcon style={{ marginBottom: 16, borderRadius: 10 }}
-          message={<span style={{ fontSize: 13 }}><strong>Live</strong> — {livePOs.length} purchase order{livePOs.length !== 1 ? 's' : ''}, {liveBills.length} vendor bill{liveBills.length !== 1 ? 's' : ''} from your workspace.</span>} />
+      {loading ? null : anyLive ? (
+        livePOs.length === 0 && liveBills.length === 0 ? (
+          <Alert type="info" showIcon style={{ marginBottom: 16, borderRadius: 10 }}
+            message={<span style={{ fontSize: 13 }}>No purchase orders or vendor bills yet — create one to get started.</span>} />
+        ) : null
       ) : (
-        <Alert type="info" showIcon style={{ marginBottom: 16, borderRadius: 10 }}
-          message={<span style={{ fontSize: 13 }}>{loading ? 'Loading procurement data…' : 'Showing demo data — create POs and vendor bills in your workspace to see them here.'}</span>} />
+        <Alert type="warning" showIcon style={{ marginBottom: 16, borderRadius: 10 }}
+          message={<span style={{ fontSize: 13 }}>Can't reach your workspace — showing sample data. Check that the backend is running.</span>} />
       )}
 
       {/* KPIs */}

@@ -78,8 +78,9 @@ export default function Ledger() {
   const liveEntries = useMemo(() => asList<ApiJournalEntry>(entries.data).map(jeFromApi), [entries.data]);
   const liveTb = useMemo(() => (tb.data?.rows ?? []).map(tbFromApi), [tb.data]);
 
-  const usingLiveJE = !entries.loading && !entries.error && liveEntries.length > 0;
-  const usingLiveTB = !tb.loading && !tb.error && liveTb.length > 0;
+  // Connected = API call succeeded (even empty). Demo only when unreachable.
+  const usingLiveJE = !entries.loading && !entries.error;
+  const usingLiveTB = !tb.loading && !tb.error;
 
   const journalEntries: JournalEntry[] = usingLiveJE ? liveEntries : MOCK_JOURNAL_ENTRIES;
   const trialBalance: TrialBalanceRow[] = usingLiveTB ? liveTb : MOCK_TRIAL_BALANCE;
@@ -147,12 +148,14 @@ export default function Ledger() {
         <p style={{ color: 'var(--color-text-secondary)', fontSize: 13 }}>Double-entry journal entries & trial balance</p>
       </div>
 
-      {anyLive ? (
-        <Alert type="success" showIcon style={{ marginBottom: 16, borderRadius: 10 }}
-          message={<span style={{ fontSize: 13 }}><strong>Live</strong> — {usingLiveJE ? `${liveEntries.length} journal entries` : 'journal entries (none yet)'}, {usingLiveTB ? `${liveTb.length} accounts in trial balance` : 'trial balance (empty)'} from your workspace.</span>} />
+      {loading ? null : anyLive ? (
+        liveEntries.length === 0 && liveTb.length === 0 ? (
+          <Alert type="info" showIcon style={{ marginBottom: 16, borderRadius: 10 }}
+            message={<span style={{ fontSize: 13 }}>No journal entries yet — post entries (or raise invoices) to build your ledger.</span>} />
+        ) : null
       ) : (
-        <Alert type="info" showIcon style={{ marginBottom: 16, borderRadius: 10 }}
-          message={<span style={{ fontSize: 13 }}>{loading ? 'Loading ledger from your workspace…' : 'Showing demo data — post entries in your workspace to see them here.'}</span>} />
+        <Alert type="warning" showIcon style={{ marginBottom: 16, borderRadius: 10 }}
+          message={<span style={{ fontSize: 13 }}>Can't reach your workspace — showing sample data. Check that the backend is running.</span>} />
       )}
 
       {/* Invariant check */}

@@ -42,15 +42,19 @@ export default function Reports() {
   const companyId = useMemo(() => asList<{ id: number }>(companies.data)[0]?.id ?? null, [companies.data]);
   const pnlRes = useApiResource<ApiPnL>(companyId ? `/reports/pnl/?company=${companyId}` : null);
 
+  // Connected = the P&L call succeeded (even with no posted entries → all zeros,
+  // which is the correct real state for a new workspace). Demo P&L is only shown
+  // when the backend is unreachable.
+  const pnlConnected = !pnlRes.loading && !pnlRes.error && !!pnlRes.data;
   const livePnl = useMemo(() => {
+    if (!pnlConnected) return null;
     const inc = pnlRes.data?.income ?? [];
     const exp = pnlRes.data?.expense ?? [];
-    if (inc.length === 0 && exp.length === 0) return null;
     return {
       income: inc.length ? [groupRows(inc, 'Income')] : [],
       expenses: exp.length ? [groupRows(exp, 'Expenses')] : [],
     };
-  }, [pnlRes.data]);
+  }, [pnlConnected, pnlRes.data]);
 
   const usingLivePnl = !!livePnl;
   const pnl = livePnl ?? MOCK_PNL;

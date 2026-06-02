@@ -31,8 +31,10 @@ export default function Banking() {
   // Live bank accounts; fall back to demo accounts.
   const acctRes = useApiResource<unknown>('/banking/bank-accounts/');
   const liveAccounts = useMemo(() => asList<ApiBankAccount>(acctRes.data).map(accountFromApi), [acctRes.data]);
-  const usingLiveAccounts = !acctRes.loading && !acctRes.error && liveAccounts.length > 0;
-  const accounts: BankAccount[] = usingLiveAccounts ? liveAccounts : MOCK_BANK_ACCOUNTS;
+  // Connected = API call succeeded (even empty). Demo only when unreachable.
+  const accountsConnected = !acctRes.loading && !acctRes.error;
+  const usingLiveAccounts = accountsConnected;
+  const accounts: BankAccount[] = accountsConnected ? liveAccounts : MOCK_BANK_ACCOUNTS;
 
   const [selectedBank, setSelectedBank] = useState<string>(accounts[0]?.id ?? '');
   // Keep the selection valid when the account list resolves (live vs mock).
@@ -51,7 +53,9 @@ export default function Banking() {
     () => asList<ApiStatementLine>(linesRes.data).map(l => lineFromApi(l, selectedBank)),
     [linesRes.data, selectedBank],
   );
-  const usingLiveLines = usingLiveAccounts && !linesRes.loading && !linesRes.error && liveLines.length > 0;
+  // For a live account, show its real statement lines (even if none). Mock
+  // transactions are only used for the demo accounts (backend unreachable).
+  const usingLiveLines = usingLiveAccounts && !linesRes.loading && !linesRes.error;
 
   const totalBalance = accounts.reduce((s, a) => s + a.balance, 0);
   const totalUnreconciled = accounts.reduce((s, a) => s + a.unreconciled, 0);
@@ -110,12 +114,14 @@ export default function Banking() {
         <p style={{ color: 'var(--color-text-secondary)', fontSize: 13 }}>Bank accounts, statement reconciliation & PDC tracking</p>
       </div>
 
-      {usingLiveAccounts ? (
-        <Alert type="success" showIcon style={{ marginBottom: 16, borderRadius: 10 }}
-          message={<span style={{ fontSize: 13 }}><strong>Live</strong> — {liveAccounts.length} bank account{liveAccounts.length !== 1 ? 's' : ''} from your workspace{usingLiveLines ? `; ${liveLines.length} statement line${liveLines.length !== 1 ? 's' : ''} for the selected account` : ''}.</span>} />
+      {acctRes.loading ? null : accountsConnected ? (
+        liveAccounts.length === 0 ? (
+          <Alert type="info" showIcon style={{ marginBottom: 16, borderRadius: 10 }}
+            message={<span style={{ fontSize: 13 }}>No bank accounts yet — add one to start reconciling statements.</span>} />
+        ) : null
       ) : (
-        <Alert type="info" showIcon style={{ marginBottom: 16, borderRadius: 10 }}
-          message={<span style={{ fontSize: 13 }}>{acctRes.loading ? 'Loading bank accounts…' : 'Showing demo data — add bank accounts in your workspace to see them here.'}</span>} />
+        <Alert type="warning" showIcon style={{ marginBottom: 16, borderRadius: 10 }}
+          message={<span style={{ fontSize: 13 }}>Can't reach your workspace — showing sample data. Check that the backend is running.</span>} />
       )}
 
       {/* Summary */}
