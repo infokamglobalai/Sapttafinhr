@@ -52,6 +52,7 @@ import BudgetVsActualPage from '@/features/reports/BudgetVsActualPage';
 import CostCenterPnLPage from '@/features/reports/CostCenterPnLPage';
 import ConsolidationPage from '@/features/reports/ConsolidationPage';
 import PortalAccessPage from '@/features/portal/PortalAccessPage';
+import NotificationBell from '@/features/notifications/NotificationBell';
 
 type RouteId =
   | 'dashboard'
@@ -303,7 +304,9 @@ export default function AppShell() {
             </button>
             <Breadcrumb sectionLabel={activeSection?.label} subLabel={currentSub?.label} />
           </div>
-          <div className="relative">
+          <div className="flex items-center gap-1">
+            <NotificationBell />
+            <div className="relative">
             <button
               onClick={() => setQuickOpen((o) => !o)}
               className="btn-primary inline-flex items-center gap-1"
@@ -330,6 +333,7 @@ export default function AppShell() {
                 </div>
               </>
             )}
+            </div>
           </div>
         </header>
 
