@@ -71,6 +71,20 @@ class TenantMiddleware:
             messages.info(request, "Platform superusers use the /superadmin/ panel. Log in as a tenant user to access the HRMS UI.")
             return redirect("/superadmin/")
 
+        # Forced first-run setup gate: until the workspace is set up, an
+        # authenticated tenant user is redirected to the setup wizard. Exempt the
+        # setup page itself, auth, static/media, and internal/superadmin paths.
+        if (
+            request.user.is_authenticated
+            and request.tenant is not None
+            and not request.tenant.setup_complete
+            and not self._is_exempt_path(request.path)
+            and not request.path.startswith("/setup/")
+            and not request.path.startswith("/auth/")
+        ):
+            from django.shortcuts import redirect
+            return redirect("/setup/")
+
         return self.get_response(request)
 
     def _is_exempt_path(self, path):

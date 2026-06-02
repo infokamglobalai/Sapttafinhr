@@ -218,6 +218,15 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
 CSRF_COOKIE_HTTPONLY = True
 
+# HR is reached through the nginx front door (e.g. http://hr.localhost:8080), so
+# form POSTs arrive with that Origin — it must be trusted for CSRF. Configurable
+# per environment; dev defaults cover the front-door + workspace hosts.
+CSRF_TRUSTED_ORIGINS = config(
+    "CSRF_TRUSTED_ORIGINS",
+    default="http://hr.localhost:8080,http://localhost:8080,http://*.localhost:8080",
+    cast=Csv(),
+)
+
 # ---------------------------------------------------------------------------
 # Sentry
 # ---------------------------------------------------------------------------
