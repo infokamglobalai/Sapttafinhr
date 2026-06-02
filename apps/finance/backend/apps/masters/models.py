@@ -15,6 +15,9 @@ class Company(TimeStampedModel):
     state_code = models.CharField(max_length=2, blank=True, help_text="Indian state code (GST)")
     base_currency = models.CharField(max_length=3, default="INR")
     books_closed_until = models.DateField(null=True, blank=True)
+    # First-run setup gate: the Finance app shows the setup wizard until the
+    # admin marks this complete. Set by the setup endpoint, not by signup.
+    setup_complete = models.BooleanField(default=False)
 
     history = HistoricalRecords()
 

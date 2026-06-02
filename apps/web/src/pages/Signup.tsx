@@ -35,8 +35,10 @@ export default function Signup() {
         planId: selectedPlanId,
         companyName: values.companyName,
       });
-      message.success('Account created! Taking you to your workspace...');
-      navigate('/app');
+      // Pay-first: the workspace exists but has no access yet. Send the admin to
+      // checkout, not into the product (which would 403 until payment).
+      message.success('Account created! Choose a plan to activate your workspace.');
+      navigate('/app/billing');
     } catch {
       message.error('Something went wrong. Please try again.');
     }

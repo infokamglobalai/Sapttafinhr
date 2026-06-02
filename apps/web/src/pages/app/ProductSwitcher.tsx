@@ -90,8 +90,8 @@ export default function ProductSwitcher() {
               tagColor="#FF6D00"
               gradient="linear-gradient(135deg, #FF6D00 0%, #FFA000 100%)"
               icon={<TeamOutlined />}
-              description="Not subscribed. Add HRMS to your plan to access HR features."
-              onUpgrade={() => navigate('/pricing')}
+              description="Activate your subscription to start using HR."
+              onUpgrade={() => navigate('/app/billing')}
             />
           )}
 
@@ -115,8 +115,8 @@ export default function ProductSwitcher() {
               tagColor="#10B981"
               gradient="linear-gradient(135deg, #10B981 0%, #059669 100%)"
               icon={<BankOutlined />}
-              description="Not subscribed. Add Finance to your plan to access accounting features."
-              onUpgrade={() => navigate('/pricing')}
+              description="Activate your subscription to start using Finance."
+              onUpgrade={() => navigate('/app/billing')}
             />
           )}
         </div>

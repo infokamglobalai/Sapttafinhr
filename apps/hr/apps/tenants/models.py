@@ -40,6 +40,10 @@ class Tenant(models.Model):
     tan = models.CharField(max_length=10, blank=True)  # TDS deduction account number
     cin = models.CharField(max_length=21, blank=True)
 
+    # First-run setup gate: HR shows the setup wizard until the admin completes
+    # it (company info, departments, leave types, holidays, first employees…).
+    setup_complete = models.BooleanField(default=False)
+
     # Denormalized for quick billing/limit checks
     employee_count = models.PositiveIntegerField(default=0)
     max_employees = models.PositiveIntegerField(default=25)

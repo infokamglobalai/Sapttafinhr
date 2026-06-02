@@ -373,7 +373,9 @@ interface SubscriptionDTO {
   entitlements?: EntitlementDTO[];
 }
 
-const ACTIVE_STATUSES = new Set(['TRIAL', 'ACTIVE']);
+// Pay-first: only a paid (ACTIVE) subscription/entitlement counts as owned.
+// PENDING (signed up, unpaid) and TRIAL (legacy) do NOT grant product access.
+const ACTIVE_STATUSES = new Set(['ACTIVE']);
 
 /**
  * Best-effort: derive the active product slugs for the current user.
