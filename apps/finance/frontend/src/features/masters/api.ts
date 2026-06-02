@@ -6,6 +6,7 @@ export interface Company {
   gstin: string; pan?: string;
   state_code: string; base_currency: string;
   books_closed_until?: string | null;
+  setup_complete?: boolean;
 }
 export interface FiscalYear { id: number; company: number; name: string; start_date: string; end_date: string; is_active: boolean; }
 export interface Account { id: number; company: number; code: string; name: string; type: string; parent: number | null; is_postable: boolean; is_active: boolean; }
@@ -51,6 +52,46 @@ export const useFiscalYears = (company?: number) =>
     queryFn: async () =>
       (await api.get<Paginated<FiscalYear>>('/masters/fiscal-years/', { params: { company, is_active: true } })).data.results,
   });
+
+// ── First-run setup ────────────────────────────────────────────────────────
+export interface SetupStatus {
+  setup_complete: boolean;
+  company_id: number | null;
+  company_name?: string;
+  missing: string[];
+  has_fiscal_year?: boolean;
+  has_bank_account?: boolean;
+}
+export const useSetupStatus = () =>
+  useQuery({
+    queryKey: ['setup-status'],
+    queryFn: async () => (await api.get<SetupStatus>('/masters/setup/status/')).data,
+    staleTime: 0,
+  });
+
+export const useCreateFiscalYear = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: Partial<FiscalYear>) => (await api.post('/masters/fiscal-years/', data)).data,
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['fiscal-years'] }); qc.invalidateQueries({ queryKey: ['setup-status'] }); },
+  });
+};
+
+export const useCreateBankAccount = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: Record<string, unknown>) => (await api.post('/banking/bank-accounts/', data)).data,
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['bank-accounts'] }); qc.invalidateQueries({ queryKey: ['setup-status'] }); },
+  });
+};
+
+export const useCompleteSetup = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => (await api.post('/masters/setup/complete/', {})).data,
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['setup-status'] }); qc.invalidateQueries({ queryKey: ['companies'] }); },
+  });
+};
 
 export const usePostableAccounts = (company?: number) =>
   useQuery({

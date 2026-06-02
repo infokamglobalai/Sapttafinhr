@@ -50,8 +50,12 @@ class Command(BaseCommand):
         # 2. Acme tenant
         acme, created = Tenant.objects.get_or_create(
             schema_name="acme",
-            defaults={"name": "Acme Pvt Ltd"},
+            defaults={"name": "Acme Pvt Ltd", "billing_email": "admin@acme.test"},
         )
+        if not acme.billing_email:
+            # Needed so dev login resolves the workspace (JWT workspace claim).
+            acme.billing_email = "admin@acme.test"
+            acme.save(update_fields=["billing_email"])
         if created:
             self.stdout.write(self.style.SUCCESS("Created Acme tenant + schema."))
         Domain.objects.get_or_create(

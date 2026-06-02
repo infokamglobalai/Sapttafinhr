@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth';
 import LoginPage from '@/features/auth/LoginPage';
 import AppShell from '@/app/AppShell';
+import SetupGate from '@/features/setup/SetupGate';
 import { api } from '@/lib/api';
 import { ConfirmHost } from '@/components/ConfirmDialog';
 
@@ -57,7 +58,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       {accessToken && user
-        ? <AppShell />
+        ? <SetupGate><AppShell /></SetupGate>
         : <LoginPage onSuccess={() => setBootstrapped(true)} />}
       <ConfirmHost />
     </QueryClientProvider>
