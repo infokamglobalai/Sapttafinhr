@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block page_title %}New Job Opening{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl">
+  <a href="{% url 'recruitment:job_list' %}" class="text-sm link mb-3 inline-block">← Back to openings</a>
+  <div class="card bg-base-100 shadow">
+    <div class="card-body">
+      <h2 class="text-lg font-bold mb-2">Create job opening</h2>
+      <form method="post">
+        {% csrf_token %}
+        <div class="form-control mb-3">
+          <label class="label"><span class="label-text">Job title *</span></label>
+          <input name="title" required class="input input-bordered" placeholder="Senior Backend Engineer">
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+          <div class="form-control"><label class="label"><span class="label-text">Department</span></label>
+            <select name="department" class="select select-bordered">
+              <option value="">—</option>{% for d in departments %}<option value="{{ d.id }}">{{ d.name }}</option>{% endfor %}
+            </select></div>
+          <div class="form-control"><label class="label"><span class="label-text">Designation</span></label>
+            <select name="designation" class="select select-bordered">
+              <option value="">—</option>{% for d in designations %}<option value="{{ d.id }}">{{ d.name }}</option>{% endfor %}
+            </select></div>
+          <div class="form-control"><label class="label"><span class="label-text">Location</span></label>
+            <select name="location" class="select select-bordered">
+              <option value="">—</option>{% for l in locations %}<option value="{{ l.id }}">{{ l.name }}</option>{% endfor %}
+            </select></div>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+          <div class="form-control"><label class="label"><span class="label-text">Employment type</span></label>
+            <select name="employment_type" class="select select-bordered">
+              {% for t in employment_types %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+            </select></div>
+          <div class="form-control"><label class="label"><span class="label-text">Positions</span></label>
+            <input name="positions_count" type="number" value="1" min="1" class="input input-bordered"></div>
+          <div class="form-control"><label class="label"><span class="label-text">Exp min (yrs)</span></label>
+            <input name="experience_min" type="number" value="0" min="0" class="input input-bordered"></div>
+          <div class="form-control"><label class="label"><span class="label-text">Exp max (yrs)</span></label>
+            <input name="experience_max" type="number" min="0" class="input input-bordered"></div>
+        </div>
+        <div class="form-control mb-3"><label class="label"><span class="label-text">Description</span></label>
+          <textarea name="description" rows="3" class="textarea textarea-bordered"></textarea></div>
+        <div class="form-control mb-3"><label class="label"><span class="label-text">Requirements</span></label>
+          <textarea name="requirements" rows="3" class="textarea textarea-bordered"></textarea></div>
+        <div class="form-control mb-4"><label class="label"><span class="label-text">Status</span></label>
+          <select name="status" class="select select-bordered w-48">
+            <option value="draft">Draft</option><option value="published">Published</option>
+          </select></div>
+        <div class="flex justify-end gap-2">
+          <a href="{% url 'recruitment:job_list' %}" class="btn btn-ghost">Cancel</a>
+          <button class="btn btn-primary">Create opening</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

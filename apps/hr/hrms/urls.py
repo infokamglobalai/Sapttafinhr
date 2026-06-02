@@ -13,6 +13,7 @@ urlpatterns = [
     path("payroll/", include("apps.payroll.urls", namespace="payroll")),
     path("hr/", include("apps.hr_ops.urls", namespace="hr_ops")),
     path("performance/", include("apps.performance.urls", namespace="performance")),
+    path("recruitment/", include("apps.recruitment.urls", namespace="recruitment")),
 ]
 
 if settings.DEBUG:
