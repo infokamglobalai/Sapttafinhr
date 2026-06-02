@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   TeamOutlined, CalendarOutlined, ClockCircleOutlined, WalletOutlined,
@@ -7,11 +8,23 @@ import {
 import { useAuth } from '../../../contexts/AuthContext';
 import { useNotifications } from '../../../contexts/NotificationContext';
 import { MOCK_EMPLOYEES, MOCK_ATTENDANCE, MOCK_LEAVE_REQUESTS, MOCK_PAYROLL_RUNS, formatINR } from '../../../data/hrms-mock';
+import { fetchHrStats, type HrStats } from '../../../lib/api';
 
 export default function HrmsHome() {
   const { user } = useAuth();
   const { notifications, unreadCount } = useNotifications();
   const navigate = useNavigate();
+
+  // Live HR KPIs (FIN proxies to the HR backend). Falls back to demo numbers
+  // when HR is unavailable or the workspace has no HR data yet.
+  const [live, setLive] = useState<HrStats | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetchHrStats(user?.tenantId)
+      .then(d => { if (!cancelled) setLive(d); })
+      .catch(() => { if (!cancelled) setLive(null); });
+    return () => { cancelled = true; };
+  }, [user?.tenantId]);
 
   const greetingTime = () => {
     const h = new Date().getHours();
@@ -70,13 +83,31 @@ export default function HrmsHome() {
         <div style={{ fontSize: 28, opacity: 0.9, flexShrink: 0 }}><ThunderboltOutlined /></div>
       </div>
 
-      {/* HRMS-specific KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginBottom: 32 }}>
-        <KPICard label="Total Employees" value={String(activeEmps)} color="#FF6D00" trend={`${probation} on probation`} />
-        <KPICard label="Present Today" value={`${presentToday}/${activeEmps}`} color="#10B981" trend={`${lateCount} late arrival${lateCount !== 1 ? 's' : ''}`} />
-        <KPICard label="Pending Leaves" value={String(pendingLeaves)} color="#FF8F00" trend={pendingLeaves > 0 ? 'Needs your action' : 'All processed'} />
-        {lastPayroll && <KPICard label="Last Payroll" value={formatINR(lastPayroll.totalNet)} color="#8B5CF6" trend={`${lastPayroll.month} ${lastPayroll.year}`} />}
-      </div>
+      {/* HRMS-specific KPIs — live from the HR backend when the workspace has
+          employees; otherwise demo numbers so the dashboard isn't empty. */}
+      {(() => {
+        const useLive = !!live && live.total_employees > 0;
+        const empCount = useLive ? live!.total_employees : activeEmps;
+        const present = useLive ? live!.present_today : presentToday;
+        const pending = useLive ? live!.pending_leave_approvals : pendingLeaves;
+        return (
+          <>
+            {useLive && (
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#10B981', marginBottom: 10 }}>
+                ● Live data from your HR workspace
+              </div>
+            )}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginBottom: 32 }}>
+              <KPICard label="Total Employees" value={String(empCount)} color="#FF6D00" trend={useLive ? `${live!.new_joiners_this_month} new this month` : `${probation} on probation`} />
+              <KPICard label="Present Today" value={`${present}/${empCount}`} color="#10B981" trend={useLive ? `${live!.on_leave_today} on leave` : `${lateCount} late arrival${lateCount !== 1 ? 's' : ''}`} />
+              <KPICard label="Pending Leaves" value={String(pending)} color="#FF8F00" trend={pending > 0 ? 'Needs your action' : 'All processed'} />
+              {useLive
+                ? <KPICard label="Regularizations" value={String(live!.pending_regularizations)} color="#8B5CF6" trend="Pending approval" />
+                : (lastPayroll && <KPICard label="Last Payroll" value={formatINR(lastPayroll.totalNet)} color="#8B5CF6" trend={`${lastPayroll.month} ${lastPayroll.year}`} />)}
+            </div>
+          </>
+        );
+      })()}
 
       {/* Quick Access */}
       <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 16 }}>HR Modules</h3>

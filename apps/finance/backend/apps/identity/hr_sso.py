@@ -38,3 +38,42 @@ class HrSsoTokenView(APIView):
         payload = f"{request.user.email}|{workspace}"
         token = TimestampSigner(key=secret, salt=SSO_SALT).sign(payload)
         return Response({"token": token})
+
+
+class HrStatsView(APIView):
+    """GET /api/v1/auth/hr-stats/?workspace= → proxy HR's KPI JSON.
+
+    The SPA can't hold the shared secret, so FIN forwards (server-to-server, with
+    the Bearer secret) to HR's internal stats endpoint and relays the JSON. Lets
+    the unified shell show live HR KPIs without exposing HR as a public REST API.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        secret = getattr(settings, "SSO_SHARED_SECRET", "")
+        base = getattr(settings, "HR_INTERNAL_BASE_URL", "")
+        if not (secret and base):
+            return Response({"detail": "HR stats not configured."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        workspace = (request.query_params.get("workspace") or "").strip()
+        try:
+            import requests
+
+            resp = requests.get(
+                f"{base.rstrip('/')}/internal/stats/",
+                params={"workspace": workspace},
+                headers={
+                    "Authorization": f"Bearer {secret}",
+                    # HR dev ALLOWED_HOSTS only accepts localhost/*.localhost, so
+                    # present a Host it trusts (we target it by service DNS).
+                    "Host": "localhost",
+                },
+                timeout=10,
+            )
+        except Exception:  # noqa: BLE001 — HR down shouldn't 500 the SPA
+            return Response({"detail": "HR is unavailable."}, status=status.HTTP_502_BAD_GATEWAY)
+
+        if resp.status_code != 200:
+            return Response({"detail": "HR stats unavailable."}, status=resp.status_code)
+        return Response(resp.json())

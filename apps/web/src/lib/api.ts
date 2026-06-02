@@ -337,6 +337,23 @@ export function fetchMySubscription(): Promise<MySubscription> {
   return request<MySubscription>('/saas/my-subscription/', { surface: 'tenant' });
 }
 
+// ─── HR stats (proxied by FIN from the HR backend) ────────────────────────
+export interface HrStats {
+  workspace: string;
+  total_employees: number;
+  present_today: number;
+  on_leave_today: number;
+  pending_leave_approvals: number;
+  pending_regularizations: number;
+  new_joiners_this_month: number;
+}
+
+/** Live HR KPIs for a workspace (FIN proxies to HR with the shared secret). */
+export function fetchHrStats(workspace?: string): Promise<HrStats> {
+  const ws = workspace || getWorkspace() || '';
+  return request<HrStats>(`/auth/hr-stats/?workspace=${encodeURIComponent(ws)}`, { surface: 'platform' });
+}
+
 // ─── Entitlements / products ──────────────────────────────────────────────
 export type ProductCode = 'FIN' | 'HR';
 export type ProductSlug = 'finance' | 'hrms';
