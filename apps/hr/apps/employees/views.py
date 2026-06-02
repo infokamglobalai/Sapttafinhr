@@ -8,7 +8,7 @@ from django.views.decorators.http import require_POST
 
 from .models import Employee, Department, Designation, OfficeLocation, EmployeeDocument, AttritionScore
 from .forms import EmployeeForm, DepartmentForm, DesignationForm, OfficeLocationForm, DocumentUploadForm
-from .services import create_employee, bulk_import_employees
+from .services import create_employee, bulk_import_employees, provision_employee_login
 from utils.pdf import render_pdf_response
 
 
@@ -95,6 +95,39 @@ def employee_create(request):
         form = EmployeeForm(tenant)
 
     return render(request, "employees/create.html", {"form": form})
+
+
+@login_required
+@require_POST
+def employee_create_login(request, pk):
+    """Provision (or reset) a self-service login for an employee.
+
+    Employees created via the setup wizard don't get a User automatically, so
+    this is how an admin grants them access to the My Space / ESS screens. The
+    temporary password is shown once for the admin to share (until email is
+    wired up).
+    """
+    tenant = request.tenant
+    if not request.user.is_hr_admin:
+        messages.error(request, "HR admin access required.")
+        return redirect("employees:detail", pk=pk)
+    employee = get_object_or_404(Employee, pk=pk, tenant=tenant)
+    reset = bool(employee.user_id)  # already linked → treat as a password reset
+    try:
+        user, password = provision_employee_login(employee, created_by=request.user, reset_password=reset)
+        if password:
+            verb = "reset" if reset else "created"
+            messages.success(
+                request,
+                f"Self-service login {verb} for {employee.full_name}. "
+                f"Email: {user.email} · Temporary password: {password} "
+                f"— share it securely; they can change it after signing in.",
+            )
+        else:
+            messages.info(request, f"{employee.full_name} already has a login ({user.email}).")
+    except Exception as exc:
+        messages.error(request, f"Could not create login: {exc}")
+    return redirect("employees:detail", pk=pk)
 
 
 @login_required

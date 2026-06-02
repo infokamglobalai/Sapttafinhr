@@ -105,6 +105,55 @@ def create_employee(tenant, data: dict, created_by=None) -> Employee:
     return emp, password
 
 
+@transaction.atomic
+def provision_employee_login(employee, created_by=None, reset_password: bool = False):
+    """Create (or reset) a self-service login for an existing employee.
+
+    Employees added via the setup wizard or bulk paths may not have a User yet,
+    so the (already built) self-service screens are unreachable for them. This
+    bridges that: it creates a User from the employee's email, links it via
+    ``Employee.user``, and grants the default ``employee`` role.
+
+    Returns ``(user, temp_password)``. ``temp_password`` is ``None`` when an
+    existing login is left untouched (``reset_password=False`` and a user is
+    already linked) — email delivery isn't wired yet, so the caller is expected
+    to surface the returned password to the admin to share manually.
+    """
+    from apps.accounts.models import Role, UserRole
+
+    tenant = employee.tenant
+
+    # Already linked: optionally reset the password, otherwise no-op.
+    if employee.user_id:
+        if reset_password:
+            password = _generate_temp_password()
+            user = employee.user
+            user.set_password(password)
+            user.is_active = True
+            user.save(update_fields=["password", "is_active"])
+            return user, password
+        return employee.user, None
+
+    email = (employee.official_email or employee.personal_email or "").strip().lower()
+    if not email:
+        raise ValueError("This employee has no email address. Add an official or personal email first.")
+
+    # Reuse an existing user with this email in the tenant, else create one.
+    user = User.objects.filter(tenant=tenant, email=email).first()
+    password = None
+    if user is None:
+        password = _generate_temp_password()
+        user = User.objects.create_user(email=email, tenant=tenant, password=password)
+
+    employee_role = Role.objects.filter(tenant=tenant, name="employee").first()
+    if employee_role:
+        UserRole.objects.get_or_create(user=user, role=employee_role, defaults={"granted_by": created_by})
+
+    employee.user = user
+    employee.save(update_fields=["user"])
+    return user, password
+
+
 def bulk_import_employees(tenant, csv_file, created_by=None) -> dict:
     """
     Import employees from a CSV upload — complete onboarding in one row.

@@ -9,6 +9,7 @@ urlpatterns = [
     path("bulk-import/", views.bulk_import, name="bulk_import"),
     path("<int:pk>/", views.employee_detail, name="detail"),
     path("<int:pk>/edit/", views.employee_edit, name="edit"),
+    path("<int:pk>/create-login/", views.employee_create_login, name="create_login"),
     path("<int:pk>/id-card/", views.id_card_pdf, name="id_card"),
     path("<int:employee_pk>/documents/upload/", views.document_upload, name="document_upload"),
     # Org structure
