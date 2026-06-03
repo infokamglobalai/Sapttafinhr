@@ -2,7 +2,10 @@ from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from .models import Account, Branch, Company, CostCenter, FiscalYear, HSNCode, Item, NumberSeries, Party, Project
+from datetime import date as _date
+from rest_framework import serializers as _s
+from rest_framework.views import APIView
+from .models import Account, Branch, Company, CostCenter, ExchangeRate, FiscalYear, HSNCode, Item, NumberSeries, Party, Project, SUPPORTED_CURRENCIES
 from .numbering import ensure_defaults, peek_next
 from .serializers import (
     AccountSerializer,
@@ -111,3 +114,48 @@ class NumberSeriesViewSet(viewsets.ModelViewSet):
             return Response({"detail": "company not found"}, status=404)
         created = ensure_defaults(company)
         return Response({"created": created})
+
+
+# ── Exchange Rates ────────────────────────────────────────────────────────
+
+class ExchangeRateSerializer(_s.ModelSerializer):
+    class Meta:
+        model = ExchangeRate
+        fields = ["id", "currency", "rate", "date", "source", "created_at"]
+        read_only_fields = ["id", "created_at"]
+
+
+class ExchangeRateView(APIView):
+    """GET/POST /masters/exchange-rates/?company=&currency=&date="""
+
+    def get(self, request):
+        company_id = request.query_params.get("company")
+        currency = request.query_params.get("currency")
+        as_of = request.query_params.get("date", _date.today().isoformat())
+        if not company_id:
+            return Response({"detail": "company required"}, status=400)
+
+        qs = ExchangeRate.objects.filter(company_id=company_id)
+        if currency:
+            qs = qs.filter(currency=currency)
+        qs = qs.filter(date__lte=as_of).order_by("currency", "-date").distinct("currency")
+        ser = ExchangeRateSerializer(qs, many=True)
+        return Response({
+            "rates": ser.data,
+            "currencies": [{"code": c, "name": n} for c, n in SUPPORTED_CURRENCIES],
+        })
+
+    def post(self, request):
+        """Upsert a rate: { company, currency, rate, date }"""
+        company_id = request.data.get("company")
+        currency = request.data.get("currency")
+        rate = request.data.get("rate")
+        date_str = request.data.get("date", _date.today().isoformat())
+        if not all([company_id, currency, rate]):
+            return Response({"detail": "company, currency, rate required"}, status=400)
+        obj, created = ExchangeRate.objects.update_or_create(
+            company_id=company_id, currency=currency,
+            date=_date.fromisoformat(date_str),
+            defaults={"rate": rate, "source": request.data.get("source", "manual")},
+        )
+        return Response(ExchangeRateSerializer(obj).data, status=201 if created else 200)

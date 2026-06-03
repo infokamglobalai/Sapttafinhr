@@ -7,6 +7,7 @@ import SetupGate from '@/features/setup/SetupGate';
 import { api } from '@/lib/api';
 import { ConfirmHost } from '@/components/ConfirmDialog';
 import InstallPrompt from '@/components/InstallPrompt';
+import AIChatWidget from '@/components/AIChatWidget';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { refetchOnWindowFocus: false, staleTime: 30_000 } },
@@ -64,6 +65,7 @@ export default function App() {
       {accessToken && user
         ? <SetupGate><AppShell /></SetupGate>
         : <LoginPage onSuccess={() => setBootstrapped(true)} />}
+      {accessToken && user && <AIChatWidget />}
       <ConfirmHost />
     </QueryClientProvider>
   );

@@ -566,3 +566,58 @@ def _type_total(company_id: int, type_: str, start: date, end: date, *, side: st
     agg = qs.aggregate(d=Sum("debit"), c=Sum("credit"))
     d, c = agg["d"] or Decimal("0"), agg["c"] or Decimal("0")
     return (c - d) if side == "credit" else (d - c)
+
+
+def receivables_risk(company_id: int) -> list:
+    """Risk score per active customer based on payment history."""
+    from apps.masters.models import Party
+    from apps.billing.models import Invoice
+    from apps.payments.models import Receipt
+
+    today = date.today()
+    customers = Party.objects.filter(company_id=company_id, kind__in=["CUSTOMER", "BOTH"], is_active=True)
+    result = []
+
+    for c in customers:
+        invoices = Invoice.objects.filter(company_id=company_id, customer=c, status=Invoice.Status.POSTED)
+        total_invoiced = invoices.aggregate(t=Sum("grand_total"))["t"] or Decimal("0")
+        overdue_count = sum(1 for i in invoices if i.grand_total - i.amount_paid > 0 and i.due_date and i.due_date < today)
+        outstanding = sum((i.grand_total - i.amount_paid for i in invoices if i.grand_total - i.amount_paid > 0), Decimal("0"))
+
+        # Average days to pay from paid receipts
+        paid_invoices = [i for i in invoices if i.amount_paid >= i.grand_total and i.due_date]
+        avg_days_late = 0
+        if paid_invoices:
+            receipts = Receipt.objects.filter(company_id=company_id, customer=c).order_by("date")
+            # Simple proxy: compare invoice due dates to receipt dates
+            delays = []
+            for inv in paid_invoices[:20]:  # sample last 20
+                receipt = receipts.filter(date__gte=inv.date).first()
+                if receipt and inv.due_date:
+                    delays.append(max(0, (receipt.date - inv.due_date).days))
+            if delays:
+                avg_days_late = sum(delays) / len(delays)
+
+        # Score
+        score = 0
+        if avg_days_late > 30: score += 40
+        elif avg_days_late > 10: score += 20
+        if overdue_count > 3: score += 30
+        elif overdue_count > 1: score += 15
+        credit_limit = c.credit_limit or Decimal("0")
+        if credit_limit > 0 and outstanding > credit_limit * Decimal("0.9"): score += 20
+        score = min(100, score)
+
+        risk = "HIGH" if score >= 60 else "MEDIUM" if score >= 30 else "LOW"
+        result.append({
+            "customer_id": c.id,
+            "customer": c.name,
+            "risk": risk,
+            "score": score,
+            "outstanding": str(outstanding),
+            "overdue_count": overdue_count,
+            "avg_days_late": round(avg_days_late, 1),
+            "credit_limit": str(credit_limit),
+        })
+
+    return sorted(result, key=lambda x: x["score"], reverse=True)

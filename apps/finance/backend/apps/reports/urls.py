@@ -1,18 +1,9 @@
 from django.urls import path
 
 from .views import (
-    ARAgingView,
-    AuditLogView,
-    BalanceSheetView,
-    BudgetVsActualView,
-    CashFlowView,
-    ConsolidationView,
-    CostCenterPnLView,
-    DashboardView,
-    DayBookView,
-    PartyLedgerView,
-    PnLView,
-    SalesRegisterView,
+    ARAgingView, AuditLogView, BalanceSheetView, BudgetVsActualView,
+    CashFlowView, ConsolidationView, CostCenterPnLView, DashboardView,
+    DayBookView, PartyLedgerView, PnLView, ReceivablesRiskView, SalesRegisterView,
 )
 
 urlpatterns = [
@@ -28,4 +19,5 @@ urlpatterns = [
     path("consolidation/", ConsolidationView.as_view(), name="consolidation"),
     path("budget-vs-actual/", BudgetVsActualView.as_view(), name="budget-vs-actual"),
     path("audit-log/", AuditLogView.as_view(), name="audit-log"),
+    path("receivables-risk/", ReceivablesRiskView.as_view(), name="receivables-risk"),
 ]

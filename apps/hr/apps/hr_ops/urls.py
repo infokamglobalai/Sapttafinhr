@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from .ai_views import AIChatView
 
 app_name = "hr_ops"
 
@@ -37,4 +38,6 @@ urlpatterns = [
     path("audit/", views.audit_log_list, name="audit_log"),
     path("documents/expiring/", views.document_expiry, name="document_expiry"),
     path("pulse/", views.people_pulse, name="people_pulse"),
+    # AI Chat
+    path("ai/chat/", AIChatView.as_view(), name="ai_chat"),
 ]

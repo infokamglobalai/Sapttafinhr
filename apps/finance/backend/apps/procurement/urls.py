@@ -18,9 +18,12 @@ router.register("grns", GRNViewSet)
 router.register("vendor-bills", VendorBillViewSet)
 router.register("vendor-payments", VendorPaymentViewSet)
 
+from .ai_views import VendorBillScanView
+
 urlpatterns = [
     path("purchase-orders/create/", POCreateView.as_view()),
     path("grns/create/", GRNCreateView.as_view()),
     path("vendor-bills/create/", VendorBillCreateView.as_view()),
+    path("vendor-bills/scan/", VendorBillScanView.as_view(), name="vendor-bill-scan"),
     path("vendor-payments/create/", VendorPaymentCreateView.as_view()),
 ] + router.urls

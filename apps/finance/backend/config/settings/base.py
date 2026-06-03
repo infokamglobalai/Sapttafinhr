@@ -282,6 +282,16 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.notifications.tasks.books_closing_reminder",
         "schedule": crontab(hour=10, minute=0, day_of_month=5),
     },
+    # Nightly ledger anomaly detection (after-hours entries, duplicates, round numbers)
+    "ledger-anomaly-detection": {
+        "task": "apps.ledger.tasks.detect_ledger_anomalies_all",
+        "schedule": crontab(hour=6, minute=30),
+    },
+    # Hourly automation engine — overdue invoices, bills due, low stock alerts
+    "automation-engine-hourly": {
+        "task": "apps.core.tasks.run_automation_rules",
+        "schedule": crontab(minute=0),  # every hour on the hour
+    },
     # Daily AP alerts: bills due in next 3 days + overdue
     "vendor-bill-due-alerts": {
         "task": "apps.procurement.tasks.send_vendor_bill_due_alerts",

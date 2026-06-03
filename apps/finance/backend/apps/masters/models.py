@@ -4,6 +4,13 @@ from simple_history.models import HistoricalRecords
 
 from apps.core.models import TimeStampedModel
 
+SUPPORTED_CURRENCIES = [
+    ("INR", "Indian Rupee"), ("USD", "US Dollar"), ("EUR", "Euro"),
+    ("GBP", "British Pound"), ("AED", "UAE Dirham"), ("SGD", "Singapore Dollar"),
+    ("AUD", "Australian Dollar"), ("CAD", "Canadian Dollar"), ("JPY", "Japanese Yen"),
+    ("CNY", "Chinese Yuan"),
+]
+
 
 class Company(TimeStampedModel):
     """A legal entity within a tenant. A tenant may have multiple companies."""
@@ -256,3 +263,21 @@ class NumberSeries(TimeStampedModel):
 
     def format(self, n: int) -> str:
         return f"{self.prefix}{str(n).zfill(self.padding)}"
+
+
+class ExchangeRate(TimeStampedModel):
+    """Daily exchange rate: 1 unit of `currency` = `rate` INR."""
+
+    company  = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="exchange_rates")
+    currency = models.CharField(max_length=3, choices=SUPPORTED_CURRENCIES)
+    rate     = models.DecimalField(max_digits=18, decimal_places=6, help_text="1 unit = X INR")
+    date     = models.DateField(db_index=True)
+    source   = models.CharField(max_length=40, default="manual",
+                                 help_text="manual | rbi | fixer")
+
+    class Meta:
+        unique_together = ("company", "currency", "date")
+        ordering = ("-date",)
+
+    def __str__(self):
+        return f"1 {self.currency} = {self.rate} INR on {self.date}"

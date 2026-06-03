@@ -4,16 +4,9 @@ from rest_framework.routers import DefaultRouter
 from .closing_views import BooksClosingView, CompanyExportView
 from .setup_views import SetupCompleteView, SetupStatusView
 from .views import (
-    AccountViewSet,
-    BranchViewSet,
-    CompanyViewSet,
-    CostCenterViewSet,
-    FiscalYearViewSet,
-    HSNCodeViewSet,
-    ItemViewSet,
-    NumberSeriesViewSet,
-    PartyViewSet,
-    ProjectViewSet,
+    AccountViewSet, BranchViewSet, CompanyViewSet, CostCenterViewSet,
+    ExchangeRateView, FiscalYearViewSet, HSNCodeViewSet, ItemViewSet,
+    NumberSeriesViewSet, PartyViewSet, ProjectViewSet,
 )
 
 router = DefaultRouter()
@@ -33,4 +26,5 @@ urlpatterns = [
     path("setup/complete/", SetupCompleteView.as_view(), name="setup-complete"),
     path("companies/<int:company_id>/close-books/", BooksClosingView.as_view()),
     path("companies/<int:company_id>/export/", CompanyExportView.as_view()),
+    path("exchange-rates/", ExchangeRateView.as_view(), name="exchange-rates"),
 ] + router.urls

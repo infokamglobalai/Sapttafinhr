@@ -122,3 +122,10 @@ class AuditLogView(APIView):
     def get(self, request):
         company = _company(request)
         return Response({"rows": queries.audit_log(company)})
+
+
+class ReceivablesRiskView(APIView):
+    """GET /api/v1/reports/receivables-risk/?company= — risk score every active customer."""
+    def get(self, request):
+        company = _company(request)
+        return Response(queries.receivables_risk(company))

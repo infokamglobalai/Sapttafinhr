@@ -29,8 +29,22 @@ export default function InvoiceCreateModal({ open, onClose }: Props) {
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [dueDate, setDueDate] = useState('');
   const [placeOfSupply, setPlaceOfSupply] = useState('');
+  const [currency, setCurrency] = useState('INR');
+  const [fxRate, setFxRate] = useState('1');
   const [notes, setNotes] = useState('');
   const [lines, setLines] = useState<DraftLine[]>([emptyLine()]);
+
+  const CURRENCIES = ['INR','USD','EUR','GBP','AED','SGD','AUD','CAD','JPY','CNY'];
+
+  // Auto-lookup stored exchange rate when currency changes
+  useEffect(() => {
+    if (currency === 'INR' || !companyId) { setFxRate('1'); return; }
+    import('@/lib/api').then(({ api }) =>
+      api.get('/masters/exchange-rates/', { params: { company: companyId, currency } })
+        .then(r => { const rate = r.data.rates?.[0]?.rate; if (rate) setFxRate(String(rate)); })
+        .catch(() => {})
+    );
+  }, [currency, companyId]);
   const [err, setErr] = useState<string | null>(null);
 
   // Suggest the next invoice number from the server whenever the modal opens,
@@ -104,6 +118,8 @@ export default function InvoiceCreateModal({ open, onClose }: Props) {
         due_date: dueDate || null,
         customer: customerId,
         place_of_supply: placeOfSupply,
+        currency,
+        fx_rate: fxRate,
         notes,
         lines: lines.map(({ tmpId: _t, ...rest }) => rest),
       });
@@ -152,6 +168,26 @@ export default function InvoiceCreateModal({ open, onClose }: Props) {
               Seller: {sellerState || '—'} → {isInterState ? <span className="text-amber-700">Inter-state (IGST)</span> : <span className="text-emerald-700">Intra-state (CGST+SGST)</span>}
             </div>
           </div>
+        </div>
+
+        {/* Currency row — only shown when non-INR or explicitly expanded */}
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          <div>
+            <label className="label">Currency</label>
+            <select className="input" value={currency} onChange={e => setCurrency(e.target.value)}>
+              {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          {currency !== 'INR' && (
+            <div>
+              <label className="label">Exchange Rate (1 {currency} = ? INR)</label>
+              <input className="input font-mono" type="number" step="0.0001" value={fxRate}
+                onChange={e => setFxRate(e.target.value)} />
+              <div className="mt-1 text-xs text-slate-500">
+                Total in INR: {formatINR(computed.totals.total.times(fxRate || 1))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="card overflow-hidden p-0">

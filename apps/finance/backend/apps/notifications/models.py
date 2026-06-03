@@ -44,3 +44,49 @@ class OutboundMessage(TimeStampedModel):
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.QUEUED)
     provider_id = models.CharField(max_length=80, blank=True)
     error = models.CharField(max_length=255, blank=True)
+
+
+# ── Workflow Automation ──────────────────────────────────────────────────────
+
+class AutomationRule(TimeStampedModel):
+    """One automation: trigger + optional filter + action (tenant-scoped)."""
+
+    class Trigger(models.TextChoices):
+        INVOICE_OVERDUE    = "invoice_overdue",    "Invoice Overdue"
+        INVOICE_PAID       = "invoice_paid",       "Invoice Paid"
+        NEW_INVOICE        = "new_invoice",        "New Invoice Posted"
+        VENDOR_BILL_DUE    = "vendor_bill_due",    "Vendor Bill Due Soon"
+        LOW_STOCK          = "low_stock",          "Item Below Reorder Level"
+        MONTHLY_REPORT     = "monthly_report",     "Monthly Report (1st of month)"
+
+    class Action(models.TextChoices):
+        SEND_EMAIL         = "send_email",         "Send Email"
+        SEND_NOTIFICATION  = "send_notification",  "In-App Notification"
+        WEBHOOK            = "webhook",            "HTTP Webhook"
+        WHATSAPP           = "whatsapp",           "WhatsApp Message"
+
+    company_id  = models.IntegerField(db_index=True)
+    name        = models.CharField(max_length=200)
+    is_active   = models.BooleanField(default=True)
+    trigger     = models.CharField(max_length=40, choices=Trigger.choices)
+    trigger_filter = models.JSONField(default=dict, blank=True)
+    action      = models.CharField(max_length=40, choices=Action.choices)
+    action_config = models.JSONField(default=dict)
+    last_run_at = models.DateTimeField(null=True, blank=True)
+    run_count   = models.IntegerField(default=0)
+
+    class Meta:
+        ordering = ("name",)
+
+    def __str__(self):
+        return f"{self.name} ({self.trigger} → {self.action})"
+
+
+class AutomationLog(TimeStampedModel):
+    rule         = models.ForeignKey(AutomationRule, on_delete=models.CASCADE, related_name="logs")
+    triggered_by = models.CharField(max_length=200, blank=True)
+    status       = models.CharField(max_length=20, default="success")
+    detail       = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ("-created_at",)

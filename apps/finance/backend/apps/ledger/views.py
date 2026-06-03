@@ -58,3 +58,16 @@ class TrialBalanceView(APIView):
                 "totals": {"debit": total_d, "credit": total_c},
             }
         )
+
+
+
+class AnomalyScanView(APIView):
+    """GET /api/v1/ledger/anomalies/?company=&hours=24 — on-demand anomaly scan."""
+    def get(self, request):
+        company_id = request.query_params.get("company")
+        hours = int(request.query_params.get("hours", 24))
+        if not company_id:
+            raise ValidationError({"company": "required"})
+        from .anomaly import detect_anomalies
+        anomalies = detect_anomalies(int(company_id), since_hours=hours)
+        return Response({"count": len(anomalies), "anomalies": anomalies, "hours_scanned": hours})
