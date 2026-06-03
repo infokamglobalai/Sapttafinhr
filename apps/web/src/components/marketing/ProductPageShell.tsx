@@ -1,4 +1,3 @@
-import CTABanner from '../shared/CTABanner';
 import MarketingHero from './MarketingHero';
 import InteractiveShowcase from './InteractiveShowcase';
 import ModuleGrid from './ModuleGrid';
@@ -9,14 +8,14 @@ import FeatureAccordion from './FeatureAccordion';
 import HighlightFeatureCard from './HighlightFeatureCard';
 import type { ProductPageConfig } from '../../data/product-pages-data';
 import type { MarketingImageKey } from '../../data/marketing-images';
-import type { ImageFrameVariant } from './MarketingImageFrame';
+import type { ImageAspect, ImageFrameVariant } from './MarketingImageFrame';
 import { HeroVisual } from './ProductVisuals';
 
-const productHeroMedia: Record<string, { key: MarketingImageKey; variant: ImageFrameVariant }> = {
-  hrms: { key: 'productHrms', variant: 'device' },
-  accounts: { key: 'productAccounts', variant: 'glass' },
-  'mobile-app': { key: 'productMobile', variant: 'tilt' },
-  products: { key: 'featuresPlatform', variant: 'split' },
+const productHeroMedia: Record<string, { key: MarketingImageKey; variant: ImageFrameVariant; aspect?: ImageAspect }> = {
+  hrms: { key: 'productHrms', variant: 'plain' },
+  accounts: { key: 'productAccounts', variant: 'plain' },
+  'mobile-app': { key: 'productMobile', variant: 'plain', aspect: 'auto' },
+  products: { key: 'productSuite', variant: 'plain' },
   features: { key: 'featuresPlatform', variant: 'gradient-border' },
 };
 
@@ -27,14 +26,15 @@ interface ProductPageShellProps {
 
 export default function ProductPageShell({ config, currentPath }: ProductPageShellProps) {
   return (
-    <div className="marketing-page">
+    <div className={`marketing-page marketing-page--${config.slug}`}>
       <MarketingHero
         eyebrow={config.hero.eyebrow}
         title={config.hero.title}
         titleHighlight={config.hero.titleHighlight}
+        titleHighlightSameLine
         subtitle={config.hero.subtitle}
         stats={config.hero.stats}
-        theme={config.theme}
+        theme="navy"
         gradient={config.heroGradient}
         primaryLabel={config.hero.primaryLabel}
         primaryTo={config.hero.primaryTo}
@@ -42,6 +42,7 @@ export default function ProductPageShell({ config, currentPath }: ProductPageShe
         secondaryTo={config.hero.secondaryTo}
         heroImageKey={productHeroMedia[config.slug]?.key}
         heroImageVariant={productHeroMedia[config.slug]?.variant}
+        heroImageAspect={productHeroMedia[config.slug]?.aspect}
         visual={productHeroMedia[config.slug] ? undefined : <HeroVisual variant={config.slug} />}
       />
       <InteractiveShowcase
@@ -50,11 +51,12 @@ export default function ProductPageShell({ config, currentPath }: ProductPageShe
         titleHighlight={config.showcase.titleHighlight}
         subtitle={config.showcase.subtitle}
         variant={config.showcase.variant}
-        theme={config.theme}
+        theme="navy"
       />
       {config.workflow ? <WorkflowStrip title={config.workflow.title} steps={config.workflow.steps} /> : null}
       {config.highlightCard ? (
         <HighlightFeatureCard
+          badge={config.highlightCard.badge}
           title={config.highlightCard.title}
           description={config.highlightCard.description}
           ctaLabel={config.highlightCard.ctaLabel}
@@ -67,7 +69,7 @@ export default function ProductPageShell({ config, currentPath }: ProductPageShe
         titleHighlight={config.modules.titleHighlight}
         subtitle={config.modules.subtitle}
         items={config.modules.items}
-        theme={config.theme}
+        theme="navy"
         featuredCode={config.featuredModuleCode}
       />
       {config.accordion ? (
@@ -77,19 +79,19 @@ export default function ProductPageShell({ config, currentPath }: ProductPageShe
           titleHighlight={config.accordion.titleHighlight}
           subtitle={config.accordion.subtitle}
           items={config.accordion.items}
-          theme={config.theme}
+          theme="navy"
         />
       ) : null}
       <ComplianceSection
         eyebrow={config.compliance.eyebrow}
         title={config.compliance.title}
         titleHighlight={config.compliance.titleHighlight}
+        titleHighlightSameLine
         subtitle={config.compliance.subtitle}
         badges={config.compliance.badges}
-        theme={config.theme}
+        theme="navy"
       />
       <RelatedProducts currentPath={currentPath} />
-      <CTABanner title={config.cta.title} subtitle={config.cta.subtitle} />
     </div>
   );
 }

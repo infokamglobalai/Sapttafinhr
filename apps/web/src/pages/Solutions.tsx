@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { Row, Col, Button, Slider } from 'antd';
 import ScrollReveal from '../components/shared/ScrollReveal';
 import HomeSectionHeader from '../components/shared/HomeSectionHeader';
-import CTABanner from '../components/shared/CTABanner';
 import MarketingStatsRow from '../components/marketing/MarketingStatsRow';
 import { solutionCards, solutionsBySize, solutionsOverview } from '../data/solutions-data';
 import industriesData from '../data/industries-data';
@@ -256,8 +255,6 @@ export default function Solutions() {
           </div>
         </div>
       </section>
-
-      <CTABanner title="Find your Saptta solution" subtitle="We will recommend HRMS, Accounts, or Complete based on your team size and industry." />
     </div>
   );
 }

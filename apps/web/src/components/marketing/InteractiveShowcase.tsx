@@ -36,11 +36,12 @@ export default function InteractiveShowcase({
                 eyebrow={eyebrow}
                 title={title}
                 titleHighlight={titleHighlight}
+                titleHighlightSameLine
                 subtitle={subtitle}
                 align="left"
                 theme={theme}
                 isMobile={isMobile}
-                maxWidth={480}
+                maxWidth={560}
               />
               <ShowcaseControls variant={variant} showcase={showcase} />
             </ScrollReveal>
@@ -160,8 +161,8 @@ function ShowcasePanel({ variant, showcase }: { variant: ShowcaseVariant; showca
 
   if (showcase.type === 'mobile-app') {
     const screens = {
-      punch: { header: 'Attendance punch', status: 'Inside geofence', details: 'GPS verified · Punch recorded at 09:02 AM', accent: '#6C3BFF' },
-      leave: { header: 'Leave request', status: 'Casual leave · 2 days', details: 'Balance: 4 days left · Sent to manager', accent: '#2BB673' },
+      punch: { header: 'Attendance punch', status: 'Inside geofence', details: 'GPS verified · Punch recorded at 09:02 AM', accent: '#FF6D00' },
+      leave: { header: 'Leave request', status: 'Casual leave · 2 days', details: 'Balance: 4 days left · Sent to manager', accent: '#1E2A78' },
       payslip: { header: 'Payslip download', status: 'April 2026', details: 'PF, ESI, TDS breakdown · PDF ready', accent: '#1E2A78' },
     };
     const s = screens[showcase.screen];
@@ -204,8 +205,8 @@ function ShowcasePanel({ variant, showcase }: { variant: ShowcaseVariant; showca
 
   const plans = {
     starter: { title: 'Starter', limit: 'Up to 50 employees', accent: '#1E2A78', core: ['Geofence attendance', 'PF & ESI payroll', 'GST invoicing', 'Bank reco'] },
-    professional: { title: 'Professional', limit: 'Up to 500 employees', accent: '#6C3BFF', core: ['Biometric devices', 'TDS on salary', 'GSTR summaries', 'AI payroll checks'] },
-    enterprise: { title: 'Enterprise', limit: 'Unlimited scale', accent: '#2BB673', core: ['Multi-company', 'Custom API', 'Dedicated support', 'Advanced RBAC'] },
+    professional: { title: 'Professional', limit: 'Up to 500 employees', accent: '#FF6D00', core: ['Biometric devices', 'TDS on salary', 'GSTR summaries', 'AI payroll checks'] },
+    enterprise: { title: 'Enterprise', limit: 'Unlimited scale', accent: '#1E2A78', core: ['Multi-company', 'Custom API', 'Dedicated support', 'Advanced RBAC'] },
   };
   const p = plans[showcase.plan];
   return (

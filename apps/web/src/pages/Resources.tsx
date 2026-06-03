@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Row, Col, Button } from 'antd';
+import { Row, Col } from 'antd';
 import {
   BookOutlined,
+  CustomerServiceOutlined,
   QuestionCircleOutlined,
   RocketOutlined,
   DollarOutlined,
 } from '@ant-design/icons';
 import ScrollReveal from '../components/shared/ScrollReveal';
 import HomeSectionHeader from '../components/shared/HomeSectionHeader';
-import CTABanner from '../components/shared/CTABanner';
+import MarketingHero from '../components/marketing/MarketingHero';
 import { resources, quickLinks, resourceCategories } from '../data/resources-data';
 import MarketingImageFrame from '../components/marketing/MarketingImageFrame';
 import useBreakpoint from '../hooks/useBreakpoint';
@@ -20,6 +21,8 @@ const categoryIcon: Record<string, React.ReactNode> = {
   Support: <QuestionCircleOutlined />,
   Pricing: <DollarOutlined />,
 };
+
+const HERO_GRADIENT = 'linear-gradient(135deg, #ffffff 0%, #f8fafc 70%, #eef2ff 100%)';
 
 export default function Resources() {
   const navigate = useNavigate();
@@ -35,27 +38,27 @@ export default function Resources() {
   });
 
   return (
-    <div className="marketing-page">
-      <section className={`marketing-hero${isMobile ? ' marketing-hero--stacked' : ''}`} style={{ background: 'linear-gradient(135deg, #F5F3FF 0%, #F8FAFF 50%, #FFFFFF 100%)' }}>
-        <div className="marketing-hero__orb marketing-hero__orb--1" />
-        <div className="marketing-hero__inner marketing-hero__inner--split">
-          <ScrollReveal animation="fade-in-left">
-            <HomeSectionHeader
-              eyebrow="Resources"
-              title="Guides & help"
-              titleHighlight="for Saptta users"
-              subtitle="Product overviews, feature comparisons, pricing, and support — everything you need before and after rollout."
-              theme="purple"
-              align="left"
-              isMobile={isMobile}
-              maxWidth={520}
-            />
-          </ScrollReveal>
-          <ScrollReveal animation="fade-in-right">
-            <MarketingImageFrame imageKey="resourcesLearning" variant="polaroid" aspect="4/3" />
-          </ScrollReveal>
-        </div>
-      </section>
+    <div className="marketing-page marketing-page--resources">
+      <MarketingHero
+        eyebrow="Resources"
+        title="Guides and help"
+        titleHighlight="for Saptta users"
+        titleHighlightSameLine
+        subtitle="Product overviews, feature comparisons, pricing, and support — everything you need before and after rollout."
+        stats={[
+          { value: 'Guides', label: 'Product docs' },
+          { value: 'Pricing', label: 'Plan comparison' },
+          { value: '24h', label: 'Support response' },
+        ]}
+        theme="navy"
+        gradient={HERO_GRADIENT}
+        primaryLabel="Contact support"
+        primaryTo="/contact"
+        secondaryLabel="View pricing"
+        secondaryTo="/pricing"
+        heroImageKey="resourcesLearning"
+        heroImageVariant="plain"
+      />
 
       <section className="marketing-section marketing-section--white">
         <div className="marketing-section__inner">
@@ -74,19 +77,19 @@ export default function Resources() {
             </div>
           </ScrollReveal>
 
-          <Row gutter={[20, 20]} style={{ marginTop: 28 }}>
+          <Row gutter={[20, 20]} className="marketing-page__card-grid">
             {filtered.map((item, idx) => (
               <Col key={item.title} xs={24} sm={12} lg={8}>
                 <ScrollReveal animation="fade-in-up" delay={idx * 60}>
                   <article
-                    className="marketing-resource-card"
+                    className="marketing-resource-card marketing-resource-card--with-img"
                     onClick={() => navigate(item.path)}
                     onKeyDown={(e) => e.key === 'Enter' && navigate(item.path)}
                     role="button"
                     tabIndex={0}
                   >
                     <div className="marketing-resource-card__thumb">
-                      <MarketingImageFrame imageKey={item.imageKey} variant={item.frame ?? 'card'} aspect="16/10" />
+                      <MarketingImageFrame imageKey={item.imageKey} variant="card" aspect="16/10" />
                     </div>
                     <div className="marketing-resource-card__body">
                       <span className="marketing-resource-card__cat">
@@ -108,31 +111,49 @@ export default function Resources() {
       <section className="marketing-section marketing-section--muted">
         <div className="marketing-section__inner">
           <ScrollReveal animation="fade-in-down">
-            <HomeSectionHeader eyebrow="Quick access" title="Popular links" theme="navy" maxWidth={480} />
+            <HomeSectionHeader
+              eyebrow="Quick access"
+              title="Popular"
+              titleHighlight="links"
+              titleHighlightSameLine
+              theme="navy"
+              maxWidth={480}
+              isMobile={isMobile}
+            />
           </ScrollReveal>
-          <Row gutter={[16, 16]}>
+          <Row gutter={[16, 16]} className="marketing-related-grid">
             {quickLinks.map((link, idx) => (
-              <Col key={link.path} xs={24} md={8}>
+              <Col key={link.path} xs={24} md={8} className="marketing-related-grid__col">
                 <ScrollReveal animation="fade-in-up" delay={idx * 70}>
                   <button type="button" className="marketing-related-card" onClick={() => navigate(link.path)}>
-                    <span className="home-section-eyebrow" style={{ color: '#1E2A78', background: '#EEF2FF', borderColor: '#D8E0FA' }}>
-                      {link.label}
-                    </span>
+                    <span className="marketing-related-card__eyebrow">{link.label}</span>
                     <p className="home-card-body" style={{ margin: '8px 0 0' }}>{link.desc}</p>
                   </button>
                 </ScrollReveal>
               </Col>
             ))}
           </Row>
-          <div style={{ textAlign: 'center', marginTop: 32 }}>
-            <Button size="large" className="marketing-btn marketing-btn--primary" onClick={() => navigate('/contact')}>
-              Contact support
-            </Button>
-          </div>
+          <ScrollReveal animation="fade-in-up" delay={180}>
+            <div className="marketing-resources-support">
+              <div className="marketing-resources-support__copy">
+                <span className="marketing-resources-support__eyebrow">Support</span>
+                <h3 className="marketing-resources-support__title">Still need help?</h3>
+                <p className="marketing-resources-support__desc">
+                  Our India-based team typically responds within one business day.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="marketing-resources-support__btn"
+                onClick={() => navigate('/contact')}
+              >
+                <CustomerServiceOutlined aria-hidden />
+                Contact support
+              </button>
+            </div>
+          </ScrollReveal>
         </div>
       </section>
-
-      <CTABanner title="Need hands-on help?" subtitle="Book a demo and we will walk through HRMS, Accounts, or migration from your current tools." />
     </div>
   );
 }

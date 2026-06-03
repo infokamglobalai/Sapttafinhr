@@ -45,10 +45,11 @@ export default function FeatureAccordion({
                 eyebrow={eyebrow}
                 title={title}
                 titleHighlight={titleHighlight}
+                titleHighlightSameLine
                 subtitle={subtitle}
                 align="left"
                 theme={theme}
-                maxWidth={440}
+                maxWidth={480}
               />
             </ScrollReveal>
           </Col>

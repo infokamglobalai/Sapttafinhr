@@ -53,7 +53,7 @@ export const resources: ResourceItem[] = [
     category: 'Guide',
     readTime: '6 min read',
     imageKey: 'featuresPlatform',
-    frame: 'split',
+    frame: 'card',
   },
   {
     title: 'Pricing & modular plans',
@@ -71,7 +71,7 @@ export const resources: ResourceItem[] = [
     category: 'Guide',
     readTime: '10 min read',
     imageKey: 'solutionsCollab',
-    frame: 'arch',
+    frame: 'card',
   },
   {
     title: 'Book a demo',
@@ -80,16 +80,16 @@ export const resources: ResourceItem[] = [
     category: 'Support',
     readTime: '2 min',
     imageKey: 'contactSupport',
-    frame: 'float',
+    frame: 'card',
   },
   {
     title: 'Security & compliance',
     description: 'Encryption, RBAC, audit logs, and Indian statutory controls built into the platform.',
-    path: '/features',
+    path: '/security',
     category: 'Guide',
     readTime: '5 min read',
     imageKey: 'security',
-    frame: 'gradient-border',
+    frame: 'card',
   },
 ];
 

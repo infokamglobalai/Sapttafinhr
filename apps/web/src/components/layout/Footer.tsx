@@ -18,16 +18,6 @@ const footerColumns = [
     ],
   },
   {
-    heading: 'Solutions',
-    links: [
-      { label: 'All Solutions', to: '/solutions' },
-      { label: 'HRMS Solution', to: '/hrms' },
-      { label: 'Accounts Solution', to: '/accounts' },
-      { label: 'By Industry', to: '/industries' },
-      { label: 'Platform Features', to: '/features' },
-    ],
-  },
-  {
     heading: 'Resources',
     links: [
       { label: 'Resource Hub', to: '/resources' },
@@ -38,13 +28,20 @@ const footerColumns = [
     ],
   },
   {
-    heading: 'Company',
+    heading: 'About',
     links: [
-      { label: 'About Us', to: '/about' },
+      { label: 'About Saptta', to: '/about' },
       { label: 'Careers', to: '/careers' },
-      { label: 'Partners', to: '/contact' },
-      { label: 'Customers', to: '/about' },
+      { label: 'Security', to: '/security' },
+    ],
+  },
+  {
+    heading: 'Contact',
+    links: [
       { label: 'Contact Us', to: '/contact' },
+      { label: 'Book a Demo', to: '/contact' },
+      { label: 'Help Center', to: '/contact' },
+      { label: 'Partners', to: '/contact' },
     ],
   },
   {
@@ -158,15 +155,15 @@ export default function Footer() {
         }} />
       </div>
 
-      <div style={{ maxWidth: 1280, margin: '0 auto', padding: isMobile ? '60px 20px 32px' : '80px 48px 40px', position: 'relative', zIndex: 1 }}>
+      <div style={{ maxWidth: 1280, margin: '0 auto', padding: isMobile ? '44px 20px 24px' : '56px 48px 28px', position: 'relative', zIndex: 1 }}>
 
         {/* ── Newsletter strip ── */}
         <div style={{
           borderRadius: 20,
           background: 'rgba(255,255,255,0.04)',
           border: '1px solid rgba(255,255,255,0.08)',
-          padding: isMobile ? '28px 20px' : '36px 48px',
-          marginBottom: isMobile ? 52 : 72,
+          padding: isMobile ? '22px 18px' : '28px 36px',
+          marginBottom: isMobile ? 36 : 48,
           display: 'flex',
           flexDirection: isMobile ? 'column' : 'row',
           alignItems: isMobile ? 'flex-start' : 'center',
@@ -216,7 +213,7 @@ export default function Footer() {
               onClick={handleNewsletter}
               disabled={subscribing}
               style={{
-                background: 'linear-gradient(135deg, #4F46E5, #6C3BFF)',
+                background: 'linear-gradient(135deg, #FF6D00, #FF9800)',
                 color: '#fff',
                 border: 'none',
                 borderRadius: 10,
@@ -225,7 +222,7 @@ export default function Footer() {
                 fontWeight: 700,
                 cursor: subscribing ? 'wait' : 'pointer',
                 whiteSpace: 'nowrap' as const,
-                boxShadow: '0 4px 20px rgba(99,102,241,0.4)',
+                boxShadow: '0 6px 22px rgba(255,109,0,0.25)',
                 transition: 'opacity 0.18s',
                 opacity: subscribing ? 0.7 : 1,
                 flexShrink: 0,
@@ -242,15 +239,15 @@ export default function Footer() {
           gridTemplateColumns: isMobile
             ? 'repeat(2, 1fr)'
             : '2fr 1fr 1fr 1fr 1fr 1fr',
-          gap: isMobile ? '36px 24px' : '0 48px',
-          marginBottom: isMobile ? 48 : 64,
+          gap: isMobile ? '28px 20px' : '0 48px',
+          marginBottom: isMobile ? 32 : 40,
         }}>
 
           {/* Brand column */}
           <div style={{ gridColumn: isMobile ? '1 / -1' : undefined }}>
-            <div style={{ marginBottom: 16 }}>
-              <SapttaLogo />
-            </div>
+            <Link to="/" className="footer-brand-logo">
+              <SapttaLogo size="compact" onDark />
+            </Link>
             <p style={{
               fontSize: 13.5, color: 'rgba(148,163,184,0.75)', lineHeight: 1.7,
               marginBottom: 20, maxWidth: 260,
@@ -368,7 +365,7 @@ export default function Footer() {
         <div style={{
           height: 1,
           background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.08) 20%, rgba(255,255,255,0.08) 80%, transparent)',
-          marginBottom: isMobile ? 24 : 32,
+          marginBottom: isMobile ? 18 : 24,
         }} />
 
         {/* ── Bottom bar ── */}
@@ -382,31 +379,6 @@ export default function Footer() {
         }}>
           <span style={{ fontSize: 13, color: 'rgba(100,116,139,0.8)' }}>
             © 2026 Saptta Technologies Pvt. Ltd. All rights reserved.
-          </span>
-
-          {/* Trust badges */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', justifyContent: 'center' }}>
-            {[
-              { icon: '🔒', label: 'ISO 27001' },
-              { icon: '🛡️', label: 'SOC 2 Type II' },
-              { icon: '☁️', label: 'AWS Hosted' },
-              { icon: '✅', label: 'GDPR Ready' },
-            ].map(b => (
-              <div key={b.label} style={{
-                display: 'flex', alignItems: 'center', gap: 5,
-                padding: '4px 10px', borderRadius: 6,
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.06)',
-              }}>
-                <span style={{ fontSize: 11 }}>{b.icon}</span>
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(100,116,139,0.8)' }}>{b.label}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Made in India */}
-          <span style={{ fontSize: 12, color: 'rgba(100,116,139,0.6)' }}>
-            Made with ❤️ in India 🇮🇳
           </span>
         </div>
       </div>

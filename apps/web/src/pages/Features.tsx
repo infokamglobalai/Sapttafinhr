@@ -1,15 +1,14 @@
 import { Table } from 'antd';
-import CTABanner from '../components/shared/CTABanner';
 import ScrollReveal from '../components/shared/ScrollReveal';
 import HomeSectionHeader from '../components/shared/HomeSectionHeader';
 import MarketingHero from '../components/marketing/MarketingHero';
 import InteractiveShowcase from '../components/marketing/InteractiveShowcase';
 import RelatedProducts from '../components/marketing/RelatedProducts';
-import { featuresPageMeta } from '../data/product-pages-data';
 import HighlightFeatureCard from '../components/marketing/HighlightFeatureCard';
+import { featuresPageMeta } from '../data/product-pages-data';
 
-const check = <span style={{ color: '#2BB673', fontWeight: 700, fontSize: 13 }}>✓</span>;
-const cross = <span style={{ color: '#94a3b8', fontWeight: 500, fontSize: 13 }}>—</span>;
+const check = <span className="marketing-page__table-check">✓</span>;
+const cross = <span className="marketing-page__table-cross">—</span>;
 
 const featureCategories = [
   {
@@ -64,9 +63,7 @@ function buildRows(): TableRow[] {
   featureCategories.forEach((cat) => {
     rows.push({
       key: cat.category,
-      name: (
-        <div className="marketing-table-category">{cat.category}</div>
-      ),
+      name: <div className="marketing-table-category">{cat.category}</div>,
       s: '',
       p: '',
       e: '',
@@ -84,29 +81,32 @@ function buildRows(): TableRow[] {
   return rows;
 }
 
+const HERO_GRADIENT = 'linear-gradient(135deg, #ffffff 0%, #f8fafc 70%, #eef2ff 100%)';
+
 export default function Features() {
   const { hero, showcase } = featuresPageMeta;
 
   return (
-    <div className="marketing-page">
+    <div className="marketing-page marketing-page--features">
       <MarketingHero
         eyebrow={hero.eyebrow}
         title={hero.title}
         titleHighlight={hero.titleHighlight}
+        titleHighlightSameLine
         subtitle={hero.subtitle}
         stats={[
-          { value: '50+', label: 'Core capabilities' },
+          { value: '50+', label: 'Capabilities' },
           { value: '3', label: 'Plan tiers' },
-          { value: 'AI', label: 'Built-in assistant' },
+          { value: 'AI', label: 'Assistant' },
         ]}
-        theme={hero.theme}
-        gradient="linear-gradient(135deg, #EEF2FF 0%, #F5F3FF 50%, #FFFFFF 100%)"
+        theme="navy"
+        gradient={HERO_GRADIENT}
         primaryLabel="View pricing"
         primaryTo="/pricing"
         secondaryLabel="Contact sales"
         secondaryTo="/contact"
         heroImageKey="featuresPlatform"
-        heroImageVariant="device"
+        heroImageVariant="plain"
       />
 
       <InteractiveShowcase
@@ -115,10 +115,11 @@ export default function Features() {
         titleHighlight={showcase.titleHighlight}
         subtitle={showcase.subtitle}
         variant={showcase.variant}
-        theme="indigo"
+        theme="navy"
       />
 
       <HighlightFeatureCard
+        badge="Platform highlight"
         title="Unified HR + Finance when you are ready"
         description="Start with one product and add the other — payroll posts to ledger, expenses flow to finance, one compliance core."
         ctaLabel="View pricing"
@@ -132,9 +133,10 @@ export default function Features() {
               eyebrow="Comparison"
               title="Feature matrix"
               titleHighlight="by plan"
+              titleHighlightSameLine
               subtitle="See what's included in Starter, Professional, and Enterprise deployments."
               theme="navy"
-              maxWidth={560}
+              maxWidth={640}
             />
           </ScrollReveal>
           <ScrollReveal animation="scale-in">
@@ -151,11 +153,6 @@ export default function Features() {
       </section>
 
       <RelatedProducts currentPath="/features" />
-
-      <CTABanner
-        title="Find the right Saptta plan"
-        subtitle="Talk to our team about HRMS, Accounts, or the complete bundle for your organization."
-      />
     </div>
   );
 }

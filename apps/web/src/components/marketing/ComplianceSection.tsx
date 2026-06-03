@@ -9,6 +9,7 @@ interface ComplianceSectionProps {
   subtitle: string;
   badges: string[];
   theme?: HomeSectionTheme;
+  titleHighlightSameLine?: boolean;
 }
 
 export default function ComplianceSection({
@@ -17,7 +18,8 @@ export default function ComplianceSection({
   titleHighlight,
   subtitle,
   badges,
-  theme = 'green',
+  theme = 'navy',
+  titleHighlightSameLine = false,
 }: ComplianceSectionProps) {
   return (
     <section className="marketing-section marketing-section--white">
@@ -27,9 +29,10 @@ export default function ComplianceSection({
             eyebrow={eyebrow}
             title={title}
             titleHighlight={titleHighlight}
+            titleHighlightSameLine={titleHighlightSameLine}
             subtitle={subtitle}
             theme={theme}
-            maxWidth={640}
+            maxWidth={titleHighlightSameLine ? 720 : 640}
           />
           <div className="home-section-pills" style={{ justifyContent: 'center', marginTop: -8 }}>
             {badges.map((badge) => (
