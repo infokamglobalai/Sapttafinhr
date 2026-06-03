@@ -64,6 +64,15 @@ export interface DashboardData {
   mtd_net: string;
   overdue_count: number;
   overdue_amount: string;
+  gst_dues: { cgst: string; sgst: string; igst: string; total: string };
+  revenue_trend: { month: string; income: string; expense: string; net: string }[];
+  cashflow_forecast: { date: string; label: string; balance: string }[];
+  top_customers: { customer: string; amount: string }[];
+  top_overdue_invoices: {
+    id: number; invoice_no: string; date: string; due_date: string;
+    customer: string; customer_email: string; amount: string;
+    balance_due: string; days_overdue: number;
+  }[];
   recent_invoices: { id: number; invoice_no: string; date: string; customer: string; amount: string; balance_due: string; }[];
   recent_receipts: { id: number; receipt_no: string; date: string; customer: string; amount: string; }[];
 }

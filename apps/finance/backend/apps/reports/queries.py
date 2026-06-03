@@ -9,6 +9,7 @@ from apps.billing.models import Invoice
 from apps.ledger.models import JournalEntry, JournalLine
 from apps.masters.models import Account
 from apps.payments.models import Receipt
+from apps.procurement.models import VendorBill
 
 
 # ---------- Profit & Loss ----------
@@ -236,6 +237,21 @@ def dashboard(company_id: int, today: date) -> dict:
         company_id=company_id, date__gte=last_30,
     ).select_related("customer").order_by("-date", "-id")[:5]
 
+    # Revenue trend — last 6 months (income from JE)
+    revenue_trend = _monthly_revenue_trend(company_id, today, months=6)
+
+    # Cash flow forecast — next 60 days from outstanding invoices/bills
+    cashflow_forecast = _cashflow_forecast(company_id, today, cash_balance, horizon_days=60)
+
+    # GST dues this month (CGST+SGST+IGST on sales)
+    gst_dues = _gst_dues_mtd(company_id, month_start, today)
+
+    # Top overdue invoices (up to 5)
+    top_overdue = sorted(overdue_invoices, key=lambda i: i.grand_total - i.amount_paid, reverse=True)[:5]
+
+    # Top 5 customers by revenue MTD
+    top_customers = _top_customers(company_id, month_start, today)
+
     return {
         "as_of": today.isoformat(),
         "cash_balance": cash_balance,
@@ -246,6 +262,22 @@ def dashboard(company_id: int, today: date) -> dict:
         "mtd_net": mtd_income - mtd_expense,
         "overdue_count": len(overdue_invoices),
         "overdue_amount": overdue_amount,
+        "gst_dues": gst_dues,
+        "revenue_trend": revenue_trend,
+        "cashflow_forecast": cashflow_forecast,
+        "top_customers": top_customers,
+        "top_overdue_invoices": [
+            {
+                "id": i.id, "invoice_no": i.invoice_no, "date": i.date.isoformat(),
+                "due_date": i.due_date.isoformat() if i.due_date else None,
+                "customer": i.customer.name,
+                "customer_email": getattr(i.customer, "email", ""),
+                "amount": str(i.grand_total),
+                "balance_due": str(i.grand_total - i.amount_paid),
+                "days_overdue": (today - i.due_date).days if i.due_date else 0,
+            }
+            for i in top_overdue
+        ],
         "recent_invoices": [
             {"id": i.id, "invoice_no": i.invoice_no, "date": i.date.isoformat(),
              "customer": i.customer.name, "amount": i.grand_total,
@@ -258,6 +290,116 @@ def dashboard(company_id: int, today: date) -> dict:
             for r in recent_receipts
         ],
     }
+
+
+def _monthly_revenue_trend(company_id: int, today: date, months: int = 6) -> list:
+    """Return monthly income totals for the last N months."""
+    result = []
+    for i in range(months - 1, -1, -1):
+        # Go back i months
+        year = today.year
+        month = today.month - i
+        while month <= 0:
+            month += 12
+            year -= 1
+        from calendar import monthrange
+        start = date(year, month, 1)
+        end = date(year, month, monthrange(year, month)[1])
+        income = _type_total(company_id, Account.Type.INCOME, start, end, side="credit")
+        expense = _type_total(company_id, Account.Type.EXPENSE, start, end, side="debit")
+        result.append({
+            "month": start.strftime("%b %Y"),
+            "income": str(income),
+            "expense": str(expense),
+            "net": str(income - expense),
+        })
+    return result
+
+
+def _cashflow_forecast(company_id: int, today: date, current_cash: Decimal, horizon_days: int = 60) -> list:
+    """Day-by-day cumulative cash forecast from outstanding invoices and vendor bills."""
+    horizon = today + timedelta(days=horizon_days)
+    daily = defaultdict(Decimal)
+
+    # Expected inflows from open invoices
+    for inv in Invoice.objects.filter(
+        company_id=company_id,
+        status=Invoice.Status.POSTED,
+        due_date__gte=today,
+        due_date__lte=horizon,
+    ):
+        balance = inv.grand_total - inv.amount_paid
+        if balance > 0:
+            daily[inv.due_date] += balance
+
+    # Expected outflows from open vendor bills
+    try:
+        for bill in VendorBill.objects.filter(
+            company_id=company_id,
+            status__in=["POSTED", "PARTIAL"],
+            due_date__gte=today,
+            due_date__lte=horizon,
+        ):
+            balance = bill.grand_total - bill.amount_paid
+            if balance > 0:
+                daily[bill.due_date] -= balance
+    except Exception:
+        pass  # VendorBill schema may differ
+
+    # Build cumulative series (weekly buckets for readability)
+    result = []
+    running = current_cash
+    check = today
+    while check <= horizon:
+        running += daily.get(check, Decimal("0"))
+        # Only include week boundaries + today
+        if check == today or check.weekday() == 0 or check == horizon:
+            result.append({
+                "date": check.isoformat(),
+                "label": check.strftime("%d %b"),
+                "balance": str(running),
+            })
+        check += timedelta(days=1)
+    return result
+
+
+def _gst_dues_mtd(company_id: int, start: date, end: date) -> dict:
+    """Sum CGST/SGST/IGST output tax on sales invoices for the period."""
+    invoices = Invoice.objects.filter(
+        company_id=company_id,
+        status=Invoice.Status.POSTED,
+        date__gte=start,
+        date__lte=end,
+    )
+    totals = invoices.aggregate(
+        cgst=Sum("cgst"),
+        sgst=Sum("sgst"),
+        igst=Sum("igst"),
+    )
+    cgst = totals["cgst"] or Decimal("0")
+    sgst = totals["sgst"] or Decimal("0")
+    igst = totals["igst"] or Decimal("0")
+    return {
+        "cgst": str(cgst),
+        "sgst": str(sgst),
+        "igst": str(igst),
+        "total": str(cgst + sgst + igst),
+    }
+
+
+def _top_customers(company_id: int, start: date, end: date, limit: int = 5) -> list:
+    """Top customers by billed amount in the period."""
+    invoices = Invoice.objects.filter(
+        company_id=company_id,
+        status=Invoice.Status.POSTED,
+        date__gte=start,
+        date__lte=end,
+    ).select_related("customer")
+    by_customer: dict = defaultdict(Decimal)
+    for inv in invoices:
+        by_customer[inv.customer.name] += inv.grand_total
+    sorted_customers = sorted(by_customer.items(), key=lambda x: x[1], reverse=True)[:limit]
+    return [{"customer": name, "amount": str(amt)} for name, amt in sorted_customers]
 
 
 def _cash_balance(company_id: int, as_of: date) -> Decimal:
