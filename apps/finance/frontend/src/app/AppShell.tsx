@@ -55,6 +55,7 @@ import PortalAccessPage from '@/features/portal/PortalAccessPage';
 import NotificationBell from '@/features/notifications/NotificationBell';
 import NumberSeriesPage from '@/features/settings/NumberSeriesPage';
 import TeamPage from '@/features/team/TeamPage';
+import TDSPage from '@/features/taxation/TDSPage';
 
 type RouteId =
   | 'dashboard'
@@ -69,7 +70,7 @@ type RouteId =
   | 'ar-aging' | 'sales-register' | 'hsn-summary' | 'gstr-export' | 'audit-log'
   | 'budget-vs-actual' | 'cost-center-pnl' | 'consolidation'
   | 'settings' | 'company-profile' | 'api-keys' | 'webhooks' | 'number-series'
-  | 'team';
+  | 'team' | 'tds';
 
 interface SubItem { id: RouteId; label: string; icon: LucideIcon; description?: string; }
 
@@ -144,6 +145,7 @@ const SECTIONS: Section[] = [
   ]},
 
   { id: 'team', label: 'Team', icon: UserCircle2, direct: 'team' },
+  { id: 'tds', label: 'TDS', icon: FileText, direct: 'tds' },
 
   { id: 'settings', label: 'Settings', icon: Settings, children: [
     { id: 'company-profile', label: 'Company Profile', icon: Settings, description: 'GSTIN, address, branding' },
@@ -388,6 +390,7 @@ export default function AppShell() {
           {route === 'cost-center-pnl' && <CostCenterPnLPage />}
           {route === 'consolidation' && <ConsolidationPage />}
           {route === 'team' && <TeamPage />}
+          {route === 'tds' && <TDSPage />}
         </main>
       </div>
 

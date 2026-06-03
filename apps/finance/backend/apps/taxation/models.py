@@ -69,3 +69,61 @@ class GSTR2BLine(TimeStampedModel):
 
     class Meta:
         unique_together = ("company", "return_period", "supplier_gstin", "invoice_no")
+
+
+# ── TDS ────────────────────────────────────────────────────────────────────
+
+TDS_SECTIONS = [
+    ("194C", "194C – Contractor / Sub-contractor (1% individual, 2% others)"),
+    ("194J", "194J – Professional / Technical Services (10%)"),
+    ("194H", "194H – Commission / Brokerage (5%)"),
+    ("194I", "194I – Rent (10% plant/machinery, 10% land/building)"),
+    ("194A", "194A – Interest other than securities (10%)"),
+    ("194B", "194B – Lottery / Puzzle (30%)"),
+    ("194D", "194D – Insurance Commission (5%)"),
+    ("194Q", "194Q – Purchase of Goods above ₹50L (0.1%)"),
+    ("194R", "194R – Perquisite / Benefit to Resident (10%)"),
+    ("195",  "195 – Payment to Non-Resident (rates vary)"),
+    ("OTHER", "Other Section"),
+]
+
+TDS_DEFAULT_RATES = {
+    "194C": "2.00", "194J": "10.00", "194H": "5.00",
+    "194I": "10.00", "194A": "10.00", "194B": "30.00",
+    "194D": "5.00", "194Q": "0.10", "194R": "10.00",
+    "195": "20.00", "OTHER": "0.00",
+}
+
+
+class TDSDeduction(TimeStampedModel):
+    """TDS deducted on a vendor bill or payment."""
+
+    class Quarter(models.TextChoices):
+        Q1 = "Q1", "Q1 (Apr–Jun)"
+        Q2 = "Q2", "Q2 (Jul–Sep)"
+        Q3 = "Q3", "Q3 (Oct–Dec)"
+        Q4 = "Q4", "Q4 (Jan–Mar)"
+
+    company     = models.ForeignKey(Company, on_delete=models.PROTECT, related_name="tds_deductions")
+    vendor_bill = models.ForeignKey(
+        "procurement.VendorBill", null=True, blank=True,
+        on_delete=models.SET_NULL, related_name="tds_deductions",
+    )
+    section     = models.CharField(max_length=10, choices=TDS_SECTIONS)
+    rate        = models.DecimalField(max_digits=6, decimal_places=2)
+    base_amount = models.DecimalField(max_digits=18, decimal_places=4)
+    tds_amount  = models.DecimalField(max_digits=18, decimal_places=4)
+    deduction_date = models.DateField()
+    pan         = models.CharField(max_length=10, blank=True, help_text="Vendor PAN")
+    fy          = models.CharField(max_length=7, help_text="e.g. 2025-26")
+    quarter     = models.CharField(max_length=2, choices=Quarter.choices)
+    challan_no  = models.CharField(max_length=40, blank=True)
+    deposited_date = models.DateField(null=True, blank=True)
+    is_deposited = models.BooleanField(default=False)
+    notes       = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        ordering = ("-deduction_date",)
+
+    def __str__(self):
+        return f"TDS {self.section} ₹{self.tds_amount} on {self.deduction_date}"
