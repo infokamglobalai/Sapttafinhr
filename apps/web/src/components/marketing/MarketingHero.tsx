@@ -5,7 +5,7 @@ import HomeSectionHeader from '../shared/HomeSectionHeader';
 import type { HomeSectionTheme } from '../shared/HomeSectionHeader';
 import type { ProductStat } from '../../data/product-pages-data';
 import type { MarketingImageKey } from '../../data/marketing-images';
-import type { ImageFrameVariant } from './MarketingImageFrame';
+import type { ImageAspect, ImageFrameVariant } from './MarketingImageFrame';
 import MarketingImageFrame from './MarketingImageFrame';
 import useBreakpoint from '../../hooks/useBreakpoint';
 
@@ -24,6 +24,8 @@ interface MarketingHeroProps {
   visual?: React.ReactNode;
   heroImageKey?: MarketingImageKey;
   heroImageVariant?: ImageFrameVariant;
+  heroImageAspect?: ImageAspect;
+  titleHighlightSameLine?: boolean;
 }
 
 export default function MarketingHero({
@@ -41,13 +43,23 @@ export default function MarketingHero({
   visual,
   heroImageKey,
   heroImageVariant = 'device',
+  heroImageAspect = '16/10',
+  titleHighlightSameLine,
 }: MarketingHeroProps) {
   const navigate = useNavigate();
   const { isMobile, isDesktop } = useBreakpoint();
+
+  const goTo = (to: string) => {
+    if (to.startsWith('#')) {
+      document.querySelector(to)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    navigate(to);
+  };
   const heroVisual =
     visual ??
     (heroImageKey ? (
-      <MarketingImageFrame imageKey={heroImageKey} variant={heroImageVariant} aspect="16/10" priority />
+      <MarketingImageFrame imageKey={heroImageKey} variant={heroImageVariant} aspect={heroImageAspect} priority />
     ) : null);
 
   return (
@@ -62,22 +74,23 @@ export default function MarketingHero({
               eyebrow={eyebrow}
               title={title}
               titleHighlight={titleHighlight}
+              titleHighlightSameLine={titleHighlightSameLine}
               subtitle={subtitle}
               align="left"
               theme={theme}
               isMobile={isMobile}
-              maxWidth={520}
+              maxWidth={titleHighlightSameLine ? 640 : 520}
             />
             <div className="marketing-hero__actions">
               <Button
                 type="primary"
                 size="large"
                 className="marketing-btn marketing-btn--primary"
-                onClick={() => navigate(primaryTo)}
+                onClick={() => goTo(primaryTo)}
               >
                 {primaryLabel}
               </Button>
-              <Button size="large" className="marketing-btn marketing-btn--ghost" onClick={() => navigate(secondaryTo)}>
+              <Button size="large" className="marketing-btn marketing-btn--ghost" onClick={() => goTo(secondaryTo)}>
                 {secondaryLabel}
               </Button>
             </div>
@@ -93,7 +106,11 @@ export default function MarketingHero({
         </ScrollReveal>
         {heroVisual ? (
           <ScrollReveal animation="fade-in-right" delay={120}>
-            <div className="marketing-hero__visual">{heroVisual}</div>
+            <div
+              className={`marketing-hero__visual${heroImageAspect === '3/4' || heroImageVariant === 'phone' || (heroImageVariant === 'plain' && heroImageAspect === 'auto') ? ' marketing-hero__visual--portrait' : ''}`}
+            >
+              {heroVisual}
+            </div>
           </ScrollReveal>
         ) : null}
       </div>

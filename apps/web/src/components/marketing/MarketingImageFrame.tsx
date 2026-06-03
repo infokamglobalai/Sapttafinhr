@@ -13,6 +13,8 @@ export type ImageFrameVariant =
   | 'tilt'
   | 'polaroid'
   | 'device'
+  | 'phone'
+  | 'plain'
   | 'fullbleed'
   | 'bento'
   | 'split'
@@ -50,8 +52,10 @@ export default function MarketingImageFrame({
   objectPosition = 'center',
 }: MarketingImageFrameProps) {
   const asset = imageKey ? marketingImages[imageKey] : null;
-  const primary = srcProp ?? asset?.local ?? (imageKey ? getMarketingImageSrc(imageKey) : '');
-  const fallback = asset?.remote ?? primary;
+  const remote = asset?.remote ?? '';
+  const local = asset?.local ?? '';
+  const primary = srcProp ?? (local || remote);
+  const fallback = primary === local ? remote : local;
   const alt = altProp ?? (imageKey ? getMarketingImageAlt(imageKey) : '');
 
   const [src, setSrc] = useState(primary);

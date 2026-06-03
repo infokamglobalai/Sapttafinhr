@@ -1,5 +1,20 @@
 import type { HomeSectionTheme } from '../components/shared/HomeSectionHeader';
 import type { AccordionItem } from '../components/marketing/FeatureAccordion';
+import type { MarketingImageKey } from './marketing-images';
+
+export interface ProductOverviewCard {
+  title: string;
+  highlight: string;
+  desc: string;
+  path: string;
+  theme: HomeSectionTheme;
+  accent: string;
+  features: string[];
+  imageKey: MarketingImageKey;
+  ctaLabel: string;
+  featured?: boolean;
+  badge?: string;
+}
 
 export type ShowcaseVariant = 'hrms-roster' | 'finance-ledger' | 'mobile-app' | 'platform-plans';
 
@@ -59,6 +74,7 @@ export interface ProductPageConfig {
   };
   featuredModuleCode?: string;
   highlightCard?: {
+    badge?: string;
     title: string;
     description: string;
     ctaLabel: string;
@@ -77,52 +93,100 @@ export interface ProductPageConfig {
 export const productsOverview = {
   hero: {
     eyebrow: 'Saptta Products',
-    title: 'Modular HR & Finance',
-    titleHighlight: 'built for India',
+    title: 'HRMS & Finance SaaS',
+    titleHighlight: 'for Indian SMBs',
     subtitle:
-      'Run HRMS, Accounts, and Mobile workforce tools independently or together — one AI core, shared compliance, and real-time sync between people and money.',
+      'Subscribe to HRMS, Finance, or both on one platform — single sign-on, flexible module-by-module adoption, and native Indian compliance.',
   },
   productCards: [
     {
       title: 'HRMS',
-      highlight: 'People & Payroll',
-      desc: 'Attendance, leave, recruitment, statutory payroll (PF, ESI, TDS), and employee lifecycle in one product.',
+      highlight: 'People Operations',
+      desc: 'Employee master, attendance, leave, payroll, and HR lifecycle — built for teams of 10–500+.',
       path: '/hrms',
       theme: 'navy' as HomeSectionTheme,
       accent: '#1E2A78',
-      stats: ['6+ modules', 'PF · ESI · TDS', 'Geofence attendance'],
+      imageKey: 'modularHrms',
+      ctaLabel: 'Explore HRMS',
+      features: ['Employee master & docs', 'Attendance & leave', 'Payroll processing', 'Onboarding & letters'],
     },
     {
-      title: 'Accounts',
-      highlight: 'GST & Ledgers',
-      desc: 'GST invoicing, double-entry ledger, bank reconciliation, purchase, and GSTR-ready compliance.',
+      title: 'Finance',
+      highlight: 'Accounting & GST',
+      desc: 'General ledger, GST invoicing, banking reconciliation, and financial reporting in one product.',
       path: '/accounts',
       theme: 'green' as HomeSectionTheme,
-      accent: '#2BB673',
-      stats: ['GSTR support', 'Bank reco', 'Payroll sync'],
+      accent: '#FF6D00',
+      imageKey: 'modularAccounts',
+      ctaLabel: 'Explore Finance',
+      features: ['General ledger & COA', 'GST invoicing', 'Bank & Razorpay reco', 'P&L & balance sheet'],
     },
     {
-      title: 'Mobile App',
-      highlight: 'Field workforce',
-      desc: 'GPS attendance, leave, payslips, manager approvals, and push alerts for distributed teams.',
-      path: '/mobile-app',
-      theme: 'purple' as HomeSectionTheme,
-      accent: '#6C3BFF',
-      stats: ['iOS & Android', 'Offline punch', 'Biometric login'],
+      title: 'Complete',
+      highlight: 'HRMS + Finance',
+      desc: 'Both products on one subscription — unified reporting, payroll-to-ledger sync, and a single login.',
+      path: '/pricing',
+      theme: 'amber' as HomeSectionTheme,
+      accent: '#FF6D00',
+      imageKey: 'modularComplete',
+      ctaLabel: 'See pricing',
+      features: ['Single sign-on', 'Unified reporting', 'Payroll-to-ledger sync', 'Best value bundle'],
+      featured: true,
+      badge: 'Best Value',
+    },
+  ] satisfies ProductOverviewCard[],
+  mobileAddOn: {
+    title: 'Mobile',
+    highlight: 'Field Workforce Add-on',
+    desc: 'GPS attendance, mobile ESS, and manager approvals for distributed teams — pairs with HRMS.',
+    path: '/mobile-app',
+    accent: '#1E2A78',
+    imageKey: 'mobileField' as MarketingImageKey,
+    ctaLabel: 'Explore Mobile',
+  },
+  platformFeatures: [
+    {
+      icon: 'sso',
+      title: 'Single sign-on',
+      desc: 'One identity across HRMS and Finance backends — sign up once, route to the right product without a second login.',
+    },
+    {
+      icon: 'sync',
+      title: 'Payroll-to-ledger sync',
+      desc: 'Salary disbursements from HRMS post to finance ledgers automatically when both modules are active.',
+    },
+    {
+      icon: 'modular',
+      title: 'Module-by-module adoption',
+      desc: 'Subscribe to FIN, HR, or both — add the second module when you are ready without migrating off Saptta.',
+    },
+    {
+      icon: 'ai',
+      title: 'Shared intelligence',
+      desc: 'Ask Saptta queries across payroll, attendance, and ledger data from one AI layer on top of your stack.',
     },
   ],
-  platformFeatures: [
-    { title: 'AI Payroll Auditor', desc: 'Flags PF, ESI, and TDS mismatches before payout.' },
-    { title: 'Ask Saptta', desc: 'Natural-language reports across HR and finance data.' },
-    { title: 'Unified compliance', desc: 'Audit trails, RBAC, and encrypted storage end to end.' },
-    { title: 'Modular billing', desc: 'Subscribe to HRMS, Finance, or the complete bundle.' },
-  ],
 };
+
+export const allProductOverviewCards: ProductOverviewCard[] = [
+  ...productsOverview.productCards,
+  {
+    title: productsOverview.mobileAddOn.title,
+    highlight: productsOverview.mobileAddOn.highlight,
+    desc: productsOverview.mobileAddOn.desc,
+    path: productsOverview.mobileAddOn.path,
+    theme: 'purple',
+    accent: productsOverview.mobileAddOn.accent,
+    imageKey: productsOverview.mobileAddOn.imageKey,
+    ctaLabel: productsOverview.mobileAddOn.ctaLabel,
+    features: ['Geofence attendance', 'Leave & payslips', 'Manager approvals', 'Offline punch cache'],
+  },
+];
 
 export const hrmsPage: ProductPageConfig = {
   slug: 'hrms',
   theme: 'navy',
-  heroGradient: 'linear-gradient(135deg, #EEF2FF 0%, #F8FAFF 50%, #FFFFFF 100%)',
+  heroGradient: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 55%, rgba(255, 109, 0, 0.06) 100%)',
   hero: {
     eyebrow: 'Saptta HRMS',
     title: 'HR, payroll & attendance',
@@ -165,7 +229,7 @@ export const hrmsPage: ProductPageConfig = {
         code: 'AT',
         title: 'Attendance & Shifts',
         tag: 'Operations',
-        accent: '#6C3BFF',
+        accent: '#FF6D00',
         desc: 'GPS geofence, biometric devices (ZKTeco), shifts, and overtime rules.',
         features: ['Mobile geofence punch', 'Shift rosters', 'Late & OT calculations'],
       },
@@ -173,7 +237,7 @@ export const hrmsPage: ProductPageConfig = {
         code: 'PY',
         title: 'Statutory Payroll',
         tag: 'Compliance',
-        accent: '#2BB673',
+        accent: '#FF6D00',
         desc: 'Salary processing with PF, ESI, professional tax, and TDS on salary.',
         features: ['One-click payroll run', 'Payslips & Form 16', 'Loan & advance recovery'],
       },
@@ -181,7 +245,7 @@ export const hrmsPage: ProductPageConfig = {
         code: 'LV',
         title: 'Leave Management',
         tag: 'Core',
-        accent: '#2563EB',
+        accent: '#1E2A78',
         desc: 'Leave balances, multi-level approvals, and holiday calendars.',
         features: ['Custom leave types', 'Approval chains', 'Balance accruals'],
       },
@@ -189,7 +253,7 @@ export const hrmsPage: ProductPageConfig = {
         code: 'RC',
         title: 'Recruitment',
         tag: 'Growth',
-        accent: '#D69A2D',
+        accent: '#FF6D00',
         desc: 'Applicant tracking, interview stages, and digital onboarding checklists.',
         features: ['Job postings', 'Candidate pipeline', 'Offer letter templates'],
       },
@@ -197,7 +261,7 @@ export const hrmsPage: ProductPageConfig = {
         code: 'PF',
         title: 'Performance',
         tag: 'Growth',
-        accent: '#8B5CF6',
+        accent: '#1E2A78',
         desc: 'Goals, review cycles, and manager feedback linked to employee records.',
         features: ['OKR tracking', 'Review cycles', '360° feedback'],
       },
@@ -221,6 +285,7 @@ export const hrmsPage: ProductPageConfig = {
   },
   featuredModuleCode: 'PY',
   highlightCard: {
+    badge: 'Unified HR view',
     title: 'View and manage everyone in one place',
     description: 'Unified employee records, attendance, and payroll — with AI checks before every payout.',
     ctaLabel: 'Explore HRMS',
@@ -263,8 +328,8 @@ export const hrmsPage: ProductPageConfig = {
 
 export const accountsPage: ProductPageConfig = {
   slug: 'accounts',
-  theme: 'green',
-  heroGradient: 'linear-gradient(135deg, #ECFDF5 0%, #F8FAFF 50%, #FFFFFF 100%)',
+  theme: 'navy',
+  heroGradient: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 55%, rgba(255, 109, 0, 0.06) 100%)',
   hero: {
     eyebrow: 'Saptta Accounts',
     title: 'GST billing & finance',
@@ -299,7 +364,7 @@ export const accountsPage: ProductPageConfig = {
         code: 'INV',
         title: 'GST Invoicing',
         tag: 'Core',
-        accent: '#2BB673',
+        accent: '#FF6D00',
         desc: 'CGST, SGST, IGST invoices with e-invoice readiness and payment links.',
         features: ['GST invoice templates', 'Quotations & POs', 'Razorpay collections'],
       },
@@ -315,7 +380,7 @@ export const accountsPage: ProductPageConfig = {
         code: 'BR',
         title: 'Bank Reconciliation',
         tag: 'Operations',
-        accent: '#2563EB',
+        accent: '#1E2A78',
         desc: 'Import statements and auto-match transactions with ledgers.',
         features: ['Statement import', 'Smart matching', 'ICICI & Razorpay sync'],
       },
@@ -323,7 +388,7 @@ export const accountsPage: ProductPageConfig = {
         code: 'TX',
         title: 'Tax & GSTR',
         tag: 'Compliance',
-        accent: '#6C3BFF',
+        accent: '#FF6D00',
         desc: 'GSTR-1, GSTR-3B support with reconciliation against purchase data.',
         features: ['GSTR summaries', 'TDS on payments', 'E-way bill hooks'],
       },
@@ -331,7 +396,7 @@ export const accountsPage: ProductPageConfig = {
         code: 'EX',
         title: 'Expenses',
         tag: 'Operations',
-        accent: '#D69A2D',
+        accent: '#FF6D00',
         desc: 'Employee claims, petty cash, and budget controls by department.',
         features: ['Claim workflows', 'Receipt capture', 'Budget limits'],
       },
@@ -339,7 +404,7 @@ export const accountsPage: ProductPageConfig = {
         code: 'ST',
         title: 'Inventory',
         tag: 'Advanced',
-        accent: '#0EA5E9',
+        accent: '#1E2A78',
         desc: 'Stock registers tied to purchase and sales for accurate asset valuation.',
         features: ['Warehouse tracking', 'Reorder alerts', 'Valuation reports'],
       },
@@ -363,6 +428,7 @@ export const accountsPage: ProductPageConfig = {
   },
   featuredModuleCode: 'INV',
   highlightCard: {
+    badge: 'HRMS → Finance sync',
     title: 'Payroll posts to your ledger automatically',
     description: 'When HRMS runs payroll, journal entries and tax splits sync to Accounts — one source of truth.',
     ctaLabel: 'See Accounts',
@@ -403,8 +469,8 @@ export const accountsPage: ProductPageConfig = {
 
 export const mobileAppPage: ProductPageConfig = {
   slug: 'mobile-app',
-  theme: 'purple',
-  heroGradient: 'linear-gradient(135deg, #F5F3FF 0%, #F8FAFF 50%, #FFFFFF 100%)',
+  theme: 'navy',
+  heroGradient: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 55%, rgba(255, 109, 0, 0.06) 100%)',
   hero: {
     eyebrow: 'Saptta Mobile',
     title: 'HR in every pocket',
@@ -439,7 +505,7 @@ export const mobileAppPage: ProductPageConfig = {
         code: 'IN',
         title: 'Secure login',
         tag: 'Security',
-        accent: '#6C3BFF',
+        accent: '#1E2A78',
         desc: 'Password, OTP, and device biometrics with session security.',
         features: ['Face ID / fingerprint', 'Role-based access', 'Encrypted sync'],
       },
@@ -455,7 +521,7 @@ export const mobileAppPage: ProductPageConfig = {
         code: 'LV',
         title: 'Leave requests',
         tag: 'Core',
-        accent: '#2BB673',
+        accent: '#FF6D00',
         desc: 'Apply leave with live balance checks and approval tracking.',
         features: ['Balance preview', 'Attachment upload', 'Status notifications'],
       },
@@ -463,7 +529,7 @@ export const mobileAppPage: ProductPageConfig = {
         code: 'PS',
         title: 'Payslips',
         tag: 'Payroll',
-        accent: '#2563EB',
+        accent: '#1E2A78',
         desc: 'Download monthly payslips and YTD tax summaries as PDF.',
         features: ['Historical slips', 'Tax breakdown', 'Share securely'],
       },
@@ -471,7 +537,7 @@ export const mobileAppPage: ProductPageConfig = {
         code: 'AP',
         title: 'Manager approvals',
         tag: 'Managers',
-        accent: '#D69A2D',
+        accent: '#FF6D00',
         desc: 'Approve leave, expenses, and attendance corrections from mobile.',
         features: ['One-tap approve', 'Delegation rules', 'Audit trail'],
       },
@@ -479,7 +545,7 @@ export const mobileAppPage: ProductPageConfig = {
         code: 'NT',
         title: 'Push notifications',
         tag: 'Engagement',
-        accent: '#EC4899',
+        accent: '#FF6D00',
         desc: 'Payroll processed, roster changes, holidays, and compliance alerts.',
         features: ['Instant alerts', 'Quiet hours', 'Priority routing'],
       },
@@ -493,7 +559,17 @@ export const mobileAppPage: ProductPageConfig = {
     badges: ['Android & iOS', 'Offline mode', 'Biometrics', 'TLS 1.3', 'Regional languages', 'MDM friendly'],
   },
   featuredModuleCode: 'GP',
+  workflow: {
+    title: 'Punch → Approve → Pay',
+    steps: [
+      { label: 'Punch', desc: 'Geofence or biometric check-in' },
+      { label: 'Sync', desc: 'Live feed to HRMS roster' },
+      { label: 'Approve', desc: 'Managers act on mobile' },
+      { label: 'Pay', desc: 'Payslips in the app' },
+    ],
+  },
   highlightCard: {
+    badge: 'Field workforce ready',
     title: 'Field teams punch inside verified geofences',
     description: 'GPS boundaries, offline cache, and instant sync to Saptta HRMS for payroll-ready attendance.',
     ctaLabel: 'Book a demo',
@@ -537,7 +613,7 @@ export const featuresPageMeta = {
     titleHighlight: 'in one stack',
     subtitle:
       'Compare HRMS and Accounts features across plans — modular products that share data when you need the full Saptta bundle.',
-    theme: 'indigo' as HomeSectionTheme,
+    theme: 'navy' as HomeSectionTheme,
   },
   showcase: {
     eyebrow: 'Choose your scale',

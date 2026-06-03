@@ -1,6 +1,5 @@
 import { useNavigate } from 'react-router-dom';
 import { Row, Col, Button } from 'antd';
-import CTABanner from '../components/shared/CTABanner';
 import ScrollReveal from '../components/shared/ScrollReveal';
 import HomeSectionHeader from '../components/shared/HomeSectionHeader';
 import IndustryHeroVisual from '../components/marketing/IndustryHeroVisual';
@@ -110,11 +109,6 @@ export default function Industries() {
           </Row>
         </div>
       </section>
-
-      <CTABanner
-        title="Not sure which industry profile fits?"
-        subtitle="Tell us about your business — we will map the right Saptta modules and compliance setup."
-      />
     </div>
   );
 }

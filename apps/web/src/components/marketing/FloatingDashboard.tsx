@@ -17,8 +17,8 @@ export function HrmsFloatingDashboard({ shift }: { shift: 'day' | 'night' }) {
         <div className="marketing-float-bars">
           {[
             { label: 'Salary', w: '72%', c: '#1E2A78' },
-            { label: 'PF/ESI', w: '48%', c: '#6C3BFF' },
-            { label: 'TDS', w: '32%', c: '#2BB673' },
+            { label: 'PF/ESI', w: '48%', c: '#FF6D00' },
+            { label: 'TDS', w: '32%', c: 'rgba(30,42,120,0.55)' },
           ].map((b) => (
             <div key={b.label} className="marketing-float-bar-row">
               <span>{b.label}</span>

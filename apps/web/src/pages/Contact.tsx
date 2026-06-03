@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Row, Col, Form, Input, Select, Button, message, Collapse } from 'antd';
 import {
   UserOutlined,
@@ -13,9 +13,10 @@ import {
 } from '@ant-design/icons';
 import ScrollReveal from '../components/shared/ScrollReveal';
 import HomeSectionHeader from '../components/shared/HomeSectionHeader';
-import CTABanner from '../components/shared/CTABanner';
-import MarketingImageFrame from '../components/marketing/MarketingImageFrame';
+import MarketingHero from '../components/marketing/MarketingHero';
 import useBreakpoint from '../hooks/useBreakpoint';
+
+const HERO_GRADIENT = 'linear-gradient(135deg, #ffffff 0%, #f8fafc 70%, #eef2ff 100%)';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -29,10 +30,10 @@ const interestOptions = [
 ];
 
 const contactChannels = [
-  { icon: <MailOutlined />, label: 'Email', value: 'info@saptta.com', accent: '#1E2A78' },
-  { icon: <MailOutlined />, label: 'Alternative Email', value: 'saptta26@gmail.com', accent: '#8A2BE2' },
-  { icon: <PhoneOutlined />, label: 'Mobile / WhatsApp', value: '99 00 00 70 72', accent: '#2BB673' },
-  { icon: <ClockCircleOutlined />, label: 'Hours', value: 'Mon–Sat · 9 AM – 7 PM IST', accent: '#6C3BFF' },
+  { icon: <MailOutlined />, label: 'Email', value: 'info@saptta.com' },
+  { icon: <MailOutlined />, label: 'Alternative Email', value: 'saptta26@gmail.com' },
+  { icon: <PhoneOutlined />, label: 'Mobile / WhatsApp', value: '99 00 00 70 72' },
+  { icon: <ClockCircleOutlined />, label: 'Hours', value: 'Mon–Sat · 9 AM – 7 PM IST' },
 ];
 
 const faqs = [
@@ -59,6 +60,7 @@ const faqs = [
 ];
 
 export default function Contact() {
+  const navigate = useNavigate();
   const location = useLocation();
   const [form] = Form.useForm();
   const [submitted, setSubmitted] = useState(false);
@@ -107,29 +109,29 @@ export default function Contact() {
   };
 
   return (
-    <div className="marketing-page">
-      <section className={`marketing-hero${isMobile ? ' marketing-hero--stacked' : ''}`} style={{ background: 'linear-gradient(135deg, #EEF2FF 0%, #F8FAFF 50%, #FFFFFF 100%)' }}>
-        <div className="marketing-hero__orb marketing-hero__orb--1" />
-        <div className="marketing-hero__inner marketing-hero__inner--split">
-          <ScrollReveal animation="fade-in-left">
-            <HomeSectionHeader
-              eyebrow="Contact Saptta"
-              title="Book a demo"
-              titleHighlight="for your team"
-              subtitle="Tell us about your HR and finance needs — we will show you HRMS, Accounts, or the complete platform."
-              theme="navy"
-              align="left"
-              isMobile={isMobile}
-              maxWidth={520}
-            />
-          </ScrollReveal>
-          <ScrollReveal animation="fade-in-right">
-            <MarketingImageFrame imageKey="contactSupport" variant="glass" aspect="4/3" />
-          </ScrollReveal>
-        </div>
-      </section>
+    <div className="marketing-page marketing-page--contact">
+      <MarketingHero
+        eyebrow="Contact Saptta"
+        title="Book a demo"
+        titleHighlight="for your team"
+        titleHighlightSameLine
+        subtitle="Tell us about your HR and finance needs — we will show you HRMS, Accounts, or the complete platform."
+        stats={[
+          { value: '24h', label: 'Response time' },
+          { value: 'Free', label: 'Demo & trial' },
+          { value: 'India', label: 'Based support' },
+        ]}
+        theme="navy"
+        gradient={HERO_GRADIENT}
+        primaryLabel="Send a message"
+        primaryTo="#contact-form"
+        secondaryLabel="View pricing"
+        secondaryTo="/pricing"
+        heroImageKey="contactSupport"
+        heroImageVariant="plain"
+      />
 
-      <section className="marketing-section marketing-section--white">
+      <section id="contact-form" className="marketing-section marketing-section--white">
         <div className="marketing-section__inner">
           <ScrollReveal animation="fade-in-up">
             <div className="marketing-contact-categories">
@@ -242,8 +244,8 @@ export default function Contact() {
                 <h3 className="home-card-title home-card-title--sm">Reach us directly</h3>
                 <div className="marketing-contact-channels">
                   {contactChannels.map((ch) => (
-                    <div key={ch.label} className="marketing-contact-channel" style={{ borderColor: `${ch.accent}22` }}>
-                      <span className="marketing-contact-channel__icon" style={{ color: ch.accent, background: `${ch.accent}12` }}>
+                    <div key={ch.label} className="marketing-contact-channel">
+                      <span className="marketing-contact-channel__icon">
                         {ch.icon}
                       </span>
                       <div>
@@ -254,17 +256,14 @@ export default function Contact() {
                   ))}
                 </div>
 
-                <div className="marketing-highlight-card" style={{ marginTop: 24 }}>
-                  <div className="marketing-highlight-card__icon">🔒</div>
-                  <div>
-                    <h3 className="marketing-highlight-card__title" style={{ fontSize: '1rem' }}>
-                      Enterprise-grade security
-                    </h3>
-                    <p className="marketing-highlight-card__desc" style={{ fontSize: '0.85rem' }}>
-                      Encryption, RBAC, and audit trails for HR and finance data.
-                    </p>
-                  </div>
-                </div>
+                <aside className="marketing-page__aside-card">
+                  <span className="marketing-page__aside-badge">Security</span>
+                  <h3 className="home-card-h4">Enterprise-grade security</h3>
+                  <p className="home-card-body">Encryption, RBAC, and audit trails for HR and finance data.</p>
+                  <button type="button" className="marketing-page__text-link" onClick={() => navigate('/security')}>
+                    Learn more →
+                  </button>
+                </aside>
               </ScrollReveal>
             </Col>
           </Row>
@@ -278,8 +277,10 @@ export default function Contact() {
               eyebrow="FAQ"
               title="Common"
               titleHighlight="questions"
-              theme="indigo"
-              maxWidth={480}
+              titleHighlightSameLine
+              theme="navy"
+              maxWidth={520}
+              isMobile={isMobile}
             />
           </ScrollReveal>
           <ScrollReveal animation="fade-in-up">
@@ -292,8 +293,6 @@ export default function Contact() {
           </ScrollReveal>
         </div>
       </section>
-
-      <CTABanner title="Prefer to explore first?" subtitle="Browse HRMS, Accounts, and pricing — then book a demo when you are ready." />
     </div>
   );
 }

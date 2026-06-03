@@ -1,5 +1,8 @@
 /** Animated SVG/CSS hero illustrations per product */
 
+import MarketingImageFrame from './MarketingImageFrame';
+import type { MarketingImageKey } from '../../data/marketing-images';
+
 export function HeroVisual({ variant }: { variant: string }) {
   if (variant === 'hrms') return <HrmsHeroVisual />;
   if (variant === 'accounts') return <FinanceHeroVisual />;
@@ -16,7 +19,7 @@ function HrmsHeroVisual() {
       </div>
       <div className="marketing-visual__card marketing-visual__card--float-delay">
         <div className="marketing-visual__row"><span>Attendance today</span><strong>98%</strong></div>
-        <div className="marketing-visual__bar" style={{ width: '92%', background: '#6C3BFF' }} />
+        <div className="marketing-visual__bar" style={{ width: '92%', background: '#FF6D00' }} />
       </div>
       <div className="marketing-visual__card marketing-visual__card--accent">
         <div className="marketing-visual__pulse" />
@@ -25,8 +28,8 @@ function HrmsHeroVisual() {
       </div>
       <svg className="marketing-visual__svg" viewBox="0 0 320 200" fill="none">
         <circle cx="160" cy="100" r="70" stroke="rgba(30,42,120,0.12)" strokeWidth="2" className="marketing-visual__ring" />
-        <circle cx="160" cy="100" r="48" stroke="rgba(108,59,255,0.2)" strokeWidth="2" strokeDasharray="8 6" className="marketing-visual__ring-slow" />
-        <circle cx="160" cy="42" r="8" fill="#6C3BFF" className="marketing-visual__orbit-dot" />
+        <circle cx="160" cy="100" r="48" stroke="rgba(255,109,0,0.20)" strokeWidth="2" strokeDasharray="8 6" className="marketing-visual__ring-slow" />
+        <circle cx="160" cy="42" r="8" fill="#FF6D00" className="marketing-visual__orbit-dot" />
       </svg>
     </div>
   );
@@ -89,12 +92,10 @@ export function PlatformHeroVisual() {
   );
 }
 
-export function ProductCardVisual({ type }: { type: 'hrms' | 'accounts' | 'mobile' }) {
+export function ProductCardVisual({ imageKey }: { imageKey: MarketingImageKey }) {
   return (
-    <div className={`marketing-card-visual marketing-card-visual--${type}`}>
-      {type === 'hrms' && <HrmsHeroVisual />}
-      {type === 'accounts' && <FinanceHeroVisual />}
-      {type === 'mobile' && <MobileHeroVisual />}
+    <div className="marketing-card-visual marketing-card-visual--photo">
+      <MarketingImageFrame imageKey={imageKey} variant="card" aspect="16/10" className="marketing-card-visual__frame" />
     </div>
   );
 }

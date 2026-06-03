@@ -1,9 +1,9 @@
 /** Isometric security visual for home page — Saptta brand */
 
 const floatIcons = [
-  { label: 'TLS', top: '8%', left: '6%', delay: '0s', color: '#6C3BFF' },
-  { label: 'RBAC', top: '18%', right: '4%', delay: '0.6s', color: '#2563EB' },
-  { label: 'Audit', bottom: '28%', left: '2%', delay: '1.2s', color: '#2BB673' },
+  { label: 'TLS', top: '8%', left: '6%', delay: '0s', color: '#1E2A78' },
+  { label: 'RBAC', top: '18%', right: '4%', delay: '0.6s', color: '#FF6D00' },
+  { label: 'Audit', bottom: '28%', left: '2%', delay: '1.2s', color: '#1E2A78' },
   { label: 'PF/GST', bottom: '12%', right: '8%', delay: '0.9s', color: '#1E2A78' },
 ];
 

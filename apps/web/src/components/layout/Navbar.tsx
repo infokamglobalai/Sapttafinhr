@@ -10,40 +10,26 @@ const productItems = [
   { key: '/mobile-app', label: 'Mobile App', desc: 'On-the-go access' },
 ];
 
-const solutionItems = [
-  { key: '/solutions', label: 'All Solutions', desc: 'HR, finance, and industry fit' },
-  { key: '/hrms', label: 'HRMS Solution', desc: 'People operations and payroll' },
-  { key: '/accounts', label: 'Accounts Solution', desc: 'Finance operations and GST' },
-  { key: '/industries', label: 'By Industry', desc: 'Sector-specific workflows' },
-];
-
 const resourceItems = [
   { key: '/resources', label: 'Resource Hub', desc: 'Guides, pricing, and product docs' },
   { key: '/features', label: 'Platform Features', desc: 'Feature comparison matrix' },
-  { key: '/contact', label: 'Help Center', desc: 'Talk to sales and support' },
-  { key: '/pricing', label: 'Pricing Guide', desc: 'Plans and package comparison' },
 ];
 
-const companyItems = [
-  { key: '/about', label: 'About Saptta', desc: 'Our mission and values' },
-  { key: '/contact', label: 'Contact', desc: 'Talk to sales and support' },
-];
-
-type DropdownKey = 'products' | 'solutions' | 'resources' | 'company' | null;
+type DropdownKey = 'products' | 'resources' | null;
 
 const navLinks: { key: string; label: string; isDropdown?: DropdownKey }[] = [
   { key: 'products', label: 'Products', isDropdown: 'products' },
-  { key: 'solutions', label: 'Solutions', isDropdown: 'solutions' },
   { key: '/pricing', label: 'Pricing' },
   { key: 'resources', label: 'Resources', isDropdown: 'resources' },
-  { key: 'company', label: 'Company', isDropdown: 'company' },
+  { key: '/about', label: 'About' },
+  { key: '/contact', label: 'Contact' },
   { key: '/careers', label: 'Careers' },
 ];
 
-function SapttaLogo({ size = 'default' }: { size?: 'default' | 'large' }) {
-  const height = size === 'large' ? 56 : 44;
+function SapttaLogo({ size = 'default', onDark = false }: { size?: 'default' | 'large' | 'compact'; onDark?: boolean }) {
+  const height = size === 'large' ? 56 : size === 'compact' ? 30 : 44;
   return (
-    <div style={{ display: 'inline-flex', alignItems: 'center' }}>
+    <div className={onDark ? 'saptta-logo saptta-logo--on-dark' : 'saptta-logo'} style={{ display: 'inline-flex', alignItems: 'center' }}>
       <img src="/logo.jpeg" alt="Saptta" style={{ height, width: 'auto', objectFit: 'contain' }} />
     </div>
   );
@@ -70,8 +56,9 @@ function DropdownPanel({ items }: { items: { key: string; label: string; desc: s
   const location = useLocation();
   return (
     <div className="saptta-navbar__dropdown">
-      <div className="saptta-navbar__dropdown-accent" />
-      <div className="saptta-navbar__dropdown-body">
+      <div className="saptta-navbar__dropdown-panel">
+        <div className="saptta-navbar__dropdown-accent" />
+        <div className="saptta-navbar__dropdown-body">
         {items.map((item) => {
           const active = location.pathname === item.key || location.pathname.startsWith(`${item.key}/`);
           return (
@@ -88,6 +75,7 @@ function DropdownPanel({ items }: { items: { key: string; label: string; desc: s
             </Link>
           );
         })}
+        </div>
       </div>
     </div>
   );
@@ -101,6 +89,7 @@ export default function Navbar() {
   const [lockedDropdown, setLockedDropdown] = useState<DropdownKey>(null);
   const [mobileOpen, setMobileOpen] = useState<Record<string, boolean>>({});
   const navRef = useRef<HTMLDivElement>(null);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
@@ -137,15 +126,43 @@ export default function Navbar() {
 
   const dropdownItems: Record<string, typeof productItems> = {
     products: productItems,
-    solutions: solutionItems,
     resources: resourceItems,
-    company: companyItems,
   };
 
   const isDropdownActive = (key: DropdownKey) => {
     const items = key ? dropdownItems[key] : [];
     return items.some((p) => location.pathname.startsWith(p.key));
   };
+
+  const clearCloseTimer = () => {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  };
+
+  const scheduleClose = (dk: DropdownKey) => {
+    clearCloseTimer();
+    closeTimerRef.current = setTimeout(() => {
+      setOpenDropdown((current) => (current === dk ? null : current));
+      closeTimerRef.current = null;
+    }, 150);
+  };
+
+  const handleMenuEnter = (dk: DropdownKey) => {
+    clearCloseTimer();
+    if (lockedDropdown && lockedDropdown !== dk) {
+      setLockedDropdown(null);
+    }
+    setOpenDropdown(dk);
+  };
+
+  const handleMenuLeave = (dk: DropdownKey) => {
+    if (lockedDropdown === dk) return;
+    scheduleClose(dk);
+  };
+
+  useEffect(() => () => clearCloseTimer(), []);
 
   return (
     <header className={`saptta-navbar${scrolled ? ' saptta-navbar--scrolled' : ''}`}>
@@ -164,13 +181,9 @@ export default function Navbar() {
                 return (
                   <div
                     key={link.key}
-                    style={{ position: 'relative' }}
-                    onMouseEnter={() => {
-                      if (!lockedDropdown) setOpenDropdown(dk);
-                    }}
-                    onMouseLeave={() => {
-                      if (!lockedDropdown) setOpenDropdown(null);
-                    }}
+                    className="saptta-navbar__menu"
+                    onMouseEnter={() => handleMenuEnter(dk)}
+                    onMouseLeave={() => handleMenuLeave(dk)}
                   >
                     <button
                       type="button"
@@ -213,17 +226,17 @@ export default function Navbar() {
         <div className="saptta-navbar__actions">
           {isDesktop &&
             (isAuthenticated ? (
-              <Button type="primary" className="saptta-navbar__cta" onClick={() => navigate('/app')}>
+              <button type="button" className="saptta-navbar__cta" onClick={() => navigate('/app')}>
                 Dashboard
-              </Button>
+              </button>
             ) : (
               <>
                 <Button type="text" className="saptta-navbar__login" onClick={() => navigate('/login')}>
                   Login
                 </Button>
-                <Button type="primary" className="saptta-navbar__cta" onClick={() => navigate('/signup')}>
+                <button type="button" className="saptta-navbar__cta" onClick={() => navigate('/signup')}>
                   Get free trial
-                </Button>
+                </button>
               </>
             ))}
 
@@ -334,9 +347,13 @@ export default function Navbar() {
           })}
           <div style={{ padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: 10 }}>
             {isAuthenticated ? (
-              <Button type="primary" block className="saptta-navbar__cta" onClick={() => { navigate('/app'); setDrawerOpen(false); }}>
+              <button
+                type="button"
+                className="saptta-navbar__cta saptta-navbar__cta--block"
+                onClick={() => { navigate('/app'); setDrawerOpen(false); }}
+              >
                 Dashboard
-              </Button>
+              </button>
             ) : (
               <>
                 <Button
@@ -347,14 +364,13 @@ export default function Navbar() {
                 >
                   Login
                 </Button>
-                <Button
-                  type="primary"
-                  block
-                  className="saptta-navbar__cta"
+                <button
+                  type="button"
+                  className="saptta-navbar__cta saptta-navbar__cta--block"
                   onClick={() => { navigate('/signup'); setDrawerOpen(false); }}
                 >
                   Get free trial
-                </Button>
+                </button>
               </>
             )}
           </div>

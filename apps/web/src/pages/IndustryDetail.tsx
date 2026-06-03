@@ -1,7 +1,6 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Row, Col, Button } from 'antd';
 import industries from '../data/industries-data';
-import CTABanner from '../components/shared/CTABanner';
 import ScrollReveal from '../components/shared/ScrollReveal';
 import HomeSectionHeader from '../components/shared/HomeSectionHeader';
 import IndustryHeroVisual from '../components/marketing/IndustryHeroVisual';
@@ -179,11 +178,6 @@ export default function IndustryDetail() {
         description={`Start with ${industry.primarySolutionLabel.replace('Explore ', '').replace(' for IT', '')} or book a walkthrough tailored to your sector.`}
         ctaLabel="Book a demo"
         ctaTo="/contact"
-      />
-
-      <CTABanner
-        title={`Scale ${industry.title} with Saptta`}
-        subtitle="Modular HRMS and Accounts — combine when you need payroll-to-ledger sync and unified compliance."
       />
     </div>
   );

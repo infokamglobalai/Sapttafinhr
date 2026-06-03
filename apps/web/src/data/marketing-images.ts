@@ -20,11 +20,13 @@ export type MarketingImageKey =
   | 'security'
   | 'aboutOffice'
   | 'aboutTeam'
+  | 'aboutUnified'
   | 'contactSupport'
   | 'solutionsCollab'
   | 'resourcesLearning'
   | 'pricingMeeting'
   | 'careersCulture'
+  | 'careersWhySaptta'
   | 'mobileField'
   | 'industryIt'
   | 'industryManufacturing'
@@ -36,7 +38,16 @@ export type MarketingImageKey =
   | 'productAccounts'
   | 'productMobile'
   | 'featuresPlatform'
-  | 'ctaBanner';
+  | 'productSuite'
+  | 'pricingHero'
+  | 'ctaBanner'
+  | 'homeHeroPerson'
+  | 'homeHeroVisual'
+  | 'automationHire'
+  | 'automationAttendance'
+  | 'automationPayroll'
+  | 'automationAccounting'
+  | 'automationGst';
 
 export interface MarketingImageAsset {
   alt: string;
@@ -103,7 +114,7 @@ export const marketingImages: Record<MarketingImageKey, MarketingImageAsset> = {
   modularAccounts: {
     alt: 'Accountant reviewing invoices and ledger',
     local: '/images/modular-accounts.jpg',
-    remote: u('photo-1551836022-d5d88e8568c2'),
+    remote: u('photo-1454165804606-c3d57bc86b40'),
   },
   modularComplete: {
     alt: 'Leadership reviewing unified HR and finance metrics',
@@ -132,43 +143,52 @@ export const marketingImages: Record<MarketingImageKey, MarketingImageAsset> = {
   },
   security: {
     alt: 'Secure cloud infrastructure and data protection',
-    local: '/images/security.jpg',
+    local: '/images/resources/resource-security-compliance.png',
     remote: u('photo-1563986768609-322da13575f3'),
   },
   aboutOffice: {
-    alt: 'Saptta team workspace and collaboration',
-    local: '/images/about-office.jpg',
+    alt: 'Saptta team building HR and finance software for India',
+    local: '/images/about-hero.png',
     remote: u('photo-1497366811353-6870744d04b2'),
   },
   aboutTeam: {
     alt: 'Professional team meeting in modern office',
-    local: '/images/about-team.jpg',
     remote: u('photo-1521737714862-ea8723385487'),
+  },
+  aboutUnified: {
+    alt: 'Unified HRMS, payroll, and finance platform connected in one workflow',
+    local: '/images/about-unified-platform.png',
+    remote: u('photo-1460925895917-afdab827c52f'),
   },
   contactSupport: {
     alt: 'Customer success and support consultation',
-    local: '/images/contact-support.jpg',
+    local: '/images/resources/resource-book-demo.png',
     remote: u('photo-1423666639045-f560e134f946'),
   },
   solutionsCollab: {
     alt: 'Business leaders planning HR and finance solutions',
-    local: '/images/solutions-collab.jpg',
+    local: '/images/resources/resource-industry-solutions.png',
     remote: u('photo-1600880292203-757bb62b4baf'),
   },
   resourcesLearning: {
     alt: 'Learning resources and product documentation',
-    local: '/images/resources-learning.jpg',
+    local: '/images/resources-hero.png',
     remote: u('photo-1434030216301-4e72022dc676'),
   },
   pricingMeeting: {
     alt: 'Pricing discussion with finance stakeholders',
-    local: '/images/pricing-meeting.jpg',
+    local: '/images/resources/resource-pricing-plans.png',
     remote: u('photo-1552664730-d307ca884978'),
   },
   careersCulture: {
-    alt: 'Inclusive workplace culture and growth',
-    local: '/images/careers-culture.jpg',
+    alt: 'Saptta team building HR and finance software for India',
+    local: '/images/careers-hero.png',
     remote: u('photo-1522071820081-009f0129c71c'),
+  },
+  careersWhySaptta: {
+    alt: 'Product team shipping HRMS and finance software teams rely on',
+    local: '/images/careers-why-saptta.png',
+    remote: u('photo-1521737714862-ea8723385487'),
   },
   mobileField: {
     alt: 'Field employee using mobile for attendance',
@@ -206,29 +226,74 @@ export const marketingImages: Record<MarketingImageKey, MarketingImageAsset> = {
     remote: u('photo-1550567871-822ecf27301d'),
   },
   productHrms: {
-    alt: 'HRMS workforce management in action',
-    local: '/images/product-hrms.jpg',
+    alt: 'SAPTTA HRMS dashboard — employees, attendance, and payroll',
+    local: '/images/hrms-hero.png',
     remote: u('photo-1553877522-43269d4ea984'),
   },
   productAccounts: {
-    alt: 'Accounts payable and GST billing workflow',
-    local: '/images/product-accounts.jpg',
+    alt: 'SAPTTA Accounts dashboard — GST invoicing, ledger, and bank reconciliation',
+    local: '/images/accounts-hero.png',
     remote: u('photo-1554224154-26032ffe0d88'),
   },
   productMobile: {
-    alt: 'Mobile workforce app for attendance',
-    local: '/images/product-mobile.jpg',
+    alt: 'SAPTTA Mobile app — geofence attendance, leave, and payslips on phone',
+    local: '/images/mobile-app-hero.png',
     remote: u('photo-1512941937669-90a1b58f7d9b'),
   },
   featuresPlatform: {
-    alt: 'Platform features overview on multiple screens',
-    local: '/images/features-platform.jpg',
+    alt: 'Compare platform features across plan tiers',
+    local: '/images/resources/resource-features-matrix.png',
     remote: u('photo-1551434678-e076c223a692'),
+  },
+  productSuite: {
+    alt: 'SAPTTA product suite — HRMS and Finance modules on one platform',
+    local: '/images/products-hero.png',
+    remote: u('photo-1551434678-e076c223a692'),
+  },
+  pricingHero: {
+    alt: 'SAPTTA pricing — HRMS and Finance plans on one platform',
+    local: '/images/pricing-hero.png',
+    remote: u('photo-1552664730-d307ca884978'),
   },
   ctaBanner: {
     alt: 'Business growth with Saptta platform',
     local: '/images/cta-banner.jpg',
     remote: u('photo-1460925895917-afdab827c52f'),
+  },
+  homeHeroPerson: {
+    alt: 'HR professional using Saptta on laptop',
+    local: '/images/home-hero-person.png',
+    remote: u('photo-1573496359142-b8d87734a5a2'),
+  },
+  homeHeroVisual: {
+    alt: 'Saptta HR platform — employees, payroll, attendance, accounting, and compliance',
+    local: '/images/home-hero-visual.png',
+    remote: u('photo-1573496359142-b8d87734a5a2'),
+  },
+  automationHire: {
+    alt: 'Employee onboarding and new hire profile in HRMS',
+    local: '/images/automation/automation-step-1-hire.png',
+    remote: u('photo-1553877522-43269d4ea984'),
+  },
+  automationAttendance: {
+    alt: 'Attendance tracking and leave sync dashboard',
+    local: '/images/automation/automation-step-2-attendance.png',
+    remote: u('photo-1512941937669-90a1b58f7d9b'),
+  },
+  automationPayroll: {
+    alt: 'Payroll processing with statutory deductions',
+    local: '/images/automation/automation-step-3-payroll.png',
+    remote: u('photo-1554224155-6726b3ff858f'),
+  },
+  automationAccounting: {
+    alt: 'Accounting ledger updated from payroll',
+    local: '/images/automation/automation-step-4-accounting.png',
+    remote: u('photo-1554224154-26032ffe0d88'),
+  },
+  automationGst: {
+    alt: 'GST compliance and return-ready exports',
+    local: '/images/automation/automation-step-5-gst.png',
+    remote: u('photo-1454165804606-c3d57bc86b40'),
   },
 };
 
@@ -241,9 +306,10 @@ export const industryImageKey: Record<string, MarketingImageKey> = {
   finance: 'industryFinance',
 };
 
-/** Prefer CDN until files exist in `public/images/` */
+/** Prefer local assets in `public/images/` when available */
 export function getMarketingImageSrc(key: MarketingImageKey): string {
-  return marketingImages[key].remote;
+  const asset = marketingImages[key];
+  return asset.local ?? asset.remote;
 }
 
 export function getMarketingImageAlt(key: MarketingImageKey): string {

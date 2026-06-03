@@ -1,136 +1,210 @@
-import { useEffect, useState } from 'react';
-import { Row, Col, Button } from 'antd';
+import { useEffect, useState, type ReactNode } from 'react';
+import { Button } from 'antd';
 import { useNavigate } from 'react-router-dom';
-import CTABanner from '../components/shared/CTABanner';
+import {
+  RightOutlined,
+  LoginOutlined,
+  SwapOutlined,
+  AppstoreOutlined,
+  ThunderboltOutlined,
+  CalendarOutlined,
+} from '@ant-design/icons';
 import ScrollReveal from '../components/shared/ScrollReveal';
 import HomeSectionHeader from '../components/shared/HomeSectionHeader';
 import MarketingHero from '../components/marketing/MarketingHero';
+import ProductsTrustStrip from '../components/marketing/ProductsTrustStrip';
 import { productsOverview } from '../data/product-pages-data';
 import { ProductCardVisual } from '../components/marketing/ProductVisuals';
+import MarketingImageFrame from '../components/marketing/MarketingImageFrame';
+
+const PLATFORM_ICON: Record<string, ReactNode> = {
+  sso: <LoginOutlined />,
+  sync: <SwapOutlined />,
+  modular: <AppstoreOutlined />,
+  ai: <ThunderboltOutlined />,
+};
+
+type Recommendation = {
+  title: string;
+  desc: string;
+  path: string;
+  ctaLabel: string;
+};
+
+function getRecommendation(
+  needsFieldPunch: boolean,
+  needsPayroll: boolean,
+  needsFinance: boolean,
+  needsSync: boolean,
+): Recommendation | null {
+  const any = needsFieldPunch || needsPayroll || needsFinance || needsSync;
+  if (!any) return null;
+
+  if (needsSync || (needsPayroll && needsFinance)) {
+    return {
+      title: 'Saptta Complete',
+      desc: 'Both HRMS and Finance with single sign-on, unified reporting, and payroll-to-ledger sync.',
+      path: '/pricing',
+      ctaLabel: 'See pricing',
+    };
+  }
+  if (needsFinance) {
+    return {
+      title: 'Saptta Finance',
+      desc: 'Ledger, GST invoicing, bank reconciliation, and financial reporting — without the HR module.',
+      path: '/accounts',
+      ctaLabel: 'Explore Finance',
+    };
+  }
+  if (needsPayroll) {
+    return {
+      title: 'Saptta HRMS',
+      desc: 'Start with people operations — attendance, leave, payroll, and employee records in one module.',
+      path: '/hrms',
+      ctaLabel: 'Explore HRMS',
+    };
+  }
+  if (needsFieldPunch) {
+    return {
+      title: 'Saptta Mobile',
+      desc: 'Add mobile ESS and geofence attendance for field and off-site teams (best with HRMS).',
+      path: '/mobile-app',
+      ctaLabel: 'Explore Mobile',
+    };
+  }
+  return null;
+}
 
 function ProductSelector() {
   const navigate = useNavigate();
   const [needsFieldPunch, setNeedsFieldPunch] = useState(false);
-  const [needsGstLedger, setNeedsGstLedger] = useState(false);
   const [needsPayroll, setNeedsPayroll] = useState(false);
+  const [needsFinance, setNeedsFinance] = useState(false);
   const [needsSync, setNeedsSync] = useState(false);
 
-  // Recommendation engine
-  let recommendedProduct = {
-    title: 'Saptta HRMS',
-    desc: 'The complete people operations platform for tracking attendance, leaves, and processing compliant salary with PF/ESI deductions.',
-    accent: '#1E2A78',
-    path: '/hrms'
-  };
+  const recommendation = getRecommendation(needsFieldPunch, needsPayroll, needsFinance, needsSync);
 
-  if (needsSync || (needsPayroll && needsGstLedger)) {
-    recommendedProduct = {
-      title: 'Saptta Complete Bundle',
-      desc: 'Our unified flagship platform. Sync all HRMS shifts and payroll disbursements automatically into your general ledger accounts.',
-      accent: '#6C3BFF',
-      path: '/pricing'
-    };
-  } else if (needsGstLedger) {
-    recommendedProduct = {
-      title: 'Saptta Accounts',
-      desc: 'Built for finance managers. GST billing, e-invoicing hooks, bank reconciliation, and general double-entry book balancing.',
-      accent: '#2BB673',
-      path: '/accounts'
-    };
-  } else if (needsFieldPunch && !needsPayroll) {
-    recommendedProduct = {
-      title: 'Saptta Mobile App',
-      desc: 'Perfect for field/remote tracking. Whitelisted geofence areas, push notifications, offline punch cache, and mobile ESS portal.',
-      accent: '#D69A2D',
-      path: '/mobile-app'
-    };
-  }
+  const options = [
+    {
+      checked: needsFieldPunch,
+      toggle: () => setNeedsFieldPunch(!needsFieldPunch),
+      title: 'We have field-based or off-site teams',
+      desc: 'Need mobile punch and geofence verification.',
+    },
+    {
+      checked: needsPayroll,
+      toggle: () => setNeedsPayroll(!needsPayroll),
+      title: 'We run payroll in-house',
+      desc: 'Need salary processing and employee pay records.',
+    },
+    {
+      checked: needsFinance,
+      toggle: () => setNeedsFinance(!needsFinance),
+      title: 'We manage accounting & invoicing',
+      desc: 'Need ledger, GST billing, and bank reconciliation.',
+    },
+    {
+      checked: needsSync,
+      toggle: () => setNeedsSync(!needsSync),
+      title: 'We want HR and finance connected',
+      desc: 'Need payroll expenses to flow into accounting automatically.',
+    },
+  ];
 
   return (
     <div className="product-selector-card">
-      <h3 className="home-card-title home-card-title--sm" style={{ marginBottom: 28, textAlign: 'center' }}>
-        Configure Your Business Needs
-      </h3>
-      
-      <Row gutter={[20, 20]} align="stretch">
-        <Col xs={24} md={12} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div 
-            className={`selector-checkbox-label${needsFieldPunch ? ' selector-checkbox-label--active' : ''}`}
-            onClick={() => setNeedsFieldPunch(!needsFieldPunch)}
-          >
-            <input type="checkbox" checked={needsFieldPunch} readOnly style={{ accentColor: '#6c3bff' }} />
-            <div style={{ marginLeft: 8 }}>
-              <div className="selector-checkbox-title">We have field-based or off-site teams</div>
-              <div className="selector-checkbox-desc">Need GPS boundary verification and mobile biometric clock-in.</div>
-            </div>
-          </div>
-
-          <div 
-            className={`selector-checkbox-label${needsPayroll ? ' selector-checkbox-label--active' : ''}`}
-            onClick={() => setNeedsPayroll(!needsPayroll)}
-          >
-            <input type="checkbox" checked={needsPayroll} readOnly style={{ accentColor: '#6c3bff' }} />
-            <div style={{ marginLeft: 8 }}>
-              <div className="selector-checkbox-title">We process statutory payroll (PF/ESI/TDS)</div>
-              <div className="selector-checkbox-desc">Need automated salary summaries and compliant tax filing runs.</div>
-            </div>
-          </div>
-
-          <div 
-            className={`selector-checkbox-label${needsGstLedger ? ' selector-checkbox-label--active' : ''}`}
-            onClick={() => setNeedsGstLedger(!needsGstLedger)}
-          >
-            <input type="checkbox" checked={needsGstLedger} readOnly style={{ accentColor: '#6c3bff' }} />
-            <div style={{ marginLeft: 8 }}>
-              <div className="selector-checkbox-title">We file GST invoices & balance ledgers</div>
-              <div className="selector-checkbox-desc">Need GSTR-ready reports, bank reconciliations, and ledgers.</div>
-            </div>
-          </div>
-
-          <div 
-            className={`selector-checkbox-label${needsSync ? ' selector-checkbox-label--active' : ''}`}
-            onClick={() => setNeedsSync(!needsSync)}
-          >
-            <input type="checkbox" checked={needsSync} readOnly style={{ accentColor: '#6c3bff' }} />
-            <div style={{ marginLeft: 8 }}>
-              <div className="selector-checkbox-title">We want payroll expenses to auto-post to accounting</div>
-              <div className="selector-checkbox-desc">Need real-time money flow sync between HR rosters and ledgers.</div>
-            </div>
-          </div>
-        </Col>
-
-        <Col xs={24} md={12}>
-          <div className="selector-result-card">
-            <div className="selector-result-glow" />
-            <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', opacity: 0.8, marginBottom: 8, display: 'block' }}>
-              RECOMMENDED SETUP
-            </span>
-            <h2 style={{ fontSize: 24, fontWeight: 900, color: '#ffffff', marginBottom: 12, lineHeight: 1.2 }}>
-              {recommendedProduct.title}
-            </h2>
-            <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 13.5, lineHeight: 1.6, marginBottom: 24, flex: 1 }}>
-              {recommendedProduct.desc}
-            </p>
-            <Button 
-              type="primary" 
-              onClick={() => navigate(recommendedProduct.path)}
-              style={{ 
-                height: 46, 
-                borderRadius: 10, 
-                background: '#ffffff', 
-                color: recommendedProduct.accent, 
-                borderColor: '#ffffff', 
-                fontWeight: 700,
-                fontSize: 14,
-                boxShadow: '0 8px 20px rgba(0,0,0,0.1)'
+      <div className="product-selector-layout">
+        <div className="product-selector-options">
+          <h3 className="home-card-title home-card-title--sm product-selector-options__title">
+            Answer four quick questions
+          </h3>
+          {options.map((item) => (
+            <div
+              key={item.title}
+              role="checkbox"
+              aria-checked={item.checked}
+              tabIndex={0}
+              className={`selector-checkbox-label${item.checked ? ' selector-checkbox-label--active' : ''}`}
+              onClick={item.toggle}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  item.toggle();
+                }
               }}
             >
-              Explore {recommendedProduct.title.replace('Saptta ', '')}
-            </Button>
-          </div>
-        </Col>
-      </Row>
+              <input type="checkbox" checked={item.checked} readOnly tabIndex={-1} />
+              <div className="selector-checkbox-content">
+                <div className="selector-checkbox-title">{item.title}</div>
+                <div className="selector-checkbox-desc">{item.desc}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className={`selector-result-card${recommendation ? '' : ' selector-result-card--empty'}`}>
+          <div className="selector-result-glow" />
+          <span className="selector-result-eyebrow">Recommended setup</span>
+          {recommendation ? (
+            <>
+              <h2 className="selector-result-title">{recommendation.title}</h2>
+              <p className="selector-result-desc">{recommendation.desc}</p>
+              <div className="selector-result-actions">
+                <Button
+                  type="primary"
+                  onClick={() => navigate(recommendation.path)}
+                  className="selector-result-cta"
+                >
+                  {recommendation.ctaLabel}
+                </Button>
+                <button type="button" className="selector-result-demo" onClick={() => navigate('/contact')}>
+                  Book a demo <CalendarOutlined />
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <h2 className="selector-result-title">Select your needs</h2>
+              <p className="selector-result-desc">
+                Check one or more options on the left and we&apos;ll suggest the right Saptta module or bundle.
+              </p>
+            </>
+          )}
+        </div>
+      </div>
     </div>
+  );
+}
+
+function ProductCard({ card, delay }: { card: (typeof productsOverview.productCards)[number]; delay: number }) {
+  const navigate = useNavigate();
+  const isFeatured = 'featured' in card && card.featured;
+
+  return (
+    <ScrollReveal animation="fade-in-up" delay={delay} className="marketing-product-col">
+      <article className={`marketing-product-card${isFeatured ? ' marketing-product-card--featured' : ''}`}>
+        {card.badge && <span className="marketing-product-card__badge">{card.badge}</span>}
+        <ProductCardVisual imageKey={card.imageKey} />
+        <div className="marketing-product-card__body">
+          <span className="home-section-eyebrow marketing-product-card__eyebrow">{card.title}</span>
+          <h3 className="home-card-title marketing-product-card__headline">{card.highlight}</h3>
+          <p className="home-card-body marketing-product-card__desc">{card.desc}</p>
+          <ul className="marketing-product-features">
+            {card.features.map((f) => (
+              <li key={f}>{f}</li>
+            ))}
+          </ul>
+          <Button
+            type="primary"
+            className="marketing-btn marketing-btn--primary marketing-product-card__cta"
+            block
+            onClick={() => navigate(card.path)}
+          >
+            {card.ctaLabel}
+          </Button>
+        </div>
+      </article>
+    </ScrollReveal>
   );
 }
 
@@ -144,126 +218,131 @@ export default function Products() {
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
-  const { hero, productCards, platformFeatures } = productsOverview;
+  const { hero, productCards, mobileAddOn, platformFeatures } = productsOverview;
 
   return (
-    <div className="marketing-page">
+    <div className="marketing-page marketing-page--products">
       <MarketingHero
         eyebrow={hero.eyebrow}
         title={hero.title}
         titleHighlight={hero.titleHighlight}
+        titleHighlightSameLine
         subtitle={hero.subtitle}
         stats={[
-          { value: '3', label: 'Modular products' },
-          { value: 'AI', label: 'Shared intelligence' },
-          { value: '100%', label: 'India compliance' },
+          { value: '2', label: 'Core modules' },
+          { value: '10–500+', label: 'Employees' },
+          { value: 'SSO', label: 'Single login' },
         ]}
         theme="navy"
-        gradient="linear-gradient(135deg, #EEF2FF 0%, #F8FAFF 45%, #FFFFFF 100%)"
+        gradient="linear-gradient(135deg, #ffffff 0%, #f8fafc 70%, #eef2ff 100%)"
         primaryLabel="Compare plans"
         primaryTo="/pricing"
         secondaryLabel="Book a demo"
         secondaryTo="/contact"
-        heroImageKey="featuresPlatform"
-        heroImageVariant="gradient-border"
+        heroImageKey="productSuite"
+        heroImageVariant="plain"
       />
 
-      <section className="marketing-section marketing-section--white">
+      <ProductsTrustStrip />
+
+      <section className="marketing-section marketing-section--white marketing-section--compact">
         <div className="marketing-section__inner">
           <ScrollReveal animation="fade-in-down">
             <HomeSectionHeader
               eyebrow="Product suite"
-              title="Pick your starting point"
+              title="Choose your starting module"
               titleHighlight="expand anytime"
-              subtitle="HRMS and Accounts are separate subscriptions — add Mobile for field teams or choose Saptta Complete for unified HR + Finance."
-              theme="purple"
+              titleHighlightSameLine
+              subtitle="Subscribe to HRMS, Finance, or both on Saptta Complete — India's dual-product stack for people and money."
+              theme="navy"
               isMobile={isMobile}
-              maxWidth={680}
+              maxWidth={720}
             />
           </ScrollReveal>
-          <Row gutter={[24, 24]}>
-            {productCards.map((card, idx) => {
-              const visualType = card.path === '/hrms' ? 'hrms' : card.path === '/accounts' ? 'accounts' : 'mobile';
-              return (
-                <Col key={card.path} xs={24} lg={8}>
-                  <ScrollReveal animation="fade-in-up" delay={idx * 90}>
-                    <article className="marketing-product-card">
-                      <ProductCardVisual type={visualType} />
-                      <div className="marketing-product-card__body">
-                        <span className="home-section-eyebrow" style={{ color: card.accent, background: `${card.accent}14`, borderColor: `${card.accent}28` }}>
-                          {card.title}
-                        </span>
-                        <h3 className="home-card-title">{card.highlight}</h3>
-                        <p className="home-card-body">{card.desc}</p>
-                        <div className="marketing-related-card__stats">
-                          {card.stats.map((s) => (
-                            <span key={s}>{s}</span>
-                          ))}
-                        </div>
-                        <Button
-                          type="primary"
-                          className="marketing-btn marketing-btn--primary"
-                          block
-                          onClick={() => navigate(card.path)}
-                          style={{ marginTop: 16, background: card.accent, borderColor: card.accent }}
-                        >
-                          Explore {card.title}
-                        </Button>
-                      </div>
-                    </article>
-                  </ScrollReveal>
-                </Col>
-              );
-            })}
-          </Row>
+          <div className="marketing-products-grid marketing-products-grid--primary">
+            {productCards.map((card, idx) => (
+              <ProductCard key={card.path} card={card} delay={idx * 80} />
+            ))}
+          </div>
+
+          <ScrollReveal animation="fade-in-up" delay={200}>
+            <div className="marketing-mobile-addon">
+              <div className="marketing-mobile-addon__visual">
+                <MarketingImageFrame imageKey={mobileAddOn.imageKey} variant="card" aspect="16/10" />
+              </div>
+              <div className="marketing-mobile-addon__body">
+                <span className="home-section-eyebrow marketing-mobile-addon__eyebrow">
+                  Add-on · {mobileAddOn.title}
+                </span>
+                <h3 className="home-card-title home-card-title--sm">{mobileAddOn.highlight}</h3>
+                <p className="home-card-body">{mobileAddOn.desc}</p>
+                <Button type="default" className="marketing-mobile-addon__cta" onClick={() => navigate(mobileAddOn.path)}>
+                  {mobileAddOn.ctaLabel} <RightOutlined />
+                </Button>
+              </div>
+            </div>
+          </ScrollReveal>
+
+          <p className="marketing-products-links">
+            <button type="button" className="marketing-products-links__btn" onClick={() => navigate('/pricing')}>
+              Compare all plans →
+            </button>
+            <span className="marketing-products-links__sep" aria-hidden>
+              ·
+            </span>
+            <button type="button" className="marketing-products-links__btn" onClick={() => navigate('/features')}>
+              Full feature list →
+            </button>
+          </p>
         </div>
       </section>
 
-      <section className="marketing-section marketing-section--muted">
+      <section className="marketing-section marketing-section--muted marketing-section--compact">
         <div className="marketing-section__inner">
           <ScrollReveal animation="fade-in-down">
             <HomeSectionHeader
-              eyebrow="Platform layer"
-              title="Shared AI & compliance"
-              titleHighlight="across products"
-              subtitle="Whether you start with HR or Finance, you get the same security, audit trails, and intelligence layer."
-              theme="indigo"
+              eyebrow="Technical foundation"
+              title="Built to connect"
+              titleHighlight="your modules"
+              titleHighlightSameLine
+              subtitle="The same security, audit trails, and intelligence layer whether you start with HRMS, Finance, or both."
+              theme="navy"
               isMobile={isMobile}
-              maxWidth={640}
+              maxWidth={720}
             />
           </ScrollReveal>
-          <Row gutter={[16, 16]}>
+          <div className="marketing-platform-grid">
             {platformFeatures.map((f, idx) => (
-              <Col key={f.title} xs={24} sm={12}>
-                <ScrollReveal animation="fade-in-up" delay={idx * 70}>
-                  <div className="marketing-feature-tile">
-                    <h4 className="home-card-h4">{f.title}</h4>
-                    <p className="home-card-body">{f.desc}</p>
-                  </div>
-                </ScrollReveal>
-              </Col>
+              <ScrollReveal key={f.title} animation="fade-in-up" delay={idx * 70}>
+                <div className="marketing-feature-tile marketing-feature-tile--icon">
+                  <span className="marketing-feature-tile__icon" aria-hidden>
+                    {PLATFORM_ICON[f.icon] ?? <AppstoreOutlined />}
+                  </span>
+                  <h4 className="home-card-h4">{f.title}</h4>
+                  <p className="home-card-body">{f.desc}</p>
+                </div>
+              </ScrollReveal>
             ))}
-          </Row>
-          <ScrollReveal animation="fade-in-up" delay={200}>
-            <div style={{ textAlign: 'center', marginTop: 32 }}>
-              <Button size="large" className="marketing-btn marketing-btn--ghost" onClick={() => navigate('/features')}>
-                View full feature comparison →
-              </Button>
-            </div>
-          </ScrollReveal>
+          </div>
+          <p className="marketing-platform-footnote">
+            <button type="button" className="marketing-products-links__btn" onClick={() => navigate('/security')}>
+              Learn about security & compliance →
+            </button>
+          </p>
         </div>
       </section>
 
-      <section className="marketing-section marketing-section--white" style={{ background: '#FFFFFF', padding: '64px 0' }}>
-        <div className="marketing-section__inner" style={{ maxWidth: 960 }}>
+      <section className="marketing-section marketing-section--white marketing-section--compact">
+        <div className="marketing-section__inner marketing-section__inner--narrow">
           <ScrollReveal animation="fade-in-up">
             <HomeSectionHeader
-              eyebrow="Setup Configurator"
-              title="Find your ideal setup"
-              titleHighlight="in seconds"
-              subtitle="Select your organizational requirements and our engine will recommend the perfect Saptta configuration."
-              theme="purple"
-              maxWidth={600}
+              eyebrow="Product advisor"
+              title="Not sure where to start?"
+              titleHighlight="We'll recommend a setup"
+              titleHighlightSameLine
+              subtitle="Tell us how your team operates — no sales call required."
+              theme="navy"
+              maxWidth={640}
               isMobile={isMobile}
             />
           </ScrollReveal>
@@ -272,11 +351,6 @@ export default function Products() {
           </ScrollReveal>
         </div>
       </section>
-
-      <CTABanner
-        title="Ready to unify HR & Finance?"
-        subtitle="Start with one product or deploy Saptta Complete — we'll help you migrate securely."
-      />
     </div>
   );
 }

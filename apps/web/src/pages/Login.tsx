@@ -97,8 +97,8 @@ export default function Login() {
 
             <Link to="/pricing">
               <Button block size="large" style={{
-                borderColor: 'rgba(138,43,226,0.3)', color: '#8A2BE2',
-                background: 'rgba(138,43,226,0.06)',
+                borderColor: 'rgba(30,42,120,0.20)', color: '#1E2A78',
+                background: 'rgba(30,42,120,0.06)',
                 fontWeight: 600, height: 48, borderRadius: 8,
                 transition: 'all 0.25s ease',
               }} className="card-hover">

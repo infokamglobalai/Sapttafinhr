@@ -15,10 +15,10 @@ import useBreakpoint from '../hooks/useBreakpoint';
 import { LEGAL_LAST_UPDATED, securitySections } from '../data/legal-pages-data';
 
 const pillars = [
-  { icon: <LockOutlined />, title: 'Encryption', desc: 'TLS in transit and encryption at rest for production data.', color: '#6C3BFF' },
+  { icon: <LockOutlined />, title: 'Encryption', desc: 'TLS in transit and encryption at rest for production data.', color: '#1E2A78' },
   { icon: <SafetyCertificateOutlined />, title: 'Access control', desc: 'RBAC, tenant isolation, and session security.', color: '#1E2A78' },
-  { icon: <AuditOutlined />, title: 'Audit logs', desc: 'Track payroll runs, approvals, and admin changes.', color: '#2BB673' },
-  { icon: <CloudServerOutlined />, title: 'Resilience', desc: 'Backups, monitoring, and incident response.', color: '#2563EB' },
+  { icon: <AuditOutlined />, title: 'Audit logs', desc: 'Track payroll runs, approvals, and admin changes.', color: '#FF6D00' },
+  { icon: <CloudServerOutlined />, title: 'Resilience', desc: 'Backups, monitoring, and incident response.', color: '#1E2A78' },
 ];
 
 export default function SecurityPage() {
@@ -27,7 +27,7 @@ export default function SecurityPage() {
 
   return (
     <div className="marketing-page">
-      <section className={`marketing-hero${isMobile ? ' marketing-hero--stacked' : ''}`} style={{ background: 'linear-gradient(135deg, #F5F3FF 0%, #EEF4FF 50%, #FFFFFF 100%)' }}>
+      <section className={`marketing-hero${isMobile ? ' marketing-hero--stacked' : ''}`} style={{ background: 'linear-gradient(135deg, #FFFFFF 0%, #F8FAFF 55%, rgba(255,109,0,0.08) 100%)' }}>
         <div className="marketing-hero__inner marketing-hero__inner--split">
           <ScrollReveal animation="fade-in-left">
             <HomeSectionHeader

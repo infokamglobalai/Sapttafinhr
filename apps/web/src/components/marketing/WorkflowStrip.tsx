@@ -7,10 +7,10 @@ interface WorkflowStripProps {
 
 export default function WorkflowStrip({ title, steps }: WorkflowStripProps) {
   return (
-    <section className="marketing-section marketing-section--white marketing-workflow">
+    <section className="marketing-section marketing-section--muted marketing-workflow">
       <div className="marketing-section__inner">
         <ScrollReveal animation="fade-in-up">
-          <h3 className="marketing-workflow__title">{title}</h3>
+          <p className="marketing-workflow__eyebrow">{title}</p>
           <div className="marketing-workflow__steps">
             {steps.map((step, i) => (
               <div key={step.label} className="marketing-workflow__step">
