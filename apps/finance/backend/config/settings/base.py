@@ -192,6 +192,10 @@ SSO_SHARED_SECRET = env("SSO_SHARED_SECRET", default="")
 # HR workspace provisioning at signup. Empty disables auto-provisioning.
 HR_INTERNAL_BASE_URL = env("HR_INTERNAL_BASE_URL", default="http://hr-backend:8000")
 
+# ===== AI (Anthropic Claude) =====
+# Get your key at https://console.anthropic.com
+ANTHROPIC_API_KEY = env("ANTHROPIC_API_KEY", default="")
+
 # ===== Billing (payment gateway) =====
 RAZORPAY_KEY_ID = env("RAZORPAY_KEY_ID", default="")
 RAZORPAY_KEY_SECRET = env("RAZORPAY_KEY_SECRET", default="")

@@ -252,3 +252,6 @@ AI_FEATURES_ENABLED = bool(ANTHROPIC_API_KEY)
 # ---------------------------------------------------------------------------
 SSO_SHARED_SECRET = config("SSO_SHARED_SECRET", default="")
 SSO_TOKEN_MAX_AGE_SECONDS = config("SSO_TOKEN_MAX_AGE_SECONDS", default=120, cast=int)
+
+# AI (Anthropic Claude) — get key at https://console.anthropic.com
+ANTHROPIC_API_KEY = config("ANTHROPIC_API_KEY", default="")
