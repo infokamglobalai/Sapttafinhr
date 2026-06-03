@@ -35,12 +35,16 @@ export default function Signup() {
         planId: selectedPlanId,
         companyName: values.companyName,
       });
-      // Pay-first: the workspace exists but has no access yet. Send the admin to
-      // checkout, not into the product (which would 403 until payment).
-      message.success('Account created! Choose a plan to activate your workspace.');
-      navigate('/app/billing');
-    } catch {
-      message.error('Something went wrong. Please try again.');
+      // In dev mode the backend activates the subscription immediately, so go
+      // straight to the product switcher. In production send to billing first.
+      message.success('Account created! Welcome to Saptta.');
+      navigate(import.meta.env.DEV ? '/app' : '/app/billing');
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error && err.message
+          ? err.message
+          : 'Something went wrong. Please try again.';
+      message.error(msg);
     }
   };
 

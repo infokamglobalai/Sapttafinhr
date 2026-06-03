@@ -63,24 +63,29 @@ class Command(BaseCommand):
         )
 
         plan, _ = Plan.objects.get_or_create(
-            code="dev-fin",
+            code="dev-complete",
             defaults={
-                "name": "Development FIN",
-                "description": "Local development FIN subscription",
+                "name": "Development Complete",
+                "description": "Local development — FIN + HR",
                 "monthly_price": 0,
                 "annual_price": 0,
-                "features": {"products": [ProductCode.FIN]},
+                "features": {"products": [ProductCode.FIN, ProductCode.HR]},
             },
         )
-        subscription, _ = Subscription.objects.get_or_create(
+        subscription, created = Subscription.objects.get_or_create(
             tenant=acme,
             defaults={"plan": plan, "status": Subscription.Status.ACTIVE},
         )
-        SubscriptionEntitlement.objects.update_or_create(
-            subscription=subscription,
-            product=ProductCode.FIN,
-            defaults={"status": SubscriptionEntitlement.Status.ACTIVE},
-        )
+        if not created:
+            subscription.status = Subscription.Status.ACTIVE
+            subscription.plan = plan
+            subscription.save(update_fields=["status", "plan", "updated_at"])
+        for product in [ProductCode.FIN, ProductCode.HR]:
+            SubscriptionEntitlement.objects.update_or_create(
+                subscription=subscription,
+                product=product,
+                defaults={"status": SubscriptionEntitlement.Status.ACTIVE},
+            )
 
         # 3. Superuser (lives in public/shared)
         if not User.objects.filter(email="admin@acme.test").exists():

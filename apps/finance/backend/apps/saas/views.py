@@ -29,9 +29,14 @@ class PlanViewSet(viewsets.ModelViewSet):
 
 
 class SubscriptionViewSet(viewsets.ModelViewSet):
-    queryset = Subscription.objects.select_related("tenant", "plan").prefetch_related("entitlements").all()
     serializer_class = SubSer
     filterset_fields = ("status",)
+
+    def get_queryset(self):
+        qs = Subscription.objects.select_related("tenant", "plan").prefetch_related("entitlements").order_by("id")
+        if self.request.user.is_staff:
+            return qs
+        return qs.filter(tenant__billing_email__iexact=self.request.user.email)
 
 
 class SubscriptionEntitlementViewSet(viewsets.ModelViewSet):

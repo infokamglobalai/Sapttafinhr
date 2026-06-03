@@ -34,6 +34,20 @@ export function openFinanceApp(workspace?: string): void {
   window.location.assign(url);
 }
 
+/** Open Finance in a new tab with ?install=1 so it shows the PWA install prompt. */
+export function installFinanceApp(workspace?: string): void {
+  const base = financeAppUrl(workspace);
+  const access = getAccessToken();
+  const refresh = getRefreshToken();
+  const handoff = access && refresh ? `handoff=${access}~${refresh}&` : '';
+  window.open(`${base}/?${handoff}install=1`, '_blank');
+}
+
+/** Open HR in a new tab with ?install=1 so it shows the PWA install prompt. */
+export function installHrApp(): void {
+  window.open(`${hrUrl('/')}?install=1`, '_blank');
+}
+
 /**
  * Open the real HR product, signed in via the SSO handoff (FIN JWT → HR Django
  * session). Falls back to HR's own login if SSO is unavailable.

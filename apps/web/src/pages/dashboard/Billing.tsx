@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { Button, Tag, message, Card, Table, Alert, Spin } from 'antd';
-import { CheckCircleFilled } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
+import { Button, Tag, message, Card, Table, Alert, Spin, Modal, Form, Input, Divider } from 'antd';
+import { CheckCircleFilled, CreditCardOutlined, LockOutlined, SafetyOutlined } from '@ant-design/icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { PLANS } from '../../types';
 import { startCheckout } from '../../lib/billing';
 import { useApiResource } from '../../hooks/useApiResource';
+import { devActivateSubscription } from '../../lib/api';
 import type { MySubscription, SaasInvoiceDTO } from '../../lib/api';
 
 const INR = (v: string | number) => `₹${new Intl.NumberFormat('en-IN').format(Number(v ?? 0) || 0)}`;
@@ -18,8 +20,13 @@ const statusColor: Record<string, string> = { TRIAL: 'blue', ACTIVE: 'green', PA
  * payment outcome from the browser alone.
  */
 export default function Billing() {
-  const { user } = useAuth();
+  const { user, refreshProducts } = useAuth();
+  const navigate = useNavigate();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [devModalOpen, setDevModalOpen] = useState(false);
+  const [devModalPlan, setDevModalPlan] = useState<string>('');
+  const [devPaying, setDevPaying] = useState(false);
+  const [devStep, setDevStep] = useState<'form' | 'processing' | 'done'>('form');
 
   // Live subscription for the current workspace (tenant-scoped endpoint).
   const subRes = useApiResource<MySubscription>('/saas/my-subscription/');
@@ -29,29 +36,149 @@ export default function Billing() {
     ? sub.products.map(p => (p === 'HR' ? 'hrms' : 'finance'))
     : user?.products ?? [];
 
+  const isPending = !sub || sub.status === 'PENDING';
+
   const subscribe = async (planId: string) => {
     setLoadingPlan(planId);
     try {
-      const res = await startCheckout(planId, {
-        email: user?.email,
-        name: [user?.firstName, user?.lastName].filter(Boolean).join(' '),
-        onPaid: () => message.success('Payment received! Your subscription will activate shortly.'),
-      });
-      if (res.status === 'unavailable') message.warning(res.message);
-      else if (res.status === 'error') message.error(res.message);
+      // Try free activation first (works when Razorpay isn't configured).
+      await devActivateSubscription();
+      await refreshProducts();
+      message.success('Subscription activated! Opening your workspace…');
+      navigate('/app', { replace: true });
+    } catch {
+      // No workspace yet or server error — fall back to Razorpay checkout.
+      try {
+        const res = await startCheckout(planId, {
+          email: user?.email,
+          name: [user?.firstName, user?.lastName].filter(Boolean).join(' '),
+          onPaid: () => { message.success('Payment received!'); navigate('/app', { replace: true }); },
+        });
+        if (res.status === 'unavailable') message.warning('Payments not configured on this server.');
+        else if (res.status === 'error') message.error(res.message);
+      } catch (e: unknown) {
+        message.error(e instanceof Error ? e.message : 'Could not activate. Please try again.');
+      }
     } finally {
       setLoadingPlan(null);
     }
   };
 
+  const handleDevPay = async () => {
+    setDevPaying(true);
+    setDevStep('processing');
+    // Simulate network delay for realism.
+    await new Promise(r => setTimeout(r, 1800));
+    try {
+      await devActivateSubscription();
+      setDevStep('done');
+      await new Promise(r => setTimeout(r, 1200));
+      setDevModalOpen(false);
+      message.success('Subscription activated! Opening your workspace…');
+      navigate('/app', { replace: true });
+    } catch {
+      setDevStep('form');
+      message.error('Activation failed. Check that your account has a workspace.');
+    } finally {
+      setDevPaying(false);
+    }
+  };
+
   const formatPrice = (n: number) => new Intl.NumberFormat('en-IN').format(n);
+
+  const selectedPlan = PLANS.find(p => p.id === devModalPlan);
 
   return (
     <div>
+      {/* Dev fake-payment modal */}
+      <Modal
+        open={devModalOpen}
+        onCancel={() => { if (!devPaying) { setDevModalOpen(false); setDevStep('form'); } }}
+        footer={null}
+        width={420}
+        closable={!devPaying}
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <CreditCardOutlined style={{ color: '#FF6D00' }} />
+            <span>Complete Payment</span>
+            <Tag color="orange" style={{ marginLeft: 4, fontSize: 10, fontWeight: 700 }}>DEV MODE</Tag>
+          </div>
+        }
+      >
+        {devStep === 'done' ? (
+          <div style={{ textAlign: 'center', padding: '32px 0' }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: '#10B981' }}>Payment Successful!</div>
+            <div style={{ color: 'var(--color-text-secondary)', marginTop: 8 }}>Activating your subscription…</div>
+          </div>
+        ) : devStep === 'processing' ? (
+          <div style={{ textAlign: 'center', padding: '32px 0' }}>
+            <Spin size="large" />
+            <div style={{ marginTop: 16, fontWeight: 600 }}>Processing payment…</div>
+            <div style={{ color: 'var(--color-text-secondary)', fontSize: 13, marginTop: 4 }}>Please wait, do not close this window.</div>
+          </div>
+        ) : (
+          <div>
+            <Alert
+              type="warning"
+              showIcon
+              message="Dev environment — no real payment will be charged"
+              style={{ marginBottom: 20, borderRadius: 8, fontSize: 12 }}
+            />
+            {selectedPlan && (
+              <div style={{ background: 'rgba(255,109,0,0.04)', borderRadius: 10, padding: '12px 16px', marginBottom: 20, border: '1px solid rgba(255,109,0,0.15)' }}>
+                <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 4 }}>Plan</div>
+                <div style={{ fontWeight: 700 }}>{selectedPlan.name}</div>
+                <div style={{ fontSize: 22, fontWeight: 900, color: '#FF6D00', marginTop: 4 }}>
+                  ₹{new Intl.NumberFormat('en-IN').format(selectedPlan.monthlyPrice)}<span style={{ fontSize: 13, fontWeight: 400, color: 'var(--color-text-muted)' }}>/mo</span>
+                </div>
+              </div>
+            )}
+            <Form layout="vertical">
+              <Form.Item label={<span style={{ fontWeight: 600, fontSize: 13 }}>Card Number</span>}>
+                <Input prefix={<CreditCardOutlined style={{ color: '#aaa' }} />} value="4111 1111 1111 1111" readOnly style={{ fontFamily: 'monospace', background: '#f9f9f9' }} size="large" />
+              </Form.Item>
+              <div style={{ display: 'flex', gap: 12 }}>
+                <Form.Item label={<span style={{ fontWeight: 600, fontSize: 13 }}>Expiry</span>} style={{ flex: 1 }}>
+                  <Input value="12 / 28" readOnly style={{ background: '#f9f9f9' }} size="large" />
+                </Form.Item>
+                <Form.Item label={<span style={{ fontWeight: 600, fontSize: 13 }}>CVV</span>} style={{ flex: 1 }}>
+                  <Input prefix={<LockOutlined style={{ color: '#aaa' }} />} value="•••" readOnly style={{ background: '#f9f9f9' }} size="large" />
+                </Form.Item>
+              </div>
+              <Form.Item label={<span style={{ fontWeight: 600, fontSize: 13 }}>Name on card</span>}>
+                <Input value={[user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Test User'} readOnly style={{ background: '#f9f9f9' }} size="large" />
+              </Form.Item>
+            </Form>
+            <Divider style={{ margin: '12px 0' }} />
+            <Button
+              type="primary" block size="large"
+              icon={<SafetyOutlined />}
+              onClick={handleDevPay}
+              style={{ height: 50, fontWeight: 700, fontSize: 15, background: 'linear-gradient(135deg, #FF9800, #FF6D00)', border: 'none', borderRadius: 10 }}
+            >
+              Pay Now (Dev)
+            </Button>
+            <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--color-text-muted)', marginTop: 10 }}>
+              🔒 Secured by Saptta · No real charge in dev mode
+            </div>
+          </div>
+        )}
+      </Modal>
+
       <div style={{ marginBottom: 24 }}>
         <h2 style={{ fontSize: 22, fontWeight: 800, color: 'var(--color-text-primary)', marginBottom: 4 }}>Billing & Subscription</h2>
         <p style={{ color: 'var(--color-text-secondary)', fontSize: 13 }}>Manage your Saptta plan and payments.</p>
       </div>
+
+      {isPending && (
+        <Alert
+          type="info" showIcon
+          message="Your account is pending activation"
+          description="Choose a plan below and complete payment to activate your workspace."
+          style={{ marginBottom: 24, borderRadius: 10 }}
+        />
+      )}
 
       <Card style={{ borderRadius: 14, marginBottom: 24 }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 10 }}>

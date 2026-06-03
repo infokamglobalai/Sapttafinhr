@@ -6,6 +6,7 @@ import AppShell from '@/app/AppShell';
 import SetupGate from '@/features/setup/SetupGate';
 import { api } from '@/lib/api';
 import { ConfirmHost } from '@/components/ConfirmDialog';
+import InstallPrompt from '@/components/InstallPrompt';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { refetchOnWindowFocus: false, staleTime: 30_000 } },
@@ -55,8 +56,11 @@ export default function App() {
     return <div className="flex min-h-screen items-center justify-center text-slate-400">Loading…</div>;
   }
 
+  const wantsInstall = new URLSearchParams(window.location.search).get('install') === '1';
+
   return (
     <QueryClientProvider client={queryClient}>
+      {wantsInstall && <InstallPrompt appName="fin-saptta" color="#10B981" />}
       {accessToken && user
         ? <SetupGate><AppShell /></SetupGate>
         : <LoginPage onSuccess={() => setBootstrapped(true)} />}

@@ -4,7 +4,7 @@ import {
   Package, Receipt, Scale, TrendingUp, Users, FileMinus, Wallet, BookText,
   ShoppingCart, Truck, FileInput, Landmark, Calendar, Warehouse, Boxes,
   Building2, ReceiptText, CalendarDays, Settings, FileCheck2,
-  BarChart3, Briefcase, BookCopy, ChevronRight, Plus, Menu, X as XIcon, Webhook, Share2, Hash,
+  BarChart3, Briefcase, BookCopy, ChevronRight, Plus, Menu, X as XIcon, Webhook, Share2, Hash, UserCircle2,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { cn } from '@/lib/cn';
@@ -54,6 +54,7 @@ import ConsolidationPage from '@/features/reports/ConsolidationPage';
 import PortalAccessPage from '@/features/portal/PortalAccessPage';
 import NotificationBell from '@/features/notifications/NotificationBell';
 import NumberSeriesPage from '@/features/settings/NumberSeriesPage';
+import TeamPage from '@/features/team/TeamPage';
 
 type RouteId =
   | 'dashboard'
@@ -67,7 +68,8 @@ type RouteId =
   | 'pnl' | 'balance-sheet' | 'cash-flow' | 'day-book' | 'party-ledger'
   | 'ar-aging' | 'sales-register' | 'hsn-summary' | 'gstr-export' | 'audit-log'
   | 'budget-vs-actual' | 'cost-center-pnl' | 'consolidation'
-  | 'settings' | 'company-profile' | 'api-keys' | 'webhooks' | 'number-series';
+  | 'settings' | 'company-profile' | 'api-keys' | 'webhooks' | 'number-series'
+  | 'team';
 
 interface SubItem { id: RouteId; label: string; icon: LucideIcon; description?: string; }
 
@@ -140,6 +142,8 @@ const SECTIONS: Section[] = [
     { id: 'audit-log', label: 'Audit Log', icon: BookText, description: 'Edits to financial records' },
     { id: 'gstr-export', label: 'GSTR-1 / 3B Export', icon: FileText, description: 'Download JSON for offline filing' },
   ]},
+
+  { id: 'team', label: 'Team', icon: UserCircle2, direct: 'team' },
 
   { id: 'settings', label: 'Settings', icon: Settings, children: [
     { id: 'company-profile', label: 'Company Profile', icon: Settings, description: 'GSTIN, address, branding' },
@@ -383,6 +387,7 @@ export default function AppShell() {
           {route === 'budget-vs-actual' && <BudgetVsActualPage />}
           {route === 'cost-center-pnl' && <CostCenterPnLPage />}
           {route === 'consolidation' && <ConsolidationPage />}
+          {route === 'team' && <TeamPage />}
         </main>
       </div>
 

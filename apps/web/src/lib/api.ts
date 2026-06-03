@@ -373,9 +373,9 @@ interface SubscriptionDTO {
   entitlements?: EntitlementDTO[];
 }
 
-// Pay-first: only a paid (ACTIVE) subscription/entitlement counts as owned.
-// PENDING (signed up, unpaid) and TRIAL (legacy) do NOT grant product access.
-const ACTIVE_STATUSES = new Set(['ACTIVE']);
+// ACTIVE = paid subscription. TRIAL = legacy rows from before pay-first (keep access).
+// PENDING (signed up, unpaid) does NOT grant product access.
+const ACTIVE_STATUSES = new Set(['ACTIVE', 'TRIAL']);
 
 /**
  * Best-effort: derive the active product slugs for the current user.
@@ -406,6 +406,12 @@ export async function fetchProducts(): Promise<ProductSlug[] | null> {
   } catch {
     return null;
   }
+}
+
+// ─── Dev-only helpers ─────────────────────────────────────────────────────
+/** Instantly activate the current user's subscription (DEBUG=True only). */
+export function devActivateSubscription(): Promise<{ status: string; workspace: string }> {
+  return request('/saas/dev/activate/', { surface: 'platform', method: 'POST' });
 }
 
 // ─── Generic tenant resource helpers (for wiring FIN dashboard pages) ─────

@@ -82,16 +82,28 @@ Operations</textarea>
 
       <div class="card">
         <span class="steplbl">Step 4</span>
-        <h2>Add employees</h2>
-        <p class="hint">Add your first employees now (you can bulk-import more later). Code, first name and joining date are required.</p>
+        <h2>Add employees &amp; create login accounts</h2>
+        <p class="hint">Add your team now. <strong>Email is required</strong> — a login account will be created for each employee so they can access HR self-service. You can bulk-import more later.</p>
+        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 14px;font-size:12px;color:#166534;margin-bottom:14px">
+          🔑 Login credentials (email + temporary password) will be displayed on the next page for you to share with employees.
+        </div>
         <div id="emps">
           <div class="grid-emp">
             <div><label>Emp code</label><input name="emp_code[]" placeholder="EMP001" /></div>
-            <div><label>First name</label><input name="emp_first[]" /></div>
+            <div><label>First name *</label><input name="emp_first[]" required /></div>
             <div><label>Last name</label><input name="emp_last[]" /></div>
-            <div><label>Joining date</label><input name="emp_doj[]" type="date" /></div>
-            <div><label>Dept / Email</label><input name="emp_dept[]" placeholder="Department" />
-              <input name="emp_email[]" placeholder="email (optional)" style="margin-top:4px" /></div>
+            <div><label>Joining date *</label><input name="emp_doj[]" type="date" required /></div>
+            <div>
+              <label>Department</label><input name="emp_dept[]" placeholder="Engineering" />
+              <label style="margin-top:6px">Email * (for login)</label>
+              <input name="emp_email[]" type="email" placeholder="ravi@company.com" style="margin-top:2px" />
+              <label style="margin-top:6px">Role</label>
+              <select name="emp_role[]" style="margin-top:2px">
+                <option value="employee">Employee</option>
+                <option value="manager">Manager</option>
+                <option value="hr_admin">HR Admin</option>
+              </select>
+            </div>
           </div>
         </div>
         <button type="button" class="btn-add" onclick="addEmp()">+ Add another employee</button>
@@ -114,12 +126,16 @@ Operations</textarea>
     function addEmp() {
       const w = document.getElementById('emps');
       const d = document.createElement('div'); d.className = 'grid-emp';
-      d.innerHTML = '<div><label>Emp code</label><input name="emp_code[]" placeholder="EMP002"/></div>'
-        + '<div><label>First name</label><input name="emp_first[]"/></div>'
+      d.innerHTML = '<div><label>Emp code</label><input name="emp_code[]"/></div>'
+        + '<div><label>First name *</label><input name="emp_first[]"/></div>'
         + '<div><label>Last name</label><input name="emp_last[]"/></div>'
-        + '<div><label>Joining date</label><input name="emp_doj[]" type="date"/></div>'
-        + '<div><label>Dept / Email</label><input name="emp_dept[]" placeholder="Department"/>'
-        + '<input name="emp_email[]" placeholder="email (optional)" style="margin-top:4px"/></div>';
+        + '<div><label>Joining date *</label><input name="emp_doj[]" type="date"/></div>'
+        + '<div><label>Department</label><input name="emp_dept[]" placeholder="Engineering"/>'
+        + '<label style="margin-top:6px">Email * (for login)</label>'
+        + '<input name="emp_email[]" type="email" placeholder="name@company.com" style="margin-top:2px"/>'
+        + '<label style="margin-top:6px">Role</label>'
+        + '<select name="emp_role[]" style="margin-top:2px"><option value="employee">Employee</option>'
+        + '<option value="manager">Manager</option><option value="hr_admin">HR Admin</option></select></div>';
       w.appendChild(d);
     }
   </script>

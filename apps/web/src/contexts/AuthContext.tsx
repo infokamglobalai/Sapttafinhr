@@ -5,6 +5,7 @@ import {
   signup as apiSignup,
   fetchMe,
   fetchProducts,
+  devActivateSubscription,
   getAccessToken,
   getWorkspace,
   clearAuth,
@@ -42,6 +43,7 @@ interface AuthContextValue extends AuthState {
   signup: (data: SignupData) => Promise<void>;
   logout: () => void;
   updateUser: (updates: Partial<User>) => void;
+  refreshProducts: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -98,10 +100,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string, workspace?: string) => {
     setIsLoading(true);
     try {
-      // apiLogin persists the workspace the backend resolved for this user.
       const res = await apiLogin(email, password, workspace);
       const resolvedWs = workspace ?? res.workspace ?? getWorkspace();
-      const [me, products] = await Promise.all([fetchMe(), fetchProducts()]);
+      const [me, rawProducts] = await Promise.all([fetchMe(), fetchProducts()]);
+
+      // Dev mode: if no active products (PENDING subscription), auto-activate
+      // so testing is always free — no billing page required.
+      let products = rawProducts;
+      if (import.meta.env.DEV && (!products || products.length === 0)) {
+        try {
+          await devActivateSubscription();
+          products = await fetchProducts();
+        } catch { /* no workspace yet — leave products empty */ }
+      }
+
       setUser(toAppUser(me, products ?? [], resolvedWs));
       setToken(res.access);
     } finally {
@@ -134,6 +146,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const refreshProducts = async () => {
+    const products = await fetchProducts();
+    if (products && products.length > 0) {
+      setUser(prev => prev ? { ...prev, products } : prev);
+    }
+  };
+
   const logout = () => {
     clearAuth();
     setWorkspace(null);
@@ -156,6 +175,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signup,
         logout,
         updateUser,
+        refreshProducts,
       }}
     >
       {children}

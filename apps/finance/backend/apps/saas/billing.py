@@ -26,6 +26,7 @@ from datetime import date, timedelta
 
 from django.conf import settings
 from rest_framework import status
+from .models import ProductCode
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -231,6 +232,56 @@ class CreateOrderView(APIView):
             },
             status=status.HTTP_201_CREATED,
         )
+
+
+class DevActivateView(APIView):
+    """POST /api/v1/saas/dev/activate/ — instantly activate the current user's subscription.
+
+    Only enabled when DEBUG=True. Calls the same activate_subscription_for_tenant
+    helper the real webhook uses, so the subscription + entitlements flip to ACTIVE
+    exactly as they would after a successful Razorpay payment.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        if not settings.DEBUG:
+            return Response({"detail": "Not available."}, status=status.HTTP_404_NOT_FOUND)
+
+        from apps.core.models import Tenant
+
+        tenant = (
+            Tenant.objects.exclude(schema_name="public")
+            .filter(billing_email__iexact=request.user.email)
+            .order_by("created_on")
+            .first()
+        )
+        if not tenant:
+            return Response(
+                {"detail": "No workspace found for this account."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        activated = activate_subscription_for_tenant(tenant.schema_name, period_days=30)
+        if not activated:
+            return Response(
+                {"detail": "No subscription found for this workspace."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # In dev mode, always ensure both FIN and HR entitlements are active so
+        # the product switcher shows both products without requiring plan upgrade.
+        from .models import Subscription, SubscriptionEntitlement  # noqa: F811
+        sub = Subscription.objects.filter(tenant=tenant).first()
+        if sub:
+            for product in (ProductCode.FIN, ProductCode.HR):
+                SubscriptionEntitlement.objects.update_or_create(
+                    subscription=sub,
+                    product=product,
+                    defaults={"status": SubscriptionEntitlement.Status.ACTIVE},
+                )
+
+        return Response({"status": "activated", "workspace": tenant.schema_name})
 
 
 class WebhookView(APIView):

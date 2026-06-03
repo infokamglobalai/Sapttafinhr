@@ -17,6 +17,7 @@ effect of saving the Tenant, which does not compose with an outer transaction.
 from __future__ import annotations
 
 import re
+from datetime import date, timedelta
 
 from django.conf import settings
 from django.db import IntegrityError
@@ -125,34 +126,44 @@ class SignupView(APIView):
                 status=status.HTTP_409_CONFLICT,
             )
 
-        # 3) Subscription + per-product entitlements — PENDING (no free trial).
-        #    The workspace is provisioned but grants NO product access until a
-        #    successful payment flips it to ACTIVE (billing webhook). The user is
-        #    routed to checkout, not into the product.
+        # 3) Subscription + per-product entitlements.
+        #    In DEBUG (dev/test) mode: immediately ACTIVE — no payment required.
+        #    In production: PENDING until the billing webhook activates it.
+        from django.conf import settings as _settings
+        from datetime import date, timedelta
+        _dev = getattr(_settings, "DEBUG", False)
+        _sub_status = Subscription.Status.ACTIVE if _dev else Subscription.Status.PENDING
+        _ent_status = SubscriptionEntitlement.Status.ACTIVE if _dev else SubscriptionEntitlement.Status.PENDING
+
         plan, _ = Plan.objects.get_or_create(
             code=data.get("plan_id") or "saptta-complete",
             defaults={"name": data.get("plan_id") or "Saptta Complete"},
         )
         sub, _ = Subscription.objects.get_or_create(
             tenant=tenant,
-            defaults={"plan": plan, "status": Subscription.Status.PENDING},
+            defaults={
+                "plan": plan,
+                "status": _sub_status,
+                "current_period_start": date.today() if _dev else None,
+                "current_period_end": date.today() + timedelta(days=365) if _dev else None,
+            },
         )
-        for product in products:
+        # Always grant both FIN and HR in dev so the product switcher shows both.
+        _all_products = list(dict.fromkeys(products + ([ProductCode.FIN, ProductCode.HR] if _dev else [])))
+        for product in _all_products:
             SubscriptionEntitlement.objects.update_or_create(
                 subscription=sub,
                 product=product,
-                defaults={"status": SubscriptionEntitlement.Status.PENDING},
+                defaults={"status": _ent_status},
             )
 
         # 4) Company + COA + fiscal year inside the new tenant schema.
         if ProductCode.FIN in products:
             self._seed_finance(schema_name, data["company_name"])
 
-        # 4b) If the plan includes HR, provision the HR workspace too (the HR
-        #     backend is a separate service — call its internal endpoint). The
-        #     user will SSO into it from the app shell. Best-effort: a billing
-        #     success must not be undone by an HR outage; failures are logged.
-        if ProductCode.HR in products:
+        # 4b) Provision the HR workspace (separate backend service).
+        #     In dev mode always provision HR so both products work out of the box.
+        if ProductCode.HR in _all_products:
             self._provision_hr(
                 name=data["company_name"], subdomain=schema_name, email=data["email"]
             )
@@ -173,7 +184,7 @@ class SignupView(APIView):
                 "access": str(refresh.access_token),
                 "refresh": str(refresh),
                 "workspace": schema_name,
-                "products": [PRODUCT_TO_SLUG[p] for p in products],
+                "products": [PRODUCT_TO_SLUG[p] for p in _all_products if p in PRODUCT_TO_SLUG],
                 "user": {"id": user.id, "email": user.email, "full_name": user.full_name},
             },
             status=status.HTTP_201_CREATED,
@@ -196,7 +207,10 @@ class SignupView(APIView):
 
             requests.post(
                 f"{base.rstrip('/')}/internal/provision/",
-                headers={"Authorization": f"Bearer {secret}"},
+                headers={
+                    "Authorization": f"Bearer {secret}",
+                    "Host": "localhost",  # HR's ALLOWED_HOSTS only accepts localhost
+                },
                 json={"name": name, "subdomain": subdomain, "email": email},
                 timeout=15,
             )

@@ -48,8 +48,8 @@ class Subscription(TimeStampedModel):
 
     @property
     def is_commercially_active(self) -> bool:
-        # No free trials: only a paid (ACTIVE) subscription grants product access.
-        return self.status == self.Status.ACTIVE
+        # ACTIVE = paid; TRIAL = legacy rows from before pay-first (keep access).
+        return self.status in (self.Status.ACTIVE, self.Status.TRIAL)
 
     def allows_product(self, product_code: str) -> bool:
         """Return True when this subscription includes an active product seat."""
@@ -82,8 +82,8 @@ class SubscriptionEntitlement(TimeStampedModel):
         SUSPENDED = "SUSPENDED", "Suspended"
         CANCELLED = "CANCELLED", "Cancelled"
 
-    # No free trials: only paid (ACTIVE) seats count as access.
-    ACTIVE_STATUSES = (Status.ACTIVE,)
+    # ACTIVE = paid; TRIAL = legacy rows from before pay-first (keep access).
+    ACTIVE_STATUSES = (Status.ACTIVE, Status.TRIAL)
 
     subscription = models.ForeignKey(
         Subscription, on_delete=models.CASCADE, related_name="entitlements"
