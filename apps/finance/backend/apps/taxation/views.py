@@ -1,14 +1,14 @@
 from datetime import date as _date
 
-from rest_framework import status, viewsets
+from django.db.models import Q, Sum
+from rest_framework import serializers, status, viewsets
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.billing.models import Invoice
 
-from rest_framework import serializers
-from .models import EInvoiceIRN, EWayBill, GSTR2BLine, TDSDeduction, TDS_DEFAULT_RATES
+from .models import TDSDeduction, TDS_DEFAULT_RATES, TDS_SECTIONS
 from . import services
 
 
@@ -87,7 +87,7 @@ class TDSDeductionSerializer(serializers.ModelSerializer):
     class Meta:
         model = TDSDeduction
         fields = [
-            "id", "vendor_bill", "vendor_bill_no", "vendor_name",
+            "id", "company", "vendor_bill", "vendor_bill_no", "vendor_name",
             "section", "rate", "base_amount", "tds_amount",
             "deduction_date", "pan", "fy", "quarter",
             "challan_no", "deposited_date", "is_deposited", "notes",
@@ -122,7 +122,6 @@ class TDSViewSet(viewsets.ModelViewSet):
 class TDSSectionsView(APIView):
     """Return TDS sections list with default rates."""
     def get(self, request):
-        from .models import TDS_SECTIONS
         return Response([
             {"code": code, "label": label, "default_rate": TDS_DEFAULT_RATES.get(code, "0")}
             for code, label in TDS_SECTIONS
@@ -139,11 +138,10 @@ class TDSSummaryView(APIView):
         qs = TDSDeduction.objects.filter(company_id=cid)
         if fy:
             qs = qs.filter(fy=fy)
-        from django.db.models import Sum
         summary = qs.values("section", "quarter").annotate(
             total_base=Sum("base_amount"),
             total_tds=Sum("tds_amount"),
-            total_deposited=Sum("tds_amount", filter=__import__("django.db.models", fromlist=["Q"]).Q(is_deposited=True)),
+            total_deposited=Sum("tds_amount", filter=Q(is_deposited=True)),
         ).order_by("quarter", "section")
         total = qs.aggregate(t=Sum("tds_amount"))
         deposited = qs.filter(is_deposited=True).aggregate(t=Sum("tds_amount"))

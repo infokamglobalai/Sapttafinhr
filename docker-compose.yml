@@ -114,6 +114,12 @@ services:
       SECRET_KEY: ${HR_SECRET_KEY:-insecure-dev-hr-key-change-me}
       DEBUG: "True"
       ALLOWED_HOSTS: localhost,127.0.0.1,hr-backend
+      # DB vars expected by python-decouple in HR settings
+      DB_NAME: ${POSTGRES_DB:-finsaptta}
+      DB_USER: ${POSTGRES_USER:-finsaptta}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-finsaptta}
+      DB_HOST: db
+      DB_PORT: "5432"
       # HR resolves the tenant from the logged-in user when host is localhost.
       SUPERADMIN_DOMAIN: localhost
       TENANT_DOMAIN: localhost
@@ -123,6 +129,9 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
     volumes:
       - ./apps/hr:/app
+    depends_on:
+      db:
+        condition: service_healthy
     # Override the prod gunicorn CMD: migrate then run the dev server.
     command: >
       sh -c "python manage.py migrate &&

@@ -85,75 +85,91 @@ interface Section {
 const SECTIONS: Section[] = [
   { id: 'dashboard', label: 'Home', icon: LayoutDashboard, direct: 'dashboard' },
 
-  { id: 'masters', label: 'Masters', icon: BookCopy, children: [
-    { id: 'parties', label: 'Customers & Vendors', icon: Users, description: 'People you sell to and buy from' },
-    { id: 'items', label: 'Items', icon: Package, description: 'Products and services you trade' },
-    { id: 'cost-centers', label: 'Cost Centers', icon: BookCopy, description: 'Tag JE lines for cost slicing' },
-    { id: 'projects', label: 'Projects', icon: Briefcase, description: 'Group expenses + revenue by project' },
-  ]},
+  {
+    id: 'masters', label: 'Masters', icon: BookCopy, children: [
+      { id: 'parties', label: 'Customers & Vendors', icon: Users, description: 'People you sell to and buy from' },
+      { id: 'items', label: 'Items', icon: Package, description: 'Products and services you trade' },
+      { id: 'cost-centers', label: 'Cost Centers', icon: BookCopy, description: 'Tag JE lines for cost slicing' },
+      { id: 'projects', label: 'Projects', icon: Briefcase, description: 'Group expenses + revenue by project' },
+    ]
+  },
 
-  { id: 'sales', label: 'Sales', icon: TrendingUp, children: [
-    { id: 'quotations', label: 'Quotations', icon: FileCheck2, description: 'Estimates sent to customers' },
-    { id: 'sales-orders', label: 'Sales Orders', icon: ShoppingCart, description: 'Confirmed customer orders' },
-    { id: 'invoices', label: 'Tax Invoices', icon: FileText, description: 'GST invoices with CGST/SGST/IGST' },
-    { id: 'credit-notes', label: 'Credit Notes', icon: FileMinus, description: 'Reverse a posted invoice' },
-    { id: 'receipts', label: 'Customer Receipts', icon: Receipt, description: 'Money received from customers' },
-    { id: 'recurring-invoices', label: 'Recurring Invoices', icon: FileCheck2, description: 'Auto-generate invoices on a schedule' },
-    { id: 'portal-access', label: 'Customer Portal', icon: Share2, description: 'Private links for customers to view their invoices' },
-  ]},
+  {
+    id: 'sales', label: 'Sales', icon: TrendingUp, children: [
+      { id: 'quotations', label: 'Quotations', icon: FileCheck2, description: 'Estimates sent to customers' },
+      { id: 'sales-orders', label: 'Sales Orders', icon: ShoppingCart, description: 'Confirmed customer orders' },
+      { id: 'invoices', label: 'Tax Invoices', icon: FileText, description: 'GST invoices with CGST/SGST/IGST' },
+      { id: 'credit-notes', label: 'Credit Notes', icon: FileMinus, description: 'Reverse a posted invoice' },
+      { id: 'receipts', label: 'Customer Receipts', icon: Receipt, description: 'Money received from customers' },
+      { id: 'recurring-invoices', label: 'Recurring Invoices', icon: FileCheck2, description: 'Auto-generate invoices on a schedule' },
+      { id: 'portal-access', label: 'Customer Portal', icon: Share2, description: 'Private links for customers to view their invoices' },
+    ]
+  },
 
-  { id: 'purchase', label: 'Purchase', icon: Briefcase, children: [
-    { id: 'purchase-orders', label: 'Purchase Orders', icon: ShoppingCart, description: 'POs to vendors' },
-    { id: 'vendor-bills', label: 'Vendor Bills', icon: ReceiptText, description: 'Bills received from vendors' },
-    { id: 'vendor-payments', label: 'Vendor Payments', icon: Truck, description: 'Money paid to vendors' },
-  ]},
+  {
+    id: 'purchase', label: 'Purchase', icon: Briefcase, children: [
+      { id: 'purchase-orders', label: 'Purchase Orders', icon: ShoppingCart, description: 'POs to vendors' },
+      { id: 'vendor-bills', label: 'Vendor Bills', icon: ReceiptText, description: 'Bills received from vendors' },
+      { id: 'vendor-payments', label: 'Vendor Payments', icon: Truck, description: 'Money paid to vendors' },
+    ]
+  },
 
-  { id: 'banking', label: 'Banking', icon: Landmark, children: [
-    { id: 'bank-accounts', label: 'Bank Accounts', icon: Landmark, description: 'Bank and cash accounts' },
-    { id: 'pdcs', label: 'Post-Dated Cheques', icon: CalendarDays, description: 'Track PDCs in and out' },
-    { id: 'reconciliation', label: 'Reconciliation', icon: Landmark, description: 'Match statement lines to ledger' },
-  ]},
+  {
+    id: 'banking', label: 'Banking', icon: Landmark, children: [
+      { id: 'bank-accounts', label: 'Bank Accounts', icon: Landmark, description: 'Bank and cash accounts' },
+      { id: 'pdcs', label: 'Post-Dated Cheques', icon: CalendarDays, description: 'Track PDCs in and out' },
+      { id: 'reconciliation', label: 'Reconciliation', icon: Landmark, description: 'Match statement lines to ledger' },
+    ]
+  },
 
-  { id: 'inventory', label: 'Inventory', icon: Warehouse, children: [
-    { id: 'warehouses', label: 'Warehouses', icon: Warehouse, description: 'Stock locations' },
-    { id: 'stock-movements', label: 'Stock Movements', icon: FileInput, description: 'Every stock in/out' },
-    { id: 'stock-summary', label: 'Stock on Hand', icon: Boxes, description: 'Live inventory snapshot' },
-  ]},
+  {
+    id: 'inventory', label: 'Inventory', icon: Warehouse, children: [
+      { id: 'warehouses', label: 'Warehouses', icon: Warehouse, description: 'Stock locations' },
+      { id: 'stock-movements', label: 'Stock Movements', icon: FileInput, description: 'Every stock in/out' },
+      { id: 'stock-summary', label: 'Stock on Hand', icon: Boxes, description: 'Live inventory snapshot' },
+    ]
+  },
 
   { id: 'assets', label: 'Assets', icon: Building2, direct: 'fixed-assets' },
   { id: 'expenses', label: 'Expenses', icon: FileInput, direct: 'expense-claims' },
 
-  { id: 'ledger', label: 'Ledger', icon: BookOpen, children: [
-    { id: 'manual', label: 'Manual Journal Entry', icon: FilePlus2, description: 'Hand-post a JE' },
-    { id: 'trial-balance', label: 'Trial Balance', icon: BookOpen, description: 'Live balance from all entries' },
-  ]},
+  {
+    id: 'ledger', label: 'Ledger', icon: BookOpen, children: [
+      { id: 'manual', label: 'Manual Journal Entry', icon: FilePlus2, description: 'Hand-post a JE' },
+      { id: 'trial-balance', label: 'Trial Balance', icon: BookOpen, description: 'Live balance from all entries' },
+    ]
+  },
 
-  { id: 'reports', label: 'Reports', icon: BarChart3, children: [
-    { id: 'pnl', label: 'Profit & Loss', icon: TrendingUp, description: 'Income vs Expense' },
-    { id: 'balance-sheet', label: 'Balance Sheet', icon: Scale, description: 'Assets vs Liabilities + Equity' },
-    { id: 'cash-flow', label: 'Cash Flow', icon: Wallet, description: 'Net change in cash + bank' },
-    { id: 'day-book', label: 'Day Book', icon: Calendar, description: 'All entries on one day' },
-    { id: 'party-ledger', label: 'Party Statement', icon: BookText, description: 'Per-customer / vendor ledger' },
-    { id: 'ar-aging', label: 'Receivables Aging', icon: Wallet, description: 'Who owes you and for how long' },
-    { id: 'sales-register', label: 'Sales Register', icon: FileText, description: 'GST-style invoice register' },
-    { id: 'hsn-summary', label: 'HSN Summary', icon: BarChart3, description: 'GSTR-1 HSN-wise outward summary' },
-    { id: 'cost-center-pnl', label: 'P&L by Cost Center', icon: BarChart3, description: 'Income / expense by cost center' },
-    { id: 'budget-vs-actual', label: 'Budget vs Actual', icon: TrendingUp, description: 'Variance per account' },
-    { id: 'consolidation', label: 'Consolidation', icon: BarChart3, description: 'Multi-company P&L sum' },
-    { id: 'audit-log', label: 'Audit Log', icon: BookText, description: 'Edits to financial records' },
-    { id: 'gstr-export', label: 'GSTR-1 / 3B Export', icon: FileText, description: 'Download JSON for offline filing' },
-  ]},
+  {
+    id: 'reports', label: 'Reports', icon: BarChart3, children: [
+      { id: 'pnl', label: 'Profit & Loss', icon: TrendingUp, description: 'Income vs Expense' },
+      { id: 'balance-sheet', label: 'Balance Sheet', icon: Scale, description: 'Assets vs Liabilities + Equity' },
+      { id: 'cash-flow', label: 'Cash Flow', icon: Wallet, description: 'Net change in cash + bank' },
+      { id: 'day-book', label: 'Day Book', icon: Calendar, description: 'All entries on one day' },
+      { id: 'party-ledger', label: 'Party Statement', icon: BookText, description: 'Per-customer / vendor ledger' },
+      { id: 'ar-aging', label: 'Receivables Aging', icon: Wallet, description: 'Who owes you and for how long' },
+      { id: 'sales-register', label: 'Sales Register', icon: FileText, description: 'GST-style invoice register' },
+      { id: 'hsn-summary', label: 'HSN Summary', icon: BarChart3, description: 'GSTR-1 HSN-wise outward summary' },
+      { id: 'cost-center-pnl', label: 'P&L by Cost Center', icon: BarChart3, description: 'Income / expense by cost center' },
+      { id: 'budget-vs-actual', label: 'Budget vs Actual', icon: TrendingUp, description: 'Variance per account' },
+      { id: 'consolidation', label: 'Consolidation', icon: BarChart3, description: 'Multi-company P&L sum' },
+      { id: 'audit-log', label: 'Audit Log', icon: BookText, description: 'Edits to financial records' },
+      { id: 'gstr-export', label: 'GSTR-1 / 3B Export', icon: FileText, description: 'Download JSON for offline filing' },
+    ]
+  },
 
   { id: 'team', label: 'Team', icon: UserCircle2, direct: 'team' },
   { id: 'tds', label: 'TDS', icon: FileText, direct: 'tds' },
 
-  { id: 'settings', label: 'Settings', icon: Settings, children: [
-    { id: 'company-profile', label: 'Company Profile', icon: Settings, description: 'GSTIN, address, branding' },
-    { id: 'number-series', label: 'Number Series', icon: Hash, description: 'Document number prefixes & sequences' },
-    { id: 'api-keys', label: 'API Keys', icon: Settings, description: 'Programmatic access tokens' },
-    { id: 'webhooks', label: 'Webhooks', icon: Webhook, description: 'Push events to your URL' },
-    { id: 'settings', label: 'Books Closing & Export', icon: Settings, description: 'Period lock, full data export' },
-  ]},
+  {
+    id: 'settings', label: 'Settings', icon: Settings, children: [
+      { id: 'company-profile', label: 'Company Profile', icon: Settings, description: 'GSTIN, address, branding' },
+      { id: 'number-series', label: 'Number Series', icon: Hash, description: 'Document number prefixes & sequences' },
+      { id: 'api-keys', label: 'API Keys', icon: Settings, description: 'Programmatic access tokens' },
+      { id: 'webhooks', label: 'Webhooks', icon: Webhook, description: 'Push events to your URL' },
+      { id: 'settings', label: 'Books Closing & Export', icon: Settings, description: 'Period lock, full data export' },
+    ]
+  },
 ];
 
 // Common quick-create actions for the global "+" menu
@@ -237,7 +253,7 @@ export default function AppShell() {
       {/* PRIMARY: labeled icon rail */}
       <aside className="hidden w-24 shrink-0 flex-col items-stretch border-r border-slate-200 bg-white py-3 md:flex">
         <div className="mb-4 flex items-center justify-center">
-          <div className="flex h-9 w-9 items-center justify-center rounded-md bg-brand-600 text-sm font-bold text-white">fs</div>
+          <img src="/logo.png" alt="Saptta" className="h-8 w-auto object-contain" />
         </div>
         <nav className="flex-1 space-y-0.5 px-2">
           {SECTIONS.map((s) => {
@@ -315,32 +331,32 @@ export default function AppShell() {
           <div className="flex items-center gap-1">
             <NotificationBell />
             <div className="relative">
-            <button
-              onClick={() => setQuickOpen((o) => !o)}
-              className="btn-primary inline-flex items-center gap-1"
-            >
-              <Plus size={16} /> Quick Create
-            </button>
-            {quickOpen && (
-              <>
-                <div className="fixed inset-0 z-10" onClick={() => setQuickOpen(false)} />
-                <div className="absolute right-0 top-full z-20 mt-1 w-64 rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
-                  {QUICK_ACTIONS.map((q) => {
-                    const Icon = q.icon;
-                    return (
-                      <button
-                        key={q.id}
-                        onClick={() => go(q.id)}
-                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-slate-50"
-                      >
-                        <Icon size={15} className="text-slate-400" />
-                        {q.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </>
-            )}
+              <button
+                onClick={() => setQuickOpen((o) => !o)}
+                className="btn-primary inline-flex items-center gap-1"
+              >
+                <Plus size={16} /> Quick Create
+              </button>
+              {quickOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setQuickOpen(false)} />
+                  <div className="absolute right-0 top-full z-20 mt-1 w-64 rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
+                    {QUICK_ACTIONS.map((q) => {
+                      const Icon = q.icon;
+                      return (
+                        <button
+                          key={q.id}
+                          onClick={() => go(q.id)}
+                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-slate-50"
+                        >
+                          <Icon size={15} className="text-slate-400" />
+                          {q.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </header>
@@ -401,7 +417,7 @@ export default function AppShell() {
           <div className="absolute left-0 top-0 h-full w-72 overflow-y-auto bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
               <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded bg-brand-600 text-xs font-bold text-white">fs</div>
+                <img src="/logo.png" alt="Saptta" className="h-7 w-auto object-contain" />
                 <div className="text-sm font-semibold">fin-saptta</div>
               </div>
               <button onClick={() => setMobileNavOpen(false)} className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100">

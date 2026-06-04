@@ -25,7 +25,7 @@ export default function ProfileBanner({ onGo }: Props) {
           Missing: <strong>{missing.join(', ')}</strong>. These appear on invoices and drive GST calculations.
         </div>
       </div>
-      <button onClick={() => onGo('company-profile')} className="shrink-0 rounded bg-amber-600 px-3 py-1 text-xs font-medium text-white hover:bg-amber-700">
+      <button onClick={() => onGo('company-profile')} className="shrink-0 rounded-md bg-black px-3 py-1 text-xs font-semibold text-white hover:bg-gray-800">
         Complete now
       </button>
     </div>

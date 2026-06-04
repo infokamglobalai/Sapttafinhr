@@ -1,4 +1,5 @@
 """PO / GRN / Vendor Bill / Vendor Payment services with double-entry posting."""
+from collections import defaultdict
 from decimal import Decimal
 
 from django.db import transaction
@@ -133,7 +134,49 @@ class VendorBillService:
         bill.journal_entry = je
         bill.status = VendorBill.Status.POSTED
         bill.save(update_fields=["journal_entry", "status", "updated_at"])
+
+        if bill.tds_amount:
+            self._create_tds_deductions(bill, all_lines)
+
         return bill
+
+    def _create_tds_deductions(self, bill: VendorBill, lines: list[VendorBillLine]) -> None:
+        from apps.taxation.models import TDSDeduction
+
+        d = bill.date
+        if d.month >= 4:
+            fy = f"{d.year}-{str(d.year + 1)[2:]}"
+        else:
+            fy = f"{d.year - 1}-{str(d.year)[2:]}"
+        quarter = (
+            "Q1" if d.month in (4, 5, 6) else
+            "Q2" if d.month in (7, 8, 9) else
+            "Q3" if d.month in (10, 11, 12) else
+            "Q4"
+        )
+
+        section_totals: dict[str, dict] = defaultdict(
+            lambda: {"base": Decimal("0"), "tds": Decimal("0"), "rate": Decimal("0")}
+        )
+        for line in lines:
+            if line.tds_amount and line.tds_section:
+                section_totals[line.tds_section]["base"] += line.taxable_amount
+                section_totals[line.tds_section]["tds"] += line.tds_amount
+                section_totals[line.tds_section]["rate"] = to_money(line.tds_rate)
+
+        for section, totals in section_totals.items():
+            TDSDeduction.objects.create(
+                company=bill.company,
+                vendor_bill=bill,
+                section=section,
+                rate=totals["rate"],
+                base_amount=totals["base"],
+                tds_amount=totals["tds"],
+                deduction_date=bill.date,
+                pan=bill.vendor.pan,
+                fy=fy,
+                quarter=quarter,
+            )
 
     def _post_je(self, bill: VendorBill, lines: list[VendorBillLine], *, user=None):
         company = bill.company
