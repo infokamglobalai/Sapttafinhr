@@ -231,13 +231,13 @@ function HeroCarousel() {
         <div className={`home-hero__copy${isMobile ? ' home-hero__copy--center' : ''}`}>
           <div className="home-hero__copy-main">
             <h1 className="home-hero-title home-hero-title--v2">
-              <span className="home-hero-title__line">One Platform.</span>
+              <span className="home-hero-title__line">One Platform</span>
               <span className="home-hero-title__line home-hero-title__line--accent">
-                Every <span className="home-hero-title__mark">HR</span> Need.
+                "Every <span className="home-hero-title__mark" style={{textDecoration:'none'}}>Company</span> Needs"
               </span>
             </h1>
             <p className="home-hero-subtitle">
-              Manage employees, payroll, attendance, accounting, and compliance from a single platform built for growing Indian businesses.
+              One platform to manage employees, payroll, attendance, accounting, and compliance — so you can focus on growing your business.
             </p>
           </div>
 
@@ -498,7 +498,7 @@ function MetricsSection({ isMobile }: { isMobile: boolean }) {
       style={{
         position: 'relative',
         overflow: 'hidden',
-        padding: isMobile ? '80px 20px' : '120px 40px',
+        padding: isMobile ? '0px 20px 80px' : '0px 40px 120px',
       }}
     >
       {/* ── Floating ambient orbs (hero-style) ── */}

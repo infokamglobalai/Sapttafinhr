@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Tag, message, Card, Table, Alert, Spin, Modal, Form, Input, Divider } from 'antd';
-import { CheckCircleFilled, CreditCardOutlined, LockOutlined, SafetyOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, CheckCircleFilled, CreditCardOutlined, LockOutlined, SafetyOutlined } from '@ant-design/icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { PLANS } from '../../types';
 import { startCheckout } from '../../lib/billing';
@@ -36,7 +36,7 @@ export default function Billing() {
     ? sub.products.map(p => (p === 'HR' ? 'hrms' : 'finance'))
     : user?.products ?? [];
 
-  const isPending = !sub || sub.status === 'PENDING';
+  const isPending = !sub || (sub.status as string) === 'PENDING';
 
   const subscribe = async (planId: string) => {
     setLoadingPlan(planId);
@@ -90,6 +90,16 @@ export default function Billing() {
 
   return (
     <div>
+      <div style={{ padding: '12px 0 4px' }}>
+        <Button
+          type="link"
+          icon={<ArrowLeftOutlined />}
+          onClick={() => navigate(-1)}
+          style={{ padding: 0, fontWeight: 600, color: '#1E2A78' }}
+        >
+          Back
+        </Button>
+      </div>
       {/* Dev fake-payment modal */}
       <Modal
         open={devModalOpen}

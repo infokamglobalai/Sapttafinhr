@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import MarketingHero from './MarketingHero';
 import InteractiveShowcase from './InteractiveShowcase';
 import ModuleGrid from './ModuleGrid';
@@ -25,8 +26,22 @@ interface ProductPageShellProps {
 }
 
 export default function ProductPageShell({ config, currentPath }: ProductPageShellProps) {
+  const navigate = useNavigate();
+
   return (
     <div className={`marketing-page marketing-page--${config.slug}`}>
+      <div className="marketing-page__back-bar">
+        <div className="marketing-section__inner">
+          <button
+            type="button"
+            className="marketing-back-link"
+            onClick={() => navigate(-1)}
+            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+          >
+            ← Back
+          </button>
+        </div>
+      </div>
       <MarketingHero
         eyebrow={config.hero.eyebrow}
         title={config.hero.title}

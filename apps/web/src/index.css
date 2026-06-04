@@ -1635,15 +1635,7 @@ section.home-hero.home-hero--reference.home-hero--v2.responsive-padding {
 }
 
 .home-hero-title--v2 .home-hero-title__mark::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0.08em;
-  height: 0.14em;
-  background: rgba(255, 109, 0, 0.22);
-  border-radius: 2px;
-  z-index: -1;
+  display: none;
 }
 
 .home-hero-tagline {
@@ -7440,6 +7432,23 @@ section.home-hero.home-hero--reference.home-hero--v2.responsive-padding {
 
 .marketing-back-link:hover {
   text-decoration: underline;
+}
+
+.marketing-page__back-bar {
+  background: #fff;
+  border-bottom: 1px solid #f1f5f9;
+  padding: 10px 0;
+}
+
+.marketing-page__back-bar .marketing-back-link {
+  color: #1E2A78;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.marketing-page__back-bar .marketing-back-link:hover {
+  color: #FF6D00;
 }
 
 /* ─── Legal pages ─── */

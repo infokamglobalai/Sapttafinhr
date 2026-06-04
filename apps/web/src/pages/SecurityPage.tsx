@@ -30,6 +30,14 @@ export default function SecurityPage() {
       <section className={`marketing-hero${isMobile ? ' marketing-hero--stacked' : ''}`} style={{ background: 'linear-gradient(135deg, #FFFFFF 0%, #F8FAFF 55%, rgba(255,109,0,0.08) 100%)' }}>
         <div className="marketing-hero__inner marketing-hero__inner--split">
           <ScrollReveal animation="fade-in-left">
+            <button
+              type="button"
+              className="marketing-back-link"
+              onClick={() => navigate(-1)}
+              style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: '#1E2A78', marginBottom: 12, display: 'inline-block' }}
+            >
+              ← Back
+            </button>
             <HomeSectionHeader
               eyebrow="Trust & security"
               title="Your HR & finance data,"
