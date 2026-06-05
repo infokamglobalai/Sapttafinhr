@@ -163,10 +163,11 @@ services:
   finance-web:
     build:
       context: ./apps/finance/frontend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     restart: unless-stopped
     environment:
       VITE_API_BASE_URL: /api/v1   # same-origin on whatever tenant host
+      VITE_PLATFORM_BASE_URL: http://localhost:8080
     volumes:
       - ./apps/finance/frontend:/app
       - /app/node_modules

@@ -55,25 +55,33 @@ class SmartPaymentReminderView(APIView):
             import anthropic
             client = anthropic.Anthropic(api_key=api_key)
 
-            prompt = f"""Draft a professional payment reminder email. Keep it under 150 words.
-
-Invoice details:
-- Customer: {invoice.customer.name}
-- Invoice #: {invoice.invoice_no}
-- Amount due: ₹{balance_due:,.0f}
-- Original due date: {invoice.due_date}
-- Days overdue: {days_overdue}
-- Customer payment history: {payment_history} (avg {avg_days:.0f} days to pay)
-- Sending company: {invoice.company.name}
-
-Tone: {'firm and urgent' if days_overdue > 30 else 'polite and friendly'}.
-Include: subject line, greeting, payment details, closing.
-DO NOT include placeholder brackets like [Bank Details] — omit anything you don't know.
-"""
+            system = (
+                f"You are a professional accounts assistant for {invoice.company.name}. "
+                "Your ONLY task is to draft a concise, professional payment reminder email "
+                "based on the invoice data provided to you. "
+                "Do NOT provide any general financial advice, legal guidance, or content "
+                "unrelated to this specific payment reminder. "
+                "Do NOT include placeholder brackets — omit anything you do not know. "
+                "Keep the email under 150 words."
+            )
+            prompt = (
+                f"Draft a payment reminder email.\n\n"
+                f"Invoice details:\n"
+                f"- Customer: {invoice.customer.name}\n"
+                f"- Invoice #: {invoice.invoice_no}\n"
+                f"- Amount due: ₹{balance_due:,.0f}\n"
+                f"- Original due date: {invoice.due_date}\n"
+                f"- Days overdue: {days_overdue}\n"
+                f"- Customer payment history: {payment_history} (avg {avg_days:.0f} days to pay)\n"
+                f"- Sending company: {invoice.company.name}\n\n"
+                f"Tone: {'firm and urgent' if days_overdue > 30 else 'polite and friendly'}.\n"
+                f"Include: subject line, greeting, payment details, closing."
+            )
 
             response = client.messages.create(
                 model="claude-sonnet-4-6",
                 max_tokens=512,
+                system=system,
                 messages=[{"role": "user", "content": prompt}]
             )
             email_text = response.content[0].text

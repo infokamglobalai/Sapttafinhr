@@ -63,6 +63,8 @@ export interface InvoiceCreateInput {
   due_date?: string | null;
   customer: number;
   place_of_supply: string;
+  currency?: string;
+  fx_rate?: string | number;
   notes?: string;
   lines: InvoiceLineInput[];
 }

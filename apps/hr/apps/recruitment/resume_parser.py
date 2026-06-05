@@ -29,6 +29,14 @@ def parse_resume(file_bytes: bytes, file_name: str = "") -> dict:
         response = client.messages.create(
             model="claude-sonnet-4-6",
             max_tokens=1024,
+            system=(
+                "You are a resume data-extraction assistant for an HR recruitment system. "
+                "Your ONLY task is to extract structured candidate data from the resume text provided "
+                "and return it as valid JSON. "
+                "Do NOT provide any commentary, hiring recommendations, or content outside the JSON response. "
+                "Do NOT invent data not present in the resume — use empty string or null for missing fields. "
+                "Do NOT evaluate or score the candidate."
+            ),
             messages=[{
                 "role": "user",
                 "content": f"""Parse this resume and return ONLY valid JSON with these fields:

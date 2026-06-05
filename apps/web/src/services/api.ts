@@ -4,7 +4,7 @@
  * Set VITE_API_URL in .env.local to point at the backend.
  */
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const BASE_URL = import.meta.env.VITE_API_URL || import.meta.env.VITE_PLATFORM_API_BASE_URL || '/api/v1';
 
 // ── Health check ──────────────────────────────────────────────────────
 export async function checkAPIHealth(): Promise<boolean> {

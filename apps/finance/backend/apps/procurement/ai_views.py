@@ -104,9 +104,17 @@ Invoice text:
                     }
                 ]
 
+            system = (
+                "You are a data-extraction assistant for an Indian accounting system. "
+                "Your ONLY task is to extract structured invoice data from the document provided "
+                "and return it as valid JSON. "
+                "Do NOT provide any commentary, advice, or content outside the JSON response. "
+                "Do NOT invent data that is not present in the document — use null for missing fields."
+            )
             response = client.messages.create(
                 model="claude-sonnet-4-6",
                 max_tokens=1024,
+                system=system,
                 messages=[{"role": "user", "content": msg_content}]
             )
 

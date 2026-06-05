@@ -182,7 +182,7 @@ export default function LoginPage({ onSuccess }: Props) {
           {/* Back link */}
           <p className="mt-8 text-center text-xs text-slate-400">
             Not your workspace?{' '}
-            <a href="http://localhost:8080" className="text-brand-600 hover:underline font-medium">
+            <a href={import.meta.env.VITE_PLATFORM_BASE_URL ?? '/'} className="text-brand-600 hover:underline font-medium">
               Go to Saptta platform →
             </a>
           </p>

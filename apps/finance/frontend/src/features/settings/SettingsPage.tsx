@@ -64,7 +64,7 @@ export default function SettingsPage() {
           Advanced configuration — users, roles, bank accounts, warehouses, fixed assets, recurring invoices, API keys,
           webhooks, customer portal access, SaaS plans — is managed in the Django admin.
         </p>
-        <a href="http://acme.localhost:8000/admin/" target="_blank" rel="noreferrer"
+        <a href={`${window.location.origin}/admin/`} target="_blank" rel="noreferrer"
            className="btn-primary inline-flex items-center gap-1">
           Open Admin <ExternalLink size={14} />
         </a>

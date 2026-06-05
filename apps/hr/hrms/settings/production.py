@@ -9,6 +9,9 @@ from decouple import config
 
 DEBUG = False
 
+if SECRET_KEY in ("insecure-dev-hr-key-change-me", ""):  # noqa: F405
+    raise RuntimeError("SECRET_KEY must be set to a strong value in production.")
+
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SECURE_SSL_REDIRECT = True
