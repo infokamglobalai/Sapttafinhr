@@ -1,0 +1,33 @@
+# Production front door: build the SPA, then serve it (static) + proxy via nginx.
+# Built for Coolify (no SSL inside the container)
+# Build from the repo root:
+#   docker build -f deploy/Dockerfile.coolify \
+#     --build-arg VITE_PLATFORM_API_BASE_URL=https://app.saptta.com/api/v1 \
+#     --build-arg VITE_TENANT_API_BASE_URL=https://{workspace}.saptta.com/api/v1 \
+#     --build-arg VITE_HR_BASE_URL=https://hr.saptta.com \
+#     -t saptta-frontdoor .
+
+# ── Stage 1: build the React SPA ─────────────────────────────────────────
+FROM node:20-alpine AS build
+WORKDIR /app
+
+# Vite inlines VITE_* at build time, so the API URLs must be passed as build args.
+ARG VITE_PLATFORM_API_BASE_URL
+ARG VITE_TENANT_API_BASE_URL
+ARG VITE_HR_BASE_URL
+ARG VITE_DEFAULT_WORKSPACE=acme
+ENV VITE_PLATFORM_API_BASE_URL=$VITE_PLATFORM_API_BASE_URL \
+    VITE_TENANT_API_BASE_URL=$VITE_TENANT_API_BASE_URL \
+    VITE_HR_BASE_URL=$VITE_HR_BASE_URL \
+    VITE_DEFAULT_WORKSPACE=$VITE_DEFAULT_WORKSPACE
+
+COPY apps/web/package*.json ./
+RUN npm ci || npm install
+COPY apps/web/ ./
+RUN npm run build
+
+# ── Stage 2: nginx serving the built SPA + proxying the APIs ──────────────
+FROM nginx:1.27-alpine
+COPY deploy/nginx.coolify.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/dist /usr/share/nginx/html
+EXPOSE 80
