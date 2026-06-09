@@ -7,6 +7,7 @@ from .auth_views import (
     VerifyEmailConfirmView,
     VerifyEmailRequestView,
 )
+from .general_ai_views import GeneralAIChatView
 from .hr_sso import HrSsoTokenView, HrStatsView
 from .jwt import SapttaTokenObtainPairView
 from .views import MeView
@@ -17,6 +18,7 @@ urlpatterns = [
     path("me/", MeView.as_view(), name="me"),
     path("hr-sso-token/", HrSsoTokenView.as_view(), name="hr_sso_token"),
     path("hr-stats/", HrStatsView.as_view(), name="hr_stats"),
+    path("general-chat/", GeneralAIChatView.as_view(), name="general_ai_chat"),
 
     # Email verification
     path("verify-email/request/", VerifyEmailRequestView.as_view(), name="verify_email_request"),

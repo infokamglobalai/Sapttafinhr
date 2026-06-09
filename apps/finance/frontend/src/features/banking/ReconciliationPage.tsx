@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Upload, Zap } from 'lucide-react';
+import { Upload, Zap, BrainCircuit } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import PageHeader from '@/components/PageHeader';
 import PageHint from '@/components/PageHint';
@@ -52,6 +52,19 @@ export default function ReconciliationPage() {
     onError: (e: any) => toast.error('Reconcile failed', JSON.stringify(e?.response?.data ?? 'Failed')),
   });
 
+  const aiReconcile = useMutation({
+    mutationFn: async () => (await api.post(`/banking/bank-accounts/${bankId}/ai-reconcile/`)).data,
+    onSuccess: (r: any) => {
+      if (r.error) { toast.error('AI match failed', r.error); return; }
+      toast.success(
+        `AI matched ${r.matched} line(s)`,
+        r.skipped > 0 ? `${r.skipped} line(s) had no confident match` : 'All unmatched lines processed',
+      );
+      qc.invalidateQueries({ queryKey: ['stmt-lines'] });
+    },
+    onError: (e: any) => toast.error('AI Reconcile failed', JSON.stringify(e?.response?.data ?? 'Failed')),
+  });
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -62,6 +75,15 @@ export default function ReconciliationPage() {
             <button className="btn-ghost border border-slate-200" disabled={!bankId || reconcile.isPending}
               onClick={() => reconcile.mutate()}>
               <Zap size={14} className="mr-1" /> {reconcile.isPending ? 'Matching…' : 'Auto-match'}
+            </button>
+            <button
+              className="btn-ghost border border-purple-200 text-purple-700 hover:bg-purple-50"
+              disabled={!bankId || aiReconcile.isPending}
+              onClick={() => aiReconcile.mutate()}
+              title="AI analyses description & reference to match lines that exact-amount matching missed"
+            >
+              <BrainCircuit size={14} className="mr-1" />
+              {aiReconcile.isPending ? 'AI Matching…' : 'AI Match'}
             </button>
             <button className="btn-primary" disabled={!bankId} onClick={() => setImportOpen(true)}>
               <Upload size={14} className="mr-1" /> Import Statement (CSV)

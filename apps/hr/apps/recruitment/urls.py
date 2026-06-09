@@ -1,6 +1,6 @@
 from django.urls import path
 from . import views
-from .ai_views import JDGeneratorView, OfferLetterGeneratorView, ResumeParsViewView
+from .ai_views import JDGeneratorView, OfferLetterGeneratorView, ResumeParsViewView, ResumeRankView
 
 app_name = "recruitment"
 
@@ -16,4 +16,5 @@ urlpatterns = [
     path("ai/generate-jd/", JDGeneratorView.as_view(), name="ai_generate_jd"),
     path("ai/generate-offer/", OfferLetterGeneratorView.as_view(), name="ai_generate_offer"),
     path("ai/parse-resume/", ResumeParsViewView.as_view(), name="ai_parse_resume"),
+    path("ai/rank-resumes/", ResumeRankView.as_view(), name="ai_rank_resumes"),
 ]

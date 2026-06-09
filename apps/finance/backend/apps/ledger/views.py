@@ -71,3 +71,24 @@ class AnomalyScanView(APIView):
         from .anomaly import detect_anomalies
         anomalies = detect_anomalies(int(company_id), since_hours=hours)
         return Response({"count": len(anomalies), "anomalies": anomalies, "hours_scanned": hours})
+
+
+class AccountSuggestView(APIView):
+    """POST /api/v1/ledger/suggest-account/
+    Body: {narration, company_id, amount (optional)}
+    Returns up to 3 ranked account suggestions for the given transaction description.
+    """
+
+    def post(self, request):
+        narration = (request.data.get("narration") or "").strip()
+        company_id = request.data.get("company_id")
+        amount = request.data.get("amount")
+
+        if not narration:
+            raise ValidationError({"narration": "required"})
+        if not company_id:
+            raise ValidationError({"company_id": "required"})
+
+        from .ai_classify import suggest_account
+        suggestions = suggest_account(narration, int(company_id), amount=amount)
+        return Response({"narration": narration, "suggestions": suggestions})

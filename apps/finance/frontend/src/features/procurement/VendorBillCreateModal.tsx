@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import Modal from '@/components/Modal';
 import { useActiveCompany } from '@/hooks/useActiveCompany';
@@ -27,7 +27,16 @@ const emptyLine = (): DraftLine => ({
   tds_section: '', tds_rate: '0',
 });
 
-export default function VendorBillCreateModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+export interface BillPrefill {
+  billNo?: string;
+  date?: string;
+  dueDate?: string;
+  placeOfSupply?: string;
+  notes?: string;
+  lines?: { description: string; hsn_code: string; quantity: string; unit_price: string; tax_rate: string }[];
+}
+
+export default function VendorBillCreateModal({ open, onClose, prefill }: { open: boolean; onClose: () => void; prefill?: BillPrefill }) {
   const { companyId, fyId, companies } = useActiveCompany();
   const seller = companies?.find((c) => c.id === companyId);
   const { data: vendors } = useParties(companyId, 'VENDOR');
@@ -54,6 +63,29 @@ export default function VendorBillCreateModal({ open, onClose }: { open: boolean
     const v = vendors?.find((x) => x.id === vendorId);
     if (v?.state_code) setPlaceOfSupply(v.state_code);
   }, [vendorId, vendors]);
+
+  const appliedPrefill = useRef<BillPrefill | undefined>(undefined);
+  useEffect(() => {
+    if (!prefill || !open || prefill === appliedPrefill.current) return;
+    appliedPrefill.current = prefill;
+    if (prefill.billNo) setBillNo(prefill.billNo);
+    if (prefill.date) setDate(prefill.date);
+    if (prefill.dueDate) setDueDate(prefill.dueDate);
+    if (prefill.placeOfSupply) setPlaceOfSupply(prefill.placeOfSupply);
+    if (prefill.notes) setNotes(prefill.notes);
+    if (prefill.lines?.length) {
+      setLines(prefill.lines.map((l) => ({
+        tmpId: crypto.randomUUID(),
+        item: null, expense_account: null,
+        description: l.description,
+        hsn_code: l.hsn_code || '',
+        quantity: l.quantity || '1',
+        unit_price: l.unit_price || '0',
+        tax_rate: l.tax_rate || '18',
+        tds_section: '', tds_rate: '0',
+      })));
+    }
+  }, [prefill, open]);
 
   const sellerState = seller?.state_code ?? '';
   const isInterState = sellerState !== '' && placeOfSupply !== '' && sellerState !== placeOfSupply;

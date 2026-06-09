@@ -33,6 +33,7 @@ import TermsOfService from './pages/TermsOfService';
 import SecurityPage from './pages/SecurityPage';
 import StatusPage from './pages/StatusPage';
 import CookieConsent from './components/legal/CookieConsent';
+import ChatbotWidget from './components/chatbot/ChatbotWidget';
 
 // Product switcher (hands off to the real standalone products) + account billing.
 import ProductSwitcher from './pages/app/ProductSwitcher';
@@ -93,6 +94,7 @@ function AppLayout() {
       </main>
       {!hideChrome && <Footer />}
       {!hideChrome && <CookieConsent />}
+      <ChatbotWidget />
     </div>
   );
 }

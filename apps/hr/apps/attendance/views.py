@@ -16,6 +16,25 @@ from apps.employees.models import Employee
 
 
 # ---------------------------------------------------------------------------
+# Attendance anomaly scan (HR manager)
+# ---------------------------------------------------------------------------
+@login_required
+def anomaly_scan(request):
+    """POST /attendance/anomaly-scan/ — trigger anomaly detection for HR managers."""
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+
+    tenant = getattr(request, "tenant", None)
+    if not tenant:
+        return JsonResponse({"error": "Tenant not found"}, status=400)
+
+    since_days = int(request.POST.get("since_days", 7))
+    from .anomaly import run_scan
+    result = run_scan(tenant, since_days=since_days)
+    return JsonResponse(result)
+
+
+# ---------------------------------------------------------------------------
 # Mobile / web punch (ESS)
 # ---------------------------------------------------------------------------
 @login_required

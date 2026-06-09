@@ -1,15 +1,76 @@
 import {
   AlertTriangle, ArrowDown, ArrowUp, FileText, Receipt, Wallet,
   TrendingUp, Users, BadgeIndianRupee, type LucideIcon,
+  ShieldAlert, Clock, RefreshCw,
 } from 'lucide-react';
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Cell,
 } from 'recharts';
+import { useQuery } from '@tanstack/react-query';
 import { useActiveCompany } from '@/hooks/useActiveCompany';
 import { useDashboard } from './api';
+import { api } from '@/lib/api';
 import { formatINR } from '@/lib/money';
 import ProfileBanner from '@/components/ProfileBanner';
+
+interface GSTAlert {
+  type: string; severity: 'high' | 'medium' | 'low';
+  title: string; message: string; action: string; due_date?: string;
+}
+
+function GSTAlertsPanel({ companyId }: { companyId: number }) {
+  const { data, isLoading, refetch, isFetching } = useQuery<{ alerts: GSTAlert[]; count: number }>({
+    queryKey: ['gst-alerts', companyId],
+    queryFn: async () => (await api.get('/ai/gst-alerts/', { params: { company_id: companyId } })).data,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  if (isLoading) return null;
+  if (!data || data.count === 0) return null;
+
+  const sevColor = {
+    high: 'border-red-300 bg-red-50',
+    medium: 'border-amber-300 bg-amber-50',
+    low: 'border-blue-200 bg-blue-50',
+  };
+  const sevText = { high: 'text-red-700', medium: 'text-amber-700', low: 'text-blue-700' };
+  const sevBadge = { high: 'bg-red-100 text-red-700', medium: 'bg-amber-100 text-amber-700', low: 'bg-blue-100 text-blue-700' };
+
+  return (
+    <div className="card overflow-hidden p-0">
+      <div className="flex items-center justify-between border-b border-slate-200 bg-amber-50 px-4 py-2.5">
+        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-amber-700">
+          <ShieldAlert size={13} /> GST Compliance Alerts ({data.count})
+        </div>
+        <button onClick={() => refetch()} disabled={isFetching}
+          className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700">
+          <RefreshCw size={11} className={isFetching ? 'animate-spin' : ''} /> Refresh
+        </button>
+      </div>
+      <div className="divide-y divide-slate-100">
+        {data.alerts.map((alert, i) => (
+          <div key={i} className={`flex items-start gap-3 border-l-4 px-4 py-3 ${sevColor[alert.severity]}`}>
+            <Clock size={15} className={`mt-0.5 shrink-0 ${sevText[alert.severity]}`} />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={`text-sm font-semibold ${sevText[alert.severity]}`}>{alert.title}</span>
+                <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${sevBadge[alert.severity]}`}>
+                  {alert.severity}
+                </span>
+                {alert.due_date && (
+                  <span className="text-xs text-slate-500">Due: {alert.due_date}</span>
+                )}
+              </div>
+              <p className="mt-0.5 text-xs text-slate-600">{alert.message}</p>
+              <p className="mt-1 text-xs font-medium text-slate-500">→ {alert.action}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 interface KpiProps {
   label: string; value: string; icon: LucideIcon;
@@ -283,6 +344,9 @@ export default function Dashboard({ onGo }: DashboardProps) {
           </table>
         </div>
       </div>
+
+      {/* GST Compliance Alerts */}
+      {companyId != null && <GSTAlertsPanel companyId={companyId} />}
 
       {/* Quick actions */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">

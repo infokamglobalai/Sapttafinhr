@@ -203,3 +203,133 @@ class ResumeParsViewView(View):
         from .resume_parser import parse_resume
         result = parse_resume(raw, file.name)
         return JsonResponse(result)
+
+
+@method_decorator([login_required, csrf_exempt], name="dispatch")
+class ResumeRankView(View):
+    """POST /recruitment/ai/rank-resumes/
+    Body: {job_opening_id, application_ids: []} (application_ids optional — ranks all)
+    Returns: {ranked: [{application_id, candidate_name, score, band, strengths, gaps, recommendation}]}
+    """
+
+    def post(self, request):
+        try:
+            data = json.loads(request.body.decode())
+        except (ValueError, UnicodeDecodeError):
+            return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+        job_opening_id = data.get("job_opening_id")
+        if not job_opening_id:
+            return JsonResponse({"error": "job_opening_id required"}, status=400)
+
+        from .models import JobOpening, JobApplication, Candidate
+        try:
+            job = JobOpening.objects.get(pk=job_opening_id, tenant=request.tenant)
+        except JobOpening.DoesNotExist:
+            return JsonResponse({"error": "Job opening not found"}, status=404)
+
+        app_ids = data.get("application_ids") or []
+        qs = JobApplication.objects.filter(
+            job_opening=job
+        ).select_related("candidate")
+        if app_ids:
+            qs = qs.filter(pk__in=app_ids)
+
+        applications = list(qs[:50])  # safety cap
+        if not applications:
+            return JsonResponse({"error": "No applications found"}, status=404)
+
+        from django.conf import settings
+        api_key = getattr(settings, "ANTHROPIC_API_KEY", "")
+        if not api_key:
+            return JsonResponse({"error": "ANTHROPIC_API_KEY not configured"}, status=503)
+
+        jd_text = self._build_jd_text(job)
+        results = []
+        for app in applications:
+            score_data = self._score_candidate(app.candidate, jd_text, job, api_key)
+            results.append({
+                "application_id": app.id,
+                "candidate_id": app.candidate.id,
+                "candidate_name": f"{app.candidate.first_name} {app.candidate.last_name}".strip(),
+                "current_role": app.candidate.current_designation,
+                "experience_years": float(app.candidate.total_experience or 0),
+                **score_data,
+            })
+
+        results.sort(key=lambda x: x.get("score", 0), reverse=True)
+        return JsonResponse({"job_title": job.title, "ranked": results, "total": len(results)})
+
+    def _build_jd_text(self, job) -> str:
+        parts = [f"Job Title: {job.title}"]
+        if job.department:
+            parts.append(f"Department: {job.department.name}")
+        parts.append(f"Experience Required: {job.experience_min}–{job.experience_max or '+'} years")
+        if job.description:
+            parts.append(f"Description:\n{job.description}")
+        if job.requirements:
+            parts.append(f"Requirements:\n{job.requirements}")
+        return "\n\n".join(parts)
+
+    def _score_candidate(self, candidate, jd_text: str, job, api_key: str) -> dict:
+        # Build candidate summary from DB fields + resume text
+        resume_text = ""
+        if candidate.resume:
+            try:
+                from .resume_parser import _extract_text
+                resume_text = _extract_text(candidate.resume.read(), candidate.resume.name)[:3000]
+            except Exception:
+                pass
+
+        candidate_summary = (
+            f"Name: {candidate.first_name} {candidate.last_name}\n"
+            f"Current Role: {candidate.current_designation or 'N/A'}\n"
+            f"Current Company: {candidate.current_company or 'N/A'}\n"
+            f"Total Experience: {candidate.total_experience or 0} years\n"
+        )
+        if resume_text:
+            candidate_summary += f"\nResume:\n{resume_text}"
+
+        prompt = f"""You are an expert recruiter. Score this candidate against the job description.
+
+JOB DESCRIPTION:
+{jd_text}
+
+CANDIDATE PROFILE:
+{candidate_summary}
+
+Return ONLY valid JSON with this exact structure:
+{{
+  "score": <integer 0-100>,
+  "band": "<Excellent|Good|Average|Poor>",
+  "strengths": ["<strength 1>", "<strength 2>", "<strength 3>"],
+  "gaps": ["<gap 1>", "<gap 2>"],
+  "recommendation": "<one sentence hiring recommendation>"
+}}
+
+Scoring guide: 80-100=Excellent match, 60-79=Good, 40-59=Average, 0-39=Poor.
+Be objective. Only use information present in the candidate profile."""
+
+        try:
+            import anthropic
+            client = anthropic.Anthropic(api_key=api_key)
+            response = client.messages.create(
+                model="claude-sonnet-4-6",
+                max_tokens=512,
+                messages=[{"role": "user", "content": prompt}]
+            )
+            raw = response.content[0].text.strip()
+            if "```" in raw:
+                raw = raw.split("```")[1]
+                if raw.startswith("json"):
+                    raw = raw[4:]
+            return json.loads(raw)
+        except Exception as e:
+            logger.exception("Resume scoring failed for candidate %s", candidate.id)
+            return {
+                "score": 0,
+                "band": "Error",
+                "strengths": [],
+                "gaps": [],
+                "recommendation": f"Scoring failed: {e}",
+            }

@@ -1,8 +1,14 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Plus, Trash2, Sparkles } from 'lucide-react';
 import { useCompanies, useFiscalYears, usePostableAccounts } from '@/features/masters/api';
 import { useCreateManualJE, type ManualLineInput } from './api';
 import { D, formatINR, sum } from '@/lib/money';
+import { api } from '@/lib/api';
+
+interface AccountSuggestion {
+  account_id: number; code: string; name: string; type: string;
+  confidence: 'high' | 'medium' | 'low'; reasoning: string;
+}
 
 interface DraftLine extends ManualLineInput { tmpId: string; }
 
@@ -26,6 +32,9 @@ export default function ManualEntryPage() {
   const [narration, setNarration] = useState('');
   const [lines, setLines] = useState<DraftLine[]>([emptyLine(), emptyLine()]);
   const [error, setError] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<AccountSuggestion[]>([]);
+  const [suggestLoading, setSuggestLoading] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const create = useCreateManualJE();
 
@@ -47,6 +56,28 @@ export default function ManualEntryPage() {
   const addLine = () => setLines((prev) => [...prev, emptyLine()]);
   const removeLine = (idx: number) =>
     setLines((prev) => prev.filter((_, i) => i !== idx));
+
+  const onNarrationChange = (value: string) => {
+    setNarration(value);
+    setSuggestions([]);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (value.trim().length < 5 || !companyId) return;
+    debounceRef.current = setTimeout(async () => {
+      setSuggestLoading(true);
+      try {
+        const r = await api.post('/ledger/suggest-account/', { narration: value, company_id: companyId });
+        setSuggestions(r.data.suggestions ?? []);
+      } catch { /* silent */ }
+      finally { setSuggestLoading(false); }
+    }, 900);
+  };
+
+  const applySuggestion = (s: AccountSuggestion) => {
+    const firstEmpty = lines.findIndex((l) => !l.account);
+    const idx = firstEmpty >= 0 ? firstEmpty : 0;
+    updateLine(idx, { account: s.account_id });
+    setSuggestions([]);
+  };
 
   async function onSubmit() {
     setError(null);
@@ -105,8 +136,36 @@ export default function ManualEntryPage() {
           </div>
         </div>
         <div>
-          <label className="label">Narration</label>
-          <input className="input" value={narration} onChange={(e) => setNarration(e.target.value)} placeholder="Description of the transaction" />
+          <label className="label flex items-center gap-1">
+            Narration
+            {suggestLoading && <Sparkles size={12} className="animate-pulse text-brand-400" />}
+          </label>
+          <input
+            className="input"
+            value={narration}
+            onChange={(e) => onNarrationChange(e.target.value)}
+            placeholder="Description of the transaction — AI suggests accounts after you type"
+          />
+          {suggestions.length > 0 && (
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              <span className="text-xs text-slate-400 self-center">AI suggests:</span>
+              {suggestions.map((s) => {
+                const confColor = s.confidence === 'high' ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
+                  : s.confidence === 'medium' ? 'bg-blue-50 border-blue-300 text-blue-700'
+                  : 'bg-slate-50 border-slate-300 text-slate-600';
+                return (
+                  <button
+                    key={s.account_id}
+                    onClick={() => applySuggestion(s)}
+                    title={s.reasoning}
+                    className={`rounded border px-2 py-0.5 text-xs font-medium transition hover:shadow-sm ${confColor}`}
+                  >
+                    {s.code} — {s.name}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 

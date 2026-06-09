@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from apps.ai_views import HRAIChatView
 
 urlpatterns = [
     path("superadmin/", admin.site.urls),
@@ -14,6 +15,7 @@ urlpatterns = [
     path("hr/", include("apps.hr_ops.urls", namespace="hr_ops")),
     path("performance/", include("apps.performance.urls", namespace="performance")),
     path("recruitment/", include("apps.recruitment.urls", namespace="recruitment")),
+    path("api/ai/hr-chat/", HRAIChatView.as_view(), name="hr_ai_chat"),
 ]
 
 if settings.DEBUG:

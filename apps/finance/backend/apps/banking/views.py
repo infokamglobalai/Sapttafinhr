@@ -68,6 +68,19 @@ class ReconcileView(APIView):
         return Response(services.auto_reconcile(bank))
 
 
+class AIReconcileView(APIView):
+    """POST /api/v1/banking/bank-accounts/<id>/ai-reconcile/
+    Runs AI-powered reconciliation for unmatched statement lines.
+    Body (optional): {dry_run: true} — preview matches without saving.
+    """
+    def post(self, request, bank_id):
+        bank = BankAccount.objects.get(pk=bank_id)
+        dry_run = bool(request.data.get("dry_run", False))
+        from .ai_reconcile import ai_reconcile
+        result = ai_reconcile(bank, dry_run=dry_run)
+        return Response(result)
+
+
 class PDCViewSet(viewsets.ModelViewSet):
     queryset = PostDatedCheque.objects.select_related("party", "bank_account").all()
     serializer_class = PDCSerializer
