@@ -233,7 +233,7 @@ function HeroCarousel() {
             <h1 className="home-hero-title home-hero-title--v2">
               <span className="home-hero-title__line">One Platform</span>
               <span className="home-hero-title__line home-hero-title__line--accent">
-                "Every <span className="home-hero-title__mark" style={{textDecoration:'none'}}>Company</span> Needs"
+                "Every <span className="home-hero-title__mark" style={{textDecoration:'none'}}>Business</span> Needs"
               </span>
             </h1>
             <p className="home-hero-subtitle">
