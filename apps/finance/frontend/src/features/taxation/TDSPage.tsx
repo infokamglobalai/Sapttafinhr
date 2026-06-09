@@ -44,7 +44,7 @@ export default function TDSPage() {
   const { data: records = [], isLoading } = useQuery<TDSRecord[]>({
     queryKey: ['tds', companyId, fy],
     enabled: !!companyId,
-    queryFn: () => api.get('/taxation/tds/', { params: { company: companyId, fy } }).then(r => r.data),
+    queryFn: () => api.get('/taxation/tds/', { params: { company: companyId, fy } }).then(r => r.data.results || r.data),
   });
 
   const { data: summary } = useQuery<TDSSummary>({

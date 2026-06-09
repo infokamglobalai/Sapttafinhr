@@ -1,66 +1,104 @@
-"""HR SSO login — verifies a short-lived token minted by the FIN backend."""
-import hmac
-import hashlib
-import time
+"""HR single-sign-on handoff from the FIN platform.
+
+The unified front door authenticates the user once (FIN JWT). To avoid a second
+login for the embedded HR app, FIN mints a short-lived token signed with a
+secret SHARED by both backends (SSO_SHARED_SECRET). HR verifies it here and
+starts a normal Django session for the matching tenant user.
+
+Security model:
+  - Token = TimestampSigner(secret).sign(payload) — tamper-proof + self-expiring.
+  - Payload carries the user's email + the workspace (tenant subdomain).
+  - Short TTL (default 120s): the token is exchanged immediately for a session.
+  - The HR user must already exist for that tenant (provisioned at signup);
+    SSO never creates users — it only authenticates existing ones.
+
+If SSO_SHARED_SECRET is unset, the endpoint 503s and the user falls back to the
+normal HR login form (no regression).
+"""
+from __future__ import annotations
+
 import logging
-
 from django.conf import settings
-from django.contrib.auth import login
-from django.http import HttpResponseBadRequest
-from django.shortcuts import redirect
-
-from .models import User
+from django.contrib.auth import get_user_model, login
+from django.core.signing import BadSignature, SignatureExpired, TimestampSigner
+from django.http import HttpResponse, HttpResponseRedirect
+from django.shortcuts import render
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
 
 logger = logging.getLogger(__name__)
+User = get_user_model()
 
-_TOKEN_TTL_SECONDS = 120
+SSO_SALT = "saptta.hr-sso"
 
 
-def _verify_token(token: str) -> str | None:
-    """Return the email encoded in the token, or None if invalid/expired."""
+def _signer() -> TimestampSigner | None:
     secret = getattr(settings, "SSO_SHARED_SECRET", "")
     if not secret:
-        logger.warning("SSO_SHARED_SECRET not configured — SSO disabled")
         return None
-    try:
-        # Format: <timestamp>:<email>:<hmac>
-        parts = token.split(":", 2)
-        if len(parts) != 3:
-            return None
-        ts_str, email, sig = parts
-        ts = int(ts_str)
-        if abs(time.time() - ts) > _TOKEN_TTL_SECONDS:
-            return None
-        expected = hmac.new(
-            secret.encode(), f"{ts_str}:{email}".encode(), hashlib.sha256
-        ).hexdigest()
-        if not hmac.compare_digest(expected, sig):
-            return None
-        return email
-    except Exception:
-        return None
+    return TimestampSigner(key=secret, salt=SSO_SALT)
 
 
+@csrf_exempt
+@require_http_methods(["GET"])
 def sso_login(request):
-    """GET /auth/sso/?token=<token>&next=<path>
+    """GET /auth/sso/?token=...  → verify the handoff token and start a session.
 
-    Validates the FIN-issued SSO token, creates a Django session for the
-    matching HR user, and redirects to `next` (default: /).
+    On success redirects into the HR dashboard (or ?next=). On any failure,
+    falls through to the normal login page so the user is never hard-blocked.
     """
+    signer = _signer()
+    if signer is None:
+        logger.warning("SSO_SHARED_SECRET not configured — SSO disabled")
+        return HttpResponse(
+            "SSO is not configured on this server.", status=503, content_type="text/plain"
+        )
+
     token = request.GET.get("token", "")
-    next_url = request.GET.get("next", "/")
+    if not token:
+        return _fallback(request, "Missing SSO token.")
 
-    email = _verify_token(token)
-    if not email:
-        return HttpResponseBadRequest("Invalid or expired SSO token.")
-
+    max_age = getattr(settings, "SSO_TOKEN_MAX_AGE_SECONDS", 120)
     try:
-        user = User.objects.get(email=email)
-    except User.DoesNotExist:
-        return HttpResponseBadRequest(f"No HR account found for {email}.")
+        raw = signer.unsign(token, max_age=max_age)
+    except SignatureExpired:
+        return _fallback(request, "This sign-in link has expired. Please try again.")
+    except BadSignature:
+        return _fallback(request, "Invalid sign-in link.")
 
-    # Log the user in using the default authentication backend
-    user.backend = "django.contrib.auth.backends.ModelBackend"
-    login(request, user)
+    # payload = "email|workspace"
+    try:
+        email, workspace = raw.split("|", 1)
+    except ValueError:
+        return _fallback(request, "Malformed SSO token.")
+
+    # The tenant is resolved by HR's middleware (request.tenant). On the dev
+    # `localhost` host it falls back to the user's own tenant, so match by
+    # email scoped to the resolved tenant when present, else by workspace.
+    tenant = getattr(request, "tenant", None)
+    user = None
+    if tenant is not None:
+        user = User.objects.filter(email__iexact=email, tenant=tenant).first()
+    if user is None:
+        user = (
+            User.objects.filter(email__iexact=email, tenant__subdomain=workspace).first()
+        )
+    if user is None or not user.is_active:
+        return _fallback(request, "No matching HR account for this workspace.")
+
+    login(request, user, backend="apps.accounts.backends.TenantAuthBackend")
     logger.info("SSO login: %s", email)
-    return redirect(next_url)
+    next_url = request.GET.get("next") or "/"
+    return HttpResponseRedirect(next_url)
+
+
+def _fallback(request, message: str):
+    """Render the normal HR login with a note; never hard-fail the embed."""
+    from .forms import LoginForm
+
+    return render(
+        request,
+        "auth/login.html",
+        {"form": LoginForm(request=request), "sso_notice": message},
+        status=200,
+    )
