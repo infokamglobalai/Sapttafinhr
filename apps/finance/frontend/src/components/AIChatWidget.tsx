@@ -62,7 +62,7 @@ export default function AIChatWidget() {
             <Bot size={18} />
             <div>
               <div className="text-sm font-bold">Finance Assistant</div>
-              <div className="text-xs opacity-70">Powered by Claude</div>
+              <div className="text-xs opacity-70">AI Assistant</div>
             </div>
           </div>
 

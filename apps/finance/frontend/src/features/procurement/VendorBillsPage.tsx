@@ -45,7 +45,7 @@ export default function VendorBillsPage() {
       />
       <PageHint storageKey="vendor-bills">
         Each line picks its own expense account and TDS rate. We post: Dr expense + Dr GST input, Cr TDS payable, Cr Accounts Payable.
-        Use <strong>Scan Bill (AI)</strong> to upload a PDF or photo — Claude extracts the details automatically.
+        Use <strong>Scan Bill (AI)</strong> to upload a PDF or photo — AI extracts the details automatically.
       </PageHint>
       <div className="card overflow-hidden p-0">
         {!isLoading && data?.length === 0 ? (
@@ -230,7 +230,7 @@ function BillScanModal({
         {!result && (
           <>
             <p className="text-sm text-slate-500">
-              Upload a vendor invoice (PDF or image). Claude will extract vendor name, invoice number, dates, line items, and GST amounts to pre-fill the bill form.
+              Upload a vendor invoice (PDF or image). AI will extract vendor name, invoice number, dates, line items, and GST amounts to pre-fill the bill form.
             </p>
             <div>
               <label className="label">Bill file (PDF or image) *</label>

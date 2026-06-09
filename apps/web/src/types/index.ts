@@ -157,7 +157,7 @@ export const PLANS: Plan[] = [
       'Employee expense → Finance flow',
       'Unified dashboard & reports',
       'Customer/vendor portal',
-      'Claude AI audit assistant',
+      'AI audit assistant',
       'WhatsApp & SMS notifications',
       'Dedicated account manager',
     ],

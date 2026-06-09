@@ -144,7 +144,7 @@ function PaymentReminderModal({ invoiceId, onClose }: { invoiceId: number | null
       {isLoading && (
         <div className="flex flex-col items-center gap-3 py-10 text-slate-500">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-violet-400 border-t-transparent" />
-          <span className="text-sm">Claude is drafting your reminder…</span>
+          <span className="text-sm">AI is drafting your reminder…</span>
         </div>
       )}
       {isError && (
