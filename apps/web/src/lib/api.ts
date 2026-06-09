@@ -33,7 +33,17 @@ const DEFAULT_WORKSPACE: string =
 
 /** Build the tenant API base for a given workspace (subdomain). */
 export function tenantBase(workspace?: string): string {
-  const ws = (workspace || getWorkspace() || DEFAULT_WORKSPACE).trim();
+  const ws = (workspace || getWorkspace())?.trim();
+  if (!ws) {
+    // Keep fallback in dev so the app boots without login; in prod, fail loudly.
+    if (import.meta.env.DEV) {
+      const devWs = DEFAULT_WORKSPACE;
+      return TENANT_BASE_TEMPLATE.includes('{workspace}')
+        ? TENANT_BASE_TEMPLATE.replace('{workspace}', devWs)
+        : TENANT_BASE_TEMPLATE;
+    }
+    throw new Error('No workspace selected. Please log in again.');
+  }
   if (TENANT_BASE_TEMPLATE.includes('{workspace}')) {
     return TENANT_BASE_TEMPLATE.replace('{workspace}', ws);
   }

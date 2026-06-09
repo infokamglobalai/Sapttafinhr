@@ -53,7 +53,7 @@ def notify(recipient, notification_type, title, message="", action_url="", send_
                 "title": title, "message": message,
                 "action_url": action_url, "recipient": recipient,
                 "tenant": recipient.tenant,
-                "site_url": "http://127.0.0.1:8000",  # TODO: tenant subdomain
+                "site_url": f"https://{recipient.tenant.subdomain}.{settings.HRMS_TENANT_DOMAIN}",
             }
             html_body = render_to_string(tmpl_path, context)
             text_body = strip_tags(html_body)
