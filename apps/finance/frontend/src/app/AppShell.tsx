@@ -5,6 +5,7 @@ import {
   ShoppingCart, Truck, FileInput, Landmark, Calendar, Warehouse, Boxes,
   Building2, ReceiptText, CalendarDays, Settings, FileCheck2,
   BarChart3, Briefcase, BookCopy, ChevronRight, Plus, Menu, X as XIcon, Webhook, Share2, Hash, UserCircle2,
+  Search,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { cn } from '@/lib/cn';
@@ -216,6 +217,7 @@ export default function AppShell() {
   });
   const [quickOpen, setQuickOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const onHash = () => {
@@ -249,13 +251,13 @@ export default function AppShell() {
   const currentSub = findSubItem(route);
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-ink-50">
       {/* PRIMARY: labeled icon rail */}
-      <aside className="hidden w-24 shrink-0 flex-col items-stretch border-r border-slate-200 bg-white py-3 md:flex">
-        <div className="mb-4 flex items-center justify-center">
+      <aside className="hidden w-[72px] shrink-0 flex-col items-center border-r border-ink-150 bg-white py-4 md:flex">
+        <div className="mb-4 flex items-center justify-center border-b border-ink-100 pb-4 w-full">
           <img src="/logo.png" alt="Saptta" className="h-8 w-auto object-contain" />
         </div>
-        <nav className="flex-1 space-y-0.5 px-2">
+        <nav className="flex-1 w-full flex flex-col items-center gap-1 mt-2">
           {SECTIONS.map((s) => {
             const Icon = s.icon;
             const active = activeSectionId === s.id;
@@ -263,52 +265,82 @@ export default function AppShell() {
               <button
                 key={s.id}
                 onClick={() => onSectionClick(s)}
+                title={s.label}
                 className={cn(
-                  'flex w-full flex-col items-center gap-1 rounded-md px-1 py-2 text-[11px] leading-tight transition',
-                  active ? 'bg-brand-50 text-brand-700' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800',
+                  'relative flex w-[52px] h-[52px] flex-col items-center justify-center rounded-xl transition-all duration-150 outline-none',
+                  active 
+                    ? 'bg-ink-150 text-ink-950 font-semibold' 
+                    : 'text-ink-500 hover:bg-ink-100 hover:text-ink-950',
                 )}
               >
-                <Icon size={18} />
-                <span className="text-center">{s.label}</span>
+                <Icon size={20} className="opacity-75" />
+                {active && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-ink-950 rounded-r-sm" />
+                )}
               </button>
             );
           })}
         </nav>
-        <button onClick={logout}
-          className="mx-2 mt-2 flex flex-col items-center gap-1 rounded-md px-1 py-2 text-[11px] text-slate-500 hover:bg-slate-100 hover:text-red-600">
-          <LogOut size={16} />
-          Sign out
+        <button 
+          onClick={logout}
+          title="Sign out"
+          className="flex w-[52px] h-[52px] items-center justify-center rounded-xl text-ink-500 hover:bg-ink-100 hover:text-red-600 transition-all duration-150"
+        >
+          <LogOut size={20} />
         </button>
       </aside>
 
       {/* SECONDARY: section panel */}
       {showSecondary && (
-        <aside className="hidden w-60 shrink-0 flex-col border-r border-slate-200 bg-white md:flex">
-          <div className="border-b border-slate-200 px-5 py-4">
-            <div className="text-xs uppercase tracking-wide text-slate-400">Section</div>
-            <div className="text-base font-semibold text-slate-900">{activeSection!.label}</div>
+        <aside className="hidden w-[220px] shrink-0 flex-col border-r border-ink-150 bg-ink-50 py-5 md:flex">
+          <div className="px-5 pb-3 border-b border-ink-100 mb-3">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-ink-500">{activeSection!.label}</div>
           </div>
-          <nav className="flex-1 overflow-y-auto p-2 text-sm">
-            {activeSection!.children!.map((child) => {
-              const Icon = child.icon;
-              const active = route === child.id;
-              return (
-                <button
-                  key={child.id}
-                  onClick={() => go(child.id)}
-                  title={child.description}
-                  className={cn(
-                    'flex w-full items-center gap-2 rounded-md px-3 py-2 text-left',
-                    active ? 'bg-brand-50 text-brand-700 font-medium' : 'text-slate-700 hover:bg-slate-100',
-                  )}
-                >
-                  <Icon size={15} className="shrink-0" />
-                  <span className="truncate">{child.label}</span>
-                </button>
-              );
-            })}
+          
+          {/* Menu Search */}
+          <div className="relative mx-3 mb-4">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search menus..."
+              className="w-full pl-8 pr-8 py-1.5 text-xs font-normal bg-ink-100 rounded-md text-ink-950 border border-transparent outline-none focus:bg-white focus:border-ink-950 transition-all"
+            />
+            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-500 pointer-events-none" />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-ink-500 hover:text-ink-950">✕</button>
+            )}
+          </div>
+
+          <nav className="flex-1 overflow-y-auto px-2 space-y-0.5 text-xs">
+            {activeSection!.children!
+              .filter((child) => !searchQuery || child.label.toLowerCase().includes(searchQuery.toLowerCase()))
+              .map((child) => {
+                const Icon = child.icon;
+                const active = route === child.id;
+                return (
+                  <button
+                    key={child.id}
+                    onClick={() => go(child.id)}
+                    title={child.description}
+                    className={cn(
+                      'flex w-full items-center gap-3 rounded-md px-3 py-2 text-left transition-all duration-150',
+                      active 
+                        ? 'bg-ink-150 text-ink-950 font-semibold' 
+                        : 'text-ink-700 hover:bg-ink-100 hover:text-ink-950',
+                    )}
+                  >
+                    <Icon size={14} className="shrink-0 opacity-60" />
+                    <span className="truncate">{child.label}</span>
+                  </button>
+                );
+              })}
           </nav>
-          <div className="border-t border-slate-200 px-4 py-3 text-xs text-slate-500">
+          <div className="border-t border-ink-100 px-4 pt-3 text-[10px] text-ink-500">
+            <div className="flex items-center gap-1.5 mb-1">
+              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full inline-block"></span>
+              System operational
+            </div>
             <div className="truncate" title={user?.email}>{user?.email}</div>
           </div>
         </aside>
@@ -317,7 +349,7 @@ export default function AppShell() {
       {/* MAIN with TOP BAR */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Top bar: breadcrumb + quick create */}
-        <header className="flex h-14 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 md:px-6">
+        <header className="flex h-14 shrink-0 items-center justify-between border-b border-ink-150 bg-white px-4 md:px-6">
           <div className="flex items-center gap-3">
             <button
               className="md:hidden rounded-md p-2 text-slate-500 hover:bg-slate-100"
