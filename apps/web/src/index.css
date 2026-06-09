@@ -844,6 +844,383 @@ button:hover .arrow-hover,
   }
 }
 
+/* ─────────────────────────────────────────────────────────
+   INDUSTRIES SECTION
+   ───────────────────────────────────────────────────────── */
+.home-industries {
+  padding-top: 80px;
+  padding-bottom: 80px;
+}
+
+.home-industries__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.home-industries__layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  margin-top: 56px;
+  align-items: start;
+}
+
+@media (max-width: 991px) {
+  .home-industries__layout {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+.home-industries__tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.home-industry-tab {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  background: #fff;
+  border: 1px solid #EAECEF;
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.22s ease;
+  font-family: inherit;
+  position: relative;
+  overflow: hidden;
+}
+
+.home-industry-tab::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--ind-accent);
+  opacity: 0;
+  border-radius: 0 2px 2px 0;
+  transition: opacity 0.2s ease;
+}
+
+.home-industry-tab--active::before,
+.home-industry-tab:hover::before {
+  opacity: 1;
+}
+
+.home-industry-tab--active {
+  background: #fff;
+  border-color: var(--ind-accent);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+}
+
+.home-industry-tab:hover {
+  border-color: var(--ind-accent);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+}
+
+.home-industry-tab__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.04);
+  color: var(--ind-accent);
+  font-size: 17px;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+
+.home-industry-tab--active .home-industry-tab__icon {
+  background: color-mix(in srgb, var(--ind-accent) 12%, transparent);
+}
+
+.home-industry-tab__name {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1E293B;
+  line-height: 1.3;
+}
+
+.home-industry-tab__arrow {
+  color: #CBD5E1;
+  font-size: 11px;
+  transition: color 0.2s, transform 0.2s;
+}
+
+.home-industry-tab--active .home-industry-tab__arrow,
+.home-industry-tab:hover .home-industry-tab__arrow {
+  color: var(--ind-accent);
+  transform: translateX(2px);
+}
+
+.home-industries__detail {
+  animation: fadeInRight 0.32s ease both;
+}
+
+.home-industry-detail-card {
+  background: linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%);
+  border: 1px solid #EAECEF;
+  border-top: 3px solid var(--ind-accent);
+  border-radius: 16px;
+  padding: 36px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.05);
+}
+
+.home-industry-detail-card__icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--ind-accent) 12%, transparent);
+  color: var(--ind-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  margin-bottom: 24px;
+}
+
+.home-industry-detail-card__title {
+  font-size: 22px;
+  font-weight: 600;
+  color: #0A1128;
+  margin-bottom: 14px;
+  letter-spacing: -0.02em;
+}
+
+.home-industry-detail-card__desc {
+  font-size: 15px;
+  line-height: 1.7;
+  color: #64748B;
+  margin-bottom: 24px;
+}
+
+.home-industry-detail-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.home-industry-detail-card__tag {
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ind-accent) 10%, transparent);
+  color: var(--ind-accent);
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid color-mix(in srgb, var(--ind-accent) 25%, transparent);
+}
+
+/* ─────────────────────────────────────────────────────────
+   TESTIMONIALS SECTION
+   ───────────────────────────────────────────────────────── */
+.home-testimonials {
+  padding-top: 80px;
+  padding-bottom: 80px;
+  background: linear-gradient(180deg, #FAFAFC 0%, #F0F4FF 100%);
+}
+
+.home-testimonials__inner {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.home-testimonials__stage {
+  margin-top: 56px;
+}
+
+.home-testimonial-featured {
+  background: #fff;
+  border: 1px solid #EAECEF;
+  border-radius: 20px;
+  padding: 44px 48px;
+  box-shadow: 0 12px 48px rgba(30,42,120,0.06);
+  animation: fadeInUp 0.38s ease both;
+}
+
+@media (max-width: 767px) {
+  .home-testimonial-featured {
+    padding: 28px 24px;
+  }
+}
+
+.home-testimonial-featured__stars {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+}
+
+.home-testimonial-star {
+  color: #F59E0B;
+  font-size: 17px;
+}
+
+.home-testimonial-featured__quote {
+  font-size: 19px;
+  line-height: 1.7;
+  color: #1E293B;
+  font-style: normal;
+  font-weight: 400;
+  margin-bottom: 32px;
+  letter-spacing: -0.01em;
+  border: none;
+  padding: 0;
+}
+
+@media (max-width: 767px) {
+  .home-testimonial-featured__quote {
+    font-size: 16px;
+  }
+}
+
+.home-testimonial-featured__author {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.home-testimonial-featured__avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 600;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.home-testimonial-featured__meta {
+  flex: 1;
+}
+
+.home-testimonial-featured__name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #0A1128;
+}
+
+.home-testimonial-featured__role {
+  font-size: 13px;
+  color: #64748B;
+  margin-top: 2px;
+}
+
+.home-testimonial-featured__tag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: #F1F5F9;
+  border-radius: 999px;
+  font-size: 12px;
+  color: #64748B;
+  font-weight: 500;
+  margin-left: auto;
+}
+
+@media (max-width: 767px) {
+  .home-testimonial-featured__tag {
+    margin-left: 0;
+  }
+}
+
+.home-testimonial-featured__sep {
+  color: #CBD5E1;
+}
+
+.home-testimonials__dots {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.home-testimonials__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid #CBD5E1;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.22s ease;
+}
+
+.home-testimonials__dot--active {
+  background: var(--dot-color, #1E2A78);
+  border-color: var(--dot-color, #1E2A78);
+  transform: scale(1.25);
+}
+
+.home-testimonials__mini-cards {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.home-testimonial-mini {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: #fff;
+  border: 1px solid #EAECEF;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  text-align: left;
+}
+
+.home-testimonial-mini:hover {
+  border-color: var(--mini-color);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
+
+.home-testimonial-mini--active {
+  border-color: var(--mini-color);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  background: #fff;
+}
+
+.home-testimonial-mini__avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.home-testimonial-mini__name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1E293B;
+}
+
+.home-testimonial-mini__company {
+  font-size: 11px;
+  color: #94A3B8;
+  margin-top: 1px;
+}
+
 /* ─── Compliance feature card glow adjustments ─── */
 .card-hover {
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
@@ -5303,6 +5680,172 @@ section.home-hero.home-hero--reference.home-hero--v2.responsive-padding {
 .marketing-section__inner--table {
   max-width: 960px;
 }
+
+/* ─────────────────────────────────────────────────────────
+   ABOUT PAGE — Team Cards & Careers Section
+   ───────────────────────────────────────────────────────── */
+.about-team-card {
+  background: #fff;
+  border: 1px solid #EAECEF;
+  border-radius: 16px;
+  padding: 28px 24px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: box-shadow 0.22s ease, transform 0.22s ease;
+}
+
+.about-team-card:hover {
+  box-shadow: 0 12px 36px rgba(30,42,120,0.08);
+  transform: translateY(-4px);
+}
+
+.about-team-card__avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 4px;
+  letter-spacing: -0.01em;
+}
+
+.about-team-card__name {
+  font-size: 17px;
+  font-weight: 600;
+  color: #0A1128;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.about-team-card__role {
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #64748B;
+  margin-top: -4px;
+}
+
+.about-team-card__bio {
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: #64748B;
+  flex: 1;
+  margin: 0;
+}
+
+.about-team-card__expertise {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.about-team-card__tag {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #F1F5F9;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* Careers section */
+.about-careers-list {
+  margin-top: 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.about-career-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px;
+  background: #fff;
+  border: 1px solid #EAECEF;
+  border-radius: 12px;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.about-career-row:hover {
+  border-color: #1E2A78;
+  box-shadow: 0 4px 20px rgba(30,42,120,0.07);
+}
+
+.about-career-row__title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #0A1128;
+}
+
+.about-career-row__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 13px;
+  color: #64748B;
+}
+
+.about-career-row__sep {
+  color: #CBD5E1;
+}
+
+.about-career-row__type {
+  font-weight: 500;
+  color: #059669;
+}
+
+.about-career-row__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  border-radius: 8px;
+  background: #0A1128;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.about-career-row__cta:hover {
+  background: #1E2A78;
+  color: #fff;
+}
+
+.about-careers__footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 28px;
+  font-size: 14px;
+  color: #64748B;
+}
+
+.about-careers__email {
+  color: #1E2A78;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.about-careers__email:hover {
+  text-decoration: underline;
+}
+
 
 .marketing-showcase-controls {
   display: flex;

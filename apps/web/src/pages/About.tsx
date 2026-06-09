@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Row, Col } from 'antd';
-import { CheckOutlined } from '@ant-design/icons';
+import { CheckOutlined, MailOutlined, RightOutlined } from '@ant-design/icons';
 import ScrollReveal from '../components/shared/ScrollReveal';
 import MarketingImageFrame from '../components/marketing/MarketingImageFrame';
 import MarketingHero from '../components/marketing/MarketingHero';
@@ -71,6 +71,47 @@ const techStack = [
   { code: 'CL', title: 'Cloud hosting', desc: 'Encrypted storage with reliable backups and uptime.' },
   { code: 'KM', title: 'Key management', desc: 'Protected credentials and sensitive payroll data.' },
   { code: 'RP', title: 'Payment integrations', desc: 'Razorpay and bank feeds aligned with your ledger.' },
+];
+
+const TEAM_MEMBERS = [
+  {
+    initial: 'AK',
+    name: 'Arjun Kumar',
+    role: 'Co-founder & CEO',
+    bio: 'Former payroll operations lead at a mid-sized Indian conglomerate. Built Saptta to solve the exact compliance gaps he faced managing 800+ employees.',
+    expertise: ['HR Operations', 'Statutory Compliance', 'Product Strategy'],
+    color: '#1E2A78',
+  },
+  {
+    initial: 'SM',
+    name: 'Sunita Mehta',
+    role: 'Co-founder & CTO',
+    bio: '12 years of full-stack engineering across fintech and SaaS. Leads the platform architecture that powers real-time payroll-to-ledger sync.',
+    expertise: ['Backend Architecture', 'Fintech Systems', 'Cloud Infrastructure'],
+    color: '#FF6D00',
+  },
+  {
+    initial: 'RV',
+    name: 'Rajan Varma',
+    role: 'Head of Finance Product',
+    bio: 'Chartered Accountant with deep GST and TDS expertise. Translates complex Indian tax rules into usable software workflows.',
+    expertise: ['GST & TDS', 'Double-Entry Accounting', 'Audit Readiness'],
+    color: '#059669',
+  },
+  {
+    initial: 'DP',
+    name: 'Divya Pillai',
+    role: 'Head of Customer Success',
+    bio: 'Ensures every Saptta customer goes live in under two weeks and achieves measurable ROI within the first payroll cycle.',
+    expertise: ['Onboarding', 'Customer Training', 'Retention'],
+    color: '#7C3AED',
+  },
+];
+
+const OPEN_ROLES = [
+  { title: 'Senior Backend Engineer', type: 'Full-time', location: 'Remote / Bengaluru' },
+  { title: 'Compliance Product Manager', type: 'Full-time', location: 'Bengaluru' },
+  { title: 'Customer Success Manager', type: 'Full-time', location: 'Remote' },
 ];
 
 export default function About() {
@@ -281,6 +322,87 @@ export default function About() {
               </Col>
             ))}
           </Row>
+        </div>
+      </section>
+
+      {/* TEAM SECTION */}
+      <section className="marketing-section marketing-section--muted">
+        <div className="marketing-section__inner">
+          <ScrollReveal animation="fade-in-down">
+            <HomeSectionHeader
+              eyebrow="Our team"
+              title="The people"
+              titleHighlight="behind Saptta"
+              titleHighlightSameLine
+              subtitle="A small team with deep domain expertise across HR, statutory compliance, finance, and enterprise SaaS."
+              theme="navy"
+              maxWidth={560}
+              isMobile={isMobile}
+            />
+          </ScrollReveal>
+          <Row gutter={[20, 20]} style={{ marginTop: 48 }}>
+            {TEAM_MEMBERS.map((member, i) => (
+              <Col key={member.name} xs={24} sm={12} lg={6}>
+                <ScrollReveal animation="fade-in-up" delay={i * 60}>
+                  <article className="about-team-card">
+                    <div className="about-team-card__avatar" style={{ background: member.color }}>
+                      {member.initial}
+                    </div>
+                    <h4 className="about-team-card__name">{member.name}</h4>
+                    <div className="about-team-card__role">{member.role}</div>
+                    <p className="about-team-card__bio">{member.bio}</p>
+                    <div className="about-team-card__expertise">
+                      {member.expertise.map(tag => (
+                        <span key={tag} className="about-team-card__tag">{tag}</span>
+                      ))}
+                    </div>
+                  </article>
+                </ScrollReveal>
+              </Col>
+            ))}
+          </Row>
+        </div>
+      </section>
+
+      {/* CAREERS / JOIN US SECTION */}
+      <section className="marketing-section marketing-section--white">
+        <div className="marketing-section__inner marketing-section__inner--narrow">
+          <ScrollReveal animation="fade-in-down">
+            <HomeSectionHeader
+              eyebrow="Careers"
+              title="Join our"
+              titleHighlight="growing team"
+              titleHighlightSameLine
+              subtitle="We're building India's most honest HR and finance platform. If you care about craftsmanship and compliance, we want to hear from you."
+              theme="navy"
+              maxWidth={540}
+              isMobile={isMobile}
+            />
+          </ScrollReveal>
+          <div className="about-careers-list">
+            {OPEN_ROLES.map((role, i) => (
+              <ScrollReveal key={role.title} animation="fade-in-up" delay={i * 60}>
+                <div className="about-career-row">
+                  <div className="about-career-row__info">
+                    <div className="about-career-row__title">{role.title}</div>
+                    <div className="about-career-row__meta">
+                      <span className="about-career-row__type">{role.type}</span>
+                      <span className="about-career-row__sep">·</span>
+                      <span className="about-career-row__location">{role.location}</span>
+                    </div>
+                  </div>
+                  <a href="/contact" className="about-career-row__cta">
+                    Apply <RightOutlined />
+                  </a>
+                </div>
+              </ScrollReveal>
+            ))}
+          </div>
+          <div className="about-careers__footer">
+            <MailOutlined />
+            <span>Don't see your role? Email us at </span>
+            <a href="mailto:careers@saptta.com" className="about-careers__email">careers@saptta.com</a>
+          </div>
         </div>
       </section>
     </div>

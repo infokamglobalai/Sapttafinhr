@@ -23,6 +23,13 @@ import {
   AppstoreOutlined,
   FileTextOutlined,
   CheckOutlined,
+  StarFilled,
+  BuildOutlined,
+  ShopOutlined,
+  CarOutlined,
+  MedicineBoxOutlined,
+  ToolOutlined,
+  CodeOutlined,
 } from '@ant-design/icons';
 import { useInView, useInViewMulti } from '../hooks/useInView';
 import ScrollReveal from '../components/shared/ScrollReveal';
@@ -890,6 +897,9 @@ export default function Home() {
 
       <WhySapttaComparison />
 
+      {/* ── Industries We Serve ── */}
+      <IndustriesSection isMobile={isMobile} />
+
       {/* ── 7. Compliance — tiered priority ── */}
       <section className="responsive-padding home-section home-compliance">
         <div className="home-section-inner home-compliance__inner">
@@ -1082,6 +1092,9 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ── Testimonials ── */}
+      <TestimonialsSection isMobile={isMobile} />
+
       <IntegrationPartnersSection />
 
       <section className="home-security responsive-padding" aria-labelledby="home-security-heading">
@@ -1160,5 +1173,262 @@ export default function Home() {
         </div>
       </section>
     </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────
+   INDUSTRIES SECTION — Which sectors use Saptta
+   ───────────────────────────────────────────────────────── */
+const INDUSTRIES = [
+  {
+    icon: <BuildOutlined />,
+    name: 'Construction & Real Estate',
+    desc: 'Manage geofenced attendance for site workers, contractor payroll, and project-wise cost tracking.',
+    accent: '#FF6D00',
+    tags: ['Site attendance', 'Contractor payroll', 'Cost centers'],
+  },
+  {
+    icon: <ShopOutlined />,
+    name: 'Retail & Distribution',
+    desc: 'Multi-branch employee records, shift management, GST invoicing, and vendor reconciliation in one place.',
+    accent: '#1E2A78',
+    tags: ['Multi-branch', 'Shift scheduling', 'GST invoicing'],
+  },
+  {
+    icon: <ToolOutlined />,
+    name: 'Manufacturing',
+    desc: 'Factory floor attendance, PF/ESI compliance for large workforces, and inventory-linked accounting.',
+    accent: '#059669',
+    tags: ['Factory workforce', 'PF & ESI', 'Inventory accounting'],
+  },
+  {
+    icon: <CodeOutlined />,
+    name: 'IT Services & Startups',
+    desc: 'Remote attendance, expense reimbursements, TDS filings, and clean financial reports for investors.',
+    accent: '#7C3AED',
+    tags: ['Remote work', 'Expense claims', 'Investor reports'],
+  },
+  {
+    icon: <MedicineBoxOutlined />,
+    name: 'Healthcare & Clinics',
+    desc: 'Shift rosters for nurses and doctors, payslips, and GST-ready billing for medical supplies.',
+    accent: '#DC2626',
+    tags: ['Shift rosters', 'Payslips', 'Medical billing'],
+  },
+  {
+    icon: <CarOutlined />,
+    name: 'Logistics & Transport',
+    desc: 'Driver attendance via mobile app, route-wise cost tracking, and PF compliance for large fleets.',
+    accent: '#0EA5E9',
+    tags: ['Mobile punch', 'Fleet costs', 'PF compliance'],
+  },
+];
+
+function IndustriesSection({ isMobile }: { isMobile: boolean }) {
+  const [activeIdx, setActiveIdx] = useState(0);
+  const active = INDUSTRIES[activeIdx];
+
+  return (
+    <section className="home-industries responsive-padding" aria-labelledby="home-industries-heading">
+      <div className="home-industries__inner">
+        <ScrollReveal animation="fade-in-up">
+          <HomeSectionHeader
+            eyebrow="Industry solutions"
+            title="Built for Every"
+            titleHighlight="Indian Business"
+            titleHighlightSameLine
+            subtitle="Whether you run a factory, a clinic, or a startup — Saptta adapts to your workforce structure, compliance requirements, and accounting needs."
+            theme="navy"
+            isMobile={isMobile}
+            maxWidth={820}
+            headingId="home-industries-heading"
+          />
+        </ScrollReveal>
+
+        <div className="home-industries__layout">
+          {/* Left: industry tabs */}
+          <div className="home-industries__tabs">
+            {INDUSTRIES.map((ind, i) => (
+              <button
+                key={ind.name}
+                type="button"
+                className={`home-industry-tab${activeIdx === i ? ' home-industry-tab--active' : ''}`}
+                onClick={() => setActiveIdx(i)}
+                style={{ ['--ind-accent' as string]: ind.accent }}
+              >
+                <span className="home-industry-tab__icon" aria-hidden>{ind.icon}</span>
+                <span className="home-industry-tab__name">{ind.name}</span>
+                <RightOutlined className="home-industry-tab__arrow" />
+              </button>
+            ))}
+          </div>
+
+          {/* Right: active detail */}
+          <div className="home-industries__detail" key={activeIdx}>
+            <div className="home-industry-detail-card" style={{ ['--ind-accent' as string]: active.accent }}>
+              <div className="home-industry-detail-card__icon">{active.icon}</div>
+              <h3 className="home-industry-detail-card__title">{active.name}</h3>
+              <p className="home-industry-detail-card__desc">{active.desc}</p>
+              <div className="home-industry-detail-card__tags">
+                {active.tags.map(tag => (
+                  <span key={tag} className="home-industry-detail-card__tag">{tag}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────
+   TESTIMONIALS SECTION — Social proof
+   ───────────────────────────────────────────────────────── */
+const TESTIMONIALS = [
+  {
+    quote: "Saptta replaced three disconnected tools we were using for HR, payroll, and accounts. Our month-end close now takes hours, not days.",
+    name: 'Ramesh Iyer',
+    title: 'CFO',
+    company: 'Iyer Construction Pvt. Ltd.',
+    industry: 'Construction',
+    employees: '320 employees',
+    stars: 5,
+    initial: 'R',
+    color: '#FF6D00',
+  },
+  {
+    quote: "PF and ESI compliance used to eat up two days every month. With Saptta, it's automated — our HR team now focuses on people, not paperwork.",
+    name: 'Priya Nair',
+    title: 'HR Manager',
+    company: 'GlobalTech Solutions',
+    industry: 'IT Services',
+    employees: '85 employees',
+    stars: 5,
+    initial: 'P',
+    color: '#1E2A78',
+  },
+  {
+    quote: "The geofence attendance feature is a game changer for our field staff. Managers can see who's on site in real time and approve leaves instantly.",
+    name: 'Arun Sharma',
+    title: 'Operations Director',
+    company: 'Sharma Retail Chain',
+    industry: 'Retail',
+    employees: '210 employees',
+    stars: 5,
+    initial: 'A',
+    color: '#059669',
+  },
+  {
+    quote: "The GST invoicing and GSTR export saves us hours every quarter. Our CA loves that the data is clean and audit-ready straight from the system.",
+    name: 'Deepa Krishnan',
+    title: 'Finance Head',
+    company: 'Meditex Healthcare',
+    industry: 'Healthcare',
+    employees: '160 employees',
+    stars: 5,
+    initial: 'D',
+    color: '#DC2626',
+  },
+];
+
+function TestimonialsSection({ isMobile }: { isMobile: boolean }) {
+  const [active, setActive] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => setActive(prev => (prev + 1) % TESTIMONIALS.length), 5000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const t = TESTIMONIALS[active];
+
+  return (
+    <section className="home-testimonials responsive-padding" aria-labelledby="home-testimonials-heading">
+      <div className="home-testimonials__inner">
+        <ScrollReveal animation="fade-in-up">
+          <HomeSectionHeader
+            eyebrow="Customer stories"
+            title="Trusted by Teams"
+            titleHighlight="Across India"
+            titleHighlightSameLine
+            subtitle="HR managers, CFOs, and operations heads share how Saptta transformed their business operations."
+            theme="navy"
+            isMobile={isMobile}
+            maxWidth={680}
+            headingId="home-testimonials-heading"
+          />
+        </ScrollReveal>
+
+        <ScrollReveal animation="fade-in-up" delay={80}>
+          <div className="home-testimonials__stage">
+            {/* Featured testimonial */}
+            <div className="home-testimonial-featured" key={active}>
+              <div className="home-testimonial-featured__stars" aria-label={`${t.stars} stars`}>
+                {Array.from({ length: t.stars }).map((_, i) => (
+                  <StarFilled key={i} className="home-testimonial-star" />
+                ))}
+              </div>
+              <blockquote className="home-testimonial-featured__quote">
+                &ldquo;{t.quote}&rdquo;
+              </blockquote>
+              <div className="home-testimonial-featured__author">
+                <div
+                  className="home-testimonial-featured__avatar"
+                  style={{ background: t.color }}
+                  aria-hidden
+                >
+                  {t.initial}
+                </div>
+                <div className="home-testimonial-featured__meta">
+                  <div className="home-testimonial-featured__name">{t.name}</div>
+                  <div className="home-testimonial-featured__role">{t.title} · {t.company}</div>
+                </div>
+                <div className="home-testimonial-featured__tag">
+                  <span>{t.industry}</span>
+                  <span className="home-testimonial-featured__sep">·</span>
+                  <span>{t.employees}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Selector dots */}
+            <div className="home-testimonials__dots" role="tablist" aria-label="Testimonial selector">
+              {TESTIMONIALS.map((test, i) => (
+                <button
+                  key={test.name}
+                  type="button"
+                  role="tab"
+                  aria-selected={i === active}
+                  aria-label={`Testimonial from ${test.name}`}
+                  className={`home-testimonials__dot${i === active ? ' home-testimonials__dot--active' : ''}`}
+                  onClick={() => setActive(i)}
+                  style={{ ['--dot-color' as string]: TESTIMONIALS[i].color }}
+                />
+              ))}
+            </div>
+
+            {/* Mini cards */}
+            {!isMobile && (
+              <div className="home-testimonials__mini-cards">
+                {TESTIMONIALS.map((test, i) => (
+                  <button
+                    key={test.name}
+                    type="button"
+                    className={`home-testimonial-mini${i === active ? ' home-testimonial-mini--active' : ''}`}
+                    onClick={() => setActive(i)}
+                    style={{ ['--mini-color' as string]: test.color }}
+                  >
+                    <div className="home-testimonial-mini__avatar" style={{ background: test.color }}>{test.initial}</div>
+                    <div className="home-testimonial-mini__info">
+                      <div className="home-testimonial-mini__name">{test.name}</div>
+                      <div className="home-testimonial-mini__company">{test.company}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </ScrollReveal>
+      </div>
+    </section>
   );
 }
