@@ -9,10 +9,10 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 
 # Default dev credentials (safe for local SQLite only)
-DEFAULT_COMPANY = "Saptta Demo Company"
-DEFAULT_SUBDOMAIN = "sapttadev"
-DEFAULT_EMAIL = "admin@saptta.local"
-DEFAULT_PASSWORD = "Saptta@12345"
+DEFAULT_COMPANY = "Acme Pvt Ltd"
+DEFAULT_SUBDOMAIN = "acme"
+DEFAULT_EMAIL = "demo@saptta.com"
+DEFAULT_PASSWORD = "Demo@1234"
 
 
 class Command(BaseCommand):

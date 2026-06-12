@@ -50,11 +50,11 @@ class Command(BaseCommand):
         # 2. Acme tenant
         acme, created = Tenant.objects.get_or_create(
             schema_name="acme",
-            defaults={"name": "Acme Pvt Ltd", "billing_email": "admin@acme.test"},
+            defaults={"name": "Acme Pvt Ltd", "billing_email": "demo@saptta.com"},
         )
-        if not acme.billing_email:
+        if not acme.billing_email or acme.billing_email == "admin@acme.test":
             # Needed so dev login resolves the workspace (JWT workspace claim).
-            acme.billing_email = "admin@acme.test"
+            acme.billing_email = "demo@saptta.com"
             acme.save(update_fields=["billing_email"])
         if created:
             self.stdout.write(self.style.SUCCESS("Created Acme tenant + schema."))
@@ -88,13 +88,22 @@ class Command(BaseCommand):
             )
 
         # 3. Superuser (lives in public/shared)
-        if not User.objects.filter(email="admin@acme.test").exists():
+        if not User.objects.filter(email="sp@saptta.com").exists():
             User.objects.create_superuser(
-                email="admin@acme.test",
-                password="admin12345",
-                full_name="Acme Admin",
+                email="sp@saptta.com",
+                password="Saptta@2026",
+                full_name="Saptta Superadmin",
             )
-            self.stdout.write(self.style.SUCCESS("Created superuser admin@acme.test / admin12345"))
+            self.stdout.write(self.style.SUCCESS("Created superuser sp@saptta.com / Saptta@2026"))
+
+        # Create demo company admin (lives in public/shared, resolves via billing_email)
+        if not User.objects.filter(email="demo@saptta.com").exists():
+            User.objects.create_user(
+                email="demo@saptta.com",
+                password="Demo@1234",
+                full_name="Demo Admin",
+            )
+            self.stdout.write(self.style.SUCCESS("Created demo admin demo@saptta.com / Demo@1234"))
 
         # 4. Inside Acme schema: Company + COA + FY
         with schema_context("acme"):
@@ -188,4 +197,4 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS("Seeded demo HSN codes, items, parties."))
 
         self.stdout.write(self.style.SUCCESS("Bootstrap complete."))
-        self.stdout.write("Login at http://acme.localhost:8000/admin/  (admin@acme.test / admin12345)")
+        self.stdout.write("Login at http://acme.localhost:8000/admin/  (sp@saptta.com / Saptta@2026)")

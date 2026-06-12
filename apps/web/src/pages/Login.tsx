@@ -27,6 +27,24 @@ export default function Login() {
     }
   };
 
+  const handleDemoLogin = async (e: React.MouseEvent, type: 'admin' | 'saas') => {
+    e.preventDefault();
+    setError('');
+    
+    const dEmail = type === 'admin' ? 'demo@saptta.com' : 'sp@saptta.com';
+    const dPass = type === 'admin' ? 'Demo@1234' : 'Saptta@2026';
+    
+    setEmail(dEmail);
+    setPassword(dPass);
+    
+    try {
+      await login(dEmail, dPass);
+      navigate(from, { replace: true });
+    } catch {
+      setError('Invalid demo credentials. Please try again.');
+    }
+  };
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh', fontFamily: 'Inter, sans-serif' }}>
 
@@ -258,6 +276,46 @@ export default function Login() {
                   </>
                 ) : 'Sign In'}
               </button>
+
+              {/* Demo Logins */}
+              <div style={{
+                display: 'flex', flexDirection: 'column', gap: 10,
+                marginTop: 8, paddingTop: 20, borderTop: '1px solid rgba(10,17,40,0.07)'
+              }}>
+                <button
+                  type="button"
+                  onClick={(e) => handleDemoLogin(e, 'saas')}
+                  disabled={isLoading}
+                  style={{
+                    width:'100%', padding:'10px',
+                    borderRadius:8, border:'1.5px solid rgba(124,58,237,0.3)', cursor:'pointer',
+                    background: 'rgba(124,58,237,0.05)',
+                    color:'#7c3aed', fontSize:14, fontWeight:600,
+                    transition:'all 0.2s',
+                  }}
+                  onMouseOver={(e) => (e.currentTarget.style.background = 'rgba(124,58,237,0.1)')}
+                  onMouseOut={(e) => (e.currentTarget.style.background = 'rgba(124,58,237,0.05)')}
+                >
+                  Demo SAAS Superadmin Login
+                </button>
+
+                <button
+                  type="button"
+                  onClick={(e) => handleDemoLogin(e, 'admin')}
+                  disabled={isLoading}
+                  style={{
+                    width:'100%', padding:'10px',
+                    borderRadius:8, border:'1.5px solid rgba(10,17,40,0.15)', cursor:'pointer',
+                    background: '#fff',
+                    color:'#0A1128', fontSize:14, fontWeight:600,
+                    transition:'all 0.2s',
+                  }}
+                  onMouseOver={(e) => (e.currentTarget.style.background = '#f1f5f9')}
+                  onMouseOut={(e) => (e.currentTarget.style.background = '#fff')}
+                >
+                  Demo Company Admin Login
+                </button>
+              </div>
             </form>
           </div>
 
