@@ -134,6 +134,15 @@ services:
       sh -c "python manage.py migrate --noinput &&
              gunicorn hrms.wsgi:application --bind 0.0.0.0:8000 --workers 4 --timeout 120 --access-logfile -"
 
+  finance-web:
+    build:
+      context: ./apps/finance/frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_FINANCE_API_BASE_URL:-/api/v1}
+        VITE_PLATFORM_BASE_URL: ${VITE_PLATFORM_BASE_URL:-https://app.saptta.com}
+    restart: always
+
   frontdoor:
     build:
       context: .
@@ -154,6 +163,7 @@ services:
     depends_on:
       - fin-backend
       - hr-backend
+      - finance-web
 
 volumes:
   pgdata:

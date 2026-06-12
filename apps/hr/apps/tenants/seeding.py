@@ -77,7 +77,94 @@ def seed_hr_demo_tenant(sender, **kwargs):
                 product=ProductCode.HR,
                 defaults={"status": ProductEntitlement.Status.TRIAL}
             )
+            
+            # 5. Seed default shifts, departments, and leave types
+            seed_tenant_defaults(tenant)
+            
             logger.info("HR demo tenant seeding complete.")
 
     except Exception as e:
         logger.exception(f"Error seeding HR demo tenant: {e}")
+
+
+def seed_tenant_defaults(tenant):
+    """
+    Seeds default shifts, departments, and leave types for a tenant.
+    This ensures newly provisioned HR workspaces are not blank slates.
+    """
+    from apps.employees.models import Department
+    from apps.attendance.models import Shift
+    from apps.leaves.models import LeaveType
+    import datetime
+
+    logger.info(f"Seeding default organizational assets for tenant: {tenant.subdomain}")
+
+    try:
+        # 1. Seed Departments
+        departments = ["Human Resources", "Information Technology", "Sales", "Finance", "Engineering"]
+        for dept_name in departments:
+            Department.objects.get_or_create(
+                tenant=tenant,
+                name=dept_name,
+                defaults={"is_active": True}
+            )
+
+        # 2. Seed Shifts
+        Shift.objects.get_or_create(
+            tenant=tenant,
+            name="Standard Shift",
+            defaults={
+                "start_time": datetime.time(9, 0),
+                "end_time": datetime.time(18, 0),
+                "grace_in_minutes": 15,
+                "grace_out_minutes": 15,
+                "break_duration_minutes": 60,
+                "half_day_threshold_minutes": 240,
+                "full_day_threshold_minutes": 360,
+                "weekly_off_days": "saturday,sunday",
+                "is_active": True,
+            }
+        )
+        Shift.objects.get_or_create(
+            tenant=tenant,
+            name="Night Shift",
+            defaults={
+                "start_time": datetime.time(21, 0),
+                "end_time": datetime.time(6, 0),
+                "grace_in_minutes": 15,
+                "grace_out_minutes": 15,
+                "break_duration_minutes": 60,
+                "half_day_threshold_minutes": 240,
+                "full_day_threshold_minutes": 360,
+                "is_night_shift": True,
+                "weekly_off_days": "saturday,sunday",
+                "is_active": True,
+            }
+        )
+
+        # 3. Seed Leave Types
+        leave_types = [
+            {"name": "Casual Leave", "code": "CL", "is_paid": True, "accrual_type": "upfront", "accrual_value": 12.00, "applicable_gender": "all"},
+            {"name": "Sick Leave", "code": "SL", "is_paid": True, "accrual_type": "upfront", "accrual_value": 12.00, "applicable_gender": "all"},
+            {"name": "Earned Leave", "code": "EL", "is_paid": True, "accrual_type": "yearly", "accrual_value": 15.00, "applicable_gender": "all"},
+            {"name": "Maternity Leave", "code": "ML", "is_paid": True, "accrual_type": "upfront", "accrual_value": 84.00, "applicable_gender": "female"},
+            {"name": "Paternity Leave", "code": "PL", "is_paid": True, "accrual_type": "upfront", "accrual_value": 15.00, "applicable_gender": "male"},
+            {"name": "Loss of Pay", "code": "LOP", "is_paid": False, "accrual_type": "manual", "accrual_value": 0.00, "applicable_gender": "all"},
+        ]
+        for lt in leave_types:
+            LeaveType.objects.get_or_create(
+                tenant=tenant,
+                code=lt["code"],
+                defaults={
+                    "name": lt["name"],
+                    "is_paid": lt["is_paid"],
+                    "accrual_type": lt["accrual_type"],
+                    "accrual_value": lt["accrual_value"],
+                    "applicable_gender": lt["applicable_gender"],
+                    "is_active": True,
+                }
+            )
+        logger.info(f"Successfully seeded default organizational assets for tenant: {tenant.subdomain}")
+    except Exception as e:
+        logger.exception(f"Error seeding default organizational assets for tenant {tenant.subdomain}: {e}")
+        raise e

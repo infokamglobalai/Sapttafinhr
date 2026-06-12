@@ -109,6 +109,10 @@ def provision_tenant(request):
             defaults={"status": ProductEntitlement.Status.TRIAL},
         )
 
+        # Seed default shifts, departments, and leave types
+        from .seeding import seed_tenant_defaults
+        seed_tenant_defaults(tenant)
+
     return JsonResponse(
         {"detail": "Workspace provisioned.", "subdomain": subdomain, "created": True},
         status=201,

@@ -62,6 +62,10 @@ class Command(BaseCommand):
         admin_role = Role.objects.get(tenant=tenant, name="super_admin")
         UserRole.objects.create(user=user, role=admin_role)
 
+        # Seed default shifts, departments, and leave types
+        from apps.tenants.seeding import seed_tenant_defaults
+        seed_tenant_defaults(tenant)
+
         self.stdout.write(self.style.SUCCESS(
             f"\nDONE: Tenant '{subdomain}' ready.\n"
             f"  URL: http://{subdomain}.localhost:8000\n"

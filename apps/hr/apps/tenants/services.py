@@ -87,6 +87,10 @@ def provision_tenant(*, company_name: str, subdomain: str, admin_email: str, adm
     admin_role = Role.objects.get(tenant=tenant, name="super_admin")
     UserRole.objects.create(user=user, role=admin_role)
 
+    # Seed default shifts, departments, and leave types
+    from .seeding import seed_tenant_defaults
+    seed_tenant_defaults(tenant)
+
     return tenant, user
 
 
