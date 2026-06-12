@@ -1,0 +1,57 @@
+# Core
+Django==5.1.4
+psycopg[binary]==3.1.19
+redis==5.2.1
+
+# Async task queue
+celery==5.4.0
+django-celery-beat==2.7.0
+django-celery-results==2.5.1
+
+# Template & frontend helpers
+django-htmx==1.21.0
+whitenoise==6.8.2
+
+# Storage
+django-storages==1.14.4
+boto3==1.35.90            # for DigitalOcean Spaces (S3-compatible)
+
+# Email
+django-anymail==12.0
+
+# PDF generation
+weasyprint==62.3
+
+# Excel
+openpyxl==3.1.5
+
+# Encryption (Aadhaar, account numbers)
+cryptography==44.0.0
+
+# Environment management
+python-decouple==3.8
+
+# Request context (for TenantManager)
+django-crum==0.7.9
+
+# Audit trail
+django-simple-history==3.7.0
+
+# CORS (for future mobile API)
+django-cors-headers==4.6.0
+
+# Image handling (profile photos)
+Pillow==11.1.0
+
+# Utilities
+python-dateutil==2.9.0
+phonenumbers==8.13.52
+
+# Development
+django-debug-toolbar==4.4.6
+ipython==8.30.0
+
+# Production
+gunicorn==23.0.0
+sentry-sdk[django]==2.19.2
+anthropic>=0.100.0

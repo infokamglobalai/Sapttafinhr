@@ -1,0 +1,104 @@
+{% extends "legal/_base_legal.html" %}
+{% block eyebrow %}DPA{% endblock %}
+{% block legal_title %}Data Processing Addendum{% endblock %}
+
+{% block legal_body %}
+<div class="callout">
+  <strong>Stub for enterprise procurement.</strong> Use this DPA alongside the Terms of Service.
+  Have it reviewed by counsel for your specific compliance regime (DPDPA, GDPR, sector-specific
+  rules) before signing with regulated customers.
+</div>
+
+<h2>1. Roles</h2>
+<p>
+  The Workspace Owner (&ldquo;Customer&rdquo;) is the <strong>Data Fiduciary</strong> under
+  India&rsquo;s Digital Personal Data Protection Act, 2023 (DPDPA), and the equivalent
+  &ldquo;Controller&rdquo; under GDPR. HRMS (&ldquo;Processor&rdquo;) processes Personal Data
+  only on documented instructions from the Customer.
+</p>
+
+<h2>2. Subject matter &amp; duration</h2>
+<p>Processing is carried out for the purpose of providing the HRMS Service, for the duration
+of the underlying subscription, plus the retention periods set out in our Privacy Policy.</p>
+
+<h2>3. Nature &amp; purpose of processing</h2>
+<ul>
+  <li>Storage and retrieval of employee records</li>
+  <li>Calculation of payroll, attendance, leave and statutory deductions</li>
+  <li>Generation and delivery of payslips, letters, and notifications</li>
+  <li>Backup, restore, and disaster recovery</li>
+</ul>
+
+<h2>4. Categories of Data Principals</h2>
+<ul>
+  <li>The Customer&rsquo;s employees, contractors, and applicable dependants</li>
+  <li>The Customer&rsquo;s HR administrators and managers using the Service</li>
+</ul>
+
+<h2>5. Categories of Personal Data</h2>
+<ul>
+  <li>Identity data (name, DOB, gender, photograph, contact details)</li>
+  <li>Employment data (designation, salary, attendance, leave, performance)</li>
+  <li>Statutory identifiers (PAN, Aadhaar, UAN, ESI, bank details) &mdash; encrypted at rest</li>
+  <li>System logs (IP, browser, login times) for security purposes</li>
+</ul>
+
+<h2>6. Processor obligations</h2>
+<p>HRMS shall:</p>
+<ul>
+  <li>Process Personal Data only on documented instructions from the Customer</li>
+  <li>Ensure personnel authorized to process data are bound by confidentiality</li>
+  <li>Implement the technical and organizational measures listed in Schedule A</li>
+  <li>Assist the Customer in responding to Data Principal rights requests within statutory timelines</li>
+  <li>Notify the Customer of any personal-data breach without undue delay (and within 72 hours)</li>
+  <li>Delete or return all Personal Data on termination, subject to statutory retention</li>
+  <li>Make available all information necessary to demonstrate compliance with this DPA</li>
+</ul>
+
+<h2>7. Sub-processors</h2>
+<p>The Customer authorizes HRMS to engage the following sub-processors:</p>
+<ul>
+  <li><strong>DigitalOcean (India)</strong> &mdash; cloud hosting, object storage (Bangalore region)</li>
+  <li><strong>Amazon Web Services (Mumbai)</strong> &mdash; transactional email via Amazon SES</li>
+  <li><strong>Sentry</strong> &mdash; error monitoring (stack traces only, no PII)</li>
+</ul>
+<p>HRMS will notify the Customer of any addition or replacement of sub-processors at least
+30 days in advance. The Customer may object on reasonable grounds related to data protection.</p>
+
+<h2>8. International transfers</h2>
+<p>Production data is stored within India. Where any sub-processor accesses data from outside
+India, HRMS will ensure an appropriate transfer mechanism is in place (Standard Contractual
+Clauses or other lawful basis).</p>
+
+<h2>9. Audit rights</h2>
+<p>HRMS will, upon reasonable prior written notice and no more than once per calendar year,
+make available to the Customer documentation evidencing compliance with this DPA. On-site
+audits require mutually agreed scope, scheduling and cost-sharing.</p>
+
+<h2>10. Liability</h2>
+<p>Liability under this DPA is subject to the limitations set out in the Terms of Service.</p>
+
+<h2>11. Schedule A &mdash; Technical &amp; organizational measures</h2>
+<ul>
+  <li><strong>Encryption in transit:</strong> TLS 1.2+ enforced for all client connections and inter-service traffic</li>
+  <li><strong>Encryption at rest:</strong> Fernet (AES-128) for PAN, Aadhaar, bank account numbers; full-disk encryption on production volumes</li>
+  <li><strong>Access control:</strong> tenant-level row isolation; role-based access control (RBAC); least-privilege admin access; SSO for internal staff</li>
+  <li><strong>Authentication hardening:</strong> password reset tokens expire in 24h; brute-force rate limiting on login and reset endpoints; session expiry on browser close by default</li>
+  <li><strong>Audit logging:</strong> immutable log of sensitive operations (data export, role grant, salary change, PII access)</li>
+  <li><strong>Backups:</strong> daily encrypted database backups with 14-day retention; quarterly restore drills</li>
+  <li><strong>Monitoring:</strong> centralised error tracking; production alerting for security-relevant events</li>
+  <li><strong>Personnel:</strong> background checks for engineers with production access; annual security training</li>
+  <li><strong>Incident response:</strong> documented breach-notification workflow with 72-hour notification commitment</li>
+</ul>
+
+<h2>12. Schedule B &mdash; Sub-processor list</h2>
+<p>Current as of {% now "j F Y" %}:</p>
+<ul>
+  <li>DigitalOcean LLC &mdash; Hosting (Bangalore, India)</li>
+  <li>Amazon Web Services India Pvt Ltd &mdash; Transactional email (Mumbai, India)</li>
+  <li>Functional Software Inc. (Sentry) &mdash; Error monitoring (United States)</li>
+</ul>
+
+<h2>13. Contact</h2>
+<p>Data Protection enquiries: <a href="mailto:dpo@yourbrand.com">dpo@yourbrand.com</a></p>
+{% endblock %}

@@ -1,0 +1,18 @@
+<div class="card bg-base-100 shadow overflow-x-auto">
+  <table class="table table-sm">
+    <thead><tr><th>Name</th><th>City</th><th>State</th><th>Geo-fence</th><th>Status</th></tr></thead>
+    <tbody>
+      {% for loc in locations %}
+      <tr>
+        <td class="font-medium">{{ loc.name }}</td>
+        <td>{{ loc.city|default:"—" }}</td>
+        <td>{{ loc.state_code|default:"—" }}</td>
+        <td>{{ loc.geo_fence_radius_m }}m{% if not loc.latitude %} <span class="badge badge-xs badge-warning">No GPS</span>{% endif %}</td>
+        <td><span class="badge badge-sm {% if loc.is_active %}badge-success{% else %}badge-ghost{% endif %}">{% if loc.is_active %}Active{% else %}Off{% endif %}</span></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="text-center py-6 text-base-content/40">No locations yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

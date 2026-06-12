@@ -1,0 +1,1143 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block page_title %}{% if is_hr_admin %}Overview{% elif is_manager %}Team Insights{% else %}My Workspace{% endif %}{% endblock %}
+{% block page_sub %}{% now "l, j F Y" %}{% endblock %}
+
+{% block extra_head %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+  Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, sans-serif';
+  Chart.defaults.font.size = 11;
+  Chart.defaults.color = '#8E8E93';
+  Chart.defaults.plugins.legend.labels.usePointStyle = true;
+  Chart.defaults.plugins.legend.labels.boxWidth = 6;
+  Chart.defaults.animation.duration = 600;
+  // Crisp Fintech Palette: Blue, Sky Blue, Green, Amber, Red, Grey, Light Grey, Charcoal
+  const PALETTE = ['#2563EB', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#6B7280', '#9CA3AF', '#111111'];
+</script>
+<style>
+  .dash-refresh {
+    --saas-brand: #2563EB;
+    --saas-text-title: #111827;
+    --saas-text-body: #4B5563;
+    --saas-border-color: #E5E7EB;
+    --ok-100: rgba(16, 185, 129, 0.05);
+    --ok-600: #10B981;
+    --ok-700: #059669;
+    --warn-100: rgba(245, 158, 11, 0.05);
+    --warn-600: #F59E0B;
+    --err-100: rgba(239, 68, 68, 0.05);
+    --err-600: #EF4444;
+    --info-100: rgba(59, 130, 246, 0.05);
+    --info-600: #3B82F6;
+    
+    font-family: 'Inter', -apple-system, sans-serif;
+  }
+
+  /* Crisp Fintech Card Overlays */
+  .dash-refresh .premium-glass-card {
+    background: #FFFFFF;
+    border: var(--saas-border);
+    border-radius: var(--saas-r-card);
+    box-shadow: var(--saas-shadow-sm);
+    transition: all 200ms ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .dash-refresh .premium-glass-card:hover {
+    box-shadow: var(--saas-shadow-md);
+    border-color: #D1D5DB;
+    transform: translateY(-0.5px);
+  }
+
+  /* Crisp Fintech Hero Banner */
+  .dash-refresh .dashboard-hero {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 24px;
+    background: #FFFFFF;
+    border: var(--saas-border);
+    border-radius: var(--saas-r-card);
+    padding: 36px;
+    margin-bottom: 32px;
+    box-shadow: var(--saas-shadow-sm);
+    position: relative;
+    overflow: hidden;
+  }
+  @media (min-width: 1024px) {
+    .dash-refresh .dashboard-hero {
+      grid-template-columns: 1.2fr 0.8fr;
+      align-items: center;
+    }
+  }
+
+  /* Flat KPI cells */
+  .dash-refresh .stat {
+    border: var(--saas-border);
+    border-radius: var(--saas-r-card);
+    background: #FFFFFF;
+    box-shadow: var(--saas-shadow-sm);
+    transition: all 200ms ease;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .dash-refresh .stat:hover {
+    box-shadow: var(--saas-shadow-md);
+    border-color: #D1D5DB;
+    transform: translateY(-0.5px);
+  }
+  .dash-refresh .stat-label {
+    color: #6B7280;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+  }
+  .dash-refresh .stat-value {
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
+    font-style: normal;
+    font-size: 30px;
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+    color: #111827;
+    margin-top: 6px;
+  }
+  .dash-refresh .stat-sub {
+    font-size: 12px;
+    color: #6B7280;
+    font-weight: 400;
+    margin-top: 4px;
+  }
+
+  /* Headers */
+  .dash-refresh .ch-title {
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: -0.02em;
+    color: #111827;
+  }
+  .dash-refresh .ch-sub {
+    font-size: 12.5px;
+    color: #6B7280;
+    font-weight: 400;
+    margin-bottom: 12px;
+  }
+
+  /* Avatars */
+  .dash-refresh .grad-avatar {
+    background: #EFF6FF;
+    color: #2563EB;
+    border: 1px solid #DBEAFE;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    flex-shrink: 0;
+    box-shadow: none;
+    border-radius: 10px;
+  }
+
+  /* Crisp Fintech List Row Cells */
+  .dash-refresh .list-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    border-radius: 12px;
+    transition: all 150ms ease;
+    text-decoration: none;
+    color: inherit;
+    margin: 4px 0;
+    border: 1px solid #F3F4F6;
+    background: #FFFFFF;
+  }
+  .dash-refresh .list-row:hover {
+    border-color: #D1D5DB;
+    background: #FAFAFA;
+    transform: translateY(-0.5px);
+  }
+
+  /* Muted live indicator */
+  .dash-refresh .live-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: #EFF6FF;
+    border: 1px solid #DBEAFE;
+    border-radius: 6px;
+    color: #2563EB;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 12px;
+  }
+  .dash-refresh .live-pill .live-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #10B981;
+  }
+
+  /* Crisp Fintech Watch Dial Widget */
+  .dash-refresh .punch-widget {
+    background: #FFFFFF;
+    color: #111827;
+    border-radius: var(--saas-r-card);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 140px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--saas-shadow-sm);
+    border: var(--saas-border);
+    transition: all 200ms ease;
+  }
+  .dash-refresh .punch-widget:hover {
+    border-color: #D1D5DB;
+    box-shadow: var(--saas-shadow-md);
+    transform: translateY(-0.5px);
+  }
+  .dash-refresh .punch-widget .pw-time {
+    font-size: 28px;
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
+    font-style: normal;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    color: #111827;
+  }
+  .dash-refresh .punch-widget button {
+    flex: 1;
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 8px;
+    border: 1px solid #D1D5DB;
+    background: #FFFFFF;
+    color: #374151;
+    cursor: pointer;
+    transition: all 150ms ease;
+  }
+  .dash-refresh .punch-widget button:hover:not(:disabled) {
+    background: #F9FAFB;
+    border-color: #9CA3AF;
+    color: #111827;
+  }
+  .dash-refresh .punch-widget button:disabled { opacity: 0.45; cursor: not-allowed; }
+</style>
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="dash-refresh">
+
+{# ════════ HR ADMIN ════════ #}
+{% if is_hr_admin %}
+
+<div class="dashboard-hero stagger">
+  <div class="saas-hero-left">
+    <div class="live-pill">
+      <span class="live-dot"></span>Live · {{ kpis.present_today }} present now
+    </div>
+    <h1 class="saas-h1">
+      Good {% now "H" as hr_now %}{% if hr_now < "12" %}morning{% elif hr_now < "17" %}afternoon{% else %}evening{% endif %}, {{ user.employee_profile.first_name|default:"Admin" }}
+    </h1>
+    <p class="saas-p-sub">{{ tenant.name }} · Premium HR Admin Panel. Monitor workplace presence, run monthly payroll cycles, and track statutory compliance items seamlessly.</p>
+    <div class="flex flex-wrap gap-3">
+      <a href="{% url 'employees:create' %}" class="saas-btn-outline">+ Add Employee</a>
+      <a href="{% url 'payroll:run_create' %}" class="saas-btn-solid">Run Payroll</a>
+    </div>
+  </div>
+  <div class="saas-hero-right hidden lg:flex">
+    <div class="saas-preview-widget">
+      <div class="flex justify-between items-center pb-2 border-b border-gray-100 mb-3">
+        <span class="text-xs font-bold text-gray-800">Compliance &amp; Risk</span>
+        <span class="badge badge-success text-[9px] font-extrabold uppercase py-0.5 px-1.5">Good</span>
+      </div>
+      <div class="flex flex-col gap-2">
+        <div class="flex justify-between text-[11px] text-gray-500 font-medium">
+          <span>Provident Fund (PF)</span>
+          <span class="text-gray-800 font-bold">100% Filed</span>
+        </div>
+        <div class="flex justify-between text-[11px] text-gray-500 font-medium">
+          <span>ESI Contribution</span>
+          <span class="text-gray-800 font-bold">100% Filed</span>
+        </div>
+        <div class="flex justify-between text-[11px] text-gray-500 font-medium">
+          <span>Professional Tax (PT)</span>
+          <span class="text-gray-800 font-bold">Active</span>
+        </div>
+        <div class="h-1 bg-gray-100 rounded-full mt-1 overflow-hidden">
+          <div class="h-full bg-emerald-500 rounded-full" style="width: 100%;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- KPI Strip: 6 elegant high-fidelity cards -->
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6 stagger">
+  <div class="stat premium-glass-card">
+    <div class="flex flex-col justify-between h-full">
+      <div>
+        <div class="stat-label">Employees</div>
+        <div class="stat-value mt-1" data-counter>{{ kpis.total_employees }}</div>
+      </div>
+      <div class="stat-sub">+{{ kpis.new_joiners_this_month }} this month</div>
+    </div>
+    <div class="absolute right-3 top-3 w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(249, 115, 22, 0.15); color: #F97316;">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+    </div>
+  </div>
+  <div class="stat premium-glass-card">
+    <div class="flex flex-col justify-between h-full">
+      <div>
+        <div class="stat-label">Present</div>
+        <div class="stat-value mt-1" style="color: var(--ok-600);" data-counter>{{ kpis.present_today }}</div>
+      </div>
+      <div class="stat-sub">Active today</div>
+    </div>
+    <div class="absolute right-3 top-3 w-8 h-8 rounded-lg flex items-center justify-center" style="background: var(--ok-100); color: var(--ok-600);">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4"/></svg>
+    </div>
+  </div>
+  <div class="stat premium-glass-card">
+    <div class="flex flex-col justify-between h-full">
+      <div>
+        <div class="stat-label">On Leave</div>
+        <div class="stat-value mt-1" style="color: var(--warn-600);" data-counter>{{ kpis.on_leave_today }}</div>
+      </div>
+      <div class="stat-sub">Out of office</div>
+    </div>
+    <div class="absolute right-3 top-3 w-8 h-8 rounded-lg flex items-center justify-center" style="background: var(--warn-100); color: var(--warn-600);">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+    </div>
+  </div>
+  <a href="{% url 'leaves:pending' %}" class="stat premium-glass-card block" style="text-decoration: none;">
+    <div class="flex flex-col justify-between h-full">
+      <div>
+        <div class="stat-label">Pending Leave</div>
+        <div class="stat-value mt-1" style="color: var(--err-600);" data-counter>{{ kpis.pending_leave_approvals }}</div>
+      </div>
+      <div class="stat-sub text-rose-500 font-semibold">Requires review</div>
+    </div>
+    <div class="absolute right-3 top-3 w-8 h-8 rounded-lg flex items-center justify-center" style="background: var(--err-100); color: var(--err-600);">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    </div>
+  </a>
+  <a href="{% url 'attendance:regularizations' %}" class="stat premium-glass-card block" style="text-decoration: none;">
+    <div class="flex flex-col justify-between h-full">
+      <div>
+        <div class="stat-label">Att. Fixes</div>
+        <div class="stat-value mt-1" style="color: var(--info-600);" data-counter>{{ kpis.pending_regularizations }}</div>
+      </div>
+      <div class="stat-sub text-sky-500 font-semibold">Waiting approval</div>
+    </div>
+    <div class="absolute right-3 top-3 w-8 h-8 rounded-lg flex items-center justify-center" style="background: var(--info-100); color: var(--info-600);">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/></svg>
+    </div>
+  </a>
+  <div class="stat premium-glass-card">
+    <div class="flex flex-col justify-between h-full">
+      <div>
+        <div class="stat-label">Exits</div>
+        <div class="stat-value mt-1" data-counter>{{ kpis.exits_this_month }}</div>
+      </div>
+      <div class="stat-sub">This month</div>
+    </div>
+    <div class="absolute right-3 top-3 w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(148, 163, 184, 0.15); color: #475569;">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7"/></svg>
+    </div>
+  </div>
+</div>
+
+<!-- 2-col charts -->
+<div class="grid grid-cols-12 gap-6 mb-6 stagger">
+  <div class="premium-glass-card col-span-12 lg:col-span-8 p-6">
+    <div class="flex justify-between items-center mb-4">
+      <div>
+        <div class="ch-title">Attendance Trend</div>
+        <div class="ch-sub" style="margin-bottom:0;">Live records · Past 14 days</div>
+      </div>
+      <span class="badge badge-success text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1">↑ 98.4% uptime</span>
+    </div>
+    <div class="chart-wrap" style="height: 240px; position: relative;">
+      <canvas id="attendanceTrendChart"></canvas>
+    </div>
+  </div>
+  <div class="premium-glass-card col-span-12 lg:col-span-4 p-6">
+    <div class="mb-4">
+      <div class="ch-title">By Department</div>
+      <div class="ch-sub" style="margin-bottom:0;">Active Headcount distribution</div>
+    </div>
+    <div class="chart-wrap flex items-center justify-center" style="height: 240px; position: relative;">
+      <canvas id="deptChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- 3-col tables -->
+<div class="grid grid-cols-12 gap-6 stagger">
+  <!-- Recent joiners -->
+  <div class="premium-glass-card col-span-12 lg:col-span-4 p-6">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="ch-title" style="margin: 0;">Recent Joiners</h3>
+      <a href="{% url 'employees:list' %}" class="btn-base btn-ghost btn-xs text-indigo-600 font-extrabold">All</a>
+    </div>
+    <div class="flex flex-col gap-2 mt-2">
+      {% for j in recent_joiners %}
+      <a href="{% url 'employees:detail' j.pk %}" class="list-row">
+        <div class="flex items-center gap-3 min-width-0">
+          <div class="w-9 h-9 rounded-xl grad-avatar text-xs font-bold">{{ j.first_name|first }}{{ j.last_name|first }}</div>
+          <div style="min-width: 0;">
+            <div class="row-title font-bold" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size:13.5px;">{{ j.full_name }}</div>
+            <div class="row-sub text-xs" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ j.designation.name|default:"Member" }}</div>
+          </div>
+        </div>
+        <div class="row-end text-[11px] font-bold text-slate-400 white-space-nowrap">{{ j.date_of_joining|date:"d M" }}</div>
+      </a>
+      {% empty %}
+      <div class="text-center py-8 text-slate-400 text-xs">No recent joiners found.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Payroll runs -->
+  <div class="premium-glass-card col-span-12 lg:col-span-4 p-6">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="ch-title" style="margin: 0;">Payroll Runs</h3>
+      <a href="{% url 'payroll:run_list' %}" class="btn-base btn-ghost btn-xs text-indigo-600 font-extrabold">All</a>
+    </div>
+    <div class="flex flex-col gap-2 mt-2">
+      {% for r in recent_runs %}
+      <a href="{% url 'payroll:run_detail' r.pk %}" class="list-row">
+        <div>
+          <div class="row-title font-bold" style="font-size:13.5px;">{{ r.year }} - {{ r.month|stringformat:"02d" }}</div>
+          <div class="row-sub text-xs">{{ r.total_employees }} employees · Processed</div>
+        </div>
+        <div class="row-end flex flex-col items-end">
+          <div class="font-extrabold text-[13px] text-slate-900">&#8377;{{ r.total_net|floatformat:0|intcomma }}</div>
+          <span class="badge badge-xs mt-1 font-bold {% if r.status == 'paid' %}badge-success{% elif r.status == 'approved' %}badge-info{% else %}badge-ghost{% endif %}">{{ r.get_status_display }}</span>
+        </div>
+      </a>
+      {% empty %}
+      <div class="text-center py-8 text-slate-400 text-xs">No payroll runs yet.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Review cycle progress -->
+  <div class="premium-glass-card col-span-12 lg:col-span-4 p-6">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="ch-title" style="margin: 0;">Performance Cycle</h3>
+      {% if cycle_progress %}
+      <a href="{% url 'performance:cycle_detail' cycle_progress.cycle.pk %}" class="btn-base btn-ghost btn-xs text-indigo-600 font-extrabold">Open</a>
+      {% endif %}
+    </div>
+    {% if cycle_progress %}
+    <div class="mt-2">
+      <div class="font-bold text-[14px] text-slate-800">{{ cycle_progress.cycle.name }}</div>
+      <div class="text-[11px] text-slate-400 font-medium mt-0.5">Closes on {{ cycle_progress.cycle.closes_at|date:"d M Y" }}</div>
+      
+      <div class="mt-4">
+        <div class="flex justify-between text-xs font-bold mb-1.5">
+          <span class="text-indigo-600">{{ cycle_progress.completion_pct }}% Complete</span>
+          <span class="text-slate-500">{{ cycle_progress.acknowledged }} / {{ cycle_progress.total }} reviews</span>
+        </div>
+        <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200/50">
+          <div class="h-full rounded-full bg-gradient-to-r from-indigo-500 to-pink-500 transition-all duration-1000 ease-out" style="width: {{ cycle_progress.completion_pct }}%; box-shadow: 0 0 10px rgba(124, 58, 237, 0.4);"></div>
+        </div>
+      </div>
+
+      <div class="flex justify-between gap-2 mt-5 text-[11px] font-bold">
+        <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-500"></span>{{ cycle_progress.acknowledged }} Done</span>
+        <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-sky-500"></span>{{ cycle_progress.submitted }} Sent</span>
+        <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-slate-400"></span>{{ cycle_progress.draft }} Draft</span>
+      </div>
+    </div>
+    {% else %}
+    <div class="text-center py-8 text-slate-400 text-xs">No active performance cycles.</div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const deptData = {{ dept_chart_json|safe }};
+    const attTrend = {{ attendance_trend_json|safe }};
+
+    new Chart(document.getElementById('deptChart'), {
+      type: 'doughnut',
+      data: {
+        labels: deptData.labels,
+        datasets: [{
+          data: deptData.data,
+          backgroundColor: PALETTE,
+          borderWidth: 2,
+          borderColor: '#ffffff',
+          hoverOffset: 8
+        }]
+      },
+      options: {
+        maintainAspectRatio: false,
+        cutout: '72%',
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              padding: 8,
+              font: { size: 10, weight: '700' },
+              color: '#475569'
+            }
+          }
+        }
+      }
+    });
+
+    const trendCtx = document.getElementById('attendanceTrendChart').getContext('2d');
+    const grad = trendCtx.createLinearGradient(0, 0, 0, 220);
+    grad.addColorStop(0, 'rgba(37, 99, 235, 0.25)');
+    grad.addColorStop(0.5, 'rgba(37, 99, 235, 0.05)');
+    grad.addColorStop(1, 'rgba(255, 255, 255, 0.01)');
+
+    new Chart(trendCtx, {
+      type: 'line',
+      data: {
+        labels: attTrend.labels,
+        datasets: [{
+          label: 'Active Presence',
+          data: attTrend.data,
+          borderColor: '#2563EB',
+          backgroundColor: grad,
+          borderWidth: 3.5,
+          tension: 0.38,
+          fill: true,
+          pointRadius: 3,
+          pointBackgroundColor: '#2563EB',
+          pointBorderColor: '#ffffff',
+          pointBorderWidth: 1.5,
+          pointHoverRadius: 6,
+          pointHoverBackgroundColor: '#1D4ED8',
+          pointHoverBorderColor: '#ffffff',
+          pointHoverBorderWidth: 2
+        }]
+      },
+      options: {
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#0F172A',
+            padding: 12,
+            cornerRadius: 10,
+            displayColors: false,
+            titleFont: { size: 12, weight: '700', family: "'Space Grotesk', sans-serif" },
+            bodyFont: { size: 11, family: "'Manrope', sans-serif" }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: { color: 'rgba(226, 232, 240, 0.6)' },
+            ticks: { font: { size: 10, weight: '600' }, padding: 8 }
+          },
+          x: {
+            grid: { display: false },
+            ticks: { font: { size: 10, weight: '600' }, padding: 8 }
+          }
+        }
+      }
+    });
+  });
+</script>
+
+
+{# ════════ MANAGER ════════ #}
+{% elif is_manager %}
+
+<div class="dashboard-hero stagger">
+  <div class="saas-hero-left">
+    <div class="live-pill">
+      <span class="live-dot"></span>Live · {{ kpis.team_present_today }}/{{ kpis.team_size }} present now
+    </div>
+    <h1 class="saas-h1">
+      Hey {{ user.employee_profile.first_name|default:"Manager" }},
+    </h1>
+    <p class="saas-p-sub">You have {{ kpis.team_size }} team member{{ kpis.team_size|pluralize }} reporting to you. Manage incoming leave requests, track daily team presence, and document performance reviews.</p>
+    <div class="flex flex-wrap gap-3">
+      <a href="{% url 'leaves:pending' %}" class="saas-btn-outline">Approve Leaves ({{ kpis.pending_leave_approvals }})</a>
+      <a href="{% url 'performance:team_reviews' %}" class="saas-btn-solid">Write Reviews</a>
+    </div>
+  </div>
+  <div class="saas-hero-right hidden lg:flex">
+    <div class="saas-preview-widget">
+      <div class="flex justify-between items-center pb-2 border-b border-gray-100 mb-3">
+        <span class="text-xs font-bold text-gray-800">Team Alignment</span>
+        <span class="text-[10px] text-indigo-600 font-extrabold">Active</span>
+      </div>
+      <div class="flex flex-col gap-2">
+        <div class="flex justify-between text-[11px] text-gray-500 font-medium">
+          <span>Completed Reviews</span>
+          <span class="text-gray-800 font-bold">{{ kpis.reviews_completed }}/{{ kpis.team_size }}</span>
+        </div>
+        <div class="flex justify-between text-[11px] text-gray-500 font-medium">
+          <span>Pending Approvals</span>
+          <span class="text-amber-500 font-bold">{{ kpis.pending_leave_approvals }} requests</span>
+        </div>
+        <div class="h-1 bg-gray-100 rounded-full mt-1 overflow-hidden">
+          <div class="h-full bg-indigo-500 rounded-full" style="width: 75%;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- KPI strip: 6 elegant manager cards -->
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6 stagger">
+  <div class="stat premium-glass-card">
+    <div class="flex flex-col justify-between h-full">
+      <div>
+        <div class="stat-label">Team Size</div>
+        <div class="stat-value mt-1" data-counter>{{ kpis.team_size }}</div>
+      </div>
+      <div class="stat-sub">Active reportees</div>
+    </div>
+    <div class="absolute right-3 top-3 w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(249, 115, 22, 0.15); color: #F97316;">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857"/></svg>
+    </div>
+  </div>
+  <div class="stat premium-glass-card">
+    <div class="flex flex-col justify-between h-full">
+      <div>
+        <div class="stat-label">Present</div>
+        <div class="stat-value mt-1" style="color: var(--ok-600);" data-counter>{{ kpis.team_present_today }}</div>
+      </div>
+      <div class="stat-sub">At work today</div>
+    </div>
+    <div class="absolute right-3 top-3 w-8 h-8 rounded-lg flex items-center justify-center" style="background: var(--ok-100); color: var(--ok-600);">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4"/></svg>
+    </div>
+  </div>
+  <div class="stat premium-glass-card">
+    <div class="flex flex-col justify-between h-full">
+      <div>
+        <div class="stat-label">On Leave</div>
+        <div class="stat-value mt-1" style="color: var(--warn-600);" data-counter>{{ kpis.team_on_leave_today }}</div>
+      </div>
+      <div class="stat-sub">Off duty today</div>
+    </div>
+    <div class="absolute right-3 top-3 w-8 h-8 rounded-lg flex items-center justify-center" style="background: var(--warn-100); color: var(--warn-600);">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+    </div>
+  </div>
+  <a href="{% url 'leaves:pending' %}" class="stat premium-glass-card block" style="text-decoration: none;">
+    <div class="flex flex-col justify-between h-full">
+      <div>
+        <div class="stat-label">To Approve</div>
+        <div class="stat-value mt-1" style="color: var(--err-600);" data-counter>{{ kpis.pending_leave_approvals }}</div>
+      </div>
+      <div class="stat-sub text-rose-500 font-semibold">Leaves pending</div>
+    </div>
+    <div class="absolute right-3 top-3 w-8 h-8 rounded-lg flex items-center justify-center" style="background: var(--err-100); color: var(--err-600);">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    </div>
+  </a>
+  <a href="{% url 'performance:team_reviews' %}" class="stat premium-glass-card block" style="text-decoration: none;">
+    <div class="flex flex-col justify-between h-full">
+      <div>
+        <div class="stat-label">Reviews Due</div>
+        <div class="stat-value mt-1" style="color: var(--info-600);" data-counter>{{ kpis.reviews_pending }}</div>
+      </div>
+      <div class="stat-sub text-sky-500 font-semibold">Pending actions</div>
+    </div>
+    <div class="absolute right-3 top-3 w-8 h-8 rounded-lg flex items-center justify-center" style="background: var(--info-100); color: var(--info-600);">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.16c.969 0 1.371 1.24.588 1.81l-3.366 2.446a1 1 0 00-.363 1.118l1.286 3.957c.3.921-.755 1.688-1.539 1.118l-3.366-2.446a1 1 0 00-1.176 0l-3.366 2.446c-.784.57-1.838-.197-1.539-1.118l1.286-3.957a1 1 0 00-.363-1.118L2.572 9.384c-.783-.57-.38-1.81.588-1.81h4.16a1 1 0 00.951-.69l1.286-3.957z"/></svg>
+    </div>
+  </a>
+  <div class="stat premium-glass-card">
+    <div class="flex flex-col justify-between h-full">
+      <div>
+        <div class="stat-label">Reviews Done</div>
+        <div class="stat-value mt-1" data-counter>{{ kpis.reviews_completed }}</div>
+      </div>
+      <div class="stat-sub">Completed</div>
+    </div>
+    <div class="absolute right-3 top-3 w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(16, 185, 129, 0.12); color: #10B981;">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+    </div>
+  </div>
+</div>
+
+<!-- Manager charts -->
+<div class="grid grid-cols-12 gap-6 mb-6 stagger">
+  <div class="premium-glass-card col-span-12 lg:col-span-8 p-6">
+    <div class="mb-4">
+      <div class="ch-title">Team Presence This Month</div>
+      <div class="ch-sub">Days present per active team member</div>
+    </div>
+    <div class="chart-wrap" style="height: 240px; position: relative;">
+      <canvas id="teamPresentChart"></canvas>
+    </div>
+  </div>
+  <div class="premium-glass-card col-span-12 lg:col-span-4 p-6">
+    <div class="mb-4">
+      <div class="ch-title">Attendance Mix</div>
+      <div class="ch-sub">Cumulative team presence mix</div>
+    </div>
+    <div class="chart-wrap flex items-center justify-center" style="height: 240px; position: relative;">
+      <canvas id="teamAttChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Team actions lists -->
+<div class="grid grid-cols-12 gap-6 stagger">
+  <div class="premium-glass-card col-span-12 lg:col-span-7 p-6">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="ch-title" style="margin: 0;">Pending Leave Requests</h3>
+      <a href="{% url 'leaves:pending' %}" class="btn-base btn-ghost btn-xs text-indigo-600 font-extrabold">All</a>
+    </div>
+    <div class="flex flex-col gap-2 mt-2">
+      {% for req in pending_leaves %}
+      <div class="list-row">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl grad-avatar text-xs font-bold">{{ req.employee.first_name|first }}{{ req.employee.last_name|first }}</div>
+          <div>
+            <div class="row-title font-bold text-slate-800" style="font-size:13.5px;">{{ req.employee.full_name }} <span class="badge badge-outline badge-xs text-indigo-600 font-extrabold ml-1.5">{{ req.leave_type.code }}</span></div>
+            <div class="row-sub text-xs">{{ req.from_date|date:"d M" }} → {{ req.to_date|date:"d M" }}</div>
+          </div>
+        </div>
+        <div class="row-end flex items-center gap-3">
+          <div class="font-extrabold text-[13.5px] text-slate-900">{{ req.total_days }}d</div>
+          <a href="{% url 'leaves:pending' %}" class="btn-base btn-primary btn-xs font-bold py-1">Review</a>
+        </div>
+      </div>
+      {% empty %}
+      <div class="text-center py-8 text-slate-400 text-xs">All caught up! No pending leave requests.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="premium-glass-card col-span-12 lg:col-span-5 p-6">
+    <div class="mb-4">
+      <h3 class="ch-title">My Team</h3>
+      <div class="ch-sub" style="margin-bottom:0;">Write reviews or view profiles</div>
+    </div>
+    <div class="flex flex-col gap-2 mt-2" style="max-height: 240px; overflow-y: auto;">
+      {% for emp in team %}
+      <div class="list-row">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg grad-avatar text-xs font-bold">{{ emp.first_name|first }}{{ emp.last_name|first }}</div>
+          <div>
+            <div class="row-title font-bold text-slate-800">{{ emp.full_name }}</div>
+            <div class="row-sub text-xs">{{ emp.designation.name|default:"Member" }}</div>
+          </div>
+        </div>
+        {% if active_cycle %}
+        <a href="{% url 'performance:review_write' emp.pk active_cycle.pk %}" class="btn-base btn-outline btn-xs font-bold">Review</a>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const teamPresent = {{ team_present_chart_json|safe }};
+    const teamAtt = {{ team_attendance_chart_json|safe }};
+
+    const tpCtx = document.getElementById('teamPresentChart').getContext('2d');
+    const tpGrad = tpCtx.createLinearGradient(0, 0, 0, 220);
+    tpGrad.addColorStop(0, '#2563EB');
+    tpGrad.addColorStop(1, '#F5F5F5');
+
+    new Chart(tpCtx, {
+      type: 'bar',
+      data: {
+        labels: teamPresent.labels,
+        datasets: [{
+          label: 'Days Present',
+          data: teamPresent.data,
+          backgroundColor: tpGrad,
+          borderRadius: 8,
+          maxBarThickness: 28
+        }]
+      },
+      options: {
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#0F172A',
+            padding: 10,
+            cornerRadius: 8,
+            titleFont: { size: 11, weight: '700' }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: { color: 'rgba(226, 232, 240, 0.6)' },
+            ticks: { font: { size: 10, weight: '600' } }
+          },
+          x: {
+            grid: { display: false },
+            ticks: { font: { size: 10, weight: '600' } }
+          }
+        }
+      }
+    });
+
+    new Chart(document.getElementById('teamAttChart'), {
+      type: 'doughnut',
+      data: {
+        labels: teamAtt.labels,
+        datasets: [{
+          data: teamAtt.data,
+          backgroundColor: PALETTE,
+          borderWidth: 2,
+          borderColor: '#ffffff'
+        }]
+      },
+      options: {
+        maintainAspectRatio: false,
+        cutout: '72%',
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              padding: 8,
+              font: { size: 10, weight: '700' },
+              color: '#475569'
+            }
+          }
+        }
+      }
+    });
+  });
+</script>
+
+
+{# ════════ EMPLOYEE ════════ #}
+{% else %}
+
+<div class="dashboard-hero stagger">
+  <div class="saas-hero-left">
+    <div class="flex items-center gap-5 mb-4">
+      <div style="width: 54px; height: 54px; border-radius: 14px; background: #EFF6FF; border: 1px solid #DBEAFE; display:flex; align-items:center; justify-content:center; font-size: 18px; font-weight: 700; color: #2563EB;">
+        {{ user.employee_profile.first_name|first|upper }}{{ user.employee_profile.last_name|first|upper }}
+      </div>
+      <div>
+        <div class="live-pill" style="margin-bottom: 2px;">
+          <span class="live-dot"></span>{{ kpis.present_this_month }} days present this month
+        </div>
+        <h1 class="saas-h1" style="margin-bottom: 0;">
+          Hello, {{ user.employee_profile.first_name|default:user.email }}
+        </h1>
+      </div>
+    </div>
+    <p class="saas-p-sub">Welcome back. Plan your upcoming holidays, review your tax declarations, access your monthly payslips, and check performance review comments.</p>
+    <div class="flex flex-wrap gap-3">
+      <a href="{% url 'leaves:apply' %}" class="saas-btn-outline">Apply Leave</a>
+      <a href="{% url 'payroll:my_payslips' %}" class="saas-btn-solid">My Payslips</a>
+    </div>
+  </div>
+  <div class="saas-hero-right hidden lg:flex">
+    <div class="saas-preview-widget">
+      <div class="flex justify-between items-center pb-2 border-b border-gray-100 mb-3">
+        <span class="text-xs font-bold text-gray-800">Workspace Status</span>
+        <span class="badge badge-success text-[9px] font-extrabold uppercase py-0.5 px-1.5">Good</span>
+      </div>
+      <div class="flex flex-col gap-2">
+        <div class="flex justify-between text-[11px] text-gray-500 font-medium">
+          <span>Monthly Presence</span>
+          <span class="text-gray-800 font-bold">{{ kpis.present_this_month }} days</span>
+        </div>
+        <div class="flex justify-between text-[11px] text-gray-500 font-medium">
+          <span>Leave Balance</span>
+          <span class="text-gray-800 font-bold">{{ kpis.total_leave_balance|floatformat:1 }} days</span>
+        </div>
+        <div class="flex justify-between text-[11px] text-gray-500 font-medium">
+          <span>Pending Leaves</span>
+          <span class="text-gray-800 font-bold">{{ kpis.pending_leave_requests }} requests</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- KPI strip + punch widget in same grid -->
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6 stagger">
+  <div class="stat premium-glass-card">
+    <div class="flex flex-col justify-between h-full">
+      <div>
+        <div class="stat-label">Present</div>
+        <div class="stat-value mt-1" style="color: var(--ok-600);" data-counter>{{ kpis.present_this_month }}</div>
+      </div>
+      <div class="stat-sub">Days this month</div>
+    </div>
+    <div class="absolute right-3 top-3 w-8 h-8 rounded-lg flex items-center justify-center" style="background: var(--ok-100); color: var(--ok-600);">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4"/></svg>
+    </div>
+  </div>
+  <div class="stat premium-glass-card">
+    <div class="flex flex-col justify-between h-full">
+      <div>
+        <div class="stat-label">Half Days</div>
+        <div class="stat-value mt-1" style="color: var(--warn-600);" data-counter>{{ kpis.half_days }}</div>
+      </div>
+      <div class="stat-sub">This month</div>
+    </div>
+    <div class="absolute right-3 top-3 w-8 h-8 rounded-lg flex items-center justify-center" style="background: var(--warn-100); color: var(--warn-600);">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3"/></svg>
+    </div>
+  </div>
+  <div class="stat premium-glass-card">
+    <div class="flex flex-col justify-between h-full">
+      <div>
+        <div class="stat-label">On Leave</div>
+        <div class="stat-value mt-1" style="color: var(--info-600);" data-counter>{{ kpis.on_leave_days }}</div>
+      </div>
+      <div class="stat-sub">Approved days</div>
+    </div>
+    <div class="absolute right-3 top-3 w-8 h-8 rounded-lg flex items-center justify-center" style="background: var(--info-100); color: var(--info-600);">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10"/></svg>
+    </div>
+  </div>
+  <div class="stat premium-glass-card">
+    <div class="flex flex-col justify-between h-full">
+      <div>
+        <div class="stat-label">Leave Balance</div>
+        <div class="stat-value mt-1" style="color: var(--brand-600);" data-counter data-decimals="1">{{ kpis.total_leave_balance|floatformat:1 }}</div>
+      </div>
+      <div class="stat-sub">Days available</div>
+    </div>
+    <div class="absolute right-3 top-3 w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(249, 115, 22, 0.15); color: #F97316;">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+    </div>
+  </div>
+  <div class="stat premium-glass-card">
+    <div class="flex flex-col justify-between h-full">
+      <div>
+        <div class="stat-label">Take Home</div>
+        <div class="stat-value mt-1" style="color: var(--ok-600); font-size: 20px;">&#8377;{{ kpis.latest_net_pay|floatformat:0|intcomma }}</div>
+      </div>
+      <div class="stat-sub">Last payslip</div>
+    </div>
+    <div class="absolute right-3 top-3 w-8 h-8 rounded-lg flex items-center justify-center" style="background: var(--ok-100); color: var(--ok-600);">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2"/></svg>
+    </div>
+  </div>
+
+  <!-- Interactive Clock-In Alpine Widget -->
+  {% if user.employee_profile %}
+  <div class="punch-widget" x-data="punchCard()">
+    <div class="flex justify-between items-start">
+      <div>
+        <div class="text-[9px] font-extrabold uppercase tracking-wider text-indigo-300 flex items-center gap-1.5">
+          <span class="live-dot" style="background: #10B981; animation: live-pulse-glow 2s infinite;"></span>GPS Tracking
+        </div>
+        <div class="pw-time mt-1.5" x-text="currentTime"></div>
+      </div>
+      <div x-show="loading" class="loading loading-spinner loading-xs text-indigo-400"></div>
+    </div>
+    <div class="flex gap-2 mt-4">
+      <button @click="punch('check_in')" :disabled="loading || lastAction === 'check_in'" class="font-bold">In</button>
+      <button @click="punch('check_out')" :disabled="loading || lastAction === 'check_out'" class="font-bold">Out</button>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Employee charts -->
+<div class="grid grid-cols-12 gap-6 mb-6 stagger">
+  <div class="premium-glass-card col-span-12 lg:col-span-8 p-6">
+    <div class="mb-4">
+      <div class="ch-title">Attendance Breakdown</div>
+      <div class="ch-sub">Shift logs this month</div>
+    </div>
+    <div class="chart-wrap" style="height: 240px; position: relative;">
+      <canvas id="attChart"></canvas>
+    </div>
+  </div>
+  <div class="premium-glass-card col-span-12 lg:col-span-4 p-6 flex flex-col justify-between">
+    <div>
+      <div class="ch-title">Leave Request Status</div>
+      <div class="ch-sub">Awaiting management approval</div>
+    </div>
+    <div class="flex items-center gap-4 py-4">
+      <div style="font-size: 52px; font-weight: 800; color: {% if kpis.pending_leave_requests %}#F59E0B{% else %}#CBD5E1{% endif %}; letter-spacing: -0.04em; line-height: 1;" data-counter>{{ kpis.pending_leave_requests }}</div>
+      <div>
+        <div class="font-extrabold text-sm text-slate-800">Pending Requests</div>
+        <div class="text-[11px] text-slate-400 font-semibold mt-0.5">Awaiting feedback</div>
+      </div>
+    </div>
+    <a href="{% url 'leaves:my_leaves' %}" class="btn-base btn-outline btn-sm font-bold w-full justify-center py-2.5">View My Leaves</a>
+  </div>
+</div>
+
+<!-- Employee details row -->
+<div class="grid grid-cols-12 gap-6 stagger">
+  <div class="premium-glass-card col-span-12 lg:col-span-4 p-6">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="ch-title" style="margin: 0;">Recent Payslips</h3>
+      <a href="{% url 'payroll:my_payslips' %}" class="btn-base btn-ghost btn-xs text-indigo-600 font-extrabold">All</a>
+    </div>
+    <div class="flex flex-col gap-2">
+      {% for p in last_payslips %}
+      <a href="{% url 'payroll:payslip' p.pk %}" target="_blank" class="list-row">
+        <div>
+          <div class="row-title font-bold" style="font-size: 13px;">{{ p.year }} - {{ p.month|stringformat:"02d" }}</div>
+          <div class="row-sub text-xs">Salary slip</div>
+        </div>
+        <div class="row-end font-extrabold text-[13px] text-emerald-600">&#8377;{{ p.payroll_record.net_payable|floatformat:0|intcomma }}</div>
+      </a>
+      {% empty %}
+      <div class="text-center py-6 text-slate-400 text-xs">No salary slips generated yet.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="premium-glass-card col-span-12 lg:col-span-4 p-6">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="ch-title" style="margin: 0;">My Reviews</h3>
+      <a href="{% url 'performance:my_reviews' %}" class="btn-base btn-ghost btn-xs text-indigo-600 font-extrabold">All</a>
+    </div>
+    <div class="flex flex-col gap-2">
+      {% for r in recent_reviews %}
+      <a href="{% url 'performance:review_detail' r.pk %}" class="list-row">
+        <div>
+          <div class="row-title font-bold" style="font-size: 13px;">{{ r.cycle.name }}</div>
+          <div class="row-sub text-xs">{{ r.get_status_display }}</div>
+        </div>
+        {% if r.overall_rating %}
+        <div class="row-end font-extrabold text-indigo-600 text-sm">{{ r.overall_rating }}<span class="text-slate-400 font-medium text-xs">/5</span></div>
+        {% endif %}
+      </a>
+      {% empty %}
+      <div class="text-center py-6 text-slate-400 text-xs">No reviews documented yet.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="premium-glass-card col-span-12 lg:col-span-4 p-6">
+    <div class="mb-4">
+      <h3 class="ch-title">Upcoming Holidays</h3>
+      <div class="ch-sub" style="margin-bottom:0;">Plan your upcoming off-days</div>
+    </div>
+    <div class="flex flex-col gap-2">
+      {% for h in upcoming_holidays %}
+      <div class="list-row">
+        <div>
+          <div class="row-title font-bold" style="font-size: 13px;">{{ h.name }}</div>
+          <div class="row-sub text-xs">{{ h.holiday_date|date:"l" }}</div>
+        </div>
+        <div class="row-end"><span class="badge badge-primary badge-sm font-extrabold text-[10px]">{{ h.holiday_date|date:"d M" }}</span></div>
+      </div>
+      {% empty %}
+      <div class="text-center py-6 text-slate-400 text-xs">No official holidays in next 60 days.</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const attData = {{ att_chart_json|safe }};
+    new Chart(document.getElementById('attChart'), {
+      type: 'bar',
+      data: {
+        labels: attData.labels,
+        datasets: [{
+          label: 'Days Worked',
+          data: attData.data,
+          backgroundColor: ['#10B981', '#F59E0B', '#2563EB', '#EF4444'],
+          borderRadius: 8,
+          maxBarThickness: 44
+        }]
+      },
+      options: {
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#0F172A',
+            padding: 10,
+            cornerRadius: 8,
+            titleFont: { size: 11, weight: '700' }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: { color: 'rgba(226, 232, 240, 0.6)' },
+            ticks: { font: { size: 10, weight: '600' } }
+          },
+          x: {
+            grid: { display: false },
+            ticks: { font: { size: 10, weight: '600' } }
+          }
+        }
+      }
+    });
+  });
+
+  function punchCard() {
+    return {
+      loading: false,
+      lastAction: null,
+      currentTime: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }),
+      init() {
+        setInterval(() => {
+          this.currentTime = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+        }, 1000);
+      },
+      async punch(logType) {
+        this.loading = true;
+        try {
+          const pos = await new Promise((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, { timeout: 8000 }));
+          const resp = await fetch('/attendance/punch/', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+            },
+            body: JSON.stringify({
+              log_type: logType,
+              latitude: pos.coords.latitude,
+              longitude: pos.coords.longitude,
+              accuracy_meters: pos.coords.accuracy
+            }),
+          });
+          if (resp.ok) {
+            const data = await resp.json();
+            this.lastAction = logType;
+            window.toast && window.toast(
+              (logType === 'check_in' ? 'Checked in' : 'Checked out') + ' successfully at ' + 
+              new Date(data.log_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+              'success'
+            );
+          } else {
+            window.toast && window.toast('Server returned error status', 'error');
+          }
+        } catch (e) {
+          window.toast && window.toast('GPS coordinates unavailable or permission denied', 'error');
+        } finally {
+          this.loading = false;
+        }
+      }
+    }
+  }
+</script>
+
+{% endif %}
+</section>
+{% endblock %}

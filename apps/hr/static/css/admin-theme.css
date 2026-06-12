@@ -1,0 +1,447 @@
+/* ============================================================
+   Django Admin theme — White + Orange
+   Overrides Django 4.2+ CSS variables to match the HRMS palette
+   ============================================================ */
+
+:root,
+:root[data-theme="light"],
+html[data-theme="light"] {
+  /* Brand */
+  --primary: #F97316;             /* header bg / primary buttons */
+  --primary-fg: #FFFFFF;
+  --secondary: #C2410C;           /* breadcrumb bg / module headers */
+
+  --accent: #FB923C;
+  --primary-foreground: #FFFFFF;
+
+  /* Links */
+  --link-fg: #C2410C;
+  --link-hover-color: #9A3412;
+  --link-selected-fg: #EA580C;
+
+  /* Backgrounds */
+  --body-bg: #FAFAF8;
+  --body-fg: #1F2937;
+  --body-quiet-color: #6B7280;
+  --body-medium-color: #4B5563;
+  --body-loud-color: #111827;
+
+  --header-bg: #F97316;
+  --header-color: #FFFFFF;
+  --header-branding-color: #FFFFFF;
+  --header-link-color: #FFFFFF;
+
+  --breadcrumbs-bg: #FFEDD5;
+  --breadcrumbs-fg: #7C2D12;
+  --breadcrumbs-link-fg: #C2410C;
+
+  --hairline-color: #FEDDC8;
+  --border-color: #E5E7EB;
+
+  --close-button-bg: #6B7280;
+  --close-button-hover-bg: #374151;
+
+  --delete-button-bg: #DC2626;
+  --delete-button-hover-bg: #B91C1C;
+
+  --default-button-bg: #F97316;
+  --default-button-hover-bg: #EA580C;
+
+  --button-bg: #F97316;
+  --button-fg: #FFFFFF;
+  --button-hover-bg: #EA580C;
+
+  --darkened-bg: #FFF7ED;
+  --selected-bg: #FFEDD5;
+  --selected-row: #FFEDD5;
+
+  /* Messages */
+  --message-success-bg: #DCFCE7;
+  --message-warning-bg: #FEF3C7;
+  --message-error-bg: #FEE2E2;
+
+  /* Object tools (top-right action buttons like "Add", "History") */
+  --object-tools-bg: #C2410C;
+  --object-tools-fg: #FFFFFF;
+  --object-tools-hover-bg: #9A3412;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Layout polish
+   ────────────────────────────────────────────────────────────────────────── */
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  -webkit-font-smoothing: antialiased;
+  background: var(--body-bg);
+}
+
+#header {
+  background: linear-gradient(135deg, #F97316 0%, #EA580C 60%, #C2410C 100%);
+  border-bottom: none;
+  padding: 14px 32px;
+  box-shadow: 0 4px 16px -8px rgba(194, 65, 12, 0.35);
+}
+
+#header a:link, #header a:visited {
+  color: #FFFFFF;
+  font-weight: 600;
+}
+
+#branding h1 {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-size: 18px;
+}
+#branding h1 a:link, #branding h1 a:visited {
+  color: #FFFFFF;
+}
+
+#user-tools {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+}
+#user-tools a {
+  border-bottom: none !important;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.15);
+  margin-left: 6px;
+  transition: background 150ms;
+}
+#user-tools a:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+/* Breadcrumbs */
+div.breadcrumbs {
+  background: #FFFFFF;
+  color: var(--breadcrumbs-fg);
+  padding: 14px 32px;
+  border-bottom: 1px solid #F3E8DC;
+  font-size: 13px;
+  font-weight: 500;
+}
+div.breadcrumbs a {
+  color: var(--breadcrumbs-link-fg);
+}
+div.breadcrumbs a:focus, div.breadcrumbs a:hover {
+  color: #9A3412;
+}
+
+/* Module headers (the small dark bars above each section) */
+.module h2, .module caption, .inline-group h2 {
+  background: linear-gradient(135deg, #F97316, #EA580C);
+  color: white;
+  padding: 11px 16px;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.01em;
+  border-radius: 12px 12px 0 0;
+}
+
+.module {
+  border-radius: 12px;
+  border: 1px solid #FED7AA;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 4px 12px -4px rgba(15, 23, 42, 0.05);
+  margin-bottom: 18px;
+}
+
+/* Forms */
+fieldset.module {
+  background: #FFFFFF;
+  border: 1px solid #FED7AA;
+}
+
+fieldset.module .form-row {
+  border-bottom: 1px solid #FFF1E0;
+  padding: 12px 14px;
+}
+
+.form-row label {
+  font-weight: 600;
+  color: #1F2937;
+  font-size: 13px;
+}
+
+/* Inputs */
+input[type="text"], input[type="password"], input[type="email"],
+input[type="url"], input[type="number"], input[type="tel"], input[type="date"],
+input[type="time"], input[type="datetime-local"],
+textarea, select, .vTextField {
+  border: 1.5px solid #E5E7EB;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 150ms, box-shadow 150ms;
+  background: #FFFFFF;
+  color: #1F2937;
+}
+
+input:focus, textarea:focus, select:focus, .vTextField:focus {
+  border-color: #F97316;
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.18);
+}
+
+textarea { min-height: 120px; }
+
+/* Buttons */
+input[type=submit], input[type=button], .button, button {
+  background: var(--button-bg);
+  color: var(--button-fg);
+  border: none;
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: all 150ms;
+  box-shadow: 0 2px 4px rgba(194, 65, 12, 0.18);
+}
+input[type=submit]:hover, input[type=button]:hover, .button:hover, button:hover {
+  background: var(--button-hover-bg);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(194, 65, 12, 0.25);
+}
+
+input[type=submit].default, input[type=button].default, .submit-row input.default {
+  background: linear-gradient(180deg, #F97316, #EA580C);
+}
+
+.button.cancel-link, a.cancel-link {
+  background: #F3F4F6;
+  color: #4B5563;
+  box-shadow: none;
+}
+.button.cancel-link:hover, a.cancel-link:hover {
+  background: #E5E7EB;
+  color: #1F2937;
+  box-shadow: none;
+}
+
+.deletelink, input.deletelink {
+  background: var(--delete-button-bg);
+  color: white;
+}
+.deletelink:hover, input.deletelink:hover {
+  background: var(--delete-button-hover-bg);
+}
+
+/* Object tools (Add / History / Save and continue editing buttons) */
+.object-tools a {
+  background: #C2410C;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  transition: all 150ms;
+}
+.object-tools a:hover {
+  background: #9A3412;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(194, 65, 12, 0.3);
+}
+.object-tools a.addlink {
+  background: linear-gradient(180deg, #F97316, #C2410C);
+}
+
+/* Tables (change list) */
+#changelist {
+  background: transparent;
+}
+#changelist .results {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #E5E7EB;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 4px 12px -4px rgba(15, 23, 42, 0.05);
+}
+table {
+  background: #FFFFFF;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+thead th {
+  background: #FFF7ED;
+  color: #C2410C;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 12px 16px;
+  border-bottom: 1px solid #FED7AA;
+}
+thead th.sorted, thead th.sorted a {
+  background: #FFEDD5;
+  color: #9A3412;
+}
+tbody tr:hover {
+  background: #FFF7ED;
+}
+tbody td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #F3F4F6;
+  font-size: 13.5px;
+}
+tbody tr.row1 { background: #FFFFFF; }
+tbody tr.row2 { background: #FFFBF5; }
+
+/* Filter sidebar */
+#changelist-filter {
+  background: #FFFFFF;
+  border-left: 1px solid #FED7AA;
+  border-radius: 12px;
+  padding: 0;
+}
+#changelist-filter h2 {
+  background: linear-gradient(135deg, #F97316, #EA580C);
+  color: white;
+  padding: 12px 16px;
+  border-radius: 12px 12px 0 0;
+  font-size: 13px;
+  margin: 0;
+}
+#changelist-filter h3 {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #1F2937;
+  margin-top: 14px;
+  padding: 0 16px;
+}
+#changelist-filter li.selected a {
+  color: #C2410C;
+  font-weight: 700;
+}
+#changelist-filter ul {
+  padding: 0 16px 8px;
+}
+
+/* Search bar */
+#toolbar {
+  background: transparent;
+  padding: 0 0 14px 0;
+  border: none;
+}
+#toolbar form input[type="text"] {
+  width: 320px;
+  max-width: 100%;
+}
+#toolbar form input[type="submit"] {
+  background: #F97316;
+  margin-left: 4px;
+}
+
+/* Pagination */
+.paginator {
+  font-size: 13px;
+  font-weight: 500;
+  padding: 14px 16px;
+  border-top: 1px solid #F3F4F6;
+  background: #FFFFFF;
+}
+.paginator a, .paginator .this-page {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  margin-right: 4px;
+  text-decoration: none;
+}
+.paginator .this-page {
+  background: #F97316;
+  color: white;
+}
+.paginator a {
+  background: #FFEDD5;
+  color: #C2410C;
+}
+.paginator a:hover {
+  background: #FED7AA;
+}
+
+/* Selectors (M2M widget) */
+.selector-available, .selector-chosen {
+  background: #FFFFFF;
+  border: 1px solid #FED7AA;
+  border-radius: 10px;
+  padding: 10px;
+}
+.selector-available h2, .selector-chosen h2 {
+  background: #FFF7ED;
+  color: #C2410C;
+  border-bottom: 1px solid #FED7AA;
+  border-radius: 8px 8px 0 0;
+  font-weight: 700;
+}
+
+/* Help text */
+.help, p.help, form .form-row p.help {
+  color: #6B7280;
+  font-size: 12px;
+  font-style: normal;
+  margin: 4px 0 0 0;
+}
+
+/* Submit row (sticky bottom on form pages) */
+.submit-row {
+  background: #FFFFFF;
+  border: 1px solid #FED7AA;
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin: 20px 0;
+  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.06);
+}
+
+/* Login page */
+.login {
+  background: linear-gradient(135deg, #FFF7ED 0%, #FED7AA 100%);
+}
+.login #container {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 20px 50px -10px rgba(194, 65, 12, 0.18);
+  padding: 24px;
+  border: 1px solid #FED7AA;
+}
+.login #header {
+  background: linear-gradient(135deg, #F97316, #C2410C);
+  border-radius: 12px;
+  margin-bottom: 18px;
+}
+.login .form-row {
+  border-bottom: none;
+  padding: 8px 0;
+}
+
+/* Calendar / datetime picker */
+.calendar caption, .calendarbox h2 {
+  background: linear-gradient(135deg, #F97316, #EA580C);
+  color: white;
+}
+.calendar td.selected a {
+  background: #F97316;
+  color: white;
+}
+.calendar td:hover {
+  background: #FFEDD5;
+}
+
+/* Inline forms */
+.inline-related h3, .inline-group .tabular caption {
+  background: linear-gradient(135deg, #FB923C, #F97316);
+  color: white;
+  padding: 10px 14px;
+  border-radius: 10px 10px 0 0;
+  font-weight: 700;
+  font-size: 12.5px;
+}
+.inline-related fieldset { border: 1px solid #FED7AA; }
+
+/* Selected row in changelist */
+.row-selected, tbody tr.selected {
+  background: #FFEDD5 !important;
+}

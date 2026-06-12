@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block page_title %}Leave Balances {{ year }}{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+  <div class="flex items-center gap-3">
+    <h2 class="text-xl font-bold">Leave Balances</h2>
+    <div class="flex gap-1">
+      <a href="?year={{ year|add:'-1' }}" class="btn btn-ghost btn-xs">{{ year|add:'-1' }}</a>
+      <span class="btn btn-primary btn-xs cursor-default">{{ year }}</span>
+    </div>
+  </div>
+</div>
+<div class="card bg-base-100 shadow overflow-x-auto">
+  <table class="table table-sm">
+    <thead>
+      <tr><th>Employee</th><th>Leave Type</th><th>Opening</th><th>Credited</th><th>Taken</th><th>Adjusted</th><th>Available</th></tr>
+    </thead>
+    <tbody>
+      {% for bal in balances %}
+      <tr>
+        <td>
+          <div class="font-medium text-sm">{{ bal.employee.full_name }}</div>
+          <div class="text-xs text-base-content/50">{{ bal.employee.employee_code }}</div>
+        </td>
+        <td><span class="badge badge-outline badge-sm">{{ bal.leave_type.code }}</span></td>
+        <td class="text-sm">{{ bal.opening_balance }}</td>
+        <td class="text-sm">{{ bal.credited }}</td>
+        <td class="text-sm text-error">{{ bal.taken }}</td>
+        <td class="text-sm">{{ bal.adjusted }}</td>
+        <td class="font-bold {% if bal.available > 0 %}text-success{% else %}text-error{% endif %}">{{ bal.available|floatformat:1 }}</td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="7" class="text-center py-8">
+          <p class="text-base-content/40">No leave balances for {{ year }}.</p>
+          <p class="text-xs text-base-content/30 mt-1">Add employees and configure leave types, then balances will appear here.</p>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

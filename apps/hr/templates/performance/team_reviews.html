@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block page_title %}Team Performance Reviews{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+  <div>
+    <h2 class="text-xl font-bold">Team Reviews</h2>
+    <p class="text-sm text-base-content/60">Write performance reviews for your direct reports.</p>
+  </div>
+</div>
+
+{% if not cycles %}
+<div class="card bg-base-100 shadow">
+  <div class="card-body text-center py-12">
+    <p class="text-base-content/40">No active review cycle right now. HR will open one soon.</p>
+  </div>
+</div>
+{% elif not direct_reports %}
+<div class="card bg-base-100 shadow">
+  <div class="card-body text-center py-12">
+    <p class="text-base-content/40">You don't have any direct reports.</p>
+  </div>
+</div>
+{% else %}
+
+<!-- Pending reviews matrix -->
+<div class="card bg-base-100 shadow mb-4">
+  <div class="card-body p-4">
+    <h3 class="font-semibold mb-3">Open Reviews</h3>
+    <div class="overflow-x-auto">
+      <table class="table table-sm">
+        <thead>
+          <tr><th>Employee</th><th>Cycle</th><th>Status</th><th>Rating</th><th>Last Updated</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+          <tr>
+            <td>
+              <div class="font-medium text-sm">{{ row.employee.full_name }}</div>
+              <div class="text-xs text-base-content/50">{{ row.employee.employee_code }} · {{ row.employee.designation }}</div>
+            </td>
+            <td class="text-sm">{{ row.cycle.name }}</td>
+            <td>
+              {% if row.review %}
+                <span class="badge badge-sm
+                  {% if row.review.status == 'acknowledged' %}badge-success
+                  {% elif row.review.status == 'submitted' %}badge-info
+                  {% else %}badge-warning{% endif %}">
+                  {{ row.review.get_status_display }}
+                </span>
+              {% else %}
+                <span class="badge badge-ghost badge-sm">Not Started</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if row.review.overall_rating %}
+                <span class="font-bold">{{ row.review.overall_rating }}/5</span>
+              {% else %}—{% endif %}
+            </td>
+            <td class="text-xs text-base-content/50">
+              {% if row.review %}{{ row.review.updated_at|date:"d M Y" }}{% else %}—{% endif %}
+            </td>
+            <td>
+              <a href="{% url 'performance:review_write' row.employee.pk row.cycle.pk %}"
+                 class="btn btn-sm {% if row.review.status == 'acknowledged' %}btn-ghost{% elif row.review %}btn-outline{% else %}btn-primary{% endif %}">
+                {% if row.review.status == 'acknowledged' %}View
+                {% elif row.review %}Continue
+                {% else %}Start Review{% endif %}
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Recent reviews you've written -->
+{% if past_reviews %}
+<div class="card bg-base-100 shadow">
+  <div class="card-body p-4">
+    <h3 class="font-semibold mb-3">Reviews You've Written</h3>
+    <div class="space-y-2">
+      {% for r in past_reviews %}
+      <a href="{% url 'performance:review_detail' r.pk %}" class="flex items-center justify-between p-2 rounded hover:bg-base-200">
+        <div>
+          <div class="font-medium text-sm">{{ r.employee.full_name }}</div>
+          <div class="text-xs text-base-content/50">{{ r.cycle.name }}</div>
+        </div>
+        <div class="text-right">
+          {% if r.overall_rating %}<div class="font-bold text-sm">{{ r.overall_rating }}/5</div>{% endif %}
+          <div class="text-xs text-base-content/50">{{ r.get_status_display }}</div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}

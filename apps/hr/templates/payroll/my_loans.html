@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block page_title %}My Loans{% endblock %}
+{% block content %}
+<div style="max-width: 760px; margin: 0 auto;">
+  <h2 style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 4px;">My Loans &amp; Advances</h2>
+  <p style="font-size: 13.5px; color: var(--ink-500); margin-bottom: 20px;">EMIs deduct automatically from your salary each month.</p>
+
+  {% for loan in loans %}
+  <div class="surface" style="padding: 22px; margin-bottom: 14px;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px;">
+      <div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="font-size: 16px; font-weight: 700;">{{ loan.loan_type|default:"Loan" }}</div>
+          <span class="badge {% if loan.status == 'active' %}badge-info{% else %}badge-success{% endif %}">{{ loan.status|title }}</span>
+        </div>
+        <div style="font-size: 12px; color: var(--ink-500); margin-top: 2px;">Disbursed {{ loan.disbursed_date|date:"d M Y" }}</div>
+      </div>
+      <div style="text-align: right;">
+        <div style="font-size: 24px; font-weight: 800; color: var(--brand-600); font-variant-numeric: tabular-nums; line-height: 1;">&#8377;{{ loan.emi_amount|floatformat:0|intcomma }}</div>
+        <div style="font-size: 11px; color: var(--ink-500); margin-top: 2px;">per month</div>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 13px; padding: 12px 0; border-top: 1px solid var(--ink-100);">
+      <div><span style="color: var(--ink-500);">Principal:</span> <strong>&#8377;{{ loan.principal_amount|floatformat:0|intcomma }}</strong></div>
+      <div><span style="color: var(--ink-500);">Outstanding:</span> <strong style="color: var(--err-600);">&#8377;{{ loan.outstanding_amount|floatformat:0|intcomma }}</strong></div>
+    </div>
+
+    {% widthratio loan.paid_installments loan.total_installments 100 as pct %}
+    <div style="margin-top: 8px;">
+      <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
+        <span style="color: var(--ink-700); font-weight: 600;">{{ loan.paid_installments }} of {{ loan.total_installments }} EMIs paid</span>
+        <span style="color: var(--ink-500);">{{ pct }}%</span>
+      </div>
+      <div style="height: 6px; background: var(--ink-100); border-radius: 99px; overflow: hidden;">
+        <div style="height: 100%; width: {{ pct }}%; background: linear-gradient(90deg, #FB923C, #EA580C);"></div>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="surface" style="padding: 80px 24px; text-align: center;">
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.4" style="width: 56px; height: 56px; margin: 0 auto 14px; opacity: 0.35;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2"/></svg>
+    <h3 style="font-size: 17px; font-weight: 700;">No loans</h3>
+    <p style="font-size: 13.5px; color: var(--ink-500); margin-top: 4px;">You don't have any active loans or advances. Contact HR if you need one.</p>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

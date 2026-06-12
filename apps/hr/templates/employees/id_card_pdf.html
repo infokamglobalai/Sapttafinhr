@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+  .card {
+    width: 85.6mm; height: 53.98mm;
+    background: linear-gradient(135deg, #1a3a5c 0%, #2d6a9f 100%);
+    border-radius: 8px; padding: 10px; color: white;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .top { display: flex; align-items: center; gap: 8px; }
+  .company { font-size: 9pt; font-weight: bold; opacity: 0.9; }
+  .photo-placeholder {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14pt; font-weight: bold;
+  }
+  .name { font-size: 11pt; font-weight: bold; margin-top: 2px; }
+  .designation { font-size: 8pt; opacity: 0.8; }
+  .bottom { background: rgba(0,0,0,0.2); border-radius: 4px; padding: 5px 8px; font-size: 7pt; }
+  .code { font-family: monospace; font-size: 9pt; font-weight: bold; letter-spacing: 1px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div>
+    <div class="company">{{ tenant.name }}</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
+      <div class="photo-placeholder">{{ employee.first_name|first }}{{ employee.last_name|first }}</div>
+      <div>
+        <div class="name">{{ employee.full_name }}</div>
+        <div class="designation">{{ employee.designation.name|default:"" }}</div>
+        <div class="designation">{{ employee.department.name|default:"" }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="bottom">
+    <div class="code">{{ employee.employee_code }}</div>
+    <div style="margin-top:2px">DOJ: {{ employee.date_of_joining|date:"d M Y" }}</div>
+  </div>
+</div>
+</body>
+</html>

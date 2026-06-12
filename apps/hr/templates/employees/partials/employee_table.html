@@ -1,0 +1,65 @@
+<div class="card bg-base-100 shadow overflow-x-auto">
+  <table class="table table-zebra table-sm">
+    <thead>
+      <tr>
+        <th>Code</th>
+        <th>Name</th>
+        <th>Department</th>
+        <th>Designation</th>
+        <th>Joined</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for emp in page_obj %}
+      <tr>
+        <td class="font-mono text-xs">{{ emp.employee_code }}</td>
+        <td>
+          <div class="flex items-center gap-3">
+            {% if emp.profile_photo %}
+            <div class="avatar"><div class="mask mask-squircle w-8 h-8"><img src="{{ emp.profile_photo.url }}" alt="{{ emp.full_name }}"></div></div>
+            {% else %}
+            <div class="avatar placeholder">
+              <div class="bg-primary/20 text-primary rounded-full w-8">
+                <span class="text-xs">{{ emp.first_name|first }}{{ emp.last_name|first }}</span>
+              </div>
+            </div>
+            {% endif %}
+            <div>
+              <div class="font-medium text-sm">{{ emp.full_name }}</div>
+              <div class="text-xs text-base-content/50">{{ emp.official_email }}</div>
+            </div>
+          </div>
+        </td>
+        <td class="text-sm">{{ emp.department.name|default:"—" }}</td>
+        <td class="text-sm">{{ emp.designation.name|default:"—" }}</td>
+        <td class="text-xs">{{ emp.date_of_joining|date:"d M Y" }}</td>
+        <td>
+          <span class="badge badge-sm {% if emp.employment_status == 'active' %}badge-success{% elif emp.employment_status == 'notice_period' %}badge-warning{% else %}badge-ghost{% endif %}">
+            {{ emp.get_employment_status_display }}
+          </span>
+        </td>
+        <td>
+          <a href="{% url 'employees:detail' emp.pk %}" class="btn btn-ghost btn-xs">View</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7" class="text-center py-8 text-base-content/40">No employees found.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Pagination -->
+{% if page_obj.has_other_pages %}
+<div class="flex justify-center mt-4 gap-1">
+  {% if page_obj.has_previous %}
+  <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-sm btn-ghost">«</a>
+  {% endif %}
+  <span class="btn btn-sm btn-disabled">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+  {% if page_obj.has_next %}
+  <a href="?page={{ page_obj.next_page_number }}" class="btn btn-sm btn-ghost">»</a>
+  {% endif %}
+</div>
+{% endif %}

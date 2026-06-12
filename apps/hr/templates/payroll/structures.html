@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block page_title %}Salary Structures{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+  <h2 class="text-xl font-bold">Salary Structures</h2>
+  <a href="{% url 'payroll:structure_create' %}" class="btn btn-primary btn-sm">+ Add Structure</a>
+</div>
+<div class="card bg-base-100 shadow overflow-x-auto">
+  <table class="table table-sm">
+    <thead><tr><th>Name</th><th>Description</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      {% for s in structures %}
+      <tr>
+        <td class="font-medium">{{ s.name }}</td>
+        <td class="text-sm text-base-content/60">{{ s.description|default:"—" }}</td>
+        <td><span class="badge badge-sm {% if s.is_active %}badge-success{% else %}badge-ghost{% endif %}">{% if s.is_active %}Active{% else %}Inactive{% endif %}</span></td>
+        <td><a href="{% url 'payroll:structure_edit' s.pk %}" class="btn btn-ghost btn-xs">Edit</a></td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="4" class="text-center py-8">
+          <p class="text-base-content/40 mb-3">No salary structures yet.</p>
+          <a href="{% url 'payroll:structure_create' %}" class="btn btn-primary btn-sm">Create first structure</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

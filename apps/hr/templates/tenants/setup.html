@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Set up {{ tenant.name }} · HRMS</title>
+  <style>
+    :root { --orange:#FF6D00; --ink:#0A1128; --muted:#6b7280; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: Inter, system-ui, sans-serif; background:#F5F6F8; color:#0A1128; }
+    .wrap { max-width: 760px; margin: 40px auto; padding: 0 16px; }
+    .head { text-align:center; margin-bottom: 24px; }
+    .head h1 { font-size: 24px; font-weight: 800; margin: 0 0 4px; }
+    .head p { color:#6b7280; font-size: 14px; margin: 0; }
+    .card { background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding: 24px; margin-bottom: 18px; }
+    .card h2 { font-size: 15px; font-weight: 700; margin: 0 0 4px; }
+    .card .hint { color:#6b7280; font-size: 12px; margin: 0 0 14px; }
+    label { display:block; font-size: 12px; font-weight: 600; color:#374151; margin-bottom: 4px; }
+    input, textarea { width:100%; padding: 9px 12px; border:1px solid #d1d5db; border-radius:8px; font-size: 14px; font-family: inherit; }
+    .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .grid-emp { display:grid; grid-template-columns: 1fr 1fr 1fr 1fr 1.2fr; gap: 8px; align-items:end; margin-bottom: 8px; }
+    .row { display:flex; gap: 8px; align-items:end; margin-bottom: 8px; }
+    .btn { background: linear-gradient(135deg,#FF9800,#FF6D00); color:#fff; border:none; padding: 12px 22px; border-radius:8px; font-weight:700; font-size:15px; cursor:pointer; }
+    .btn-add { background:#eef2ff; color:#4338ca; border:none; padding: 7px 12px; border-radius:7px; font-weight:600; font-size:12px; cursor:pointer; }
+    .steplbl { font-size: 11px; font-weight:700; color:var(--orange); text-transform:uppercase; letter-spacing:.5px; }
+    .msgs { margin-bottom: 14px; }
+    .msg { background:#fef2f2; color:#b91c1c; padding:8px 12px; border-radius:8px; font-size:13px; }
+    .foot { display:flex; justify-content:flex-end; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="head">
+      <h1>Set up {{ tenant.name }}</h1>
+      <p>Add the essentials so your HR workspace is ready to use.</p>
+    </div>
+
+    {% if messages %}<div class="msgs">{% for m in messages %}<div class="msg">{{ m }}</div>{% endfor %}</div>{% endif %}
+
+    <form method="post" action="">
+      {% csrf_token %}
+
+      <div class="card">
+        <span class="steplbl">Step 1</span>
+        <h2>Company information</h2>
+        <p class="hint">Appears on payslips and statutory documents.</p>
+        <div style="margin-bottom:14px"><label>Company name</label>
+          <input name="company_name" value="{{ tenant.name }}" required /></div>
+        <div class="grid2">
+          <div><label>GSTIN</label><input name="gstin" value="{{ tenant.gstin }}" maxlength="15" /></div>
+          <div><label>PAN</label><input name="pan" value="{{ tenant.pan }}" maxlength="10" /></div>
+        </div>
+        <div style="margin-top:14px"><label>Registered address</label>
+          <textarea name="address" rows="2">{{ tenant.address }}</textarea></div>
+      </div>
+
+      <div class="card">
+        <span class="steplbl">Step 2</span>
+        <h2>Departments</h2>
+        <p class="hint">One per line. Edit these starter departments or add your own.</p>
+        <textarea name="departments" rows="4">Engineering
+Sales
+Human Resources
+Finance
+Operations</textarea>
+      </div>
+
+      <div class="card">
+        <span class="steplbl">Step 3</span>
+        <h2>Leave types</h2>
+        <p class="hint">Name + short code (CL, EL, SL…).</p>
+        <div id="leaves">
+          <div class="row"><div style="flex:2"><label>Name</label><input name="leave_name[]" value="Casual Leave" /></div>
+            <div style="flex:1"><label>Code</label><input name="leave_code[]" value="CL" maxlength="10" /></div></div>
+          <div class="row"><div style="flex:2"><label>Name</label><input name="leave_name[]" value="Earned Leave" /></div>
+            <div style="flex:1"><label>Code</label><input name="leave_code[]" value="EL" maxlength="10" /></div></div>
+          <div class="row"><div style="flex:2"><label>Name</label><input name="leave_name[]" value="Sick Leave" /></div>
+            <div style="flex:1"><label>Code</label><input name="leave_code[]" value="SL" maxlength="10" /></div></div>
+        </div>
+        <button type="button" class="btn-add" onclick="addLeave()">+ Add leave type</button>
+      </div>
+
+      <div class="card">
+        <span class="steplbl">Step 4</span>
+        <h2>Add employees &amp; create login accounts</h2>
+        <p class="hint">Add your team now. <strong>Email is required</strong> — a login account will be created for each employee so they can access HR self-service. You can bulk-import more later.</p>
+        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 14px;font-size:12px;color:#166534;margin-bottom:14px">
+          🔑 Login credentials (email + temporary password) will be displayed on the next page for you to share with employees.
+        </div>
+        <div id="emps">
+          <div class="grid-emp">
+            <div><label>Emp code</label><input name="emp_code[]" placeholder="EMP001" /></div>
+            <div><label>First name *</label><input name="emp_first[]" required /></div>
+            <div><label>Last name</label><input name="emp_last[]" /></div>
+            <div><label>Joining date *</label><input name="emp_doj[]" type="date" required /></div>
+            <div>
+              <label>Department</label><input name="emp_dept[]" placeholder="Engineering" />
+              <label style="margin-top:6px">Email * (for login)</label>
+              <input name="emp_email[]" type="email" placeholder="ravi@company.com" style="margin-top:2px" />
+              <label style="margin-top:6px">Role</label>
+              <select name="emp_role[]" style="margin-top:2px">
+                <option value="employee">Employee</option>
+                <option value="manager">Manager</option>
+                <option value="hr_admin">HR Admin</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <button type="button" class="btn-add" onclick="addEmp()">+ Add another employee</button>
+      </div>
+
+      <div class="foot">
+        <button type="submit" class="btn">Finish setup &amp; enter HR →</button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    function addLeave() {
+      const w = document.getElementById('leaves');
+      const d = document.createElement('div'); d.className = 'row';
+      d.innerHTML = '<div style="flex:2"><label>Name</label><input name="leave_name[]"/></div>'
+        + '<div style="flex:1"><label>Code</label><input name="leave_code[]" maxlength="10"/></div>';
+      w.appendChild(d);
+    }
+    function addEmp() {
+      const w = document.getElementById('emps');
+      const d = document.createElement('div'); d.className = 'grid-emp';
+      d.innerHTML = '<div><label>Emp code</label><input name="emp_code[]"/></div>'
+        + '<div><label>First name *</label><input name="emp_first[]"/></div>'
+        + '<div><label>Last name</label><input name="emp_last[]"/></div>'
+        + '<div><label>Joining date *</label><input name="emp_doj[]" type="date"/></div>'
+        + '<div><label>Department</label><input name="emp_dept[]" placeholder="Engineering"/>'
+        + '<label style="margin-top:6px">Email * (for login)</label>'
+        + '<input name="emp_email[]" type="email" placeholder="name@company.com" style="margin-top:2px"/>'
+        + '<label style="margin-top:6px">Role</label>'
+        + '<select name="emp_role[]" style="margin-top:2px"><option value="employee">Employee</option>'
+        + '<option value="manager">Manager</option><option value="hr_admin">HR Admin</option></select></div>';
+      w.appendChild(d);
+    }
+  </script>
+</body>
+</html>

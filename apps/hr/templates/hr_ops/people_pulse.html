@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block page_title %}People Pulse{% endblock %}
+{% block content %}
+<div style="display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 22px;">
+  <div>
+    <h2 style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em;">People Pulse</h2>
+    <p style="font-size: 13.5px; color: var(--ink-500);">Birthdays, anniversaries, and probation ending — at a glance.</p>
+  </div>
+</div>
+
+<!-- TOP ROW: Today's birthdays + Today's anniversaries -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px;">
+
+  <!-- Today's birthdays -->
+  <div class="surface" style="padding: 0; overflow: hidden;">
+    <div style="padding: 16px 22px; background: linear-gradient(135deg, #FB923C, #EA580C); color: white;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 22px;">🎂</span>
+        <span style="font-weight: 700; font-size: 15px;">Birthdays Today</span>
+        <span style="margin-left: auto; background: rgba(255,255,255,0.22); padding: 3px 10px; border-radius: 99px; font-size: 12px; font-weight: 700;">{{ todays_birthdays|length }}</span>
+      </div>
+    </div>
+    <div style="padding: 8px;">
+      {% for row in todays_birthdays %}
+      <a href="{% url 'employees:detail' row.emp.pk %}" class="list-row" style="padding: 10px 14px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, #FB923C, #EA580C); color: white; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700;">{{ row.emp.first_name|first }}{{ row.emp.last_name|first }}</div>
+          <div>
+            <div style="font-weight: 600; font-size: 14px;">{{ row.emp.full_name }}</div>
+            <div style="font-size: 12px; color: var(--ink-500);">{{ row.emp.designation.name|default:"—" }}</div>
+          </div>
+        </div>
+        <div style="background: var(--brand-100); color: var(--brand-700); padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 700;">🎉 Celebrate!</div>
+      </a>
+      {% empty %}
+      <div style="text-align: center; padding: 28px 0; color: var(--ink-400); font-size: 13px;">No birthdays today.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Today's anniversaries -->
+  <div class="surface" style="padding: 0; overflow: hidden;">
+    <div style="padding: 16px 22px; background: linear-gradient(135deg, #7C3AED, #4F46E5); color: white;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 22px;">🌟</span>
+        <span style="font-weight: 700; font-size: 15px;">Work Anniversaries Today</span>
+        <span style="margin-left: auto; background: rgba(255,255,255,0.22); padding: 3px 10px; border-radius: 99px; font-size: 12px; font-weight: 700;">{{ todays_anniv|length }}</span>
+      </div>
+    </div>
+    <div style="padding: 8px;">
+      {% for row in todays_anniv %}
+      <a href="{% url 'employees:detail' row.emp.pk %}" class="list-row" style="padding: 10px 14px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, #A78BFA, #7C3AED); color: white; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700;">{{ row.emp.first_name|first }}{{ row.emp.last_name|first }}</div>
+          <div>
+            <div style="font-weight: 600; font-size: 14px;">{{ row.emp.full_name }}</div>
+            <div style="font-size: 12px; color: var(--ink-500);">{{ row.emp.designation.name|default:"—" }}</div>
+          </div>
+        </div>
+        <div style="background: #EDE9FE; color: #6D28D9; padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 700;">{{ row.years }} year{{ row.years|pluralize }}!</div>
+      </a>
+      {% empty %}
+      <div style="text-align: center; padding: 28px 0; color: var(--ink-400); font-size: 13px;">No anniversaries today.</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- MIDDLE ROW: Upcoming -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px;">
+
+  <div class="surface" style="padding: 20px;">
+    <h3 style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-500); margin-bottom: 12px;">Birthdays this week ({{ week_birthdays|length }})</h3>
+    {% for row in week_birthdays %}
+    <div class="list-row" style="padding: 8px 10px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, #FED7AA, #FB923C); color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">{{ row.emp.first_name|first }}{{ row.emp.last_name|first }}</div>
+        <div>
+          <div style="font-weight: 600; font-size: 13px;">{{ row.emp.full_name }}</div>
+          <div style="font-size: 11.5px; color: var(--ink-500);">{{ row.next_date|date:"l, d M" }}</div>
+        </div>
+      </div>
+      <div style="font-size: 12px; color: var(--ink-600); font-weight: 600;">in {{ row.days_left }} day{{ row.days_left|pluralize }}</div>
+    </div>
+    {% empty %}
+    <div style="text-align: center; padding: 20px 0; color: var(--ink-400); font-size: 12.5px;">No birthdays in the next 7 days.</div>
+    {% endfor %}
+  </div>
+
+  <div class="surface" style="padding: 20px;">
+    <h3 style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-500); margin-bottom: 12px;">Upcoming anniversaries (30 days)</h3>
+    {% for row in upcoming_anniv %}
+    <div class="list-row" style="padding: 8px 10px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, #C4B5FD, #7C3AED); color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">{{ row.emp.first_name|first }}{{ row.emp.last_name|first }}</div>
+        <div>
+          <div style="font-weight: 600; font-size: 13px;">{{ row.emp.full_name }} <span style="color: var(--brand-600);">— {{ row.years }} year{{ row.years|pluralize }}</span></div>
+          <div style="font-size: 11.5px; color: var(--ink-500);">{{ row.next_date|date:"l, d M" }}</div>
+        </div>
+      </div>
+      <div style="font-size: 12px; color: var(--ink-600); font-weight: 600;">in {{ row.days_left }} day{{ row.days_left|pluralize }}</div>
+    </div>
+    {% empty %}
+    <div style="text-align: center; padding: 20px 0; color: var(--ink-400); font-size: 12.5px;">No anniversaries in the next 30 days.</div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- BOTTOM ROW: Probation -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+
+  <div class="surface" style="padding: 20px; {% if probation_overdue %}border-color: var(--err-200);{% endif %}">
+    <h3 style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--err-600); margin-bottom: 12px;">⚠️ Probation overdue ({{ probation_overdue|length }})</h3>
+    {% for emp in probation_overdue %}
+    <a href="{% url 'employees:detail' emp.pk %}" class="list-row" style="padding: 10px 12px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--err-500); color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">{{ emp.first_name|first }}{{ emp.last_name|first }}</div>
+        <div>
+          <div style="font-weight: 600; font-size: 13px;">{{ emp.full_name }}</div>
+          <div style="font-size: 11.5px; color: var(--ink-500);">{{ emp.designation.name|default:"" }}</div>
+        </div>
+      </div>
+      <div style="font-size: 12px; color: var(--err-600); font-weight: 700;">Ended {{ emp.probation_end_date|date:"d M" }}</div>
+    </a>
+    {% empty %}
+    <div style="text-align: center; padding: 20px 0; color: var(--ink-400); font-size: 12.5px;">No overdue probations 🎉</div>
+    {% endfor %}
+  </div>
+
+  <div class="surface" style="padding: 20px;">
+    <h3 style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--warn-600); margin-bottom: 12px;">Probation ending soon ({{ probation_soon|length }})</h3>
+    {% for emp in probation_soon %}
+    <a href="{% url 'employees:detail' emp.pk %}" class="list-row" style="padding: 10px 12px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #FBBF24, #F59E0B); color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">{{ emp.first_name|first }}{{ emp.last_name|first }}</div>
+        <div>
+          <div style="font-weight: 600; font-size: 13px;">{{ emp.full_name }}</div>
+          <div style="font-size: 11.5px; color: var(--ink-500);">{{ emp.designation.name|default:"" }}</div>
+        </div>
+      </div>
+      <div style="font-size: 12px; color: var(--warn-600); font-weight: 700;">{{ emp.probation_end_date|date:"d M" }}</div>
+    </a>
+    {% empty %}
+    <div style="text-align: center; padding: 20px 0; color: var(--ink-400); font-size: 12.5px;">No probations ending in 30 days.</div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,331 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_head %}
+<style>
+  .login-shell {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr;
+    background: var(--bg-app);
+  }
+  @media (min-width: 1024px) {
+    .login-shell { grid-template-columns: 1.1fr 1fr; }
+  }
+
+  .login-brand {
+    display: none;
+    position: relative;
+    overflow: hidden;
+    background: var(--brand-100);
+    border-right: 1px solid var(--border-light);
+    color: var(--ink-900);
+    padding: 64px;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  @media (min-width: 1024px) { .login-brand { display: flex; } }
+
+  .login-brand::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,0,0,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,0,0,0.02) 1px, transparent 1px);
+    background-size: 24px 24px;
+    pointer-events: none;
+  }
+
+  .brand-headline {
+    position: relative;
+    z-index: 1;
+    font-size: clamp(2rem, 3.5vw, 2.75rem);
+    font-family: var(--font-sans);
+    font-style: normal;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    color: var(--ink-950);
+    max-width: 480px;
+    animation: fadeInUp 500ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .brand-sub {
+    position: relative;
+    z-index: 1;
+    font-size: 15px;
+    color: var(--ink-600);
+    margin-top: 18px;
+    max-width: 420px;
+    line-height: 1.6;
+    font-weight: 300;
+    animation: fadeInUp 500ms cubic-bezier(0.22, 1, 0.36, 1) 100ms both;
+  }
+
+  .feature-list {
+    position: relative;
+    z-index: 1;
+    list-style: none;
+    padding: 0;
+    margin-top: 40px;
+    animation: fadeInUp 500ms cubic-bezier(0.22, 1, 0.36, 1) 200ms both;
+  }
+  .feature-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 16px;
+    font-size: 14.5px;
+    color: var(--ink-700);
+    font-weight: 300;
+  }
+  .feature-list li strong {
+    font-weight: 600;
+    color: var(--ink-900);
+  }
+  .feature-list svg {
+    width: 18px; height: 18px;
+    flex-shrink: 0;
+    margin-top: 2px;
+    color: var(--brand-500);
+  }
+
+  .brand-foot {
+    position: relative;
+    z-index: 1;
+    font-size: 12px;
+    color: var(--ink-500);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .login-form-side {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+  }
+  .login-card {
+    width: 100%;
+    max-width: 400px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--r-xl);
+    padding: 40px;
+    box-shadow: none;
+    transition: all var(--motion-default);
+    animation: fadeInUp 400ms cubic-bezier(0.22, 1, 0.36, 1) 150ms both;
+  }
+  .login-card:hover {
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+
+  .mobile-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+  @media (min-width: 1024px) { .mobile-brand { display: none; } }
+
+  .mobile-brand-mark {
+    width: 44px; height: 44px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    color: var(--brand-500);
+    border-radius: var(--r-sm);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 18px;
+  }
+
+  .login-title {
+    font-size: 24px;
+    font-family: var(--font-sans);
+    font-style: normal;
+    font-weight: 600;
+    color: var(--ink-950);
+  }
+  .login-sub {
+    font-size: 14px;
+    color: var(--ink-500);
+    margin-top: 6px;
+    margin-bottom: 28px;
+    font-weight: 300;
+  }
+
+  .field { margin-bottom: 18px; }
+  .field-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-700);
+    margin-bottom: 6px;
+  }
+
+  .login-btn {
+    width: 100%;
+    padding: 11px 16px;
+    font-size: 14.5px;
+    font-weight: 500;
+    background: transparent;
+    color: var(--brand-500);
+    border: 1px solid var(--brand-500);
+    border-radius: var(--r-sm);
+    cursor: pointer;
+    transition: all var(--motion-quick);
+    margin-top: 8px;
+  }
+  .login-btn:hover {
+    background: var(--brand-500);
+    color: #FFFFFF;
+  }
+  .login-btn:active { transform: scale(0.985); }
+
+  .form-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+
+  .form-help {
+    font-size: 13px;
+    color: var(--ink-500);
+    margin-top: 24px;
+    text-align: center;
+    font-weight: 300;
+  }
+
+  .error-msg {
+    background: var(--err-50);
+    color: #C32B2B;
+    border-left: 3px solid var(--err-500);
+    padding: 10px 12px;
+    border-radius: var(--r-md);
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+
+  .dev-login-hint {
+    background: #f0f4ff;
+    border: 1px dashed #6C3BFF;
+    border-radius: var(--r-md);
+    padding: 12px 14px;
+    margin-bottom: 20px;
+    font-size: 12.5px;
+    color: var(--ink-700);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .dev-login-hint code {
+    font-size: 12px;
+    background: #fff;
+    padding: 1px 5px;
+    border-radius: 4px;
+    border: 1px solid var(--border-light);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-shell">
+
+  {# Left: brand panel (desktop only) #}
+  <aside class="login-brand">
+    <div>
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom: 56px;">
+        <div style="width:44px; height:44px; background: var(--bg-card); border-radius:var(--r-sm); display:flex; align-items:center; justify-content:center; font-weight:600; font-size:18px; border: 1px solid var(--border-light); color: var(--brand-500);">
+          {% if tenant %}{{ tenant.name|slice:":1"|upper }}{% else %}H{% endif %}
+        </div>
+        <div style="font-weight:600; font-size:17px; color: var(--ink-950);">{% if tenant %}{{ tenant.name }}{% else %}HRMS{% endif %}</div>
+      </div>
+
+      <h1 class="brand-headline">Run your HR like clockwork.</h1>
+      <p class="brand-sub">Employee records, attendance, leave, payroll, performance reviews — one calm, opinionated workspace your team will actually want to open.</p>
+
+      <ul class="feature-list">
+        <li>
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          GPS-based attendance with geo-fenced offices
+        </li>
+        <li>
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Indian payroll with PF, ESI, PT, TDS calculated automatically
+        </li>
+        <li>
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Bank advice export — upload directly to your corporate banking
+        </li>
+        <li>
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Performance reviews with structured ratings &amp; goals
+        </li>
+      </ul>
+    </div>
+
+    <div class="brand-foot">
+      <span class="dot dot-ok"></span>
+      Trusted by HR teams across India
+    </div>
+  </aside>
+
+  {# Right: form #}
+  <main class="login-form-side">
+    <div class="login-card">
+      <div class="mobile-brand">
+        <div class="mobile-brand-mark">{% if tenant %}{{ tenant.name|slice:":1"|upper }}{% else %}H{% endif %}</div>
+        <div>
+          <div style="font-weight:600; font-size:16px;">{% if tenant %}{{ tenant.name }}{% else %}HRMS{% endif %}</div>
+          <div style="font-size:12px; color: var(--ink-500);">Human Resources</div>
+        </div>
+      </div>
+
+      <h2 class="login-title">Welcome back</h2>
+      <p class="login-sub">Sign in to continue to your workspace.</p>
+
+      {% if debug %}
+      <div class="dev-login-hint" role="note">
+        <strong>Local demo</strong>
+        <span><code>admin@saptta.local</code> / <code>Saptta@12345</code></span>
+      </div>
+      {% endif %}
+
+      <form method="post" action="{% url 'accounts:login' %}{% if request.GET.next %}?next={{ request.GET.next }}{% endif %}">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+        <div class="error-msg">{{ form.non_field_errors.0 }}</div>
+        {% endif %}
+
+        <div class="field">
+          <label class="field-label" for="id_email">Work email</label>
+          <input id="id_email" type="email" name="email" placeholder="you@company.com" class="input" required autofocus value="{{ form.email.value|default:'' }}">
+          {% if form.email.errors %}<div style="color:var(--err-500); font-size:12px; margin-top:4px;">{{ form.email.errors.0 }}</div>{% endif %}
+        </div>
+
+        <div class="field">
+          <div class="form-row">
+            <label class="field-label" for="id_password" style="margin-bottom:0;">Password</label>
+            <a href="{% url 'accounts:password_reset_request' %}" style="font-size:12.5px; color: var(--brand-500); text-decoration:none;">Forgot?</a>
+          </div>
+          <input id="id_password" type="password" name="password" placeholder="••••••••" class="input" required>
+          {% if form.password.errors %}<div style="color:var(--err-500); font-size:12px; margin-top:4px;">{{ form.password.errors.0 }}</div>{% endif %}
+        </div>
+
+        <div class="field" style="display:flex; align-items:center; gap:8px;">
+          <input type="checkbox" name="remember_me" id="rm" style="width:16px; height:16px; accent-color: var(--brand-500);">
+          <label for="rm" style="font-size:13px; color: var(--ink-600);">Keep me signed in for 12 hours</label>
+        </div>
+
+        <button type="submit" class="login-btn">Sign in</button>
+      </form>
+
+      <p class="form-help">
+        New to HRMS? <a href="{% url 'tenants:signup' %}" style="color: var(--brand-500); font-weight: 500; text-decoration: none;">Start a free trial</a>
+      </p>
+    </div>
+  </main>
+</div>
+{% endblock %}

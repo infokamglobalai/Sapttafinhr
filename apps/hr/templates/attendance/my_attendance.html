@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block page_title %}My Attendance{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+  <h2 class="text-xl font-bold">My Attendance — {{ year }}/{{ month }}</h2>
+  <a href="{% url 'attendance:regularization' %}" class="btn btn-outline btn-sm">Request Correction</a>
+</div>
+
+<div class="card bg-base-100 shadow overflow-x-auto">
+  <table class="table table-sm">
+    <thead>
+      <tr><th>Date</th><th>Day</th><th>In Time</th><th>Out Time</th><th>Hours</th><th>Status</th><th>Late</th></tr>
+    </thead>
+    <tbody>
+      {% for rec in records %}
+      <tr>
+        <td class="font-mono text-sm">{{ rec.attendance_date|date:"d M" }}</td>
+        <td class="text-xs text-base-content/60">{{ rec.attendance_date|date:"D" }}</td>
+        <td class="text-sm">{{ rec.first_in_time|time:"H:i"|default:"—" }}</td>
+        <td class="text-sm">{{ rec.last_out_time|time:"H:i"|default:"—" }}</td>
+        <td class="text-sm">{% if rec.net_working_minutes %}{{ rec.net_working_hours }}h{% else %}—{% endif %}</td>
+        <td>
+          <span class="badge badge-sm
+            {% if rec.status == 'present' %}badge-success
+            {% elif rec.status == 'absent' %}badge-error
+            {% elif rec.status == 'half_day' %}badge-warning
+            {% elif rec.status == 'on_leave' %}badge-info
+            {% else %}badge-ghost{% endif %}">
+            {{ rec.get_status_display }}
+          </span>
+        </td>
+        <td class="text-sm {% if rec.late_by_minutes > 0 %}text-warning{% endif %}">
+          {% if rec.late_by_minutes > 0 %}{{ rec.late_by_minutes }}m{% else %}—{% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7" class="text-center py-8 text-base-content/40">No attendance records for this month.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

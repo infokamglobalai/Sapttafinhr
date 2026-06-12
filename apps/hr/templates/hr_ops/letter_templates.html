@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block page_title %}HR Letter Templates{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+  <h2 class="text-xl font-bold">Letter Templates</h2>
+  <a href="{% url 'hr_ops:letter_template_create' %}" class="btn btn-primary btn-sm">+ New Template</a>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+  {% for tmpl in templates %}
+  <div class="card bg-base-100 shadow">
+    <div class="card-body p-4">
+      <div class="flex items-start justify-between">
+        <div>
+          <span class="badge badge-outline badge-sm mb-1">{{ tmpl.get_letter_type_display }}</span>
+          <h3 class="font-semibold">{{ tmpl.name }}</h3>
+        </div>
+        <span class="badge badge-sm {% if tmpl.is_active %}badge-success{% else %}badge-ghost{% endif %}">{% if tmpl.is_active %}Active{% else %}Off{% endif %}</span>
+      </div>
+      <div class="card-actions mt-3">
+        <a href="{% url 'hr_ops:letter_template_edit' tmpl.pk %}" class="btn btn-ghost btn-xs">Edit Template</a>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="col-span-3 card bg-base-100 shadow">
+    <div class="card-body text-center py-12">
+      <p class="text-base-content/40 mb-3">No letter templates yet.</p>
+      <p class="text-sm text-base-content/30 mb-4">Create templates for Experience, Relieving, Increment, Warning letters using Jinja2 HTML.</p>
+      <a href="{% url 'hr_ops:letter_template_create' %}" class="btn btn-primary btn-sm">Create first template</a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

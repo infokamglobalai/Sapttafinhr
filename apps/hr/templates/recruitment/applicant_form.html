@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block page_title %}Add Applicant{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl">
+  <a href="{% url 'recruitment:job_detail' job.pk %}" class="text-sm link mb-3 inline-block">← Back to {{ job.title }}</a>
+  <div class="card bg-base-100 shadow">
+    <div class="card-body">
+      <h2 class="text-lg font-bold mb-2">Add applicant to “{{ job.title }}”</h2>
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <div class="form-control"><label class="label"><span class="label-text">First name *</span></label>
+            <input name="first_name" required class="input input-bordered"></div>
+          <div class="form-control"><label class="label"><span class="label-text">Last name</span></label>
+            <input name="last_name" class="input input-bordered"></div>
+          <div class="form-control"><label class="label"><span class="label-text">Email *</span></label>
+            <input name="email" type="email" required class="input input-bordered"></div>
+          <div class="form-control"><label class="label"><span class="label-text">Phone</span></label>
+            <input name="phone" class="input input-bordered"></div>
+          <div class="form-control"><label class="label"><span class="label-text">Current company</span></label>
+            <input name="current_company" class="input input-bordered"></div>
+          <div class="form-control"><label class="label"><span class="label-text">Current designation</span></label>
+            <input name="current_designation" class="input input-bordered"></div>
+          <div class="form-control"><label class="label"><span class="label-text">Expected CTC</span></label>
+            <input name="expected_ctc" type="number" step="0.01" class="input input-bordered"></div>
+          <div class="form-control"><label class="label"><span class="label-text">Total experience (yrs)</span></label>
+            <input name="total_experience" type="number" step="0.1" class="input input-bordered"></div>
+        </div>
+        <div class="form-control mb-3"><label class="label"><span class="label-text">Resume (PDF)</span></label>
+          <input name="resume" type="file" accept=".pdf,.doc,.docx" class="file-input file-input-bordered"></div>
+        <div class="form-control mb-4"><label class="label"><span class="label-text">Source</span></label>
+          <select name="source" class="select select-bordered w-48">
+            <option value="direct">Direct</option><option value="referral">Referral</option>
+            <option value="linkedin">LinkedIn</option><option value="job_board">Job board</option>
+            <option value="agency">Agency</option>
+          </select></div>
+        <div class="flex justify-end gap-2">
+          <a href="{% url 'recruitment:job_detail' job.pk %}" class="btn btn-ghost">Cancel</a>
+          <button class="btn btn-primary">Add to pipeline</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

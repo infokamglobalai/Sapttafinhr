@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block page_title %}My Payslips{% endblock %}
+{% block content %}
+<h2 class="text-xl font-bold mb-4">My Payslips</h2>
+<div class="card bg-base-100 shadow overflow-x-auto">
+  <table class="table table-sm">
+    <thead><tr><th>Period</th><th>Gross</th><th>Deductions</th><th>Net Pay</th><th></th></tr></thead>
+    <tbody>
+      {% for slip in payslips %}
+      <tr>
+        <td class="font-medium">{{ slip.year }}-{{ slip.month|stringformat:"02d" }}</td>
+        <td>&#8377;{{ slip.payroll_record.gross_earnings|floatformat:0 }}</td>
+        <td class="text-error">&#8377;{{ slip.payroll_record.total_deductions|floatformat:0 }}</td>
+        <td class="font-bold text-success">&#8377;{{ slip.payroll_record.net_payable|floatformat:0 }}</td>
+        <td>
+          <a href="{% url 'payroll:payslip' slip.pk %}" target="_blank" class="btn btn-ghost btn-xs">
+            Download PDF
+          </a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="5" class="text-center py-8 text-base-content/40">
+          No payslips published yet. Contact HR if you expect to see payslips here.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

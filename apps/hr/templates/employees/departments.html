@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block page_title %}Departments{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+  <h2 class="text-xl font-bold">Departments</h2>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+  <!-- Create form -->
+  <div class="card bg-base-100 shadow">
+    <div class="card-body">
+      <h3 class="card-title text-base">Add Department</h3>
+      <form method="post" action="{% url 'employees:department_create' %}"
+            hx-post="{% url 'employees:department_create' %}"
+            hx-target="#dept-list" hx-swap="innerHTML">
+        {% csrf_token %}
+        <div class="form-control mb-3">
+          <label class="label"><span class="label-text">Name *</span></label>
+          {{ form.name }}
+        </div>
+        <div class="form-control mb-3">
+          <label class="label"><span class="label-text">Parent Department</span></label>
+          {{ form.parent }}
+        </div>
+        <div class="form-control mb-4">
+          <label class="label"><span class="label-text">Cost Center Code</span></label>
+          {{ form.cost_center_code }}
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm w-full">Add Department</button>
+      </form>
+    </div>
+  </div>
+  <!-- List -->
+  <div class="col-span-2">
+    <div id="dept-list">
+      {% include "employees/partials/departments_list.html" %}
+    </div>
+  </div>
+</div>
+{% endblock %}

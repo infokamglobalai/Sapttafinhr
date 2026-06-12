@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block page_title %}{{ cycle.name }}{% endblock %}
+{% block content %}
+<div class="flex items-center gap-3 mb-4">
+  <a href="{% url 'performance:cycles' %}" class="btn btn-ghost btn-sm">← Back</a>
+  <h2 class="text-xl font-bold">{{ cycle.name }}</h2>
+  <span class="badge {% if cycle.status == 'active' %}badge-success{% else %}badge-ghost{% endif %}">{{ cycle.get_status_display }}</span>
+</div>
+
+<!-- Stats -->
+<div class="grid grid-cols-4 gap-3 mb-4">
+  <div class="card bg-base-100 shadow p-4 text-center">
+    <div class="text-2xl font-bold">{{ stats.total }}</div>
+    <div class="text-xs text-base-content/60">Total Reviews</div>
+  </div>
+  <div class="card bg-warning/10 shadow p-4 text-center">
+    <div class="text-2xl font-bold text-warning">{{ stats.draft }}</div>
+    <div class="text-xs text-base-content/60">In Draft</div>
+  </div>
+  <div class="card bg-info/10 shadow p-4 text-center">
+    <div class="text-2xl font-bold text-info">{{ stats.submitted }}</div>
+    <div class="text-xs text-base-content/60">Awaiting Acknowledgement</div>
+  </div>
+  <div class="card bg-success/10 shadow p-4 text-center">
+    <div class="text-2xl font-bold text-success">{{ stats.acknowledged }}</div>
+    <div class="text-xs text-base-content/60">Closed</div>
+  </div>
+</div>
+
+<!-- Review list -->
+<div class="card bg-base-100 shadow overflow-x-auto">
+  <table class="table table-sm">
+    <thead><tr><th>Employee</th><th>Department</th><th>Reviewer</th><th>Rating</th><th>Status</th><th>Updated</th><th></th></tr></thead>
+    <tbody>
+      {% for r in reviews %}
+      <tr>
+        <td>
+          <div class="font-medium text-sm">{{ r.employee.full_name }}</div>
+          <div class="text-xs text-base-content/50">{{ r.employee.employee_code }}</div>
+        </td>
+        <td class="text-sm">{{ r.employee.department.name|default:"—" }}</td>
+        <td class="text-sm">{{ r.reviewer.full_name|default:"—" }}</td>
+        <td>{% if r.overall_rating %}<span class="font-bold">{{ r.overall_rating }}/5</span>{% else %}—{% endif %}</td>
+        <td>
+          <span class="badge badge-sm
+            {% if r.status == 'acknowledged' %}badge-success
+            {% elif r.status == 'submitted' %}badge-info
+            {% else %}badge-warning{% endif %}">
+            {{ r.get_status_display }}
+          </span>
+        </td>
+        <td class="text-xs">{{ r.updated_at|date:"d M Y" }}</td>
+        <td><a href="{% url 'performance:review_detail' r.pk %}" class="btn btn-ghost btn-xs">View</a></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7" class="text-center py-8 text-base-content/40">No reviews started yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

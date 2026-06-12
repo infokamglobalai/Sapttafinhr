@@ -1,0 +1,5 @@
+first_name,last_name,date_of_joining,official_email,ctc_annual,department,designation,employment_type,gender,phone_primary,pan,work_state_code,bank_name,bank_account,ifsc_code
+Ravi,Kumar,15-01-2024,ravi.kumar@company.com,600000,Engineering,Software Engineer,full_time,male,9876543210,ABCDE1234F,IN-KA,HDFC Bank,50100123456789,HDFC0001234
+Priya,Sharma,01-02-2024,priya.sharma@company.com,720000,HR,HR Executive,full_time,female,9876543211,FGHIJ5678K,IN-KA,ICICI Bank,602501234567,ICIC0006025
+Amit,Patel,10-03-2024,amit.patel@company.com,540000,Sales,Sales Executive,full_time,male,9876543212,KLMNO9012P,IN-MH,SBI,30001234567890,SBIN0001234
+Sneha,Reddy,05-04-2024,sneha.reddy@company.com,840000,Engineering,Senior Engineer,full_time,female,9876543213,PQRST3456Q,IN-KA,Axis Bank,917010012345678,UTIB0001234

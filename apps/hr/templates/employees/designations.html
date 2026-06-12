@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block page_title %}Designations{% endblock %}
+{% block content %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+  <div class="card bg-base-100 shadow">
+    <div class="card-body">
+      <h3 class="card-title text-base">Add Designation</h3>
+      <form method="post" action="{% url 'employees:designation_create' %}"
+            hx-post="{% url 'employees:designation_create' %}"
+            hx-target="#desig-list" hx-swap="innerHTML">
+        {% csrf_token %}
+        <div class="form-control mb-3"><label class="label"><span class="label-text">Name *</span></label>{{ form.name }}</div>
+        <div class="form-control mb-3"><label class="label"><span class="label-text">Level (1=Senior)</span></label>{{ form.level }}</div>
+        <div class="form-control mb-4"><label class="label"><span class="label-text">Grade (L1, M2…)</span></label>{{ form.grade }}</div>
+        <button type="submit" class="btn btn-primary btn-sm w-full">Add Designation</button>
+      </form>
+    </div>
+  </div>
+  <div class="col-span-2">
+    <div id="desig-list">
+      {% include "employees/partials/designations_list.html" %}
+    </div>
+  </div>
+</div>
+{% endblock %}

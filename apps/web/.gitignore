@@ -1,0 +1,5 @@
+node_modules
+dist
+dist-desktop
+.env.local
+.env*.local

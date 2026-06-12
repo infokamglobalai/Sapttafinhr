@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block page_title %}Employees{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+  <div>
+    <h2 class="text-xl font-bold">Employee Directory</h2>
+    <p class="text-sm text-base-content/60">{{ page_obj.paginator.count }} employee(s)</p>
+  </div>
+  <div class="flex gap-2">
+    <a href="{% url 'employees:bulk_import' %}" class="btn btn-outline btn-sm">Bulk Import</a>
+    <a href="{% url 'employees:create' %}" class="btn btn-primary btn-sm">+ Add Employee</a>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="card bg-base-100 shadow mb-4">
+  <div class="card-body p-4">
+    <form method="get"
+          hx-get="{% url 'employees:list' %}"
+          hx-target="#employee-table"
+          hx-push-url="true"
+          class="flex flex-wrap gap-3 items-end">
+      <div class="form-control">
+        <input type="text" name="q" value="{{ search }}" placeholder="Search name, code, email..."
+               class="input input-bordered input-sm w-64">
+      </div>
+      <div class="form-control">
+        <select name="department" class="select select-bordered select-sm">
+          <option value="">All Departments</option>
+          {% for dept in departments %}
+          <option value="{{ dept.id }}" {% if selected_dept == dept.id|stringformat:"s" %}selected{% endif %}>
+            {{ dept.name }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-control">
+        <select name="status" class="select select-bordered select-sm">
+          <option value="active" {% if selected_status == "active" %}selected{% endif %}>Active</option>
+          <option value="" {% if not selected_status %}selected{% endif %}>All</option>
+          <option value="notice_period" {% if selected_status == "notice_period" %}selected{% endif %}>Notice Period</option>
+          <option value="exited" {% if selected_status == "exited" %}selected{% endif %}>Exited</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-sm btn-neutral">Filter</button>
+    </form>
+  </div>
+</div>
+
+<!-- Table -->
+<div id="employee-table">
+  {% include "employees/partials/employee_table.html" %}
+</div>
+{% endblock %}

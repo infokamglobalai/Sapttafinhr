@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block page_title %}Attendance Register{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+  <h2 class="text-xl font-bold">Attendance Register</h2>
+  <div class="flex gap-2">
+    <a href="{% url 'attendance:regularizations' %}" class="btn btn-outline btn-sm">Pending Corrections</a>
+    <a href="{% url 'attendance:shifts' %}" class="btn btn-outline btn-sm">Shifts</a>
+    {% if user.is_hr_admin or user.is_staff %}
+    <button id="anomaly-scan-btn" class="btn btn-warning btn-sm" onclick="runAnomalyScan()">
+      🔍 Scan Anomalies
+    </button>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Anomaly scan results panel (hidden until scan runs) -->
+<div id="anomaly-panel" class="hidden mb-4"></div>
+
+<script>
+async function runAnomalyScan() {
+  const btn = document.getElementById('anomaly-scan-btn');
+  const panel = document.getElementById('anomaly-panel');
+  btn.disabled = true;
+  btn.textContent = '⏳ Scanning…';
+  panel.innerHTML = '';
+  panel.classList.add('hidden');
+
+  try {
+    const resp = await fetch('{% url "attendance:anomaly_scan" %}', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'since_days=7',
+    });
+    const data = await resp.json();
+
+    if (!data.anomalies || data.anomalies.length === 0) {
+      panel.innerHTML = `
+        <div class="alert alert-success shadow-sm">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          <span>No attendance anomalies found in the last 7 days.</span>
+        </div>`;
+    } else {
+      const sevClass = { high: 'alert-error', medium: 'alert-warning', low: 'alert-info' };
+      const sevEmoji = { high: '🔴', medium: '🟡', low: '🟢' };
+      const typeLabel = {
+        unexcused_absence: 'Unexcused Absence',
+        consecutive_absences: 'Consecutive Absences',
+        late_arrival_trend: 'Late Arrival Trend',
+        overtime_abuse: 'Overtime Abuse',
+      };
+      let html = `<div class="mb-2 text-sm font-semibold text-base-content/70">${data.total} anomaly(ies) detected (last 7 days) — ${data.notified} HR notification(s) sent</div>`;
+      html += `<div class="space-y-2">`;
+      for (const a of data.anomalies) {
+        const cls = sevClass[a.severity] || 'alert-warning';
+        const emoji = sevEmoji[a.severity] || '🟡';
+        const label = typeLabel[a.type] || a.type;
+        html += `
+          <div class="alert ${cls} shadow-sm py-2">
+            <div>
+              <div class="font-semibold text-sm">${emoji} ${label} — ${a.employee_name}</div>
+              <div class="text-xs mt-0.5">${a.reason}</div>
+            </div>
+          </div>`;
+      }
+      html += `</div>`;
+      panel.innerHTML = html;
+    }
+    panel.classList.remove('hidden');
+  } catch (e) {
+    panel.innerHTML = `<div class="alert alert-error shadow-sm"><span>Scan failed: ${e.message}</span></div>`;
+    panel.classList.remove('hidden');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🔍 Scan Anomalies';
+  }
+}
+</script>
+
+<!-- Date filter -->
+<div class="card bg-base-100 shadow mb-4">
+  <div class="card-body p-4">
+    <form hx-get="{% url 'attendance:register' %}"
+          hx-target="#attendance-table"
+          hx-push-url="true"
+          class="flex gap-3 items-end flex-wrap">
+      <div class="form-control">
+        <label class="label"><span class="label-text text-xs">Date</span></label>
+        <input type="date" name="date" value="{{ selected_date|date:'Y-m-d' }}" class="input input-bordered input-sm">
+      </div>
+      <div class="form-control">
+        <label class="label"><span class="label-text text-xs">Department</span></label>
+        <select name="department" class="select select-bordered select-sm">
+          <option value="">All</option>
+          {% for dept in departments %}
+          <option value="{{ dept.id }}" {% if selected_dept == dept.id|stringformat:"s" %}selected{% endif %}>{{ dept.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-control">
+        <input type="text" name="q" value="{{ search }}" placeholder="Search employee..." class="input input-bordered input-sm">
+      </div>
+      <button type="submit" class="btn btn-sm btn-neutral">Search</button>
+    </form>
+  </div>
+</div>
+
+<div id="attendance-table">
+  {% include "attendance/partials/attendance_table.html" %}
+</div>
+{% endblock %}

@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block page_title %}Onboarding · {{ onboarding.employee.full_name }}{% endblock %}
+{% block content %}
+<div style="max-width: 900px; margin: 0 auto;">
+  <a href="{% url 'hr_ops:onboarding' %}" class="btn-base btn-ghost btn-sm" style="margin-bottom: 14px;">← Back to Onboarding</a>
+
+  <!-- Header card -->
+  <div class="surface" style="padding: 24px; margin-bottom: 14px; display: flex; align-items: center; gap: 18px;">
+    <div style="width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, #FB923C, #EA580C); color: white; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 800; flex-shrink: 0;">
+      {{ onboarding.employee.first_name|first }}{{ onboarding.employee.last_name|first }}
+    </div>
+    <div style="flex: 1;">
+      <h2 style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em;">{{ onboarding.employee.full_name }}</h2>
+      <div style="font-size: 13.5px; color: var(--ink-500);">{{ onboarding.employee.designation.name|default:"" }} · {{ onboarding.employee.department.name|default:"" }}</div>
+      <div style="font-size: 12px; color: var(--ink-500); margin-top: 4px;">Joined {{ onboarding.employee.date_of_joining|date:"d M Y" }} · {{ onboarding.employee.date_of_joining|naturaltime }}</div>
+    </div>
+    <div style="text-align: right;">
+      <div style="font-size: 32px; font-weight: 800; color: var(--brand-600); letter-spacing: -0.02em; line-height: 1;">{{ onboarding.completion_percentage }}%</div>
+      <div style="font-size: 11.5px; color: var(--ink-500); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600;">Complete</div>
+    </div>
+  </div>
+
+  <!-- Progress bar -->
+  <div style="height: 8px; background: var(--ink-100); border-radius: 99px; overflow: hidden; margin-bottom: 20px;">
+    <div style="height: 100%; width: {{ onboarding.completion_percentage }}%; background: linear-gradient(90deg, #FB923C, #EA580C); transition: width 800ms;"></div>
+  </div>
+
+  <!-- Task checklist -->
+  <div class="surface" style="padding: 0; overflow: hidden; margin-bottom: 14px;">
+    {% for item in items %}
+    <div style="display: flex; align-items: center; gap: 14px; padding: 16px 22px; border-bottom: 1px solid var(--ink-100); {% if item.status == 'completed' %}background: rgba(16,185,129,0.04);{% elif item.status == 'skipped' %}background: var(--ink-50); opacity: 0.7;{% endif %}">
+      <!-- Status dot -->
+      <div style="width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+        {% if item.status == 'completed' %}background: var(--ok-500); color: white;
+        {% elif item.status == 'skipped' %}background: var(--ink-300); color: white;
+        {% else %}background: var(--bg-card); border: 2px solid var(--ink-200);{% endif %}">
+        {% if item.status == 'completed' %}
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" style="width: 16px; height: 16px;"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+        {% elif item.status == 'skipped' %}
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" style="width: 14px; height: 14px;"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        {% endif %}
+      </div>
+
+      <!-- Task info -->
+      <div style="flex: 1; min-width: 0;">
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <div style="font-size: 14.5px; font-weight: 600; color: var(--ink-900); {% if item.status == 'completed' %}text-decoration: line-through; opacity: 0.65;{% endif %}">{{ item.task.task_name }}</div>
+          <span class="badge badge-outline">{{ item.task.get_responsible_party_display }}</span>
+          {% if item.task.is_required %}<span class="badge badge-error">Required</span>{% endif %}
+        </div>
+        {% if item.task.description %}<div style="font-size: 12.5px; color: var(--ink-500); margin-top: 3px;">{{ item.task.description }}</div>{% endif %}
+        <div style="font-size: 11.5px; color: var(--ink-400); margin-top: 4px;">
+          Due {{ item.due_date|date:"d M Y" }}
+          {% if item.status == 'completed' %} · ✓ Done by {{ item.completed_by.email|default:"?" }} {{ item.completed_at|naturaltime }}{% endif %}
+          {% if item.notes %} · Notes: {{ item.notes }}{% endif %}
+        </div>
+      </div>
+
+      <!-- Actions -->
+      {% if item.status == 'pending' %}
+      <div style="display: flex; gap: 6px;">
+        <form method="post" action="{% url 'hr_ops:onboarding_item_complete' item.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="btn-base btn-primary btn-sm">✓ Mark Done</button>
+        </form>
+        <form method="post" action="{% url 'hr_ops:onboarding_item_skip' item.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="btn-base btn-ghost btn-sm" onclick="return confirm('Skip this task?')">Skip</button>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+    {% empty %}
+    <div style="padding: 60px 24px; text-align: center; color: var(--ink-400);">
+      <p style="font-size: 14px;">No tasks in this onboarding template.</p>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Complete -->
+  {% if onboarding.completion_percentage == 100 and not onboarding.completed_at %}
+  <form method="post" action="{% url 'hr_ops:onboarding_complete' onboarding.pk %}" style="text-align: center;">
+    {% csrf_token %}
+    <button type="submit" class="btn-base btn-primary">🎉 Close onboarding</button>
+  </form>
+  {% elif onboarding.completed_at %}
+  <div class="alert alert-success" style="margin-top: 14px;">
+    <span>✓ Onboarding completed on {{ onboarding.completed_at|date:"d M Y, H:i" }}</span>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

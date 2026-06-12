@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block page_title %}Asset Management{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+  <h2 class="text-xl font-bold">Assets</h2>
+  <a href="{% url 'hr_ops:asset_create' %}" class="btn btn-primary btn-sm">+ Add Asset</a>
+</div>
+<div class="card bg-base-100 shadow overflow-x-auto">
+  <table class="table table-sm">
+    <thead>
+      <tr><th>Code</th><th>Name</th><th>Category</th><th>Serial No.</th><th>Status</th><th>Assigned To</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for asset in assets %}
+      <tr>
+        <td class="font-mono text-xs">{{ asset.asset_code }}</td>
+        <td class="font-medium">{{ asset.name }}</td>
+        <td>{{ asset.category|default:"—" }}</td>
+        <td class="font-mono text-xs">{{ asset.serial_number|default:"—" }}</td>
+        <td>
+          <span class="badge badge-sm
+            {% if asset.status == 'available' %}badge-success
+            {% elif asset.status == 'assigned' %}badge-info
+            {% elif asset.status == 'maintenance' %}badge-warning
+            {% else %}badge-ghost{% endif %}">
+            {{ asset.get_status_display }}
+          </span>
+        </td>
+        <td class="text-sm">
+          {% with last=asset.assignments.filter|first %}
+          {% if asset.status == 'assigned' %}
+            {{ asset.assignments.last.employee.full_name|default:"—" }}
+          {% else %}—{% endif %}
+          {% endwith %}
+        </td>
+        <td>
+          {% if asset.status == 'available' %}
+          <button class="btn btn-ghost btn-xs" onclick="document.getElementById('assign-modal-{{ asset.pk }}').showModal()">Assign</button>
+          <dialog id="assign-modal-{{ asset.pk }}" class="modal">
+            <div class="modal-box">
+              <h3 class="font-bold text-lg mb-4">Assign {{ asset.name }}</h3>
+              <form method="post" action="{% url 'hr_ops:asset_assign' asset.pk %}">
+                {% csrf_token %}
+                <div class="form-control mb-4">
+                  <label class="label"><span class="label-text">Employee ID</span></label>
+                  <input type="number" name="employee_id" class="input input-bordered" placeholder="Enter employee ID" required>
+                </div>
+                <div class="form-control mb-4">
+                  <label class="label"><span class="label-text">Condition</span></label>
+                  <select name="condition" class="select select-bordered">
+                    <option value="good">Good</option>
+                    <option value="fair">Fair</option>
+                    <option value="poor">Poor</option>
+                  </select>
+                </div>
+                <div class="modal-action">
+                  <button type="submit" class="btn btn-primary">Assign</button>
+                  <button type="button" class="btn btn-ghost" onclick="document.getElementById('assign-modal-{{ asset.pk }}').close()">Cancel</button>
+                </div>
+              </form>
+            </div>
+          </dialog>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="7" class="text-center py-8">
+          <p class="text-base-content/40 mb-3">No assets registered.</p>
+          <a href="{% url 'hr_ops:asset_create' %}" class="btn btn-primary btn-sm">Add first asset</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

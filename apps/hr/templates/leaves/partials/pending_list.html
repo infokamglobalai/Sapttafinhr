@@ -1,0 +1,52 @@
+<div class="space-y-3">
+  {% for req in page_obj %}
+  <div class="card bg-base-100 shadow" x-data="{showAction: false}">
+    <div class="card-body p-4">
+      <div class="flex items-start justify-between">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-semibold">{{ req.employee.full_name }}</span>
+            <span class="text-xs text-base-content/50">{{ req.employee.employee_code }}</span>
+            <span class="badge badge-sm">{{ req.leave_type.code }}</span>
+          </div>
+          <div class="text-sm text-base-content/60 mt-1">
+            {{ req.from_date|date:"d M Y" }} → {{ req.to_date|date:"d M Y" }}
+            · <strong>{{ req.total_days }} day(s)</strong>
+            {% if req.half_day_type %} · {{ req.get_half_day_type_display }}{% endif %}
+          </div>
+          {% if req.reason %}<div class="text-sm mt-1 italic text-base-content/70">"{{ req.reason }}"</div>{% endif %}
+          <div class="text-xs text-base-content/40 mt-1">Applied {{ req.applied_at|date:"d M Y H:i" }}</div>
+        </div>
+        <div class="flex gap-2">
+          <button class="btn btn-success btn-sm" @click="showAction = 'approve'">Approve</button>
+          <button class="btn btn-error btn-sm btn-outline" @click="showAction = 'reject'">Reject</button>
+        </div>
+      </div>
+
+      <!-- Inline action form -->
+      <div x-show="showAction" x-transition class="mt-3 border-t pt-3">
+        <form method="post" action="{% url 'leaves:action' req.pk %}"
+              hx-post="{% url 'leaves:action' req.pk %}"
+              hx-target="#leave-list"
+              hx-swap="innerHTML">
+          {% csrf_token %}
+          <input type="hidden" name="action" :value="showAction">
+          <div class="form-control">
+            <input type="text" name="remarks" placeholder="Remarks (optional)" class="input input-bordered input-sm w-full mb-2">
+          </div>
+          <div class="flex gap-2">
+            <button type="submit" class="btn btn-sm btn-primary">Confirm</button>
+            <button type="button" class="btn btn-sm btn-ghost" @click="showAction = false">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="card bg-base-100 shadow">
+    <div class="card-body text-center py-12">
+      <p class="text-base-content/40">No pending leave requests. All caught up!</p>
+    </div>
+  </div>
+  {% endfor %}
+</div>

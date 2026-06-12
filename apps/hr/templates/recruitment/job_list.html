@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block page_title %}Recruitment{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+  <div>
+    <h2 class="text-xl font-bold">Job Openings</h2>
+    <p class="text-sm text-base-content/60">{{ open_count }} published · {{ page_obj.paginator.count }} total</p>
+  </div>
+  {% if user.is_hr_admin %}
+  <a href="{% url 'recruitment:job_create' %}" class="btn btn-primary btn-sm">+ New Opening</a>
+  {% endif %}
+</div>
+
+<div class="card bg-base-100 shadow mb-4">
+  <div class="card-body p-4">
+    <form method="get" class="flex flex-wrap gap-3 items-end">
+      <input type="text" name="q" value="{{ search }}" placeholder="Search title…" class="input input-bordered input-sm w-64">
+      <select name="status" class="select select-bordered select-sm">
+        <option value="">All statuses</option>
+        {% for val, lbl in status_choices %}
+          <option value="{{ val }}" {% if status == val %}selected{% endif %}>{{ lbl }}</option>
+        {% endfor %}
+      </select>
+      <button class="btn btn-sm btn-outline">Filter</button>
+    </form>
+  </div>
+</div>
+
+<div class="card bg-base-100 shadow">
+  <div class="card-body p-0">
+    <table class="table">
+      <thead><tr><th>Title</th><th>Department</th><th>Positions</th><th>Applicants</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+        {% for job in page_obj %}
+        <tr>
+          <td class="font-semibold">{{ job.title }}</td>
+          <td>{{ job.department.name|default:"—" }}</td>
+          <td>{{ job.positions_count }}</td>
+          <td><span class="badge badge-ghost">{{ job.applicant_count }}</span></td>
+          <td>
+            <span class="badge {% if job.status == 'published' %}badge-success{% elif job.status == 'closed' %}badge-neutral{% elif job.status == 'on_hold' %}badge-warning{% else %}badge-ghost{% endif %}">{{ job.get_status_display }}</span>
+          </td>
+          <td><a href="{% url 'recruitment:job_detail' job.pk %}" class="btn btn-xs btn-ghost">View →</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="text-center text-base-content/50 py-8">No job openings yet. {% if user.is_hr_admin %}<a href="{% url 'recruitment:job_create' %}" class="link">Create your first →</a>{% endif %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

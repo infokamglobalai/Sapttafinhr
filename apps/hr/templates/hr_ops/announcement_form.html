@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block page_title %}{% if announcement %}Edit Announcement{% else %}New Announcement{% endif %}{% endblock %}
+{% block content %}
+<div style="max-width: 720px; margin: 0 auto;">
+  <a href="{% url 'hr_ops:announcements' %}" class="btn-base btn-ghost btn-sm" style="margin-bottom: 14px;">← Back to Announcements</a>
+  <h2 style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 4px;">{% if announcement %}Edit Announcement{% else %}New Announcement{% endif %}</h2>
+  <p style="font-size: 13.5px; color: var(--ink-500); margin-bottom: 22px;">Post a company-wide update visible to all employees.</p>
+
+  <form method="post">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors.0 }}</div>{% endif %}
+
+    <div class="surface" style="padding: 22px; margin-bottom: 14px;">
+      <div style="margin-bottom: 14px;">
+        <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Title *</label>
+        {{ form.title }}
+      </div>
+      <div style="margin-bottom: 14px;">
+        <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Content *</label>
+        {{ form.content }}
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr auto; gap: 14px; align-items: end;">
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Expires (optional)</label>
+          {{ form.expires_at }}
+        </div>
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; padding-bottom: 10px;">{{ form.is_published }} Publish now</label>
+      </div>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; gap: 12px;">
+      <a href="{% url 'hr_ops:announcements' %}" class="btn-base btn-ghost">Cancel</a>
+      <button type="submit" class="btn-base btn-primary">{% if announcement %}Save Changes{% else %}Create Announcement{% endif %}</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

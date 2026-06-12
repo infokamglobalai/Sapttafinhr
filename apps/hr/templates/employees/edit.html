@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block page_title %}Edit — {{ employee.full_name }}{% endblock %}
+{% block content %}
+<div class="max-w-3xl mx-auto">
+  <div class="flex items-center gap-3 mb-6">
+    <a href="{% url 'employees:detail' employee.pk %}" class="btn btn-ghost btn-sm">← Back</a>
+    <h2 class="text-xl font-bold">Edit Employee</h2>
+  </div>
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="card bg-base-100 shadow mb-4">
+      <div class="card-body">
+        <h3 class="card-title text-base mb-4">Personal Information</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="form-control"><label class="label"><span class="label-text">First Name *</span></label>{{ form.first_name }}</div>
+          <div class="form-control"><label class="label"><span class="label-text">Middle Name</span></label>{{ form.middle_name }}</div>
+          <div class="form-control"><label class="label"><span class="label-text">Last Name *</span></label>{{ form.last_name }}</div>
+          <div class="form-control"><label class="label"><span class="label-text">Date of Birth</span></label>{{ form.date_of_birth }}</div>
+          <div class="form-control"><label class="label"><span class="label-text">Gender</span></label>{{ form.gender }}</div>
+          <div class="form-control"><label class="label"><span class="label-text">Blood Group</span></label>{{ form.blood_group }}</div>
+          <div class="form-control"><label class="label"><span class="label-text">Personal Email</span></label>{{ form.personal_email }}</div>
+          <div class="form-control"><label class="label"><span class="label-text">Official Email</span></label>{{ form.official_email }}</div>
+          <div class="form-control"><label class="label"><span class="label-text">Phone</span></label>{{ form.phone_primary }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="card bg-base-100 shadow mb-4">
+      <div class="card-body">
+        <h3 class="card-title text-base mb-4">Employment</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="form-control"><label class="label"><span class="label-text">Department</span></label>{{ form.department }}</div>
+          <div class="form-control"><label class="label"><span class="label-text">Designation</span></label>{{ form.designation }}</div>
+          <div class="form-control"><label class="label"><span class="label-text">Reporting Manager</span></label>{{ form.reporting_manager }}</div>
+          <div class="form-control"><label class="label"><span class="label-text">Location</span></label>{{ form.location }}</div>
+          <div class="form-control"><label class="label"><span class="label-text">Employment Type</span></label>{{ form.employment_type }}</div>
+          <div class="form-control"><label class="label"><span class="label-text">Work State (for PT)</span></label>{{ form.work_state_code }}</div>
+          <div class="form-control"><label class="label"><span class="label-text">Date of Joining</span></label>{{ form.date_of_joining }}</div>
+          <div class="form-control"><label class="label"><span class="label-text">Confirmation Date</span></label>{{ form.date_of_confirmation }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="flex justify-end gap-3">
+      <a href="{% url 'employees:detail' employee.pk %}" class="btn btn-ghost">Cancel</a>
+      <button type="submit" class="btn btn-primary">Save Changes</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,37 @@
+<div class="card bg-base-100 shadow overflow-x-auto">
+  <table class="table table-sm">
+    <thead><tr><th>Employee</th><th>Date</th><th>Requested In</th><th>Requested Out</th><th>Reason</th><th>Applied</th><th>Action</th></tr></thead>
+    <tbody>
+      {% for reg in regularizations %}
+      <tr x-data="{open: false}">
+        <td>
+          <div class="font-medium text-sm">{{ reg.employee.full_name }}</div>
+          <div class="text-xs text-base-content/50">{{ reg.employee.employee_code }}</div>
+        </td>
+        <td>{{ reg.attendance_date|date:"d M Y" }}</td>
+        <td>{{ reg.requested_in_time|default:"—" }}</td>
+        <td>{{ reg.requested_out_time|default:"—" }}</td>
+        <td class="max-w-xs text-sm truncate">{{ reg.reason }}</td>
+        <td class="text-xs">{{ reg.requested_at|date:"d M" }}</td>
+        <td>
+          <button class="btn btn-ghost btn-xs" @click="open=!open">Action</button>
+          <div x-show="open" x-transition class="mt-2 p-3 bg-base-200 rounded-lg min-w-48">
+            <form method="post" action="{% url 'attendance:regularization_action' reg.pk %}"
+                  hx-post="{% url 'attendance:regularization_action' reg.pk %}"
+                  hx-target="#reg-list" hx-swap="innerHTML">
+              {% csrf_token %}
+              <input type="text" name="remarks" placeholder="Remarks" class="input input-bordered input-xs w-full mb-2">
+              <div class="flex gap-1">
+                <button type="submit" name="action" value="approve" class="btn btn-success btn-xs flex-1">Approve</button>
+                <button type="submit" name="action" value="reject" class="btn btn-error btn-xs flex-1">Reject</button>
+              </div>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7" class="text-center py-8 text-base-content/40">No pending regularizations.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

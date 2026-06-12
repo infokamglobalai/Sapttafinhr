@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; font-size: 10pt; color: #333; }
+  .payslip { max-width: 750px; margin: 0 auto; padding: 20px; }
+
+  /* Header */
+  .header { display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 2px solid #1a3a5c; padding-bottom: 12px; margin-bottom: 16px; }
+  .company-name { font-size: 18pt; font-weight: bold; color: #1a3a5c; }
+  .payslip-title { text-align: right; }
+  .payslip-title h2 { font-size: 14pt; color: #1a3a5c; }
+  .payslip-title p { font-size: 9pt; color: #666; }
+
+  /* Employee info grid */
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid #ddd; margin-bottom: 16px; }
+  .info-cell { padding: 6px 10px; border-right: 1px solid #ddd; border-bottom: 1px solid #ddd; }
+  .info-cell:nth-child(even) { border-right: none; }
+  .info-label { font-size: 8pt; color: #666; }
+  .info-value { font-size: 10pt; font-weight: 500; }
+
+  /* Earnings / Deductions tables */
+  .tables { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  table { width: 100%; border-collapse: collapse; }
+  th { background-color: #1a3a5c; color: #fff; text-align: left; padding: 6px 8px; font-size: 9pt; }
+  td { padding: 5px 8px; font-size: 9pt; border-bottom: 1px solid #eee; }
+  .amount { text-align: right; }
+  .total-row td { font-weight: bold; border-top: 2px solid #1a3a5c; background: #f5f8ff; }
+
+  /* Net pay box */
+  .net-pay { background: #1a3a5c; color: white; padding: 14px 20px;
+             display: flex; justify-content: space-between; align-items: center;
+             border-radius: 4px; margin-bottom: 16px; }
+  .net-pay .label { font-size: 11pt; }
+  .net-pay .amount { font-size: 16pt; font-weight: bold; }
+
+  /* Footer */
+  .footer { display: flex; justify-content: space-between; font-size: 8pt; color: #999;
+            border-top: 1px solid #eee; padding-top: 10px; }
+  .watermark { font-size: 8pt; color: #ccc; text-align: center; }
+</style>
+</head>
+<body>
+<div class="payslip">
+
+  <!-- Header -->
+  <div class="header">
+    <div>
+      <div class="company-name">{{ tenant.name }}</div>
+      {% if tenant.address %}<div style="font-size:8pt;color:#666;margin-top:4px">{{ tenant.address }}</div>{% endif %}
+      {% if tenant.gstin %}<div style="font-size:8pt;color:#666">GSTIN: {{ tenant.gstin }}</div>{% endif %}
+    </div>
+    <div class="payslip-title">
+      <h2>PAYSLIP</h2>
+      <p>{{ run.year }} — {{ run.month|stringformat:"02d" }}</p>
+      <p style="margin-top:4px;font-size:8pt">Pay Period: 01/{{ run.month|stringformat:"02d" }}/{{ run.year }} – {{ run.month|stringformat:"02d" }}/{{ run.year }}</p>
+    </div>
+  </div>
+
+  <!-- Employee Information -->
+  <div class="info-grid">
+    <div class="info-cell"><div class="info-label">Employee Name</div><div class="info-value">{{ employee.full_name }}</div></div>
+    <div class="info-cell"><div class="info-label">Employee Code</div><div class="info-value">{{ employee.employee_code }}</div></div>
+    <div class="info-cell"><div class="info-label">Department</div><div class="info-value">{{ employee.department.name|default:"—" }}</div></div>
+    <div class="info-cell"><div class="info-label">Designation</div><div class="info-value">{{ employee.designation.name|default:"—" }}</div></div>
+    <div class="info-cell"><div class="info-label">Date of Joining</div><div class="info-value">{{ employee.date_of_joining|date:"d M Y" }}</div></div>
+    <div class="info-cell"><div class="info-label">Location</div><div class="info-value">{{ employee.location.name|default:"—" }}</div></div>
+    <div class="info-cell"><div class="info-label">Working Days</div><div class="info-value">{{ record.working_days }}</div></div>
+    <div class="info-cell"><div class="info-label">LOP Days</div><div class="info-value">{{ record.lop_days }}</div></div>
+    <div class="info-cell"><div class="info-label">Paid Days</div><div class="info-value">{{ record.paid_days }}</div></div>
+    <div class="info-cell"><div class="info-label">PF Number</div><div class="info-value">—</div></div>
+  </div>
+
+  <!-- Earnings + Deductions side by side -->
+  <div class="tables">
+    <div>
+      <table>
+        <thead><tr><th>Earnings</th><th class="amount">Amount (₹)</th></tr></thead>
+        <tbody>
+          {% for code, detail in record.earnings_detail.items %}
+          <tr>
+            <td>{{ detail.name }}</td>
+            <td class="amount">{{ detail.amount|floatformat:2 }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr class="total-row">
+            <td>Gross Earnings</td>
+            <td class="amount">{{ record.gross_earnings|floatformat:2 }}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <div>
+      <table>
+        <thead><tr><th>Deductions</th><th class="amount">Amount (₹)</th></tr></thead>
+        <tbody>
+          {% for code, detail in record.deductions_detail.items %}
+          {% if detail.amount %}
+          <tr>
+            <td>{{ detail.name }}</td>
+            <td class="amount">{{ detail.amount|floatformat:2 }}</td>
+          </tr>
+          {% endif %}
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr class="total-row">
+            <td>Total Deductions</td>
+            <td class="amount">{{ record.total_deductions|floatformat:2 }}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- Net pay -->
+  <div class="net-pay">
+    <div>
+      <div class="label">Net Pay (Take Home)</div>
+      <div style="font-size:8pt;opacity:0.8">Gross Earnings - Total Deductions</div>
+    </div>
+    <div class="amount">₹ {{ record.net_payable|floatformat:2 }}</div>
+  </div>
+
+  <!-- Employer contributions note -->
+  {% if record.pf_employer %}
+  <div style="font-size:8pt;color:#666;margin-bottom:12px;padding:8px;background:#f9f9f9;border:1px solid #eee;border-radius:4px">
+    <strong>Employer Contributions (not deducted from salary):</strong>
+    PF (Employer): ₹{{ record.pf_employer|floatformat:2 }}
+    {% if record.esi_employer %} · ESI (Employer): ₹{{ record.esi_employer|floatformat:2 }}{% endif %}
+  </div>
+  {% endif %}
+
+  <!-- Legal note for TDS -->
+  <div style="font-size:7pt;color:#aaa;margin-bottom:12px">
+    * TDS shown is an estimate based on simplified flat-slab calculation. Final TDS may vary. Please consult your CA for Form 16 and tax filing.
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div>This is a computer-generated payslip and does not require a signature.</div>
+    <div>Generated on: {% now "d M Y" %}</div>
+  </div>
+</div>
+</body>
+</html>

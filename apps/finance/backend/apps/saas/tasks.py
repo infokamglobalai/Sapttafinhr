@@ -1,0 +1,114 @@
+"""Subscription lifecycle automation (Celery beat).
+
+The entitlement middleware already blocks tenants whose subscription is not
+`is_commercially_active` (i.e. not TRIAL/ACTIVE). So lifecycle enforcement is
+just: move expired trials and unpaid ACTIVE subs to PAST_DUE, then CANCELLED
+after a grace period — and send dunning email along the way.
+
+Schedule (see config.settings.base CELERY_BEAT_SCHEDULE):
+  - expire_trials                  daily
+  - expire_overdue_subscriptions   daily
+  - send_trial_ending_reminders    daily
+
+All idempotent; safe to run repeatedly.
+"""
+from __future__ import annotations
+
+import logging
+from datetime import timedelta
+
+from celery import shared_task
+from django.conf import settings
+from django.core.mail import send_mail
+from django.utils import timezone
+
+logger = logging.getLogger(__name__)
+
+# Days a PAST_DUE subscription is kept (access blocked) before being CANCELLED.
+GRACE_DAYS = getattr(settings, "SUBSCRIPTION_GRACE_DAYS", 7)
+# How many days before trial end to send the "ending soon" nudge.
+TRIAL_REMINDER_DAYS = getattr(settings, "TRIAL_REMINDER_DAYS", 3)
+
+
+def _audit(action: str, target: str, **detail) -> None:
+    """Record an automated lifecycle action in the audit log (best-effort)."""
+    try:
+        from apps.core.models import AuditLog
+        AuditLog.record(actor_email="system:celery", action=action, target=target, **detail)
+    except Exception:  # noqa: BLE001
+        logger.exception("audit log write failed for %s/%s", action, target)
+
+
+def _email(subscription, subject: str, body: str) -> None:
+    """Best-effort dunning/notification mail to the tenant billing contact."""
+    recipient = getattr(subscription.tenant, "billing_email", None)
+    if not recipient:
+        logger.info("No billing_email for tenant %s; skipping '%s'", subscription.tenant_id, subject)
+        return
+    try:
+        send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, [recipient], fail_silently=True)
+    except Exception:  # noqa: BLE001
+        logger.exception("Dunning email failed for tenant %s", subscription.tenant_id)
+
+
+@shared_task
+def expire_trials() -> int:
+    """No-op: Saptta is pay-first (no free trials).
+
+    Retained so any existing Celery beat entry / legacy reference keeps working.
+    New signups never enter TRIAL; access requires a paid (ACTIVE) subscription.
+    """
+    return 0
+
+
+@shared_task
+def expire_overdue_subscriptions() -> int:
+    """ACTIVE subs whose paid period ended -> PAST_DUE; PAST_DUE past grace -> CANCELLED."""
+    from .models import Subscription
+
+    today = timezone.now().date()
+    changed = 0
+
+    lapsed = Subscription.objects.filter(
+        status=Subscription.Status.ACTIVE,
+        current_period_end__isnull=False,
+        current_period_end__lt=today,
+    )
+    for sub in lapsed.select_related("tenant"):
+        sub.status = Subscription.Status.PAST_DUE
+        sub.save(update_fields=["status", "updated_at"])
+        _email(
+            sub,
+            "Payment needed to keep Saptta active",
+            "We couldn't renew your subscription. Please update your payment "
+            f"method within {GRACE_DAYS} days to avoid cancellation.",
+        )
+        changed += 1
+
+    cutoff = today - timedelta(days=GRACE_DAYS)
+    stale = Subscription.objects.filter(
+        status=Subscription.Status.PAST_DUE,
+        updated_at__date__lt=cutoff,
+    )
+    for sub in stale.select_related("tenant"):
+        sub.status = Subscription.Status.CANCELLED
+        sub.cancelled_at = timezone.now()
+        sub.save(update_fields=["status", "cancelled_at", "updated_at"])
+        _audit("subscription.auto_cancel", sub.tenant.schema_name)
+        _email(
+            sub,
+            "Your Saptta subscription has been cancelled",
+            "Your subscription was cancelled after the grace period. Your data "
+            "is retained for now — resubscribe anytime to restore access.",
+        )
+        changed += 1
+
+    if changed:
+        logger.info("expire_overdue_subscriptions: %s subscriptions transitioned", changed)
+    return changed
+
+
+@shared_task
+def send_trial_ending_reminders() -> int:
+    """No-op: pay-first, no trials to remind about. Retained for beat compat."""
+    return 0

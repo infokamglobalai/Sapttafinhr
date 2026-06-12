@@ -1,0 +1,1212 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <script>
+    (function () {
+      function getCookie(name) {
+        let matches = document.cookie.match(new RegExp(
+          "(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"
+        ));
+        return matches ? decodeURIComponent(matches[1]) : undefined;
+      }
+      const theme = getCookie('saptta_theme') || 'light';
+      document.documentElement.setAttribute('data-theme', theme);
+
+      window.toggleTheme = function () {
+        const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', newTheme);
+        document.cookie = "saptta_theme=" + newTheme + "; path=/; max-age=" + (365 * 24 * 60 * 60);
+        window.dispatchEvent(new Event('theme-changed'));
+      };
+    })();
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}{% if tenant %}{{ tenant.name }} · HRMS{% else %}HRMS{% endif %}{% endblock %}</title>
+
+  <!-- Inter + JetBrains Mono for refined typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+
+  <!-- Tailwind utilities (still useful for grid/flex/spacing) + DaisyUI baseline -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css" rel="stylesheet">
+
+  <!-- Custom design system — loaded AFTER DaisyUI so it overrides -->
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+
+  <!-- HTMX + Alpine -->
+  <script src="https://unpkg.com/htmx.org@1.9.12" defer></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  <!-- Custom interactions -->
+  <script src="{% static 'js/app.js' %}" defer></script>
+
+  <link rel="manifest" href="{% static 'manifest.json' %}">
+  <meta name="theme-color" content="#FF6D00">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      document.body.addEventListener('htmx:configRequest', function (e) {
+        e.detail.headers['X-CSRFToken'] = document.querySelector('meta[name="csrf-token"]').content;
+      });
+    });
+  </script>
+  {% block extra_head %}{% endblock %}
+</head>
+
+<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' style="overflow-x: hidden;">
+
+  <div class="htmx-indicator"></div>
+
+  {% if user.is_authenticated %}
+  <div class="app-shell" x-data="{
+  sidebarOpen: false,
+  search: '',
+  activeCategory: '{{ sidebar_active_category|default:'dashboard' }}',
+  get activeGroups() {
+    return {
+      mySpace:    this.activeCategory === 'mySpace',
+      team:       this.activeCategory === 'team',
+      people:     this.activeCategory === 'people',
+      timeLeave:  this.activeCategory === 'timeLeave',
+      payroll:    this.activeCategory === 'payroll',
+      performance: this.activeCategory === 'performance',
+      hrOps:      this.activeCategory === 'hrOps',
+      recruitment: this.activeCategory === 'recruitment',
+    };
+  }
+}">
+
+    {# ═══════ DESKTOP DUAL SIDEBAR ═══════ #}
+    <div class="sidebar-desktop-container">
+      <!-- Primary Sidebar: Narrow Dock -->
+      <aside class="sidebar-primary">
+        <div class="primary-brand">
+          <img src="{% static 'images/logo.png' %}" alt="Saptta" class="brand-logo-img h-8 w-auto object-contain">
+        </div>
+
+        <nav class="dock-nav">
+
+          {# ── Dashboard ── #}
+          <a href="{% url 'tenants:dashboard' %}" class="dock-item" data-label="Dashboard"
+            :class="{ 'active': activeCategory === 'dashboard' }">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M3.75 12l8.25-8.25 8.25 8.25M5.25 10.5v9a.75.75 0 00.75.75H9a.75.75 0 00.75-.75v-4.5h4.5v4.5a.75.75 0 00.75.75h3a.75.75 0 00.75-.75v-9" />
+            </svg>
+            <span>Dash</span>
+          </a>
+
+          {# ── My Space → My Attendance ── #}
+          {% if user.employee_profile %}
+          <a href="{% url 'attendance:my_attendance' %}" class="dock-item" data-label="My Space"
+            :class="{ 'active': activeCategory === 'mySpace' }">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            <span>My Space</span>
+          </a>
+          {% endif %}
+
+          {# ── Team → Leave Approvals (managers only) ── #}
+          {% if user.is_manager and not user.is_hr_admin %}
+          <a href="{% url 'leaves:pending' %}" class="dock-item" data-label="Team"
+            :class="{ 'active': activeCategory === 'team' }">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span>Team</span>
+          </a>
+          {% endif %}
+
+          {% if user.is_hr_admin %}
+
+          {# ── People → Employee List ── #}
+          <a href="{% url 'employees:list' %}" class="dock-item" data-label="People"
+            :class="{ 'active': activeCategory === 'people' }">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span>People</span>
+          </a>
+
+          {# ── Time & Leave → Attendance Register ── #}
+          <a href="{% url 'attendance:register' %}" class="dock-item" data-label="Time &amp; Leave"
+            :class="{ 'active': activeCategory === 'timeLeave' }">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>Time</span>
+          </a>
+
+          {# ── Payroll → Payroll Runs ── #}
+          <a href="{% url 'payroll:run_list' %}" class="dock-item" data-label="Payroll"
+            :class="{ 'active': activeCategory === 'payroll' }">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>Payroll</span>
+          </a>
+
+          {# ── Performance → Review Cycles ── #}
+          <a href="{% url 'performance:cycles' %}" class="dock-item" data-label="Performance"
+            :class="{ 'active': activeCategory === 'performance' }">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.16c.969 0 1.371 1.24.588 1.81l-3.366 2.446a1 1 0 00-.363 1.118l1.286 3.957c.3.921-.755 1.688-1.539 1.118l-3.366-2.446a1 1 0 00-1.176 0l-3.366 2.446c-.784.57-1.838-.197-1.539-1.118l1.286-3.957a1 1 0 00-.363-1.118L2.572 9.384c-.783-.57-.38-1.81.588-1.81h4.16a1 1 0 00.951-.69l1.286-3.957z" />
+            </svg>
+            <span>Perf</span>
+          </a>
+
+          {# ── HR Ops → Onboarding ── #}
+          <a href="{% url 'hr_ops:onboarding' %}" class="dock-item" data-label="HR Ops"
+            :class="{ 'active': activeCategory === 'hrOps' }">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+            </svg>
+            <span>Ops</span>
+          </a>
+
+          {% endif %}
+        </nav>
+      </aside>
+
+      <!-- Secondary Sidebar: Sub-navigation Tray (floats above dock) -->
+      <aside class="sidebar-secondary" x-show="activeCategory !== 'dashboard'" x-cloak
+        x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2"
+        x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 translate-y-2">
+        <!-- Dynamic Title based on selected Category -->
+        <div class="secondary-header">
+          <span x-show="activeCategory === 'mySpace'">My Space</span>
+          <span x-show="activeCategory === 'team'">Team</span>
+          <span x-show="activeCategory === 'people'">People</span>
+          <span x-show="activeCategory === 'timeLeave'">Time &amp; Leave</span>
+          <span x-show="activeCategory === 'payroll'">Payroll</span>
+          <span x-show="activeCategory === 'performance'">Performance</span>
+          <span x-show="activeCategory === 'hrOps'">HR Ops</span>
+        </div>
+
+        <!-- Search in Secondary Sidebar -->
+        <div class="sidebar-search" style="margin: 0 0 16px 0;">
+          <input type="text" x-model="search" @keydown.escape="search = ''" placeholder="Search menus..."
+            class="search-input" aria-label="Search navigation">
+          <svg class="search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <button type="button" x-show="search !== ''" @click="search = ''" class="search-clear-btn">
+            ✕
+          </button>
+        </div>
+
+        <!-- Navigation Lists -->
+        <nav class="secondary-nav-list">
+
+          <!-- My Space sub-items -->
+          {% if user.employee_profile %}
+          <div class="flex flex-col gap-1 w-100" x-show="activeCategory === 'mySpace'">
+            <a href="{% url 'attendance:my_attendance' %}"
+              class="nav-item {% if request.resolver_match.url_name == 'my_attendance' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              My Attendance
+            </a>
+            <a href="{% url 'attendance:regularization' %}"
+              class="nav-item {% if request.resolver_match.url_name == 'regularization' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M9 11l3 3 7-7M3 12a9 9 0 0118 0v0a9 9 0 01-18 0z" />
+              </svg>
+              Request Correction
+            </a>
+            <a href="{% url 'leaves:apply' %}"
+              class="nav-item {% if request.resolver_match.url_name == 'apply' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              Apply Leave
+            </a>
+            <a href="{% url 'leaves:my_leaves' %}"
+              class="nav-item {% if request.resolver_match.url_name == 'my_leaves' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              My Leaves
+            </a>
+            <a href="{% url 'payroll:my_payslips' %}"
+              class="nav-item {% if request.resolver_match.url_name == 'my_payslips' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              My Payslips
+            </a>
+            <a href="{% url 'payroll:my_expenses' %}"
+              class="nav-item {% if request.resolver_match.url_name == 'my_expenses' or request.resolver_match.url_name == 'expense_submit' or request.resolver_match.url_name == 'expense_edit' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              Reimbursements
+            </a>
+            <a href="{% url 'payroll:my_loans' %}"
+              class="nav-item {% if request.resolver_match.url_name == 'my_loans' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+              </svg>
+              My Loans
+            </a>
+            <a href="{% url 'performance:my_reviews' %}"
+              class="nav-item {% if request.resolver_match.url_name == 'my_reviews' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.16c.969 0 1.371 1.24.588 1.81l-3.366 2.446a1 1 0 00-.363 1.118l1.286 3.957c.3.921-.755 1.688-1.539 1.118l-3.366-2.446a1 1 0 00-1.176 0l-3.366 2.446c-.784.57-1.838-.197-1.539-1.118l1.286-3.957a1 1 0 00-.363-1.118L2.572 9.384c-.783-.57-.38-1.81.588-1.81h4.16a1 1 0 00.951-.69l1.286-3.957z" />
+              </svg>
+              My Reviews
+            </a>
+            <a href="{% url 'payroll:my_tax_declaration' %}"
+              class="nav-item {% if request.resolver_match.url_name == 'my_tax_declaration' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Tax Declaration
+            </a>
+            <a href="{% url 'payroll:my_form16s' %}"
+              class="nav-item {% if request.resolver_match.url_name == 'my_form16s' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+              My Form 16
+            </a>
+          </div>
+          {% endif %}
+
+          <!-- Team sub-items -->
+          {% if user.is_manager and not user.is_hr_admin %}
+          <div class="flex flex-col gap-1 w-100" x-show="activeCategory === 'team'">
+            <a href="{% url 'leaves:pending' %}"
+              class="nav-item {% if request.resolver_match.url_name == 'leaves:pending' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Leave Approvals
+              {% if sidebar_pending.leave_approvals %}
+              <span class="ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[9px] font-bold text-white">{{ sidebar_pending.leave_approvals }}</span>
+              {% endif %}
+            </a>
+            <a href="{% url 'performance:team_reviews' %}"
+              class="nav-item {% if request.resolver_match.url_name == 'team_reviews' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              Team Reviews
+            </a>
+          </div>
+          {% endif %}
+
+          {% if user.is_hr_admin %}
+          <!-- People sub-items -->
+          <div class="flex flex-col gap-1 w-100" x-show="activeCategory === 'people'">
+            <a href="{% url 'employees:list' %}"
+              class="nav-item {% if request.resolver_match.app_name == 'employees' and request.resolver_match.url_name != 'attrition' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              Employees
+            </a>
+            <a href="{% url 'employees:attrition' %}"
+              class="nav-item {% if request.resolver_match.url_name == 'attrition' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              </svg>
+              Attrition Risk
+            </a>
+            {# ── Recruitment under People ── #}
+            <a href="{% url 'recruitment:job_list' %}"
+              class="nav-item {% if request.resolver_match.app_name == 'recruitment' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              Recruitment
+            </a>
+          </div>
+
+          <!-- Time & Leave sub-items -->
+          <div class="flex flex-col gap-1 w-100" x-show="activeCategory === 'timeLeave'">
+            <a href="{% url 'attendance:register' %}"
+              class="nav-item {% if request.resolver_match.url_name == 'register' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Attendance
+            </a>
+            <a href="{% url 'leaves:pending' %}"
+              class="nav-item {% if request.resolver_match.url_name == 'pending' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              Leave Approvals
+              {% if sidebar_pending.leave_approvals %}
+              <span class="ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[9px] font-bold text-white">{{ sidebar_pending.leave_approvals }}</span>
+              {% endif %}
+            </a>
+          </div>
+
+          <!-- Payroll sub-items -->
+          <div class="flex flex-col gap-1 w-100" x-show="activeCategory === 'payroll'">
+            <a href="{% url 'payroll:run_list' %}"
+              class="nav-item {% if request.resolver_match.url_name == 'run_list' or request.resolver_match.url_name == 'run_detail' or request.resolver_match.url_name == 'run_create' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Payroll Runs
+              {% if sidebar_pending.draft_payroll %}
+              <span class="ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-orange-500 px-1 text-[9px] font-bold text-white">{{ sidebar_pending.draft_payroll }}</span>
+              {% endif %}
+            </a>
+            <a href="{% url 'payroll:loans' %}"
+              class="nav-item {% if 'loan' in request.resolver_match.url_name %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              Loans &amp; Advances
+            </a>
+            <a href="{% url 'payroll:expenses' %}"
+              class="nav-item {% if 'expense' in request.resolver_match.url_name %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              Reimbursements
+            </a>
+            <a href="{% url 'payroll:tax_declarations_admin' %}"
+              class="nav-item {% if request.resolver_match.url_name == 'tax_declarations_admin' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Tax Declarations
+            </a>
+            <a href="{% url 'payroll:form16_admin' %}"
+              class="nav-item {% if request.resolver_match.url_name == 'form16_admin' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+              Form 16
+            </a>
+          </div>
+
+          <!-- Performance sub-items (Review Cycles only) -->
+          <div class="flex flex-col gap-1 w-100" x-show="activeCategory === 'performance'">
+            <a href="{% url 'performance:cycles' %}"
+              class="nav-item {% if request.resolver_match.app_name == 'performance' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.16c.969 0 1.371 1.24.588 1.81l-3.366 2.446a1 1 0 00-.363 1.118l1.286 3.957c.3.921-.755 1.688-1.539 1.118l-3.366-2.446a1 1 0 00-1.176 0l-3.366 2.446c-.784.57-1.838-.197-1.539-1.118l1.286-3.957a1 1 0 00-.363-1.118L2.572 9.384c-.783-.57-.38-1.81.588-1.81h4.16a1 1 0 00.951-.69l1.286-3.957z" />
+              </svg>
+              Review Cycles
+            </a>
+          </div>
+
+          <!-- HR Ops sub-items -->
+          <div class="flex flex-col gap-1 w-100" x-show="activeCategory === 'hrOps'">
+            <a href="{% url 'hr_ops:onboarding' %}" class="nav-item"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+              </svg>
+              Onboarding
+            </a>
+            <a href="{% url 'hr_ops:people_pulse' %}"
+              class="nav-item {% if request.resolver_match.url_name == 'people_pulse' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              People Pulse
+            </a>
+            <a href="{% url 'hr_ops:document_expiry' %}"
+              class="nav-item {% if request.resolver_match.url_name == 'document_expiry' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M12 9v2m0 4h.01M5.072 19h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              Document Alerts
+            </a>
+            <a href="{% url 'hr_ops:audit_log' %}"
+              class="nav-item {% if request.resolver_match.url_name == 'audit_log' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6m-6 4h6" />
+              </svg>
+              Audit Log
+            </a>
+            <a href="{% url 'hr_ops:letter_templates' %}" class="nav-item"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Letters
+            </a>
+            <a href="{% url 'hr_ops:assets' %}" class="nav-item"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18" />
+              </svg>
+              Assets
+            </a>
+            <a href="{% url 'hr_ops:exit_list' %}" class="nav-item"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              Exits
+            </a>
+          </div>
+          {% endif %}
+
+        </nav>
+
+        <!-- Secondary Tray Footer -->
+        <div class="secondary-footer">
+          <div class="flex items-center gap-2"><span class="dot dot-ok"></span> System operational</div>
+          <div class="mt-1">v1.0 · {{ tenant.plan|default:"trial"|title }}</div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Mobile Sidebar (Single Column Accordion fallback) -->
+    <aside class="sidebar lg:hidden" :class="{ 'open': sidebarOpen }">
+      <div class="sidebar-brand">
+        <img src="{% static 'images/logo.png' %}" alt="Saptta" class="brand-logo-img h-8 w-auto object-contain">
+        <div>
+          <div class="brand-text">{% if tenant %}{{ tenant.name }}{% else %}HRMS{% endif %}</div>
+          <div class="brand-sub">Human Resources</div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <!-- Sidebar Search (Dynamic Navigation Filter) -->
+        <div class="sidebar-search">
+          <input type="text" x-model="search" @keydown.escape="search = ''" placeholder="Search menus..."
+            class="search-input" aria-label="Search navigation">
+          <svg class="search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <button type="button" x-show="search !== ''" @click="search = ''" class="search-clear-btn">
+            ✕
+          </button>
+        </div>
+
+        <a href="{% url 'tenants:dashboard' %}"
+          class="nav-item {% if request.resolver_match.app_name == 'tenants' %}active{% endif %}"
+          x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M3.75 12l8.25-8.25 8.25 8.25M5.25 10.5v9a.75.75 0 00.75.75H9a.75.75 0 00.75-.75v-4.5h4.5v4.5a.75.75 0 00.75.75h3a.75.75 0 00.75-.75v-9" />
+          </svg>
+          Dashboard
+        </a>
+
+        {# ─── My Space (anyone with employee profile) ─── #}
+        {% if user.employee_profile %}
+        <div class="nav-group" x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())"
+          :class="{ 'nav-group-expanded': activeGroups.mySpace || (search !== '' && $el.textContent.toLowerCase().includes(search.toLowerCase())) }">
+          <button type="button"
+            class="nav-group-header {% if request.resolver_match.url_name == 'my_attendance' or request.resolver_match.url_name == 'regularization' or request.resolver_match.url_name == 'apply' or request.resolver_match.url_name == 'my_leaves' or request.resolver_match.url_name == 'my_payslips' or request.resolver_match.url_name == 'my_expenses' or request.resolver_match.url_name == 'expense_submit' or request.resolver_match.url_name == 'expense_edit' or request.resolver_match.url_name == 'my_loans' or request.resolver_match.url_name == 'my_reviews' or request.resolver_match.url_name == 'my_tax_declaration' or request.resolver_match.url_name == 'my_form16s' %}active-group{% endif %}"
+            :class="{ 'open': activeGroups.mySpace || (search !== '' && $el.textContent.toLowerCase().includes(search.toLowerCase())) }"
+            @click="activeGroups.mySpace = !activeGroups.mySpace">
+            <span>My Space</span>
+            <svg class="chevron" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+          <div class="nav-group-content"
+            x-show="activeGroups.mySpace || (search !== '' && $el.textContent.toLowerCase().includes(search.toLowerCase()))"
+            x-transition>
+            <a href="{% url 'attendance:my_attendance' %}"
+              class="nav-item {% if request.resolver_match.url_name == 'my_attendance' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              My Attendance
+            </a>
+            <a href="{% url 'attendance:regularization' %}"
+              class="nav-item {% if request.resolver_match.url_name == 'regularization' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M9 11l3 3 7-7M3 12a9 9 0 0118 0v0a9 9 0 01-18 0z" />
+              </svg>
+              Request Correction
+            </a>
+            <a href="{% url 'leaves:apply' %}"
+              class="nav-item {% if request.resolver_match.url_name == 'apply' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              Apply Leave
+            </a>
+            <a href="{% url 'leaves:my_leaves' %}"
+              class="nav-item {% if request.resolver_match.url_name == 'my_leaves' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              My Leaves
+            </a>
+            <a href="{% url 'payroll:my_payslips' %}"
+              class="nav-item {% if request.resolver_match.url_name == 'my_payslips' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              My Payslips
+            </a>
+            <a href="{% url 'payroll:my_expenses' %}"
+              class="nav-item {% if request.resolver_match.url_name == 'my_expenses' or request.resolver_match.url_name == 'expense_submit' or request.resolver_match.url_name == 'expense_edit' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              Reimbursements
+            </a>
+            <a href="{% url 'payroll:my_loans' %}"
+              class="nav-item {% if request.resolver_match.url_name == 'my_loans' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+              </svg>
+              My Loans
+            </a>
+            <a href="{% url 'performance:my_reviews' %}"
+              class="nav-item {% if request.resolver_match.url_name == 'my_reviews' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.16c.969 0 1.371 1.24.588 1.81l-3.366 2.446a1 1 0 00-.363 1.118l1.286 3.957c.3.921-.755 1.688-1.539 1.118l-3.366-2.446a1 1 0 00-1.176 0l-3.366 2.446c-.784.57-1.838-.197-1.539-1.118l1.286-3.957a1 1 0 00-.363-1.118L2.572 9.384c-.783-.57-.38-1.81.588-1.81h4.16a1 1 0 00.951-.69l1.286-3.957z" />
+              </svg>
+              My Reviews
+            </a>
+            <a href="{% url 'payroll:my_tax_declaration' %}"
+              class="nav-item {% if request.resolver_match.url_name == 'my_tax_declaration' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Tax Declaration
+            </a>
+            <a href="{% url 'payroll:my_form16s' %}"
+              class="nav-item {% if request.resolver_match.url_name == 'my_form16s' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+              My Form 16
+            </a>
+          </div>
+        </div>
+        {% endif %}
+
+        {# ─── Manager: Team ─── #}
+        {% if user.is_manager and not user.is_hr_admin %}
+        <div class="nav-group" x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())"
+          :class="{ 'nav-group-expanded': activeGroups.team || (search !== '' && $el.textContent.toLowerCase().includes(search.toLowerCase())) }">
+          <button type="button"
+            class="nav-group-header {% if request.resolver_match.url_name == 'pending' and not user.is_hr_admin or request.resolver_match.url_name == 'team_reviews' %}active-group{% endif %}"
+            :class="{ 'open': activeGroups.team || (search !== '' && $el.textContent.toLowerCase().includes(search.toLowerCase())) }"
+            @click="activeGroups.team = !activeGroups.team">
+            <span>Team</span>
+            <svg class="chevron" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+          <div class="nav-group-content"
+            x-show="activeGroups.team || (search !== '' && $el.textContent.toLowerCase().includes(search.toLowerCase()))"
+            x-transition>
+            <a href="{% url 'leaves:pending' %}"
+              class="nav-item {% if request.resolver_match.url_name == 'pending' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Leave Approvals
+            </a>
+            <a href="{% url 'performance:team_reviews' %}"
+              class="nav-item {% if request.resolver_match.url_name == 'team_reviews' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              Team Reviews
+            </a>
+          </div>
+        </div>
+        {% endif %}
+
+        {# ─── HR Admin: People + Time + Payroll + Performance + Ops ─── #}
+        {% if user.is_hr_admin %}
+
+        <div class="nav-group" x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())"
+          :class="{ 'nav-group-expanded': activeGroups.people || (search !== '' && $el.textContent.toLowerCase().includes(search.toLowerCase())) }">
+          <button type="button"
+            class="nav-group-header {% if request.resolver_match.app_name == 'employees' %}active-group{% endif %}"
+            :class="{ 'open': activeGroups.people || (search !== '' && $el.textContent.toLowerCase().includes(search.toLowerCase())) }"
+            @click="activeGroups.people = !activeGroups.people">
+            <span>People</span>
+            <svg class="chevron" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+          <div class="nav-group-content"
+            x-show="activeGroups.people || (search !== '' && $el.textContent.toLowerCase().includes(search.toLowerCase()))"
+            x-transition>
+            <a href="{% url 'employees:list' %}"
+              class="nav-item {% if request.resolver_match.app_name == 'employees' and request.resolver_match.url_name != 'attrition' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              Employees
+            </a>
+            <a href="{% url 'employees:attrition' %}"
+              class="nav-item {% if request.resolver_match.url_name == 'attrition' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              </svg>
+              Attrition Risk
+            </a>
+          </div>
+        </div>
+
+        <div class="nav-group" x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())"
+          :class="{ 'nav-group-expanded': activeGroups.timeLeave || (search !== '' && $el.textContent.toLowerCase().includes(search.toLowerCase())) }">
+          <button type="button"
+            class="nav-group-header {% if request.resolver_match.url_name == 'register' or request.resolver_match.url_name == 'pending' and user.is_hr_admin %}active-group{% endif %}"
+            :class="{ 'open': activeGroups.timeLeave || (search !== '' && $el.textContent.toLowerCase().includes(search.toLowerCase())) }"
+            @click="activeGroups.timeLeave = !activeGroups.timeLeave">
+            <span>Time &amp; Leave</span>
+            <svg class="chevron" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+          <div class="nav-group-content"
+            x-show="activeGroups.timeLeave || (search !== '' && $el.textContent.toLowerCase().includes(search.toLowerCase()))"
+            x-transition>
+            <a href="{% url 'attendance:register' %}"
+              class="nav-item {% if request.resolver_match.url_name == 'register' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Attendance
+            </a>
+            <a href="{% url 'leaves:pending' %}"
+              class="nav-item {% if request.resolver_match.url_name == 'pending' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              Leave Approvals
+            </a>
+          </div>
+        </div>
+
+        <div class="nav-group" x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())"
+          :class="{ 'nav-group-expanded': activeGroups.payroll || (search !== '' && $el.textContent.toLowerCase().includes(search.toLowerCase())) }">
+          <button type="button"
+            class="nav-group-header {% if request.resolver_match.url_name == 'run_list' or request.resolver_match.url_name == 'run_detail' or request.resolver_match.url_name == 'run_create' or 'loan' in request.resolver_match.url_name or 'expense' in request.resolver_match.url_name and user.is_hr_admin or request.resolver_match.url_name == 'tax_declarations_admin' or request.resolver_match.url_name == 'form16_admin' %}active-group{% endif %}"
+            :class="{ 'open': activeGroups.payroll || (search !== '' && $el.textContent.toLowerCase().includes(search.toLowerCase())) }"
+            @click="activeGroups.payroll = !activeGroups.payroll">
+            <span>Payroll</span>
+            <svg class="chevron" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+          <div class="nav-group-content"
+            x-show="activeGroups.payroll || (search !== '' && $el.textContent.toLowerCase().includes(search.toLowerCase()))"
+            x-transition>
+            <a href="{% url 'payroll:run_list' %}"
+              class="nav-item {% if request.resolver_match.url_name == 'run_list' or request.resolver_match.url_name == 'run_detail' or request.resolver_match.url_name == 'run_create' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Payroll Runs
+            </a>
+            <a href="{% url 'payroll:loans' %}"
+              class="nav-item {% if 'loan' in request.resolver_match.url_name %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              Loans &amp; Advances
+            </a>
+            <a href="{% url 'payroll:expenses' %}"
+              class="nav-item {% if 'expense' in request.resolver_match.url_name %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              Reimbursements
+            </a>
+            <a href="{% url 'payroll:tax_declarations_admin' %}"
+              class="nav-item {% if request.resolver_match.url_name == 'tax_declarations_admin' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Tax Declarations
+            </a>
+            <a href="{% url 'payroll:form16_admin' %}"
+              class="nav-item {% if request.resolver_match.url_name == 'form16_admin' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+              Form 16
+            </a>
+          </div>
+        </div>
+
+        <div class="nav-group" x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())"
+          :class="{ 'nav-group-expanded': activeGroups.performance || (search !== '' && $el.textContent.toLowerCase().includes(search.toLowerCase())) }">
+          <button type="button"
+            class="nav-group-header {% if request.resolver_match.app_name == 'performance' and not user.is_manager and not user.is_authenticated or request.resolver_match.app_name == 'performance' and user.is_hr_admin %}active-group{% endif %}"
+            :class="{ 'open': activeGroups.performance || (search !== '' && $el.textContent.toLowerCase().includes(search.toLowerCase())) }"
+            @click="activeGroups.performance = !activeGroups.performance">
+            <span>Performance</span>
+            <svg class="chevron" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+          <div class="nav-group-content"
+            x-show="activeGroups.performance || (search !== '' && $el.textContent.toLowerCase().includes(search.toLowerCase()))"
+            x-transition>
+            <a href="{% url 'performance:cycles' %}"
+              class="nav-item {% if request.resolver_match.app_name == 'performance' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.16c.969 0 1.371 1.24.588 1.81l-3.366 2.446a1 1 0 00-.363 1.118l1.286 3.957c.3.921-.755 1.688-1.539 1.118l-3.366-2.446a1 1 0 00-1.176 0l-3.366 2.446c-.784.57-1.838-.197-1.539-1.118l1.286-3.957a1 1 0 00-.363-1.118L2.572 9.384c-.783-.57-.38-1.81.588-1.81h4.16a1 1 0 00.951-.69l1.286-3.957z" />
+              </svg>
+              Review Cycles
+            </a>
+          </div>
+        </div>
+
+        <div class="nav-group" x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())"
+          :class="{ 'nav-group-expanded': activeGroups.hrOps || (search !== '' && $el.textContent.toLowerCase().includes(search.toLowerCase())) }">
+          <button type="button"
+            class="nav-group-header {% if request.resolver_match.url_name == 'onboarding' or request.resolver_match.url_name == 'people_pulse' or request.resolver_match.url_name == 'document_expiry' or request.resolver_match.url_name == 'audit_log' or request.resolver_match.url_name == 'letter_templates' or request.resolver_match.url_name == 'assets' or request.resolver_match.url_name == 'exit_list' %}active-group{% endif %}"
+            :class="{ 'open': activeGroups.hrOps || (search !== '' && $el.textContent.toLowerCase().includes(search.toLowerCase())) }"
+            @click="activeGroups.hrOps = !activeGroups.hrOps">
+            <span>HR Ops</span>
+            <svg class="chevron" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+          <div class="nav-group-content"
+            x-show="activeGroups.hrOps || (search !== '' && $el.textContent.toLowerCase().includes(search.toLowerCase()))"
+            x-transition>
+            <a href="{% url 'hr_ops:onboarding' %}" class="nav-item"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+              </svg>
+              Onboarding
+            </a>
+            <a href="{% url 'hr_ops:people_pulse' %}"
+              class="nav-item {% if request.resolver_match.url_name == 'people_pulse' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              People Pulse
+            </a>
+            <a href="{% url 'hr_ops:document_expiry' %}"
+              class="nav-item {% if request.resolver_match.url_name == 'document_expiry' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M12 9v2m0 4h.01M5.072 19h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              Document Alerts
+            </a>
+            <a href="{% url 'hr_ops:audit_log' %}"
+              class="nav-item {% if request.resolver_match.url_name == 'audit_log' %}active{% endif %}"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6m-6 4h6" />
+              </svg>
+              Audit Log
+            </a>
+            <a href="{% url 'hr_ops:letter_templates' %}" class="nav-item"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Letters
+            </a>
+            <a href="{% url 'hr_ops:assets' %}" class="nav-item"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18" />
+              </svg>
+              Assets
+            </a>
+            <a href="{% url 'hr_ops:exit_list' %}" class="nav-item"
+              x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              Exits
+            </a>
+          </div>
+        </div>
+        {% endif %}
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="flex items-center gap-2"><span class="dot dot-ok"></span> System operational</div>
+        <div class="mt-1">v1.0 · {{ tenant.plan|default:"trial"|title }}</div>
+      </div>
+    </aside>
+
+    <div class="sidebar-overlay" :class="{ 'open': sidebarOpen }" @click="sidebarOpen = false"></div>
+
+    {# ═══════ MAIN ═══════ #}
+    <div class="app-main" :class="{ 'secondary-open': activeCategory !== 'dashboard' }">
+      <header class="topbar">
+        <div class="flex items-center gap-3">
+          <button @click="sidebarOpen = !sidebarOpen" class="icon-btn lg:hidden" aria-label="Menu">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+          <div>
+            <div class="topbar-title">{% block page_title %}Dashboard{% endblock %}</div>
+            <div class="topbar-sub">{% block page_sub %}{% now "l, j F Y" %}{% endblock %}</div>
+          </div>
+        </div>
+
+        <div class="topbar-actions">
+          <!-- Theme Toggle Button -->
+          <button onclick="toggleTheme()" class="icon-btn" aria-label="Toggle Theme" style="margin-right: 4px;">
+            <!-- Sun Icon (shown in dark mode) -->
+            <svg id="theme-sun" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" style="width: 20px; height: 20px;">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-12.728l.707.707m12.728 12.728l.707.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
+            </svg>
+            <!-- Moon Icon (shown in light mode) -->
+            <svg id="theme-moon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" style="width: 20px; height: 20px;">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+            </svg>
+          </button>
+
+          <div x-data="{ open: false }" @click.outside="open = false" style="position: relative;">
+            <button class="icon-btn" aria-label="Notifications" @click="open = !open"
+              hx-get="{% url 'hr_ops:notification_dropdown' %}" hx-target="#notif-dropdown" hx-trigger="click"
+              style="position: relative;">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+              {% if unread_notif_count %}
+              <span
+                style="position: absolute; top: 5px; right: 5px; background: var(--err-500); color: white; font-size: 10px; font-weight: 700; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px var(--bg-card);">{{
+                unread_notif_count }}</span>
+              {% endif %}
+            </button>
+            <div x-show="open" x-transition id="notif-dropdown" class="surface"
+              style="position: absolute; right: 0; top: calc(100% + 8px); width: 360px; max-height: 460px; overflow-y: auto; z-index: 50; padding: 0;">
+              <div style="padding: 24px; text-align: center; color: var(--ink-400); font-size: 13px;">Loading...</div>
+            </div>
+          </div>
+
+          <div class="dropdown dropdown-end" x-data="{ open: false }" @click.outside="open = false">
+            <div tabindex="0" class="user-chip" @click="open = !open">
+              <div class="avatar">{{ user.get_full_name|first|upper }}</div>
+              <div class="name hidden md:block">
+                {{ user.employee_profile.first_name|default:user.email }}
+              </div>
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+            <div x-show="open" x-transition class="absolute right-0 mt-2 w-56 surface" style="z-index:50; padding:6px;">
+              <div style="padding:8px 12px; border-bottom:1px solid var(--ink-150);">
+                <div style="font-size:13px; font-weight:600;">{{ user.get_full_name }}</div>
+                <div style="font-size:11.5px; color:var(--ink-500);">{{ user.email }}</div>
+              </div>
+              <a href="{% url 'accounts:profile' %}" class="nav-item">Profile</a>
+              <a href="{% url 'accounts:change_password' %}" class="nav-item">Change Password</a>
+              <form method="post" action="{% url 'accounts:logout' %}"
+                style="margin-top:4px; border-top:1px solid var(--ink-150); padding-top:4px;">
+                {% csrf_token %}
+                <button type="submit" class="nav-item"
+                  style="color: var(--err-500); width: 100%; text-align:left; background:none; border:none; font-size:13.5px;">
+                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                  Sign out
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {# Flash messages #}
+      {% if messages %}
+      <div style="padding: 16px 28px 0;">
+        {% for msg in messages %}
+        <div
+          class="alert alert-{% if msg.tags == 'error' %}error{% elif msg.tags == 'warning' %}warning{% elif msg.tags == 'success' %}success{% else %}info{% endif %} mb-2"
+          x-data="{show:true}" x-show="show">
+          <span>{{ msg }}</span>
+          <button class="ml-auto" @click="show=false"
+            style="background:none;border:none;cursor:pointer;color:inherit;opacity:0.6;">✕</button>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <main class="page">
+        {% endif %}
+
+        {% block content %}{% endblock %}
+
+        {% if user.is_authenticated %}
+      </main>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- HR AI Chat Widget -->
+  <div id="ai-chat-btn" onclick="toggleChat()" title="Ask HR Assistant" style="position:fixed;bottom:24px;right:24px;z-index:9000;
+    width:52px;height:52px;border-radius:50%;cursor:pointer;
+    background:linear-gradient(135deg,#FF6D00,#c2410c);
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 4px 20px rgba(255,109,0,0.4);
+    color:#fff;font-size:22px;transition:transform .2s">
+    💬
+  </div>
+
+  <div id="ai-chat-panel" style="display:none;position:fixed;bottom:88px;right:24px;z-index:9000;
+  width:360px;max-height:520px;background:#fff;border-radius:16px;
+  box-shadow:0 8px 40px rgba(0,0,0,0.15);display:none;flex-direction:column;
+  overflow:hidden;font-family:Inter,sans-serif;">
+    <div
+      style="background:linear-gradient(135deg,#FF6D00,#c2410c);padding:14px 16px;display:flex;align-items:center;justify-content:space-between">
+      <div style="color:#fff">
+        <div style="font-weight:700;font-size:14px">HR Assistant</div>
+        <div style="font-size:11px;opacity:.8">Ask me anything about leave, attendance, salary…</div>
+      </div>
+      <button onclick="toggleChat()"
+        style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;opacity:.8">×</button>
+    </div>
+    <div id="ai-msgs"
+      style="flex:1;overflow-y:auto;padding:12px;min-height:200px;max-height:320px;display:flex;flex-direction:column;gap:8px">
+      <div class="ai-msg ai"
+        style="background:#fff7ed;border-radius:10px;padding:10px 12px;font-size:13px;align-self:flex-start;max-width:85%">
+        Hi! I'm your HR assistant. Ask me about your leave balance, upcoming holidays, payslip, or anything HR-related.
+        🙂
+      </div>
+    </div>
+    <div style="padding:10px 12px;border-top:1px solid #f3f4f6;display:flex;gap:8px">
+      <input id="ai-input" placeholder="Type a message…" onkeydown="if(event.key==='Enter')sendChat()"
+        style="flex:1;border:1px solid #e5e7eb;border-radius:8px;padding:8px 12px;font-size:13px;outline:none" />
+      <button onclick="sendChat()"
+        style="background:#FF6D00;border:none;border-radius:8px;padding:8px 14px;color:#fff;font-size:13px;cursor:pointer;font-weight:600">
+        ↑
+      </button>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var history = [];
+      function toggleChat() {
+        var p = document.getElementById('ai-chat-panel');
+        var showing = p.style.display === 'flex';
+        p.style.display = showing ? 'none' : 'flex';
+        if (!showing) document.getElementById('ai-input').focus();
+      }
+      window.toggleChat = toggleChat;
+
+      function addMsg(text, from) {
+        var msgs = document.getElementById('ai-msgs');
+        var div = document.createElement('div');
+        div.className = 'ai-msg ' + from;
+        div.style.cssText = 'border-radius:10px;padding:10px 12px;font-size:13px;max-width:85%;white-space:pre-wrap;line-height:1.5;' +
+          (from === 'ai' ? 'background:#fff7ed;align-self:flex-start' : 'background:#FF6D00;color:#fff;align-self:flex-end');
+        div.textContent = text;
+        msgs.appendChild(div);
+        msgs.scrollTop = msgs.scrollHeight;
+      }
+
+      function sendChat() {
+        var input = document.getElementById('ai-input');
+        var msg = input.value.trim();
+        if (!msg) return;
+        input.value = '';
+        addMsg(msg, 'user');
+        history.push({ role: 'user', content: msg });
+
+        var typing = document.createElement('div');
+        typing.id = 'ai-typing';
+        typing.className = 'ai-msg ai';
+        typing.style.cssText = 'background:#fff7ed;border-radius:10px;padding:10px 12px;font-size:13px;align-self:flex-start;color:#9ca3af';
+        typing.textContent = 'Thinking…';
+        document.getElementById('ai-msgs').appendChild(typing);
+        document.getElementById('ai-msgs').scrollTop = 999999;
+
+        fetch('/hr/ai/chat/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || '' },
+          body: JSON.stringify({ message: msg, history: history.slice(-10) })
+        })
+          .then(r => r.json())
+          .then(data => {
+            var t = document.getElementById('ai-typing');
+            if (t) t.remove();
+            var reply = data.reply || 'Sorry, something went wrong.';
+            addMsg(reply, 'ai');
+            history.push({ role: 'assistant', content: reply });
+          })
+          .catch(() => {
+            var t = document.getElementById('ai-typing');
+            if (t) t.remove();
+            addMsg('Network error. Please try again.', 'ai');
+          });
+      }
+      window.sendChat = sendChat;
+    })();
+  </script>
+
+  <!-- PWA install banner (shown when ?install=1 is in the URL) -->
+  <div id="install-banner" style="display:none; position:fixed; top:0; left:0; right:0; z-index:9999;
+  background:#fff; border-bottom:3px solid #FF6D00; box-shadow:0 4px 24px rgba(0,0,0,.10);
+  padding:14px 20px; align-items:center; gap:14px; font-family:Inter,sans-serif;">
+    <div style="width:40px;height:40px;border-radius:10px;flex-shrink:0;background:#FF6D00;
+    display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;">💼</div>
+    <div style="flex:1">
+      <div style="font-weight:700;font-size:14px;color:#0f172a">Install Saptta HR as a Desktop App</div>
+      <div style="font-size:12px;color:#64748b;margin-top:2px">Works offline, opens instantly — no browser tab needed.
+      </div>
+    </div>
+    <button id="install-btn" style="display:none;align-items:center;gap:6px;
+    background:#FF6D00;color:#fff;border:none;border-radius:8px;padding:8px 16px;
+    font-weight:700;font-size:13px;cursor:pointer;flex-shrink:0">⬇ Install</button>
+    <div id="install-hint" style="font-size:12px;color:#64748b;flex-shrink:0">
+      Click the <strong>Install</strong> button (⊕) in your browser's address bar.
+    </div>
+    <button onclick="document.getElementById('install-banner').style.display='none'"
+      style="background:none;border:none;cursor:pointer;color:#94a3b8;padding:4px;flex-shrink:0;font-size:18px">×</button>
+  </div>
+  <script>
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      if (params.get('install') !== '1') return;
+      if (window.matchMedia('(display-mode: standalone)').matches) return;
+      var banner = document.getElementById('install-banner');
+      banner.style.display = 'flex';
+      var deferred = null;
+      window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault(); deferred = e;
+        document.getElementById('install-btn').style.display = 'flex';
+        document.getElementById('install-hint').style.display = 'none';
+      });
+      document.getElementById('install-btn').addEventListener('click', function () {
+        if (!deferred) return;
+        deferred.prompt();
+        deferred.userChoice.then(function (r) {
+          if (r.outcome === 'accepted') banner.style.display = 'none';
+          deferred = null;
+        });
+      });
+      window.addEventListener('appinstalled', function () { banner.style.display = 'none'; });
+    })();
+  </script>
+
+</body>
+
+</html>

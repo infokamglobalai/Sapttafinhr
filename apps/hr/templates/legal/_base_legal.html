@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block extra_head %}
+<style>
+  .legal-wrap { max-width: 820px; margin: 0 auto; padding: 56px 24px; }
+  .legal-header { border-bottom: 1px solid #FED7AA; padding-bottom: 20px; margin-bottom: 32px; }
+  .legal-eyebrow { display: inline-block; font-size: 12px; font-weight: 600; letter-spacing: 0.08em;
+                   text-transform: uppercase; color: #C2410C; background: #FFF7ED;
+                   padding: 4px 10px; border-radius: 999px; margin-bottom: 12px; }
+  .legal-title { font-size: 36px; font-weight: 700; letter-spacing: -0.025em; color: var(--ink-900); margin: 0; }
+  .legal-meta { font-size: 13px; color: var(--ink-500); margin-top: 8px; }
+  .legal-body { font-size: 15px; line-height: 1.7; color: var(--ink-700); }
+  .legal-body h2 { font-size: 20px; font-weight: 700; color: var(--ink-900); margin: 36px 0 12px; letter-spacing: -0.02em; }
+  .legal-body h3 { font-size: 16px; font-weight: 600; color: var(--ink-800); margin: 22px 0 8px; }
+  .legal-body p { margin: 0 0 14px; }
+  .legal-body ul { margin: 0 0 16px; padding-left: 24px; }
+  .legal-body li { margin-bottom: 6px; }
+  .legal-body a { color: var(--brand-600); text-decoration: underline; }
+  .legal-body strong { color: var(--ink-900); }
+  .legal-foot { margin-top: 48px; padding-top: 24px; border-top: 1px solid #E5E7EB;
+                font-size: 13px; color: var(--ink-500); display: flex; gap: 16px; flex-wrap: wrap; }
+  .legal-foot a { color: var(--brand-600); text-decoration: none; }
+  .callout { background: #FFF7ED; border-left: 4px solid #F97316; padding: 14px 16px;
+             border-radius: 8px; margin: 16px 0; font-size: 14px; color: #7C2D12; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="legal-wrap">
+  <div class="legal-header">
+    <span class="legal-eyebrow">{% block eyebrow %}Legal{% endblock %}</span>
+    <h1 class="legal-title">{% block legal_title %}{% endblock %}</h1>
+    <p class="legal-meta">{% block legal_meta %}Last updated {% block updated %}24 May 2026{% endblock %}{% endblock %}</p>
+  </div>
+
+  <div class="legal-body">
+    {% block legal_body %}{% endblock %}
+  </div>
+
+  <div class="legal-foot">
+    <a href="{% url 'tenants:legal_privacy' %}">Privacy Policy</a>
+    <a href="{% url 'tenants:legal_terms' %}">Terms of Service</a>
+    <a href="{% url 'tenants:legal_dpa' %}">Data Processing Addendum</a>
+    <a href="{% url 'accounts:login' %}">Back to login</a>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block page_title %}{% if leave_type %}Edit Leave Type{% else %}New Leave Type{% endif %}{% endblock %}
+{% block content %}
+<div style="max-width: 760px; margin: 0 auto;">
+  <a href="{% url 'leaves:leave_types' %}" class="btn-base btn-ghost btn-sm" style="margin-bottom: 14px;">← Back to Leave Types</a>
+  <h2 style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 4px;">{% if leave_type %}Edit Leave Type{% else %}New Leave Type{% endif %}</h2>
+  <p style="font-size: 13.5px; color: var(--ink-500); margin-bottom: 22px;">Configure accrual, eligibility, and approval rules for a leave type.</p>
+
+  <form method="post">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors.0 }}</div>{% endif %}
+
+    <div class="surface" style="padding: 22px; margin-bottom: 14px;">
+      <h3 style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-500); margin-bottom: 14px;">Basic</h3>
+      <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 14px; margin-bottom: 14px;">
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Name *</label>
+          {{ form.name }}
+        </div>
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Code *</label>
+          {{ form.code }}
+          <div style="font-size: 11.5px; color: var(--ink-500); margin-top: 4px;">e.g. CL, EL, SL</div>
+        </div>
+      </div>
+      <div style="display: flex; gap: 24px;">
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 13px;">{{ form.is_paid }} Paid leave</label>
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 13px;">{{ form.is_active }} Active</label>
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 13px;">{{ form.allow_half_day }} Allow half day</label>
+      </div>
+    </div>
+
+    <div class="surface" style="padding: 22px; margin-bottom: 14px;">
+      <h3 style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-500); margin-bottom: 14px;">Accrual</h3>
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px;">
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Accrual Type</label>
+          {{ form.accrual_type }}
+        </div>
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Days per Period</label>
+          {{ form.accrual_value }}
+        </div>
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Annual Cap</label>
+          {{ form.max_annual_balance }}
+        </div>
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Max Carry Forward</label>
+          {{ form.max_carry_forward }}
+        </div>
+      </div>
+    </div>
+
+    <div class="surface" style="padding: 22px; margin-bottom: 14px;">
+      <h3 style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-500); margin-bottom: 14px;">Application Rules</h3>
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px;">
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Min Notice (days)</label>
+          {{ form.min_notice_days }}
+        </div>
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Max Consecutive Days</label>
+          {{ form.max_consecutive_days }}
+        </div>
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Docs Required After</label>
+          {{ form.requires_document_after }}
+        </div>
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Applicable Gender</label>
+          {{ form.applicable_gender }}
+        </div>
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Available After (months)</label>
+          {{ form.applicable_after_months }}
+        </div>
+      </div>
+      <div style="display: flex; gap: 24px; margin-top: 14px;">
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 13px;">{{ form.include_holidays }} Count holidays</label>
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 13px;">{{ form.include_weekends }} Count weekends</label>
+      </div>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; gap: 12px;">
+      <a href="{% url 'leaves:leave_types' %}" class="btn-base btn-ghost">Cancel</a>
+      <button type="submit" class="btn-base btn-primary">{% if leave_type %}Save Changes{% else %}Create Leave Type{% endif %}</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

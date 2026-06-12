@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block page_title %}{% if loan %}Edit Loan{% else %}New Loan{% endif %}{% endblock %}
+{% block content %}
+<div style="max-width: 720px; margin: 0 auto;">
+  <a href="{% url 'payroll:loans' %}" class="btn-base btn-ghost btn-sm" style="margin-bottom: 14px;">← Back to Loans</a>
+  <h2 style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 4px;">{% if loan %}Edit Loan{% else %}Issue New Loan{% endif %}</h2>
+  <p style="font-size: 13.5px; color: var(--ink-500); margin-bottom: 22px;">EMI will be deducted automatically from the employee's payroll until the loan is closed.</p>
+
+  <form method="post">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors.0 }}</div>{% endif %}
+
+    <div class="surface" style="padding: 22px; margin-bottom: 14px;">
+      <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 14px; margin-bottom: 14px;">
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Employee *</label>
+          {{ form.employee }}
+        </div>
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Loan Type</label>
+          {{ form.loan_type }}
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Principal Amount (₹) *</label>
+          {{ form.principal_amount }}
+        </div>
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">EMI Amount (₹) *</label>
+          {{ form.emi_amount }}
+        </div>
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Installments *</label>
+          {{ form.total_installments }}
+          <div style="font-size: 11.5px; color: var(--ink-500); margin-top: 4px;">Number of months</div>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px;">
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Interest Rate (%)</label>
+          {{ form.interest_rate }}
+        </div>
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Disbursed Date *</label>
+          {{ form.disbursed_date }}
+        </div>
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Status</label>
+          {{ form.status }}
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; gap: 12px;">
+      <a href="{% url 'payroll:loans' %}" class="btn-base btn-ghost">Cancel</a>
+      <button type="submit" class="btn-base btn-primary">{% if loan %}Save Changes{% else %}Issue Loan{% endif %}</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

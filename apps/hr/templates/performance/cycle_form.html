@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block page_title %}{% if cycle %}Edit{% else %}New{% endif %} Review Cycle{% endblock %}
+{% block content %}
+<div style="max-width: 720px; margin: 0 auto;">
+  <a href="{% url 'performance:cycles' %}" class="btn-base btn-ghost btn-sm" style="margin-bottom: 14px;">← Back to Cycles</a>
+  <h2 style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 4px;">{% if cycle %}Edit{% else %}New{% endif %} Review Cycle</h2>
+  <p style="font-size: 13.5px; color: var(--ink-500); margin-bottom: 22px;">Define a performance review period that managers will fill in for their reports.</p>
+
+  <form method="post">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors.0 }}</div>{% endif %}
+
+    <div class="surface" style="padding: 22px; margin-bottom: 14px;">
+      <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 14px; margin-bottom: 14px;">
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Cycle Name *</label>
+          {{ form.name }}
+        </div>
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Type</label>
+          {{ form.cycle_type }}
+        </div>
+      </div>
+    </div>
+
+    <div class="surface" style="padding: 22px; margin-bottom: 14px;">
+      <h3 style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-500); margin-bottom: 14px;">Performance Window — being reviewed</h3>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Period Start *</label>
+          {{ form.review_period_start }}
+        </div>
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Period End *</label>
+          {{ form.review_period_end }}
+        </div>
+      </div>
+    </div>
+
+    <div class="surface" style="padding: 22px; margin-bottom: 14px;">
+      <h3 style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-500); margin-bottom: 14px;">Submission Window — when managers can write</h3>
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px;">
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Opens *</label>
+          {{ form.opens_at }}
+        </div>
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Closes *</label>
+          {{ form.closes_at }}
+        </div>
+        <div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Status</label>
+          {{ form.status }}
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; gap: 12px;">
+      <a href="{% url 'performance:cycles' %}" class="btn-base btn-ghost">Cancel</a>
+      <button type="submit" class="btn-base btn-primary">{% if cycle %}Save Changes{% else %}Create Cycle{% endif %}</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

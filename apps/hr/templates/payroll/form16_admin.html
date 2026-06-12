@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="padding: 24px; max-width: 1100px; margin: 0 auto;">
+  <div style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:12px; margin-bottom: 18px;">
+    <div>
+      <div style="font-size: 12px; color: var(--ink-500); text-transform: uppercase; letter-spacing: 0.06em;">HR · Annual</div>
+      <h1 style="font-size: 24px; font-weight: 700;">Form 16 — FY {{ fy }}</h1>
+      <p style="font-size: 13px; color: var(--ink-500); margin-top: 4px;">Part B is generated from payroll &amp; declarations. Upload Part A from TRACES separately for each employee.</p>
+    </div>
+    <form method="post" action="{% url 'payroll:form16_generate_all' %}" style="display:flex; gap:8px;">
+      {% csrf_token %}
+      <input name="fy" value="{{ fy }}" placeholder="2024-25" class="input input-bordered" style="width: 140px;">
+      <button class="btn-base btn-primary">Generate Part B for all</button>
+    </form>
+  </div>
+
+  {% if messages %}{% for m in messages %}<div class="alert alert-{% if m.tags == 'error' %}error{% else %}success{% endif %}" style="margin-bottom:14px;">{{ m }}</div>{% endfor %}{% endif %}
+
+  <div class="card" style="padding: 0; overflow: hidden;">
+    <table style="width: 100%; border-collapse: collapse;">
+      <thead style="background: #FFF7ED;">
+        <tr>
+          <th style="padding: 10px 14px; text-align: left; font-size: 12px; color: #7C2D12;">Employee</th>
+          <th style="padding: 10px 14px; text-align: left; font-size: 12px; color: #7C2D12;">Regime</th>
+          <th style="padding: 10px 14px; text-align: right; font-size: 12px; color: #7C2D12;">Gross</th>
+          <th style="padding: 10px 14px; text-align: right; font-size: 12px; color: #7C2D12;">Taxable</th>
+          <th style="padding: 10px 14px; text-align: right; font-size: 12px; color: #7C2D12;">Tax</th>
+          <th style="padding: 10px 14px; text-align: right; font-size: 12px; color: #7C2D12;">TDS deposited</th>
+          <th style="padding: 10px 14px; text-align: center; font-size: 12px; color: #7C2D12;">Part B</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in form16s %}
+        <tr style="border-top: 1px solid #F3F4F6;">
+          <td style="padding: 10px 14px;"><strong>{{ f.employee.full_name }}</strong><br><span style="font-size:11px;color:var(--ink-500);">{{ f.employee.employee_code }}</span></td>
+          <td style="padding: 10px 14px; font-size: 13px;">{{ f.regime|upper }}</td>
+          <td style="padding: 10px 14px; text-align: right; font-size: 13px;">₹{{ f.gross_salary|floatformat:0 }}</td>
+          <td style="padding: 10px 14px; text-align: right; font-size: 13px;">₹{{ f.taxable_income|floatformat:0 }}</td>
+          <td style="padding: 10px 14px; text-align: right; font-size: 13px;">₹{{ f.tax_payable|floatformat:0 }}</td>
+          <td style="padding: 10px 14px; text-align: right; font-size: 13px;">₹{{ f.tds_deducted|floatformat:0 }}</td>
+          <td style="padding: 10px 14px; text-align: center;">
+            {% if f.part_b_pdf %}<a href="{{ f.part_b_pdf.url }}" target="_blank" style="color:#C2410C; font-weight:600; font-size:12.5px;">Download</a>{% else %}—{% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" style="padding: 28px; text-align: center; color: var(--ink-500);">No Form 16s generated for FY {{ fy }} yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
