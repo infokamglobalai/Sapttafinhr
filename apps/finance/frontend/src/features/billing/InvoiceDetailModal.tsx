@@ -1,0 +1,232 @@
+import { useState } from 'react';
+import { Download, FileSignature, Link as LinkIcon, Receipt as ReceiptIcon, Truck, XCircle } from 'lucide-react';
+import Modal from '@/components/Modal';
+import { toast } from '@/components/Toaster';
+import { confirm } from '@/components/ConfirmDialog';
+import { useActiveCompany } from '@/hooks/useActiveCompany';
+import { useParties } from '@/features/masters/api';
+import {
+  useCreatePaymentLink,
+  useGenerateEInvoice,
+  useGenerateEWayBill,
+  useInvoice,
+} from './api';
+import { downloadInvoicePdf } from '@/lib/pdf';
+import { formatINR } from '@/lib/money';
+
+interface Props {
+  id: number | null;
+  onClose: () => void;
+  onRecordPayment?: (invoiceId: number, customerId: number) => void;
+}
+
+export default function InvoiceDetailModal({ id, onClose, onRecordPayment }: Props) {
+  const { data: inv, isLoading } = useInvoice(id ?? undefined);
+  const { companyId, companies } = useActiveCompany();
+  const company = companies?.find((c) => c.id === companyId);
+  const { data: customers } = useParties(companyId);
+  const customer = customers?.find((c) => c.id === inv?.customer);
+
+  const eInvoice = useGenerateEInvoice();
+  const payLink = useCreatePaymentLink();
+
+  const open = id != null;
+  const [eWayOpen, setEWayOpen] = useState(false);
+
+  const onDownload = () => {
+    if (!inv || !company) return;
+    downloadInvoicePdf(inv, {
+      name: company.name, gstin: company.gstin, state_code: company.state_code,
+    }, customer ? {
+      name: customer.name, gstin: customer.gstin, billing_address: customer.billing_address,
+      state_code: customer.state_code, email: customer.email,
+    } : { name: inv.customer_name });
+    toast.success('Invoice PDF downloaded', `${inv.invoice_no}.pdf`);
+  };
+
+  const onEInvoice = async () => {
+    if (!inv) return;
+    try {
+      const res = await eInvoice.mutateAsync(inv.id);
+      toast.success('E-Invoice generated', `IRN: ${String(res.irn).slice(0, 24)}…`);
+    } catch (e: any) {
+      toast.error('Could not generate E-Invoice', JSON.stringify(e?.response?.data ?? 'Failed'));
+    }
+  };
+
+  const onPaymentLink = async () => {
+    if (!inv) return;
+    try {
+      const r = await payLink.mutateAsync({ invoice_id: inv.id, amount: inv.balance_due, description: `Inv ${inv.invoice_no}` });
+      try { await navigator.clipboard.writeText(r.short_url); } catch { /* ignored */ }
+      toast.success('Payment link created', `${r.short_url} — copied to clipboard`);
+    } catch (e: any) {
+      toast.error('Could not create link', JSON.stringify(e?.response?.data ?? 'Failed'));
+    }
+  };
+
+  const onCancel = () => {
+    if (!inv) return;
+    confirm({
+      title: `Cancel invoice ${inv.invoice_no}?`,
+      message: 'For full reversal of the ledger entry, use Credit Notes. This UI cancel is in the roadmap.',
+      danger: true,
+      confirmLabel: 'Got it',
+      onConfirm: async () => {
+        toast.info('Use Credit Notes for now', 'They post the reversal entry automatically.');
+      },
+    });
+  };
+
+  return (
+    <Modal open={open} onClose={onClose} title={inv ? `Invoice ${inv.invoice_no}` : 'Invoice'} size="xl">
+      {isLoading && <div className="py-8 text-center text-slate-500">Loading…</div>}
+      {inv && (
+        <div className="space-y-4 text-sm">
+          {/* Action bar */}
+          <div className="flex flex-wrap gap-2">
+            <button className="btn-primary inline-flex items-center gap-1" onClick={onDownload}>
+              <Download size={14} /> Download PDF
+            </button>
+            {Number(inv.balance_due) > 0 && onRecordPayment && (
+              <button className="btn-ghost inline-flex items-center gap-1 border border-slate-200"
+                onClick={() => { onRecordPayment(inv.id, inv.customer); onClose(); }}>
+                <ReceiptIcon size={14} /> Record Payment
+              </button>
+            )}
+            <button className="btn-ghost inline-flex items-center gap-1 border border-slate-200" onClick={onEInvoice} disabled={eInvoice.isPending}>
+              <FileSignature size={14} /> {eInvoice.isPending ? 'Generating…' : 'Generate E-Invoice'}
+            </button>
+            <button className="btn-ghost inline-flex items-center gap-1 border border-slate-200" onClick={() => setEWayOpen(true)}>
+              <Truck size={14} /> Generate E-Way Bill
+            </button>
+            <button className="btn-ghost inline-flex items-center gap-1 border border-slate-200" onClick={onPaymentLink} disabled={payLink.isPending}>
+              <LinkIcon size={14} /> {payLink.isPending ? 'Creating…' : 'Payment Link'}
+            </button>
+            {inv.status === 'POSTED' && (
+              <button className="btn-ghost ml-auto inline-flex items-center gap-1 text-red-600 hover:bg-red-50" onClick={onCancel}>
+                <XCircle size={14} /> Cancel
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <Field label="Customer" value={inv.customer_name} />
+            <Field label="Date" value={inv.date} />
+            <Field label="Due" value={inv.due_date ?? '—'} />
+            <Field label="Status" value={inv.status} />
+            <Field label="Place of supply" value={inv.place_of_supply} />
+            <Field label="Journal Entry" value={inv.journal_entry ? `#${inv.journal_entry}` : '—'} />
+          </div>
+
+          <div className="overflow-hidden rounded border border-slate-200">
+            <table className="w-full text-xs">
+              <thead className="bg-slate-50 text-left text-slate-500">
+                <tr>
+                  <th className="px-3 py-2">Description</th>
+                  <th className="px-3 py-2">HSN</th>
+                  <th className="px-3 py-2 text-right">Qty</th>
+                  <th className="px-3 py-2 text-right">Rate</th>
+                  <th className="px-3 py-2 text-right">Taxable</th>
+                  <th className="px-3 py-2 text-right">CGST</th>
+                  <th className="px-3 py-2 text-right">SGST</th>
+                  <th className="px-3 py-2 text-right">IGST</th>
+                  <th className="px-3 py-2 text-right">Total</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200">
+                {inv.lines.map((l) => (
+                  <tr key={l.id}>
+                    <td className="px-3 py-2">{l.description}</td>
+                    <td className="px-3 py-2 font-mono">{l.hsn_code || '—'}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{l.quantity}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{formatINR(l.unit_price)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{formatINR(l.taxable_amount)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{formatINR(l.cgst)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{formatINR(l.sgst)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{formatINR(l.igst)}</td>
+                    <td className="px-3 py-2 text-right font-medium tabular-nums">{formatINR(l.line_total)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="ml-auto w-72 space-y-1 rounded bg-slate-50 p-3 text-sm">
+            <Row label="Taxable" value={inv.taxable_amount} />
+            <Row label="CGST" value={inv.cgst} muted />
+            <Row label="SGST" value={inv.sgst} muted />
+            <Row label="IGST" value={inv.igst} muted />
+            <div className="border-t border-slate-200 pt-1"><Row label="Grand Total" value={inv.grand_total} bold /></div>
+            <Row label="Paid" value={inv.amount_paid} muted />
+            <Row label="Balance Due" value={inv.balance_due} />
+          </div>
+
+          {inv.notes && <div className="text-xs text-slate-500"><strong>Notes:</strong> {inv.notes}</div>}
+        </div>
+      )}
+
+      {eWayOpen && inv && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/50 p-4" onClick={() => setEWayOpen(false)}>
+          <div className="w-full max-w-sm rounded-lg bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="text-base font-semibold">Generate E-Way Bill</div>
+            <EWayForm invoiceId={inv.id} onDone={() => setEWayOpen(false)} />
+          </div>
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+function EWayForm({ invoiceId, onDone }: { invoiceId: number; onDone: () => void }) {
+  const eWay = useGenerateEWayBill();
+  const [distance, setDistance] = useState('100');
+  const [vehicle, setVehicle] = useState('');
+  const [transporter, setTransporter] = useState('');
+  const submit = async () => {
+    try {
+      const r = await eWay.mutateAsync({
+        invoiceId, distance_km: Number(distance), vehicle_no: vehicle, transporter_name: transporter,
+      });
+      toast.success('E-Way Bill generated',
+        `EWB ${r.eway_no} · valid until ${new Date(r.valid_until).toLocaleDateString('en-IN')}`);
+      onDone();
+    } catch (e: any) {
+      toast.error('Could not generate', JSON.stringify(e?.response?.data ?? 'Failed'));
+    }
+  };
+  return (
+    <div className="mt-3 space-y-3">
+      <div><label className="label">Distance (km) *</label>
+        <input className="input" inputMode="numeric" value={distance} onChange={(e) => setDistance(e.target.value)} /></div>
+      <div><label className="label">Vehicle No.</label>
+        <input className="input font-mono" value={vehicle} onChange={(e) => setVehicle(e.target.value.toUpperCase())} placeholder="e.g. MH12AB1234" /></div>
+      <div><label className="label">Transporter</label>
+        <input className="input" value={transporter} onChange={(e) => setTransporter(e.target.value)} /></div>
+      <div className="flex justify-end gap-2">
+        <button className="btn-ghost" onClick={onDone}>Cancel</button>
+        <button className="btn-primary" disabled={!distance || eWay.isPending} onClick={submit}>
+          {eWay.isPending ? 'Generating…' : 'Generate'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="text-xs uppercase text-slate-500">{label}</div>
+      <div className="font-medium">{value}</div>
+    </div>
+  );
+}
+
+function Row({ label, value, bold, muted }: { label: string; value: string; bold?: boolean; muted?: boolean }) {
+  return (
+    <div className={`flex items-center justify-between ${muted ? 'text-slate-500' : ''}`}>
+      <div className={bold ? 'font-semibold' : ''}>{label}</div>
+      <div className={`tabular-nums ${bold ? 'font-semibold' : ''}`}>{formatINR(value)}</div>
+    </div>
+  );
+}
