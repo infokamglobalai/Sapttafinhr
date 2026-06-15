@@ -2,8 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button, Drawer } from 'antd';
 import { useAuth } from '../../contexts/AuthContext';
-import { useTheme } from '../../contexts/ThemeContext';
-import ThemeToggle from '../shared/ThemeToggle';
 
 const productItems = [
   { key: '/products', label: 'All Products', desc: 'HRMS, Accounts & Mobile overview' },
@@ -84,7 +82,6 @@ function DropdownPanel({ items }: { items: { key: string; label: string; desc: s
 }
 
 export default function Navbar() {
-  const { isDark } = useTheme();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1100);
@@ -171,7 +168,7 @@ export default function Navbar() {
     <header className={`saptta-navbar${scrolled ? ' saptta-navbar--scrolled' : ''}`}>
       <div className="saptta-navbar__inner">
         <Link to="/" className="saptta-navbar__logo" aria-label="Saptta home">
-          <SapttaLogo />
+          <SapttaLogo size="large" />
         </Link>
 
         {isDesktop && (
@@ -227,7 +224,6 @@ export default function Navbar() {
         )}
 
         <div className="saptta-navbar__actions">
-          {isDesktop && <ThemeToggle />}
           {isDesktop &&
             (isAuthenticated ? (
               <button type="button" className="saptta-navbar__cta" onClick={() => navigate('/app')}>
@@ -245,12 +241,9 @@ export default function Navbar() {
             ))}
 
           {!isDesktop && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <ThemeToggle />
-              <Button type="text" className="saptta-navbar__menu-btn" onClick={() => setDrawerOpen(true)} aria-label="Open menu">
-                ☰
-              </Button>
-            </div>
+            <Button type="text" className="saptta-navbar__menu-btn" onClick={() => setDrawerOpen(true)} aria-label="Open menu">
+              ☰
+            </Button>
           )}
         </div>
       </div>
@@ -261,13 +254,13 @@ export default function Navbar() {
         placement="right"
         width={300}
         closable={false}
-        styles={{ 
-          body: { padding: 0, background: isDark ? 'var(--color-bg-container)' : '#FFFFFF' }, 
-          header: { background: isDark ? 'var(--color-bg-container)' : '#FFFFFF', borderBottom: isDark ? '1px solid var(--color-border)' : '1px solid #EAECEF' } 
+        styles={{
+          body: { padding: 0, background: '#FFFFFF' },
+          header: { background: '#FFFFFF', borderBottom: '1px solid #EAECEF' },
         }}
         title={
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-            <SapttaLogo />
+            <SapttaLogo size="large" />
             <Button type="text" onClick={() => setDrawerOpen(false)} className="saptta-navbar__menu-btn" aria-label="Close menu">
               ✕
             </Button>
@@ -306,7 +299,7 @@ export default function Navbar() {
                     <Chevron open={isExpanded} />
                   </button>
                   {isExpanded && (
-                    <div style={{ background: isDark ? 'var(--color-bg-base)' : '#F8FAFC', borderLeft: isDark ? '3px solid var(--color-primary)' : '3px solid #1E2A78' }}>
+                    <div style={{ background: '#F8FAFC', borderLeft: '3px solid #1E2A78' }}>
                       {items.map((item) => {
                         const active = location.pathname === item.key || location.pathname.startsWith(`${item.key}/`);
                         return (
@@ -319,9 +312,9 @@ export default function Navbar() {
                               padding: '11px 24px 11px 28px',
                               fontSize: 14,
                               fontWeight: active ? 600 : 400,
-                              color: active ? (isDark ? 'var(--color-primary)' : '#1E2A78') : (isDark ? 'var(--color-text-secondary)' : '#374151'),
+                              color: active ? '#1E2A78' : '#374151',
                               textDecoration: 'none',
-                              background: active ? (isDark ? 'var(--color-border)' : '#EEF2FF') : 'transparent',
+                              background: active ? '#EEF2FF' : 'transparent',
                             }}
                           >
                             <div style={{ lineHeight: 1.3 }}>{item.label}</div>
@@ -345,10 +338,10 @@ export default function Navbar() {
                   padding: '14px 24px',
                   fontSize: 15,
                   fontWeight: active ? 600 : 500,
-                  color: active ? (isDark ? 'var(--color-primary)' : '#1E2A78') : (isDark ? 'var(--color-text-secondary)' : '#4B5563'),
-                  background: active ? (isDark ? 'var(--color-border)' : '#F4F6FC') : 'transparent',
+                  color: active ? '#1E2A78' : '#4B5563',
+                  background: active ? '#F4F6FC' : 'transparent',
                   textDecoration: 'none',
-                  borderLeft: `3px solid ${active ? (isDark ? 'var(--color-primary)' : '#1E2A78') : 'transparent'}`,
+                  borderLeft: `3px solid ${active ? '#1E2A78' : 'transparent'}`,
                 }}
               >
                 {link.label}

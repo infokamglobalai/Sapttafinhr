@@ -1,11 +1,30 @@
 import { useState } from 'react';
-import { Form, Input, Button, Steps, Tag, message } from 'antd';
+import { Form, Input, Button, message } from 'antd';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { CheckCircleFilled } from '@ant-design/icons';
-import { SapttaLogo } from '../components/layout/Navbar';
-import ScrollReveal from '../components/shared/ScrollReveal';
+import { CheckCircleOutlined } from '@ant-design/icons';
 import { useAuth } from '../contexts/AuthContext';
-import { PLANS } from '../types';
+import { PLANS, type Plan } from '../types';
+
+const TRUST_POINTS = [
+  '14-day free trial on every plan',
+  'No credit card required to start',
+  'India-compliant HR & finance stack',
+  'Setup wizard included after signup',
+];
+
+function formatPrice(amount: number) {
+  return new Intl.NumberFormat('en-IN').format(amount);
+}
+
+function planProductLabel(plan: Plan) {
+  if (plan.products.length > 1) return 'HRMS + Finance';
+  return plan.products[0] === 'hrms' ? 'HRMS' : 'Finance';
+}
+
+function planProductModifier(plan: Plan) {
+  if (plan.products.length > 1) return 'signup-page__plan-badge--complete';
+  return plan.products[0] === 'hrms' ? 'signup-page__plan-badge--hrms' : 'signup-page__plan-badge--finance';
+}
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -17,14 +36,20 @@ export default function Signup() {
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(preselectedPlanId);
   const [step, setStep] = useState(preselectedPlanId ? 1 : 0);
 
-  const selectedPlan = PLANS.find(p => p.id === selectedPlanId);
+  const selectedPlan = PLANS.find((p) => p.id === selectedPlanId);
 
   const handlePlanSelect = (planId: string) => {
     setSelectedPlanId(planId);
     setStep(1);
   };
 
-  const handleSubmit = async (values: { email: string; password: string; firstName: string; lastName: string; companyName: string }) => {
+  const handleSubmit = async (values: {
+    email: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+    companyName: string;
+  }) => {
     if (!selectedPlanId) return;
     try {
       await signup({
@@ -35,8 +60,6 @@ export default function Signup() {
         planId: selectedPlanId,
         companyName: values.companyName,
       });
-      // In dev mode the backend activates the subscription immediately, so go
-      // straight to the product switcher. In production send to billing first.
       message.success('Account created! Welcome to Saptta.');
       navigate(import.meta.env.DEV ? '/app' : '/app/billing');
     } catch (err: unknown) {
@@ -48,242 +71,228 @@ export default function Signup() {
     }
   };
 
-  const formatPrice = (amount: number) => new Intl.NumberFormat('en-IN').format(amount);
-
   return (
-    <div className="signup-page" style={{
-      minHeight: '100vh',
-      display: 'flex',
-      background: '#FAFAFC',
-      position: 'relative',
-      overflow: 'hidden',
-    }}>
-      {/* Background */}
-      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-        <div style={{ width: 600, height: 600, position: 'absolute', top: -200, right: -200, background: 'radial-gradient(circle, rgba(255,109,0,0.06) 0%, transparent 70%)', filter: 'blur(80px)' }} />
-        <div style={{ width: 500, height: 500, position: 'absolute', bottom: -200, left: -200, background: 'radial-gradient(circle, rgba(138,43,226,0.04) 0%, transparent 70%)', filter: 'blur(80px)' }} />
-      </div>
-
-      <div className="signup-page__inner" style={{ width: '100%', maxWidth: 1100, margin: '0 auto', padding: '40px 24px', position: 'relative', zIndex: 2 }}>
-        {/* Header */}
-        <div className="signup-page__header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 40 }}>
-          <Link to="/" style={{ textDecoration: 'none' }}>
-            <SapttaLogo />
+    <div className="signup-page">
+      <aside className="signup-page__brand">
+        <div className="signup-page__brand-inner">
+          <Link to="/" className="signup-page__logo-link" aria-label="Saptta home">
+            <img src="/logo.jpeg" alt="Saptta" className="signup-page__logo" />
           </Link>
-          <div style={{ fontSize: 14, color: 'var(--color-text-secondary)' }}>
-            Already have an account?{' '}
-            <Link to="/login" style={{ color: '#FF6D00', fontWeight: 600 }}>Sign in</Link>
-          </div>
-        </div>
 
-        {/* Steps indicator */}
-        <div style={{ maxWidth: 500, margin: '0 auto 40px' }}>
-          <Steps
-            current={step}
-            size="small"
-            items={[
-              { title: 'Choose Plan' },
-              { title: 'Create Account' },
-            ]}
-          />
-        </div>
+          <div className="signup-page__brand-copy">
+            <p className="signup-page__eyebrow">Start your free trial</p>
+            <h1 className="signup-page__headline">
+              HR &amp; finance, ready in minutes.
+            </h1>
+            <p className="signup-page__subline">
+              Pick a plan, create your workspace, and onboard your team with guided setup for payroll, GST, and compliance.
+            </p>
 
-        {/* Step 0: Plan Selection */}
-        {step === 0 && (
-          <ScrollReveal animation="fade-in-up">
-            <div style={{ textAlign: 'center', marginBottom: 40 }}>
-              <h1 style={{ fontSize: 28, fontWeight: 800, color: 'var(--color-text-primary)', marginBottom: 8, letterSpacing: '-1px' }}>
-                Choose your plan
-              </h1>
-              <p style={{ color: 'var(--color-text-secondary)', fontSize: 15 }}>
-                14-day free trial on all plans. No credit card required.
-              </p>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, maxWidth: 1000, margin: '0 auto' }}>
-              {PLANS.map(plan => (
-                <div
-                  key={plan.id}
-                  onClick={() => handlePlanSelect(plan.id)}
-                  style={{
-                    background: plan.highlighted ? 'linear-gradient(135deg, #1A1A2E, #0F3460)' : '#FFFFFF',
-                    borderRadius: 16,
-                    padding: '24px 20px',
-                    border: selectedPlanId === plan.id ? '2px solid #FF6D00' : plan.highlighted ? '1px solid rgba(255,109,0,0.3)' : '1px solid var(--color-border)',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    position: 'relative',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 32px rgba(10,17,40,0.1)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
-                >
-                  {plan.badge && (
-                    <span style={{ position: 'absolute', top: -10, right: 16, background: 'linear-gradient(135deg, #FF6D00, #FFA000)', color: 'white', fontSize: 10, fontWeight: 800, padding: '3px 10px', borderRadius: 10, textTransform: 'uppercase' }}>
-                      {plan.badge}
-                    </span>
-                  )}
-                  <Tag
-                    color={plan.products.includes('hrms') && plan.products.includes('finance') ? 'purple' : plan.products[0] === 'hrms' ? 'orange' : 'green'}
-                    style={{ fontSize: 10, fontWeight: 700, borderRadius: 8, marginBottom: 12 }}
-                  >
-                    {plan.products.length > 1 ? 'HRMS + Finance' : plan.products[0].toUpperCase()}
-                  </Tag>
-                  <h4 style={{ fontSize: 16, fontWeight: 700, color: plan.highlighted ? '#FFFFFF' : 'var(--color-text-primary)', marginBottom: 4 }}>
-                    {plan.name}
-                  </h4>
-                  <p style={{ fontSize: 12, color: plan.highlighted ? 'rgba(255,255,255,0.5)' : 'var(--color-text-secondary)', marginBottom: 12, lineHeight: 1.4 }}>
-                    {plan.description}
-                  </p>
-                  <div>
-                    <span style={{ fontSize: 28, fontWeight: 900, color: plan.highlighted ? '#FF6D00' : 'var(--color-text-primary)', letterSpacing: '-1px' }}>
-                      ₹{formatPrice(Math.round(plan.annualPrice / 12))}
-                    </span>
-                    <span style={{ color: plan.highlighted ? 'rgba(255,255,255,0.4)' : 'var(--color-text-muted)', fontSize: 13 }}>/mo</span>
-                  </div>
-                </div>
+            <ul className="signup-page__trust">
+              {TRUST_POINTS.map((item) => (
+                <li key={item}>
+                  <CheckCircleOutlined className="signup-page__trust-icon" aria-hidden />
+                  <span>{item}</span>
+                </li>
               ))}
-            </div>
-          </ScrollReveal>
-        )}
+            </ul>
+          </div>
 
-        {/* Step 1: Account Creation Form */}
-        {step === 1 && (
-          <div style={{ display: 'flex', gap: 40, flexWrap: 'wrap', justifyContent: 'center' }}>
-            <ScrollReveal animation="fade-in-left">
-              <div style={{
-                width: '100%',
-                maxWidth: 480,
-                background: '#FFFFFF',
-                borderRadius: 20,
-                padding: '40px 36px',
-                border: '1px solid var(--color-border)',
-                boxShadow: '0 8px 48px rgba(10,17,40,0.04)',
-              }}>
-                <h2 style={{ fontSize: 24, fontWeight: 800, color: 'var(--color-text-primary)', marginBottom: 4, letterSpacing: '-0.5px' }}>
-                  Create your account
-                </h2>
-                <p style={{ color: 'var(--color-text-secondary)', fontSize: 14, marginBottom: 28 }}>
-                  Set up your admin account to get started.
-                </p>
+          <p className="signup-page__copyright">
+            © {new Date().getFullYear()} Saptta Tech Solutions Pvt. Ltd.
+          </p>
+        </div>
+      </aside>
 
-                <Form form={form} layout="vertical" onFinish={handleSubmit} requiredMark={false}>
-                  <div className="signup-page__name-row" style={{ display: 'flex', gap: 12 }}>
-                    <Form.Item
-                      name="firstName"
-                      label={<span style={{ fontWeight: 600, fontSize: 13 }}>First Name</span>}
-                      rules={[{ required: true, message: 'Required' }]}
-                      style={{ flex: 1 }}
-                    >
-                      <Input placeholder="John" size="large" style={{ borderRadius: 8 }} />
-                    </Form.Item>
-                    <Form.Item
-                      name="lastName"
-                      label={<span style={{ fontWeight: 600, fontSize: 13 }}>Last Name</span>}
-                      rules={[{ required: true, message: 'Required' }]}
-                      style={{ flex: 1 }}
-                    >
-                      <Input placeholder="Doe" size="large" style={{ borderRadius: 8 }} />
-                    </Form.Item>
-                  </div>
+      <main className="signup-page__main">
+        <div className="signup-page__shell">
+          <Link to="/" className="signup-page__logo-link signup-page__logo-link--mobile" aria-label="Saptta home">
+            <img src="/logo.jpeg" alt="Saptta" className="signup-page__logo" />
+          </Link>
 
-                  <Form.Item
-                    name="companyName"
-                    label={<span style={{ fontWeight: 600, fontSize: 13 }}>Company Name</span>}
-                    rules={[{ required: true, message: 'Enter your company name' }]}
-                  >
-                    <Input placeholder="Acme Pvt Ltd" size="large" style={{ borderRadius: 8 }} />
-                  </Form.Item>
-
-                  <Form.Item
-                    name="email"
-                    label={<span style={{ fontWeight: 600, fontSize: 13 }}>Work Email</span>}
-                    rules={[{ required: true, message: 'Enter your email' }, { type: 'email', message: 'Enter a valid email' }]}
-                  >
-                    <Input placeholder="you@company.com" size="large" style={{ borderRadius: 8 }} />
-                  </Form.Item>
-
-                  <Form.Item
-                    name="password"
-                    label={<span style={{ fontWeight: 600, fontSize: 13 }}>Password</span>}
-                    rules={[{ required: true, message: 'Create a password' }, { min: 8, message: 'Minimum 8 characters' }]}
-                  >
-                    <Input.Password placeholder="Min 8 characters" size="large" style={{ borderRadius: 8 }} />
-                  </Form.Item>
-
-                  <Form.Item>
-                    <Button
-                      type="primary" htmlType="submit" size="large" block loading={isLoading}
-                      style={{
-                        fontWeight: 700, height: 50, borderRadius: 10, fontSize: 15,
-                        background: 'linear-gradient(135deg, #FF9800, #FF6D00)',
-                        border: 'none',
-                        boxShadow: '0 8px 24px rgba(255,109,0,0.25)',
-                      }}
-                    >
-                      Create Account & Set Up Company
-                    </Button>
-                  </Form.Item>
-                </Form>
-
-                <Button type="link" onClick={() => setStep(0)} style={{ color: 'var(--color-text-secondary)', padding: 0, fontSize: 13 }}>
-                  ← Change plan
-                </Button>
+          <header className="signup-page__topbar">
+            <div className="signup-page__steps" aria-label="Signup progress">
+              <div className={`signup-page__step${step >= 0 ? ' signup-page__step--active' : ''}${step > 0 ? ' signup-page__step--done' : ''}`}>
+                <span className="signup-page__step-num">1</span>
+                <span className="signup-page__step-label">Choose plan</span>
               </div>
-            </ScrollReveal>
+              <div className="signup-page__step-line" aria-hidden />
+              <div className={`signup-page__step${step >= 1 ? ' signup-page__step--active' : ''}`}>
+                <span className="signup-page__step-num">2</span>
+                <span className="signup-page__step-label">Create account</span>
+              </div>
+            </div>
+            <p className="signup-page__signin">
+              Already have an account?{' '}
+              <Link to="/login">Sign in</Link>
+            </p>
+          </header>
 
-            {/* Selected plan summary sidebar */}
-            {selectedPlan && (
-              <ScrollReveal animation="fade-in-right">
-                <div style={{
-                  width: 280,
-                  background: '#FFFFFF',
-                  borderRadius: 20,
-                  padding: '28px 24px',
-                  border: '1px solid var(--color-border)',
-                  boxShadow: '0 4px 24px rgba(10,17,40,0.04)',
-                  alignSelf: 'flex-start',
-                  position: 'sticky',
-                  top: 100,
-                }}>
-                  <Tag
-                    color={selectedPlan.highlighted ? 'purple' : selectedPlan.products[0] === 'hrms' ? 'orange' : 'green'}
-                    style={{ fontSize: 10, fontWeight: 700, borderRadius: 8, marginBottom: 12 }}
+          {step === 0 && (
+            <section className="signup-page__section" aria-labelledby="signup-plans-heading">
+              <header className="signup-page__section-header signup-page__section-header--center">
+                <h2 id="signup-plans-heading" className="signup-page__title">
+                  Choose your plan
+                </h2>
+                <p className="signup-page__subtitle">
+                  Billed annually · prices shown per month · switch plans anytime
+                </p>
+              </header>
+
+              <div className="signup-page__plans">
+                {PLANS.map((plan) => (
+                  <button
+                    key={plan.id}
+                    type="button"
+                    className={`signup-page__plan-card${plan.highlighted ? ' signup-page__plan-card--featured' : ''}${selectedPlanId === plan.id ? ' signup-page__plan-card--selected' : ''}`}
+                    onClick={() => handlePlanSelect(plan.id)}
                   >
-                    {selectedPlan.products.length > 1 ? 'HRMS + Finance' : selectedPlan.products[0].toUpperCase()}
-                  </Tag>
-                  <h4 style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>{selectedPlan.name}</h4>
-                  <div style={{ marginBottom: 20 }}>
-                    <span style={{ fontSize: 32, fontWeight: 900, color: '#FF6D00' }}>
-                      ₹{formatPrice(Math.round(selectedPlan.annualPrice / 12))}
+                    {plan.badge && (
+                      <span className="signup-page__plan-ribbon">{plan.badge}</span>
+                    )}
+                    <span className={`signup-page__plan-badge ${planProductModifier(plan)}`}>
+                      {planProductLabel(plan)}
                     </span>
-                    <span style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>/mo</span>
-                  </div>
-                  <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 16 }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      Included
+                    <h3 className="signup-page__plan-name">{plan.name}</h3>
+                    <p className="signup-page__plan-desc">{plan.description}</p>
+                    <div className="signup-page__plan-price">
+                      <span className="signup-page__plan-amount">₹{formatPrice(Math.round(plan.annualPrice / 12))}</span>
+                      <span className="signup-page__plan-period">/mo</span>
                     </div>
-                    {selectedPlan.features.slice(0, 6).map(f => (
-                      <div key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 6, marginBottom: 8 }}>
-                        <CheckCircleFilled style={{ color: '#10B981', fontSize: 12, marginTop: 2 }} />
-                        <span style={{ fontSize: 12, color: 'var(--color-text-secondary)', lineHeight: 1.4 }}>{f}</span>
-                      </div>
-                    ))}
-                    {selectedPlan.features.length > 6 && (
-                      <div style={{ fontSize: 12, color: '#FF6D00', fontWeight: 600, marginTop: 8 }}>
-                        +{selectedPlan.features.length - 6} more features
-                      </div>
+                    <ul className="signup-page__plan-features">
+                      {plan.features.slice(0, 4).map((f) => (
+                        <li key={f}>{f}</li>
+                      ))}
+                    </ul>
+                    <span className="signup-page__plan-cta">Select plan</span>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {step === 1 && selectedPlan && (
+            <section className="signup-page__section signup-page__section--account" aria-labelledby="signup-account-heading">
+              <div className="signup-page__account-grid">
+                <div className="signup-page__form-card">
+                  <header className="signup-page__section-header">
+                    <h2 id="signup-account-heading" className="signup-page__title">
+                      Create your account
+                    </h2>
+                    <p className="signup-page__subtitle">
+                      You&apos;re signing up for <strong>{selectedPlan.name}</strong>
+                    </p>
+                  </header>
+
+                  <Form form={form} layout="vertical" onFinish={handleSubmit} requiredMark={false} className="signup-page__form">
+                    <div className="signup-page__name-row">
+                      <Form.Item
+                        name="firstName"
+                        label="First name"
+                        rules={[{ required: true, message: 'Required' }]}
+                      >
+                        <Input placeholder="John" size="large" />
+                      </Form.Item>
+                      <Form.Item
+                        name="lastName"
+                        label="Last name"
+                        rules={[{ required: true, message: 'Required' }]}
+                      >
+                        <Input placeholder="Doe" size="large" />
+                      </Form.Item>
+                    </div>
+
+                    <Form.Item
+                      name="companyName"
+                      label="Company name"
+                      rules={[{ required: true, message: 'Enter your company name' }]}
+                    >
+                      <Input placeholder="Acme Pvt Ltd" size="large" />
+                    </Form.Item>
+
+                    <Form.Item
+                      name="email"
+                      label="Work email"
+                      rules={[
+                        { required: true, message: 'Enter your email' },
+                        { type: 'email', message: 'Enter a valid email' },
+                      ]}
+                    >
+                      <Input placeholder="you@company.com" size="large" />
+                    </Form.Item>
+
+                    <Form.Item
+                      name="password"
+                      label="Password"
+                      rules={[
+                        { required: true, message: 'Create a password' },
+                        { min: 8, message: 'Minimum 8 characters' },
+                      ]}
+                    >
+                      <Input.Password placeholder="Minimum 8 characters" size="large" />
+                    </Form.Item>
+
+                    <Button
+                      type="primary"
+                      htmlType="submit"
+                      size="large"
+                      block
+                      loading={isLoading}
+                      className="signup-page__submit"
+                    >
+                      Create account &amp; continue
+                    </Button>
+                  </Form>
+
+                  <button type="button" className="signup-page__back" onClick={() => setStep(0)}>
+                    ← Change plan
+                  </button>
+
+                  <p className="signup-page__legal">
+                    By creating an account you agree to our{' '}
+                    <Link to="/terms">Terms</Link> and <Link to="/privacy">Privacy Policy</Link>.
+                  </p>
+                </div>
+
+                <aside className="signup-page__summary" aria-label="Selected plan summary">
+                  <span className={`signup-page__plan-badge ${planProductModifier(selectedPlan)}`}>
+                    {planProductLabel(selectedPlan)}
+                  </span>
+                  <h3 className="signup-page__summary-name">{selectedPlan.name}</h3>
+                  <p className="signup-page__summary-desc">{selectedPlan.description}</p>
+
+                  <div className="signup-page__summary-price">
+                    <span className="signup-page__plan-amount">₹{formatPrice(Math.round(selectedPlan.annualPrice / 12))}</span>
+                    <span className="signup-page__plan-period">/mo billed annually</span>
+                  </div>
+
+                  <div className="signup-page__summary-trial">
+                    <strong>14-day free trial</strong>
+                    <span>No credit card required</span>
+                  </div>
+
+                  <div className="signup-page__summary-features">
+                    <p className="signup-page__summary-label">What&apos;s included</p>
+                    <ul>
+                      {selectedPlan.features.slice(0, 8).map((f) => (
+                        <li key={f}>
+                          <CheckCircleOutlined aria-hidden />
+                          <span>{f}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    {selectedPlan.features.length > 8 && (
+                      <p className="signup-page__summary-more">
+                        +{selectedPlan.features.length - 8} more features
+                      </p>
                     )}
                   </div>
-                  <div style={{ marginTop: 20, padding: '12px 16px', background: 'rgba(0,200,83,0.06)', borderRadius: 10, border: '1px solid rgba(0,200,83,0.12)' }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: '#00C853' }}>14-day free trial</div>
-                    <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 2 }}>No credit card required</div>
-                  </div>
-                </div>
-              </ScrollReveal>
-            )}
-          </div>
-        )}
-      </div>
+                </aside>
+              </div>
+            </section>
+          )}
+        </div>
+      </main>
     </div>
   );
 }

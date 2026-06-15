@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { message } from 'antd';
 import { SapttaLogo } from './Navbar';
+import { SAPTTA_PHONES } from '../../data/contact-info';
 import { openCookieSettings } from '../legal/CookieConsent';
 
 /* ─── Vector SVGs for Contact details ─── */
@@ -325,10 +326,12 @@ export default function Footer() {
 
             {/* Contact details */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24, fontSize: 13.5 }}>
-              <a href="tel:+919900007072" className="pro-contact-link">
-                <span style={{ display: 'inline-flex', color: '#64748B' }}><PhoneIcon /></span>
-                <span>+91 99 0000 7072</span>
-              </a>
+              {SAPTTA_PHONES.map((phone) => (
+                <a key={phone.tel} href={`tel:${phone.tel}`} className="pro-contact-link">
+                  <span style={{ display: 'inline-flex', color: '#64748B' }}><PhoneIcon /></span>
+                  <span>{phone.display}</span>
+                </a>
+              ))}
               <a href="mailto:info@saptta.com" className="pro-contact-link">
                 <span style={{ display: 'inline-flex', color: '#64748B' }}><MailIcon /></span>
                 <span>info@saptta.com</span>
