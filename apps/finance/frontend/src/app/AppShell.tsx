@@ -341,7 +341,7 @@ export default function AppShell() {
 
       {/* SECONDARY: section panel */}
       {showSecondary && (
-        <aside className="relative z-10 hidden w-[230px] shrink-0 flex-col border-r border-ink-150 bg-ink-50/70 backdrop-blur-md py-6 md:flex animate-slide-in-left animation-delay-75">
+        <aside className="relative z-10 hidden w-[230px] shrink-0 flex-col border-r border-ink-150 bg-ink-50/70 backdrop-blur-md py-6 md:flex animate-slide-in-left">
           <div className="px-6 pb-4 border-b border-ink-200/50 mb-4">
             <div className="text-[10px] font-bold uppercase tracking-widest text-brand-600">{activeSection!.label}</div>
           </div>
@@ -451,7 +451,7 @@ export default function AppShell() {
         </header>
 
         <main className="flex-1 overflow-x-hidden overflow-y-auto p-6 md:p-8 bg-ink-50/30">
-          <div key={route} className="animate-fade-in-up">
+          <div key={route} className="animate-fade-in">
             {route === 'dashboard' && <Dashboard onGo={(r) => go(r as RouteId)} />}
             {route === 'parties' && <PartiesPage />}
             {route === 'items' && <ItemsPage />}

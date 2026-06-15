@@ -25,9 +25,9 @@ export default function Modal({ open, onClose, title, size = 'md', children }: P
 
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/50 p-4 backdrop-blur-md" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto bg-transparent" onClick={onClose}>
       <div
-        className={`mt-12 w-full ${SIZE[size]} rounded-2xl bg-white shadow-2xl border border-ink-200/80 overflow-hidden animate-in zoom-in-95 duration-200`}
+        className={`w-full ${SIZE[size]} rounded-2xl bg-white shadow-2xl border border-ink-200/80 overflow-hidden animate-in zoom-in-95 duration-200 my-auto`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-ink-150 bg-ink-50/60 px-6 py-4.5">

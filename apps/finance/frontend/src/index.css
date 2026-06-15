@@ -118,22 +118,22 @@ h3 {
 @keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(16px);
+    transform: translate3d(0, 4px, 0);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translate3d(0, 0, 0);
   }
 }
 
 @keyframes slideInLeft {
   from {
     opacity: 0;
-    transform: translateX(-24px);
+    transform: translate3d(-6px, 0, 0);
   }
   to {
     opacity: 1;
-    transform: translateX(0);
+    transform: translate3d(0, 0, 0);
   }
 }
 
@@ -147,15 +147,18 @@ h3 {
 }
 
 .animate-fade-in-up {
-  animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: fadeInUp 0.16s cubic-bezier(0.215, 0.61, 0.355, 1) both;
+  will-change: transform, opacity;
 }
 
 .animate-slide-in-left {
-  animation: slideInLeft 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: slideInLeft 0.18s cubic-bezier(0.215, 0.61, 0.355, 1) both;
+  will-change: transform, opacity;
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.3s ease-out both;
+  animation: fadeIn 0.12s cubic-bezier(0.215, 0.61, 0.355, 1) both;
+  will-change: opacity;
 }
 
 .animation-delay-75 {
