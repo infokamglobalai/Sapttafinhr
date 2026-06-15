@@ -14,59 +14,32 @@ from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.conf import settings
 
-from .forms import LoginForm, SetPasswordForm
-from .ratelimit import is_locked_out, record_failure, clear_failures
+from .forms import SetPasswordForm
+from .platform import platform_login_url, platform_logout_url
+from .ratelimit import is_locked_out, record_failure  # used by password reset
 
 User = get_user_model()
 
 
-@require_http_methods(["GET", "POST"])
+@require_http_methods(["GET"])
 def login_view(request):
+    """HR has no login of its own — send the user to the platform single sign-on.
+
+    Authenticated users go straight to their dashboard; everyone else is bounced
+    to the platform login, which signs them in and hands them back via SSO.
+    """
     if request.user.is_authenticated:
         return redirect("tenants:dashboard")
-
-    submitted_email = (request.POST.get("email") or "").strip().lower()
-
-    # Check lockout BEFORE validating form so we don't leak whether the email is real
-    if request.method == "POST" and submitted_email and is_locked_out("login", request, submitted_email):
-        messages.error(
-            request,
-            "Too many failed attempts. Try again in 15 minutes, or use the forgot-password link.",
-        )
-        return render(request, "auth/login.html", {"form": LoginForm(request=request)})
-
-    form = LoginForm(request=request, data=request.POST or None)
-
-    if request.method == "POST":
-        if form.is_valid():
-            user = form.get_user()
-            remember = form.cleaned_data.get("remember_me")
-            if not remember:
-                request.session.set_expiry(0)  # session expires on browser close
-            clear_failures("login", request, submitted_email)
-            login(request, user, backend="apps.accounts.backends.TenantAuthBackend")
-            next_url = request.GET.get("next", "tenants:dashboard")
-            return redirect(next_url)
-        else:
-            # Form failed — record the failed attempt
-            if submitted_email:
-                attempts, remaining = record_failure(
-                    "login", request, submitted_email, max_attempts=5,
-                )
-                if remaining <= 2 and remaining > 0:
-                    messages.warning(
-                        request,
-                        f"{remaining} attempt{'s' if remaining != 1 else ''} remaining "
-                        f"before this account is temporarily locked.",
-                    )
-
-    return render(request, "auth/login.html", {"form": form})
+    return redirect(platform_login_url("hr"))
 
 
 @require_http_methods(["POST"])
 def logout_view(request):
+    """Full sign-out. Clears the HR session, then hands off to the platform's
+    single logout endpoint so the platform session (a different origin, which HR
+    can't clear) is ended too — landing the user on the login page."""
     logout(request)
-    return redirect("accounts:login")
+    return redirect(platform_logout_url())
 
 
 @login_required

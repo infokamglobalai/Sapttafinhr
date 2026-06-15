@@ -1,5 +1,4 @@
 import datetime
-import json
 from decimal import Decimal
 
 from django.shortcuts import render, redirect
@@ -198,9 +197,12 @@ def _hr_admin_analytics(tenant, today, month_start):
 
     return {
         "kpis": kpis,
-        "dept_chart_json": json.dumps(dept_chart),
-        "gender_chart_json": json.dumps(gender_chart),
-        "attendance_trend_json": json.dumps(attendance_trend),
+        # Pass raw dicts; templates render them via {% ... json_script %}, which
+        # HTML-escapes <, >, & so tenant-controlled labels (e.g. department names)
+        # can't break out of the <script> context. See the |safe XSS fix.
+        "dept_chart": dept_chart,
+        "gender_chart": gender_chart,
+        "attendance_trend": attendance_trend,
         "recent_runs": recent_runs,
         "cycle_progress": cycle_progress,
         "recent_joiners": recent_joiners,
@@ -283,8 +285,8 @@ def _manager_analytics(tenant, user, today, month_start):
         "kpis": kpis,
         "team": team,
         "active_cycle": active_cycle,
-        "team_attendance_chart_json": json.dumps(team_attendance_chart),
-        "team_present_chart_json": json.dumps(team_present_chart),
+        "team_attendance_chart": team_attendance_chart,
+        "team_present_chart": team_present_chart,
         "pending_leaves": pending_leaves,
     }
 
@@ -364,8 +366,8 @@ def _employee_analytics(tenant, user, today, month_start):
 
     return {
         "kpis": kpis,
-        "balance_chart_json": json.dumps(balance_chart),
-        "att_chart_json": json.dumps(att_chart),
+        "balance_chart": balance_chart,
+        "att_chart": att_chart,
         "balances": balances,
         "last_payslips": last_payslips,
         "recent_reviews": recent_reviews,

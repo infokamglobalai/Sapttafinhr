@@ -24,6 +24,16 @@ CSRF_TRUSTED_ORIGINS = env.list(  # noqa: F405
 if SECRET_KEY == "insecure-dev-key-change-me":  # noqa: F405
     raise RuntimeError("DJANGO_SECRET_KEY must be set to a strong value in production.")
 
+# The FIN↔HR SSO secret signs cross-app handoff tokens; a known value lets anyone
+# forge them (account takeover). Empty is allowed (SSO simply disabled), but the
+# dev default must never reach prod. Keep in sync with HR's production settings.
+if SSO_SHARED_SECRET == "dev-sso-shared-secret-change-me":  # noqa: F405
+    raise RuntimeError("SSO_SHARED_SECRET must be a strong value in production (dev default detected).")
+
+# Prod uses the explicit CORS_ALLOWED_ORIGINS allowlist only — drop the dev
+# *.localhost:5173 regex so it can't widen the allowlist in production.
+CORS_ALLOWED_ORIGIN_REGEXES = []  # noqa: F405
+
 # ===== Sentry — error tracking + performance monitoring =====
 # Enabled only when SENTRY_DSN is set, so prod still boots without it.
 SENTRY_DSN = env("SENTRY_DSN", default="")  # noqa: F405

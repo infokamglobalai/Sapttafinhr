@@ -468,10 +468,12 @@
   </div>
 </div>
 
+{{ dept_chart|json_script:"dept-chart-data" }}
+{{ attendance_trend|json_script:"attendance-trend-data" }}
 <script>
   document.addEventListener('DOMContentLoaded', () => {
-    const deptData = {{ dept_chart_json|safe }};
-    const attTrend = {{ attendance_trend_json|safe }};
+    const deptData = JSON.parse(document.getElementById('dept-chart-data').textContent);
+    const attTrend = JSON.parse(document.getElementById('attendance-trend-data').textContent);
 
     new Chart(document.getElementById('deptChart'), {
       type: 'doughnut',
@@ -749,10 +751,12 @@
   </div>
 </div>
 
+{{ team_present_chart|json_script:"team-present-data" }}
+{{ team_attendance_chart|json_script:"team-attendance-data" }}
 <script>
   document.addEventListener('DOMContentLoaded', () => {
-    const teamPresent = {{ team_present_chart_json|safe }};
-    const teamAtt = {{ team_attendance_chart_json|safe }};
+    const teamPresent = JSON.parse(document.getElementById('team-present-data').textContent);
+    const teamAtt = JSON.parse(document.getElementById('team-attendance-data').textContent);
 
     const tpCtx = document.getElementById('teamPresentChart').getContext('2d');
     const tpGrad = tpCtx.createLinearGradient(0, 0, 0, 220);
@@ -1049,9 +1053,10 @@
   </div>
 </div>
 
+{{ att_chart|json_script:"att-chart-data" }}
 <script>
   document.addEventListener('DOMContentLoaded', () => {
-    const attData = {{ att_chart_json|safe }};
+    const attData = JSON.parse(document.getElementById('att-chart-data').textContent);
     new Chart(document.getElementById('attChart'), {
       type: 'bar',
       data: {

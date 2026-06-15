@@ -47,6 +47,15 @@ class ImportStatementView(APIView):
         file = request.FILES.get("file")
         if not file:
             raise ValidationError({"file": "required"})
+        # Reject oversized / wrong-type uploads before reading into memory.
+        import os
+        _ALLOWED = {".csv", ".xls", ".xlsx", ".pdf", ".ofx", ".txt"}
+        _MAX_BYTES = 15 * 1024 * 1024
+        ext = os.path.splitext(file.name or "")[1].lower()
+        if ext not in _ALLOWED:
+            raise ValidationError({"file": f"Unsupported file type '{ext}'. Allowed: csv, xls, xlsx, pdf, ofx."})
+        if (getattr(file, "size", 0) or 0) > _MAX_BYTES:
+            raise ValidationError({"file": "File too large — maximum size is 15 MB."})
         stmt = services.import_statement(
             bank_account=bank, file_bytes=file.read(),
             period_start=_date.fromisoformat(request.data["period_start"]),

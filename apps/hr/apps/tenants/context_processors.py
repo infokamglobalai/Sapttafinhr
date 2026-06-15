@@ -1,6 +1,15 @@
+from django.conf import settings
+
+
 def tenant_context(request):
     """Injects current tenant + notification unread count into every template."""
-    ctx = {"tenant": getattr(request, "tenant", None), "unread_notif_count": 0}
+    ctx = {
+        "tenant": getattr(request, "tenant", None),
+        "unread_notif_count": 0,
+        # Base URL of the Saptta platform — templates build product-switch and
+        # full-logout links against it (single auth authority).
+        "PLATFORM_BASE_URL": getattr(settings, "PLATFORM_BASE_URL", "http://localhost:8080").rstrip("/"),
+    }
     user = getattr(request, "user", None)
     if user and user.is_authenticated and getattr(user, "tenant_id", None):
         try:

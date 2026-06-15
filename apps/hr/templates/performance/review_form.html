@@ -182,6 +182,10 @@
         return;
       }
       const d = data.draft;
+      // AI output echoes reviewer-supplied notes — HTML-escape before innerHTML.
+      const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => (
+        { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+      ));
       setField('key_achievements',      d.key_achievements);
       setField('strengths',             d.strengths);
       setField('areas_for_improvement', d.areas_for_improvement);
@@ -198,13 +202,13 @@
 
       if (d.rating_rationale) {
         rating.style.display = 'block';
-        rating.innerHTML = '<strong>Suggested overall:</strong> ' + d.suggested_overall + '/5 &middot; ' + d.rating_rationale;
+        rating.innerHTML = '<strong>Suggested overall:</strong> ' + esc(d.suggested_overall) + '/5 &middot; ' + esc(d.rating_rationale);
       }
       if (d.bias_flags && d.bias_flags.length) {
         bias.style.display = 'block';
         let html = '<strong style="color:#991B1B;">Potential bias detected in your notes:</strong><ul style="margin: 6px 0 0 18px; padding: 0;">';
         d.bias_flags.forEach(f => {
-          html += `<li><code style="background:#fff;padding:1px 5px;border-radius:3px;">${f.term}</code> &mdash; ${f.explanation}</li>`;
+          html += `<li><code style="background:#fff;padding:1px 5px;border-radius:3px;">${esc(f.term)}</code> &mdash; ${esc(f.explanation)}</li>`;
         });
         html += '</ul>';
         bias.innerHTML = html;

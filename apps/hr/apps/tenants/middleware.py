@@ -48,6 +48,20 @@ class TenantMiddleware:
             except ImportError:
                 pass
 
+        # Defense-in-depth tenant guard: a logged-in tenant user must belong to
+        # the resolved tenant. Login is already tenant-scoped (TenantAuthBackend)
+        # and sessions are host-scoped (no SESSION_COOKIE_DOMAIN), so this should
+        # never trigger in practice — but it hard-stops any cross-tenant access a
+        # future view that forgets to filter by request.tenant might otherwise allow.
+        if (
+            request.user.is_authenticated
+            and not request.user.is_superuser
+            and request.tenant is not None
+            and getattr(request.user, "tenant_id", None)
+            and request.user.tenant_id != request.tenant.id
+        ):
+            return HttpResponseForbidden("You don't have access to this workspace.")
+
         if (
             request.tenant is not None
             and not self._is_exempt_path(request.path)

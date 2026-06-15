@@ -26,12 +26,13 @@ export function financeAppUrl(workspace?: string): string {
 }
 
 /** Open the real Finance product, handing off the current JWT so it's signed in. */
-export function openFinanceApp(workspace?: string): void {
+export function openFinanceApp(workspace?: string, newTab = false): void {
   const base = financeAppUrl(workspace);
   const access = getAccessToken();
   const refresh = getRefreshToken();
   const url = access && refresh ? `${base}/?handoff=${access}~${refresh}` : base;
-  window.location.assign(url);
+  if (newTab) window.open(url, '_blank');
+  else window.location.assign(url);
 }
 
 /** Open Finance in a new tab with ?install=1 so it shows the PWA install prompt. */
@@ -52,12 +53,20 @@ export function installHrApp(): void {
  * Open the real HR product, signed in via the SSO handoff (FIN JWT → HR Django
  * session). Falls back to HR's own login if SSO is unavailable.
  */
-export async function openHrApp(): Promise<void> {
+export async function openHrApp(newTab = false): Promise<void> {
+  // For a new tab we must grab the window synchronously inside the click gesture
+  // (before awaiting the SSO token) or the browser blocks the popup.
+  const pending = newTab ? window.open('', '_blank') : null;
   let url: string;
   try {
     url = await hrSsoEntryUrl('/');
   } catch {
     url = hrUrl('/');
   }
-  window.location.assign(url);
+  if (newTab) {
+    if (pending) pending.location.href = url;
+    else window.open(url, '_blank');
+  } else {
+    window.location.assign(url);
+  }
 }

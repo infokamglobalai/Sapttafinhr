@@ -104,3 +104,7 @@ class DocumentUploadForm(forms.ModelForm):
             "document_name": forms.TextInput(attrs={"class": CSS}),
             "expiry_date": forms.DateInput(attrs={"class": CSS, "type": "date"}),
         }
+
+    def clean_file(self):
+        from utils.uploads import DOCUMENT_EXTS, validate_upload
+        return validate_upload(self.cleaned_data.get("file"), allowed_exts=DOCUMENT_EXTS, max_mb=10)

@@ -38,8 +38,11 @@ import ChatbotWidget from './components/chatbot/ChatbotWidget';
 // Product switcher (hands off to the real standalone products) + account billing.
 import ProductSwitcher from './pages/app/ProductSwitcher';
 import Billing from './pages/dashboard/Billing';
+import AccessDenied from './pages/AccessDenied';
+import Launch from './pages/Launch';
+import Logout from './pages/Logout';
 
-const HIDE_CHROME_ROUTES = ['/setup', '/app', '/signup', '/login', '/forgot-password', '/reset-password', '/verify-email'];
+const HIDE_CHROME_ROUTES = ['/setup', '/app', '/signup', '/login', '/logout', '/launch', '/forgot-password', '/reset-password', '/verify-email', '/access-denied'];
 
 function AppLayout() {
   const location = useLocation();
@@ -84,6 +87,15 @@ function AppLayout() {
 
           {/* Account billing/subscription (stays in the marketing shell). */}
           <Route path="/app/billing" element={<ProtectedRoute><Billing /></ProtectedRoute>} />
+
+          {/* Wrong-workspace guard: shown when a user tries to enter a company
+              that isn't theirs (workspace mismatch detected at login). */}
+          <Route path="/access-denied" element={<ProtectedRoute><AccessDenied /></ProtectedRoute>} />
+
+          {/* Cross-product handoff dispatcher + single full-logout endpoint.
+              Products delegate "switch product" and "sign out" to the platform. */}
+          <Route path="/launch" element={<ProtectedRoute><Launch /></ProtectedRoute>} />
+          <Route path="/logout" element={<Logout />} />
 
           {/* The product UIs now live in their own apps. Old in-shell mock
               dashboard routes redirect to the switcher, which hands off. */}

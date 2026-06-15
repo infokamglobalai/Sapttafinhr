@@ -22,9 +22,10 @@ from django.conf import settings
 from django.contrib.auth import get_user_model, login
 from django.core.signing import BadSignature, SignatureExpired, TimestampSigner
 from django.http import HttpResponse, HttpResponseRedirect
-from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+
+from .platform import platform_login_url
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -93,12 +94,7 @@ def sso_login(request):
 
 
 def _fallback(request, message: str):
-    """Render the normal HR login with a note; never hard-fail the embed."""
-    from .forms import LoginForm
-
-    return render(
-        request,
-        "auth/login.html",
-        {"form": LoginForm(request=request), "sso_notice": message},
-        status=200,
-    )
+    """SSO couldn't establish a session — send the user back to the single
+    platform login (HR has no login of its own) rather than hard-failing."""
+    logger.info("SSO fallback to platform login: %s", message)
+    return HttpResponseRedirect(platform_login_url("hr"))

@@ -27,6 +27,11 @@ async function runAnomalyScan() {
   panel.innerHTML = '';
   panel.classList.add('hidden');
 
+  // Employee names are tenant-controlled — HTML-escape before innerHTML.
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
+
   try {
     const resp = await fetch('{% url "attendance:anomaly_scan" %}', {
       method: 'POST',
@@ -50,17 +55,17 @@ async function runAnomalyScan() {
         late_arrival_trend: 'Late Arrival Trend',
         overtime_abuse: 'Overtime Abuse',
       };
-      let html = `<div class="mb-2 text-sm font-semibold text-base-content/70">${data.total} anomaly(ies) detected (last 7 days) — ${data.notified} HR notification(s) sent</div>`;
+      let html = `<div class="mb-2 text-sm font-semibold text-base-content/70">${Number(data.total) || 0} anomaly(ies) detected (last 7 days) — ${Number(data.notified) || 0} HR notification(s) sent</div>`;
       html += `<div class="space-y-2">`;
       for (const a of data.anomalies) {
         const cls = sevClass[a.severity] || 'alert-warning';
         const emoji = sevEmoji[a.severity] || '🟡';
-        const label = typeLabel[a.type] || a.type;
+        const label = typeLabel[a.type] || esc(a.type);
         html += `
           <div class="alert ${cls} shadow-sm py-2">
             <div>
-              <div class="font-semibold text-sm">${emoji} ${label} — ${a.employee_name}</div>
-              <div class="text-xs mt-0.5">${a.reason}</div>
+              <div class="font-semibold text-sm">${emoji} ${label} — ${esc(a.employee_name)}</div>
+              <div class="text-xs mt-0.5">${esc(a.reason)}</div>
             </div>
           </div>`;
       }
@@ -69,7 +74,7 @@ async function runAnomalyScan() {
     }
     panel.classList.remove('hidden');
   } catch (e) {
-    panel.innerHTML = `<div class="alert alert-error shadow-sm"><span>Scan failed: ${e.message}</span></div>`;
+    panel.innerHTML = `<div class="alert alert-error shadow-sm"><span>Scan failed: ${esc(e.message)}</span></div>`;
     panel.classList.remove('hidden');
   } finally {
     btn.disabled = false;

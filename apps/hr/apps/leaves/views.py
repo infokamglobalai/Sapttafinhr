@@ -32,19 +32,31 @@ def apply_leave_view(request):
         reason = request.POST.get("reason", "")
         document = request.FILES.get("document")
 
-        try:
-            from_date = datetime.date.fromisoformat(from_date_str)
-            to_date = datetime.date.fromisoformat(to_date_str)
-            leave_req = apply_leave(
-                tenant, employee, int(leave_type_id),
-                from_date, to_date, half_day_type, reason, document
-            )
-            messages.success(request, f"Leave request submitted for {leave_req.total_days} day(s).")
-            if request.htmx:
-                return HttpResponse(headers={"HX-Redirect": "/leaves/my/"})
-            return redirect("leaves:my_leaves")
-        except (ValueError, Exception) as exc:
-            messages.error(request, str(exc))
+        file_error = None
+        if document:
+            from django.core.exceptions import ValidationError as _VErr
+            from utils.uploads import DOCUMENT_EXTS, validate_upload
+            try:
+                validate_upload(document, allowed_exts=DOCUMENT_EXTS, max_mb=10)
+            except _VErr as exc:
+                file_error = exc.messages[0] if exc.messages else "Invalid file."
+
+        if file_error:
+            messages.error(request, file_error)
+        else:
+            try:
+                from_date = datetime.date.fromisoformat(from_date_str)
+                to_date = datetime.date.fromisoformat(to_date_str)
+                leave_req = apply_leave(
+                    tenant, employee, int(leave_type_id),
+                    from_date, to_date, half_day_type, reason, document
+                )
+                messages.success(request, f"Leave request submitted for {leave_req.total_days} day(s).")
+                if request.htmx:
+                    return HttpResponse(headers={"HX-Redirect": "/leaves/my/"})
+                return redirect("leaves:my_leaves")
+            except (ValueError, Exception) as exc:
+                messages.error(request, str(exc))
 
     # Leave balance for current year
     year = timezone.localdate().year

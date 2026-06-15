@@ -21,12 +21,16 @@ export default function ProductSwitcher() {
   const products = user?.products || [];
   const [canInstall, setCanInstall] = useState(!!_deferredInstall);
 
-  // Redirect to billing if no active products (PENDING subscription).
+  // Smart landing: no products → billing; exactly one → open it directly (skip
+  // the switcher); two → fall through and show the chooser below.
   useEffect(() => {
     if (products.length === 0) {
       navigate('/app/billing', { replace: true });
+    } else if (products.length === 1) {
+      if (products.includes('finance')) openFinanceApp(user?.tenantId);
+      else if (products.includes('hrms')) openHrApp();
     }
-  }, [products, navigate]);
+  }, [products, navigate, user]);
 
   // Re-check install availability on mount.
   useEffect(() => {
@@ -78,6 +82,8 @@ export default function ProductSwitcher() {
           </p>
         </div>
 
+        {/* Owned products open directly; unsubscribed ones are shown locked with
+            an Upgrade CTA (consistent with the in-product top-bar menu). */}
         <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', justifyContent: 'center', width: '100%', maxWidth: 800 }}>
           <ProductCard
             name="fin-saptta"
@@ -89,9 +95,9 @@ export default function ProductSwitcher() {
             description="GST invoicing, ledger, banking, vendor bills, GSTR returns & financial reports."
             features={['GST / Tax Invoicing','Double-Entry Ledger','Bank Reconciliation','P&L, Balance Sheet, GSTR']}
             locked={!products.includes('finance')}
-            onOpen={() => openFinanceApp(user?.tenantId)}
+            onOpen={() => openFinanceApp(user?.tenantId, true)}
             onInstall={() => installFinanceApp(user?.tenantId)}
-            onUpgrade={() => navigate('/app/billing')}
+            onUpgrade={() => navigate('/pricing')}
           />
           <ProductCard
             name="Saptta HR"
@@ -103,18 +109,11 @@ export default function ProductSwitcher() {
             description="Manage employees, attendance, leave, payroll, recruitment & performance."
             features={['Employee Management','Geofenced Attendance','Payroll & Compliance','Recruitment & ATS']}
             locked={!products.includes('hrms')}
-            onOpen={() => openHrApp()}
+            onOpen={() => openHrApp(true)}
             onInstall={() => installHrApp()}
-            onUpgrade={() => navigate('/app/billing')}
+            onUpgrade={() => navigate('/pricing')}
           />
         </div>
-
-        {products.length === 1 && (
-          <div style={{ marginTop: 32, padding: '12px 20px', background: 'rgba(255,109,0,0.04)', borderRadius: 12, border: '1px solid rgba(255,109,0,0.12)', fontSize: 13, color: 'rgba(10,17,40,0.5)' }}>
-            Want both products?{' '}
-            <Link to="/pricing" style={{ color: '#FF6D00', fontWeight: 600 }}>Upgrade to Saptta Complete →</Link>
-          </div>
-        )}
       </main>
     </div>
   );
@@ -123,11 +122,11 @@ export default function ProductSwitcher() {
 interface CardProps {
   name: string; tag: string; tagColor: string; gradient: string;
   icon: React.ReactNode; headline: string; description: string;
-  features: string[]; locked: boolean;
-  onOpen: () => void; onUpgrade: () => void; onInstall?: () => void;
+  features: string[]; locked?: boolean;
+  onOpen: () => void; onUpgrade?: () => void; onInstall?: () => void;
 }
 
-function ProductCard({ name, tag, tagColor, gradient, icon, headline, description, features, locked, onOpen, onUpgrade, onInstall }: CardProps) {
+function ProductCard({ name, tag, tagColor, gradient, icon, headline, description, features, locked = false, onOpen, onUpgrade, onInstall }: CardProps) {
   const [hover, setHover] = useState(false);
 
   return (

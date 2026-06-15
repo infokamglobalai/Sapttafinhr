@@ -35,6 +35,17 @@ def deliver_webhook(self, subscription_id: int, event: str, payload: dict):
     delivery = WebhookDelivery.objects.create(
         subscription=sub, event=event, payload=payload,
     )
+
+    # SSRF guard: a subscriber URL pointing at an internal/metadata address must
+    # never be fetched. Fail the delivery without retrying (retry can't help).
+    from apps.core.net import UnsafeURLError, validate_outbound_url
+    try:
+        validate_outbound_url(sub.url)
+    except UnsafeURLError as exc:
+        delivery.error = f"blocked unsafe URL: {exc}"[:255]
+        delivery.save(update_fields=["error"])
+        return
+
     try:
         r = requests.post(sub.url, data=body, headers=headers, timeout=10)
         delivery.response_status = r.status_code

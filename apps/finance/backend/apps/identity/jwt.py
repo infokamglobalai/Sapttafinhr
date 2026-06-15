@@ -33,6 +33,11 @@ class SapttaTokenObtainPairSerializer(TokenObtainPairSerializer):
         token = super().get_token(user)
         token["email"] = user.email
         token["full_name"] = getattr(user, "full_name", "")
+        # Tenant binding: which workspace (schema) this token is allowed to act on.
+        # Enforced per-request by TokenWorkspaceMatchesSchema so a token can't be
+        # replayed against another tenant's subdomain. Null for users with no
+        # resolved workspace (non-owners) — see the per-user membership follow-up.
+        token["workspace"] = resolve_workspace_for(user)
         return token
 
     def validate(self, attrs):

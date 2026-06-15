@@ -121,7 +121,26 @@ AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",  # fallback for superadmin
 ]
 
-LOGIN_URL = "/auth/login/"
+# Prefer Argon2id when available (stronger than the PBKDF2 default), falling back
+# to PBKDF2 so the app still boots before argon2-cffi is installed in the image.
+# Existing PBKDF2 hashes keep verifying and transparently upgrade on next login.
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
+]
+try:
+    import argon2  # noqa: F401  (argon2-cffi)
+
+    PASSWORD_HASHERS.insert(0, "django.contrib.auth.hashers.Argon2PasswordHasher")
+except ImportError:
+    pass
+
+# Single sign-on: HR has no login of its own — the Saptta platform (apps/web) is
+# the only login surface. @login_required bounces here, which redirects to the
+# platform login (?redirect=hr); it signs the user in once and hands them back
+# via the SSO token endpoint (apps.accounts.sso).
+PLATFORM_BASE_URL = config("PLATFORM_BASE_URL", default="http://localhost:8080")
+LOGIN_URL = f"{PLATFORM_BASE_URL.rstrip('/')}/login?redirect=hr"
 LOGIN_REDIRECT_URL = "/dashboard/"
 LOGOUT_REDIRECT_URL = "/auth/login/"
 
@@ -217,6 +236,13 @@ SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
 CSRF_COOKIE_HTTPONLY = True
+
+# SameSite=Lax means cross-site POSTs don't carry the session cookie, so a
+# forged request can't act as a logged-in user — the primary CSRF mitigation for
+# our session-authenticated AJAX endpoints. Made explicit (matches Django's
+# default) so a future default change can't silently weaken it.
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax"
 
 # HR is reached through the nginx front door (e.g. http://hr.localhost:8080), so
 # form POSTs arrive with that Origin — it must be trusted for CSRF. Configurable

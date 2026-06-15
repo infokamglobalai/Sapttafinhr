@@ -7,6 +7,23 @@ class TenantsConfig(AppConfig):
 
     def ready(self):
         from django.db.backends.signals import connection_created
+        from django.db.models.signals import post_save, post_delete
+        from django.core.cache import cache
+
+        # M5: TenantMiddleware caches the subdomain→tenant lookup for 5 min. Bust
+        # that cache when a tenant changes (e.g. status flips to suspended) so a
+        # de-activated workspace stops being served immediately instead of lagging.
+        def _invalidate_tenant_cache(sender, instance, **kwargs):
+            subdomain = getattr(instance, "subdomain", None)
+            if subdomain:
+                cache.delete(f"tenant_subdomain:{subdomain}")
+
+        def _connect_tenant_cache_signals():
+            from .models import Tenant
+            post_save.connect(_invalidate_tenant_cache, sender=Tenant, dispatch_uid="tenant_cache_save")
+            post_delete.connect(_invalidate_tenant_cache, sender=Tenant, dispatch_uid="tenant_cache_delete")
+
+        _connect_tenant_cache_signals()
 
         def _setup_sqlite_pragmas(sender, connection, **kwargs):
             if connection.vendor != "sqlite":

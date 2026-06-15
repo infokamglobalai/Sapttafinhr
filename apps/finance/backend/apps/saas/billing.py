@@ -308,6 +308,15 @@ class WebhookView(APIView):
         except (ValueError, UnicodeDecodeError):
             return Response({"detail": "Invalid payload."}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Replay guard: the gateway may re-deliver the same signed event. Dedupe on
+        # the gateway's event id (fall back to a hash of the body) so a captured
+        # payment can't be replayed to re-drive the subscription state machine.
+        from .models import ProcessedWebhookEvent
+        event_id = request.headers.get("X-Razorpay-Event-Id") or hashlib.sha256(body).hexdigest()
+        _, created = ProcessedWebhookEvent.objects.get_or_create(event_id=event_id)
+        if not created:
+            return Response({"status": "ok", "duplicate": True})
+
         event = payload.get("event", "")
         notes = (
             payload.get("payload", {}).get("payment", {}).get("entity", {}).get("notes", {})

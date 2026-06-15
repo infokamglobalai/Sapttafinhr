@@ -138,3 +138,18 @@ class SaasInvoice(TimeStampedModel):
     paid_at = models.DateTimeField(null=True, blank=True)
     status = models.CharField(max_length=10, choices=Status.choices,
                                default=Status.OPEN)
+
+
+class ProcessedWebhookEvent(models.Model):
+    """Replay guard for inbound payment webhooks.
+
+    The gateway can legitimately re-deliver the same (validly signed) event. The
+    unique event_id lets the webhook view detect a duplicate and skip
+    re-processing, so a captured-payment event can't be replayed to repeatedly
+    drive the subscription state machine.
+    """
+    event_id = models.CharField(max_length=255, unique=True)
+    received_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self) -> str:
+        return self.event_id

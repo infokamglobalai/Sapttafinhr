@@ -972,11 +972,24 @@
               </div>
               <a href="{% url 'accounts:profile' %}" class="nav-item">Profile</a>
               <a href="{% url 'accounts:change_password' %}" class="nav-item">Change Password</a>
+
+              {# Product switcher — current product + jump to the other (platform /launch
+                 opens it if owned, else upsells). #}
+              <div style="margin-top:4px; border-top:1px solid var(--ink-150); padding-top:6px;">
+                <div style="padding:2px 12px 4px; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-400);">Products</div>
+                <div class="nav-item" style="font-weight:600; cursor:default;">
+                  <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#FF6D00;margin-right:6px;"></span>
+                  Saptta HR <span style="margin-left:auto; font-size:11px; color:var(--ink-400);">current</span>
+                </div>
+                <a href="{{ PLATFORM_BASE_URL }}/launch?to=finance" class="nav-item">fin-saptta</a>
+                <a href="{{ PLATFORM_BASE_URL }}/app/billing" class="nav-item">Account &amp; Billing</a>
+              </div>
+
               <form method="post" action="{% url 'accounts:logout' %}"
                 style="margin-top:4px; border-top:1px solid var(--ink-150); padding-top:4px;">
                 {% csrf_token %}
                 <button type="submit" class="nav-item"
-                  style="color: var(--err-500); width: 100%; text-align:left; background:none; border:none; font-size:13.5px;">
+                  style="width: 100%; text-align:left; background:none; border:none; font-size:13.5px; color: var(--err-500);">
                   <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                     <path stroke-linecap="round" stroke-linejoin="round"
                       d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />

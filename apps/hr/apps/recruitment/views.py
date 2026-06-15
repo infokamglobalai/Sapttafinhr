@@ -126,6 +126,15 @@ def add_applicant(request, pk):
     job = get_object_or_404(JobOpening, pk=pk, tenant=tenant)
     if request.method == "POST":
         p = request.POST
+        resume = request.FILES.get("resume")
+        if resume:
+            from django.core.exceptions import ValidationError as _VErr
+            from utils.uploads import RESUME_EXTS, validate_upload
+            try:
+                validate_upload(resume, allowed_exts=RESUME_EXTS, max_mb=10)
+            except _VErr as exc:
+                messages.error(request, exc.messages[0] if exc.messages else "Invalid resume file.")
+                return render(request, "recruitment/applicant_form.html", {"job": job})
         cand = Candidate.objects.create(
             tenant=tenant,
             first_name=p.get("first_name", "").strip(),
@@ -136,7 +145,7 @@ def add_applicant(request, pk):
             current_designation=p.get("current_designation", "").strip(),
             expected_ctc=p.get("expected_ctc") or None,
             total_experience=p.get("total_experience") or None,
-            resume=request.FILES.get("resume"),
+            resume=resume,
             source=p.get("source", "direct"),
         )
         JobApplication.objects.create(tenant=tenant, job_opening=job, candidate=cand, status="applied")

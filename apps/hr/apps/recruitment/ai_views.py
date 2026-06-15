@@ -199,13 +199,21 @@ class ResumeParsViewView(View):
         file = request.FILES.get("file")
         if not file:
             return JsonResponse({"error": "file required"}, status=400)
+        from django.core.exceptions import ValidationError as _VErr
+        from utils.uploads import RESUME_EXTS, validate_upload
+        try:
+            validate_upload(file, allowed_exts=RESUME_EXTS, max_mb=10)
+        except _VErr as exc:
+            return JsonResponse({"error": exc.messages[0] if exc.messages else "Invalid file."}, status=400)
         raw = file.read()
         from .resume_parser import parse_resume
         result = parse_resume(raw, file.name)
         return JsonResponse(result)
 
 
-@method_decorator([login_required, csrf_exempt], name="dispatch")
+# CSRF-protected: the only caller (job_detail.html) sends X-CSRFToken, so this
+# session-authenticated POST no longer needs csrf_exempt.
+@method_decorator(login_required, name="dispatch")
 class ResumeRankView(View):
     """POST /recruitment/ai/rank-resumes/
     Body: {job_opening_id, application_ids: []} (application_ids optional — ranks all)

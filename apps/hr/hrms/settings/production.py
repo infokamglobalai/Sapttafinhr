@@ -12,6 +12,11 @@ DEBUG = False
 if SECRET_KEY in ("insecure-dev-hr-key-change-me", ""):  # noqa: F405
     raise RuntimeError("SECRET_KEY must be set to a strong value in production.")
 
+# The FIN↔HR SSO secret must not be the forgeable dev value in production (empty
+# is allowed — it just disables SSO). Keep in sync with FIN's prod guard.
+if SSO_SHARED_SECRET == "dev-sso-shared-secret-change-me":  # noqa: F405
+    raise RuntimeError("SSO_SHARED_SECRET must be a strong value in production (dev default detected).")
+
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SECURE_SSL_REDIRECT = True

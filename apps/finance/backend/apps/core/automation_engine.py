@@ -141,6 +141,12 @@ def _fire_action(rule, item: dict, company_id: int) -> None:
         if not url:
             return
         import requests
+        from apps.core.net import UnsafeURLError, validate_outbound_url
+        try:
+            validate_outbound_url(url)  # SSRF guard — block internal/metadata targets
+        except UnsafeURLError as exc:
+            logger.warning("Automation webhook blocked unsafe URL %s: %s", url, exc)
+            return
         try:
             requests.post(url, json={"rule": rule.name, "item": item}, timeout=10)
         except Exception:

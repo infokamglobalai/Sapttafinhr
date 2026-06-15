@@ -132,9 +132,12 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    # Override the prod gunicorn CMD: migrate then run the dev server.
+    # Override the prod gunicorn CMD: migrate, seed the demo tenant/admin
+    # (idempotent — needed so FIN's SSO handoff finds a matching HR user), then
+    # run the dev server.
     command: >
       sh -c "python manage.py migrate &&
+             python manage.py seed_dummy_login &&
              python manage.py runserver 0.0.0.0:8000"
 
   # ── Marketing site + auth + product switcher (NOT the products) ───────
@@ -152,8 +155,10 @@ services:
       # Where to hand off into the REAL products (per workspace).
       VITE_FINANCE_APP_BASE_URL: http://{workspace}.localhost:8080
     volumes:
-      - ./apps/web:/app
-      - /app/node_modules
+      # Mount at /usr/src/app (not /app) so the SPA's "/app" route doesn't collide
+      # with the working dir in Vite's dev server. See apps/web/Dockerfile.
+      - ./apps/web:/usr/src/app
+      - /usr/src/app/node_modules
     command: npm run dev -- --host 0.0.0.0
 
   # ── REAL Finance product (apps/finance/frontend) ──────────────────────

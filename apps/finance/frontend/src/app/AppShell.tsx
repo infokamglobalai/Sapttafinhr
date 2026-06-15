@@ -5,7 +5,7 @@ import {
   ShoppingCart, Truck, FileInput, Landmark, Calendar, Warehouse, Boxes,
   Building2, ReceiptText, CalendarDays, Settings, FileCheck2,
   BarChart3, Briefcase, BookCopy, ChevronRight, Plus, Menu, X as XIcon, Webhook, Share2, Hash, UserCircle2,
-  Search,
+  Search, LayoutGrid,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { cn } from '@/lib/cn';
@@ -209,7 +209,7 @@ function readRoute(): RouteId {
 }
 
 export default function AppShell() {
-  const { user, logout } = useAuthStore();
+  const { user } = useAuthStore();
   const [route, setRoute] = useState<RouteId>(readRoute());
   const [activeSectionId, setActiveSectionId] = useState<string>(() => {
     const initial = readRoute();
@@ -236,6 +236,41 @@ export default function AppShell() {
   );
 
   const go = (r: RouteId) => { window.location.hash = `/${r}`; setQuickOpen(false); setMobileNavOpen(false); };
+
+  // Cross-product + session actions delegate to the platform (the single auth
+  // authority — it holds the session and entitlements). `/launch` opens the
+  // other product (or upsells if not owned); `/logout` is the one full-logout.
+  const PLATFORM = (import.meta.env.VITE_PLATFORM_BASE_URL || 'http://localhost:8080').replace(/\/+$/, '');
+  const [appMenuOpen, setAppMenuOpen] = useState(false);
+  const switchToHr = () => window.location.assign(`${PLATFORM}/launch?to=hr`);
+  const openBilling = () => window.location.assign(`${PLATFORM}/app/billing`);
+  const signOut = () => {
+    // Full logout: drop THIS product's session (its own origin), then end the
+    // platform session via /logout. Removing the persisted key directly avoids
+    // re-rendering into the "no session → bounce to login" path before we leave.
+    try { localStorage.removeItem('finsaptta-auth'); } catch { /* ignore */ }
+    window.location.assign(`${PLATFORM}/logout`);
+  };
+
+  const appMenu = (
+    <>
+      <div className="px-3 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-wide text-ink-400">Products</div>
+      <div className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-ink-900">
+        <span className="h-2 w-2 rounded-full bg-emerald-500" /> fin-saptta
+        <span className="ml-auto text-[11px] text-ink-400">current</span>
+      </div>
+      <button onClick={switchToHr} className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-ink-700 hover:bg-ink-100">
+        <Users size={15} /> Saptta HR
+      </button>
+      <div className="my-1 border-t border-ink-150" />
+      <button onClick={openBilling} className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-ink-700 hover:bg-ink-100">
+        <Settings size={15} /> Account &amp; Billing
+      </button>
+      <button onClick={signOut} className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50">
+        <LogOut size={15} /> Sign out
+      </button>
+    </>
+  );
 
   const onSectionClick = (section: Section) => {
     setActiveSectionId(section.id);
@@ -281,13 +316,23 @@ export default function AppShell() {
             );
           })}
         </nav>
-        <button 
-          onClick={logout}
-          title="Sign out"
-          className="flex w-[52px] h-[52px] items-center justify-center rounded-xl text-ink-500 hover:bg-ink-100 hover:text-red-600 transition-all duration-150"
-        >
-          <LogOut size={20} />
-        </button>
+        <div className="relative">
+          <button
+            onClick={() => setAppMenuOpen((v) => !v)}
+            title="Products & account"
+            className="flex w-[52px] h-[52px] items-center justify-center rounded-xl text-ink-500 hover:bg-ink-100 hover:text-ink-950 transition-all duration-150"
+          >
+            <LayoutGrid size={20} />
+          </button>
+          {appMenuOpen && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setAppMenuOpen(false)} />
+              <div className="absolute bottom-0 left-[60px] z-50 w-56 rounded-xl border border-ink-150 bg-white py-2 shadow-xl">
+                {appMenu}
+              </div>
+            </>
+          )}
+        </div>
       </aside>
 
       {/* SECONDARY: section panel */}
@@ -486,10 +531,20 @@ export default function AppShell() {
                   </div>
                 );
               })}
-              <button onClick={logout}
-                className="mt-2 flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-slate-500 hover:bg-red-50 hover:text-red-700">
-                <LogOut size={14} /> Sign out
-              </button>
+              <div className="mt-2 border-t border-slate-200 pt-2">
+                <button onClick={switchToHr}
+                  className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-slate-600 hover:bg-slate-100">
+                  <Users size={14} /> Saptta HR
+                </button>
+                <button onClick={openBilling}
+                  className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-slate-600 hover:bg-slate-100">
+                  <Settings size={14} /> Account &amp; Billing
+                </button>
+                <button onClick={signOut}
+                  className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50">
+                  <LogOut size={14} /> Sign out
+                </button>
+              </div>
             </nav>
             <div className="border-t border-slate-200 px-4 py-3 text-xs text-slate-500">{user?.email}</div>
           </div>

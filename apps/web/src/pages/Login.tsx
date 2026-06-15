@@ -1,27 +1,95 @@
-import { useState } from 'react';
-import { Link, useNavigate, useLocation, Navigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate, useLocation, useSearchParams, Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { openFinanceApp, openHrApp } from '../lib/products';
+import { getWorkspace } from '../lib/api';
 
 export default function Login() {
   const navigate  = useNavigate();
   const location  = useLocation();
-  const { login, isLoading, isAuthenticated } = useAuth();
+  const [searchParams] = useSearchParams();
+  const { login, isLoading, isAuthenticated, user } = useAuth();
 
   const [email,   setEmail]   = useState('');
   const [password,setPassword]= useState('');
   const [showPw,  setShowPw]  = useState(false);
   const [error,   setError]   = useState('');
+  const [handoffFailed, setHandoffFailed] = useState<string | null>(null);
 
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/app';
 
-  if (isAuthenticated) return <Navigate to={from} replace />;
+  // A product (Finance/HR) that has no session sends the user here to sign in,
+  // then expects to be handed straight back. `redirect` says which product and
+  // `workspace` which tenant. With no redirect this is a normal platform login.
+  const redirectTarget = searchParams.get('redirect');           // 'finance' | 'hr' | null
+  const workspaceParam = searchParams.get('workspace') || undefined;
+
+  // Loop guard: if a handoff fails (e.g. HR can't sign the user in), the product
+  // bounces back here; while still authenticated we'd retry forever. We stamp
+  // each attempt and, if we land back within the window, stop and show an error.
+  const HANDOFF_WINDOW_MS = 8000;
+  const attemptedRecently = (t: string) =>
+    Date.now() - Number(sessionStorage.getItem(`saptta_handoff_${t}`) || 0) < HANDOFF_WINDOW_MS;
+  const markAttempt = (t: string) =>
+    sessionStorage.setItem(`saptta_handoff_${t}`, String(Date.now()));
+
+  // After auth, return to the requesting product (full-page handoff) or fall
+  // back to the in-app product switcher. A company can only enter its OWN
+  // workspace: if a product redirect names a workspace that isn't this user's,
+  // we send them to the access-denied page instead of handing off.
+  const goAfterLogin = () => {
+    if (redirectTarget === 'finance') {
+      const ownWs = getWorkspace();
+      if (workspaceParam && ownWs && workspaceParam !== ownWs) {
+        navigate(`/access-denied?ws=${encodeURIComponent(workspaceParam)}`, { replace: true });
+        return;
+      }
+      markAttempt('finance');
+      openFinanceApp(workspaceParam ?? ownWs ?? user?.tenantId);
+      return;
+    }
+    if (redirectTarget === 'hr') { markAttempt('hr'); openHrApp(); return; }
+    navigate(from, { replace: true });
+  };
+
+  // Already signed in and a product is asking for a handoff → do it immediately,
+  // unless we just tried and got bounced back (failed handoff → show an error
+  // instead of looping).
+  useEffect(() => {
+    if (!isAuthenticated || !redirectTarget) return;
+    if (attemptedRecently(redirectTarget)) { setHandoffFailed(redirectTarget); return; }
+    goAfterLogin();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, redirectTarget, workspaceParam, user]);
+
+  if (isAuthenticated && !redirectTarget) return <Navigate to={from} replace />;
+
+  if (handoffFailed) {
+    const label = handoffFailed === 'hr' ? 'Saptta HR' : 'fin-saptta';
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FAFAFC', padding: 24 }}>
+        <div style={{ maxWidth: 440, width: '100%', textAlign: 'center', background: '#fff', borderRadius: 20, padding: '40px 32px', border: '1px solid rgba(10,17,40,0.07)', boxShadow: '0 4px 32px rgba(10,17,40,0.05)' }}>
+          <div style={{ width: 56, height: 56, borderRadius: 16, margin: '0 auto 20px', background: 'rgba(239,68,68,0.08)', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26 }}>!</div>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: '#0A1128', marginBottom: 10 }}>Couldn't open {label}</h1>
+          <p style={{ fontSize: 14, color: 'rgba(10,17,40,0.55)', lineHeight: 1.6, marginBottom: 24 }}>
+            Your account is signed in, but {label} isn't set up for this workspace yet.
+            Contact your administrator, or return to your products.
+          </p>
+          <button onClick={() => { sessionStorage.removeItem(`saptta_handoff_${handoffFailed}`); navigate('/app', { replace: true }); }}
+            style={{ width: '100%', padding: '13px', borderRadius: 10, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg,#FF9800,#FF6D00)', color: '#fff', fontSize: 15, fontWeight: 700 }}>
+            Back to my products
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     try {
       await login(email, password);
-      navigate(from, { replace: true });
+      goAfterLogin();
     } catch {
       setError('Invalid email or password. Please try again.');
     }
@@ -30,16 +98,16 @@ export default function Login() {
   const handleDemoLogin = async (e: React.MouseEvent, type: 'admin' | 'saas') => {
     e.preventDefault();
     setError('');
-    
+
     const dEmail = type === 'admin' ? 'demo@saptta.com' : 'sp@saptta.com';
     const dPass = type === 'admin' ? 'Demo@1234' : 'Saptta@2026';
-    
+
     setEmail(dEmail);
     setPassword(dPass);
-    
+
     try {
       await login(dEmail, dPass);
-      navigate(from, { replace: true });
+      goAfterLogin();
     } catch {
       setError('Invalid demo credentials. Please try again.');
     }

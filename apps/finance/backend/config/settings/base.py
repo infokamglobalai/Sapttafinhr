@@ -125,6 +125,20 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
+# Prefer Argon2id when available (stronger than the PBKDF2 default), falling back
+# to PBKDF2 so the app still boots before argon2-cffi is installed in the image.
+# Existing PBKDF2 hashes keep verifying and transparently upgrade on next login.
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
+]
+try:
+    import argon2  # noqa: F401  (argon2-cffi)
+
+    PASSWORD_HASHERS.insert(0, "django.contrib.auth.hashers.Argon2PasswordHasher")
+except ImportError:
+    pass
+
 # ===== I18N =====
 LANGUAGE_CODE = "en-in"
 TIME_ZONE = "Asia/Kolkata"
@@ -148,6 +162,8 @@ REST_FRAMEWORK = {
     ),
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
+        # Bind the JWT to the tenant schema it was issued for (H2).
+        "apps.identity.permissions.TokenWorkspaceMatchesSchema",
     ),
     "DEFAULT_FILTER_BACKENDS": (
         "django_filters.rest_framework.DjangoFilterBackend",

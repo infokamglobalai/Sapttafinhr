@@ -157,44 +157,22 @@ class ProductEntitlementAccessTest(TestCase):
     ALLOWED_HOSTS=["*"],
 )
 class LoginFlowTest(TestCase):
-    """Login authenticates a tenant user and rejects bad credentials."""
+    """HR has no login of its own — /auth/login/ redirects to the single platform
+    login. (Authentication itself now happens on the platform; brute-force
+    protection lives there too.)"""
 
     client_class = LocalClient
 
-    @classmethod
-    def setUpTestData(cls):
-        Permission.objects.get_or_create(
-            codename="employees.view", defaults={"name": "View employees", "module": "employees"},
-        )
-        cls.tenant, cls.user = provision_tenant(
-            company_name="LoginTest Co",
-            subdomain="logintest",
-            admin_email="admin@logintest.com",
-            admin_password="GoodPass!234",
-        )
-
-    def test_login_page_renders(self):
+    def test_login_redirects_to_platform(self):
         r = self.client.get(reverse("accounts:login"))
-        self.assertEqual(r.status_code, 200)
-        self.assertContains(r, "Welcome back")
+        self.assertEqual(r.status_code, 302)
+        self.assertIn("/login", r.url)
+        self.assertIn("redirect=hr", r.url)
 
-    def test_login_with_correct_credentials(self):
-        # On localhost middleware leaves tenant=None for anonymous users; the
-        # TenantAuthBackend then matches users where tenant=None. Since our
-        # provisioned user has a tenant, we drive the login by hitting the
-        # tenant subdomain directly so middleware resolves it from cache.
-        r = self.client.post(reverse("accounts:login"), {
-            "email": "admin@logintest.com",
-            "password": "GoodPass!234",
-        }, HTTP_HOST="logintest.yourbrand.com")
-        self.assertIn(r.status_code, (200, 302))
-
-    def test_login_with_wrong_password_fails(self):
-        r = self.client.post(reverse("accounts:login"), {
-            "email": "admin@logintest.com",
-            "password": "wrong",
-        }, HTTP_HOST="logintest.yourbrand.com")
-        self.assertEqual(r.status_code, 200)
+    def test_login_post_not_allowed(self):
+        # The login form is gone; POSTing is rejected (GET-only redirect view).
+        r = self.client.post(reverse("accounts:login"), {"email": "x@y.com", "password": "z"})
+        self.assertEqual(r.status_code, 405)
 
 
 @override_settings(
@@ -281,12 +259,53 @@ class DashboardAccessTest(TestCase):
     def test_dashboard_redirects_when_logged_out(self):
         r = self.client.get(reverse("tenants:dashboard"))
         self.assertEqual(r.status_code, 302)
-        self.assertIn("/auth/login/", r.url)
+        # @login_required now sends anonymous users to the single platform login.
+        self.assertIn("/login", r.url)
 
     def test_dashboard_renders_for_logged_in_user(self):
+        # A fresh tenant is gated to the setup wizard until setup_complete; mark
+        # it done so we reach the dashboard itself.
+        self.tenant.setup_complete = True
+        self.tenant.save(update_fields=["setup_complete"])
         self.client.force_login(self.user, backend="apps.accounts.backends.TenantAuthBackend")
         r = self.client.get(reverse("tenants:dashboard"))
         self.assertEqual(r.status_code, 200)
+
+    def test_dashboard_escapes_malicious_department_name(self):
+        """Stored-XSS regression: a department name containing markup must not
+        break out of the dashboard <script> context. The chart data is rendered
+        via Django's json_script (escapes < > &), so the payload survives only as
+        inert, escaped text — never as live markup."""
+        import datetime
+        from apps.employees.models import Department, Employee
+
+        self.tenant.setup_complete = True
+        self.tenant.save(update_fields=["setup_complete"])
+
+        payload = "</script><script>alert(1)</script>"
+        dept = Department.objects.create(tenant=self.tenant, name=payload)
+        # dept_chart only counts active employees, so attach one.
+        Employee.objects.create(
+            tenant=self.tenant,
+            employee_code="XSS-1",
+            first_name="Mal",
+            last_name="Icious",
+            date_of_joining=datetime.date.today(),
+            department=dept,
+            employment_status="active",
+            is_active=True,
+        )
+
+        self.client.force_login(self.user, backend="apps.accounts.backends.TenantAuthBackend")
+        r = self.client.get(reverse("tenants:dashboard"))
+        self.assertEqual(r.status_code, 200)
+        body = r.content.decode()
+
+        # The raw breakout sequence must never appear unescaped in the page.
+        self.assertNotIn("</script><script>alert(1)", body)
+        # json_script escapes "<" to < — proves the safe path ran and the
+        # tenant-controlled label is present only as escaped data.
+        self.assertIn("\\u003Cscript\\u003Ealert(1)", body)
 
 
 class NotificationServiceTest(TestCase):
@@ -348,34 +367,31 @@ class RateLimitTest(TestCase):
         from django.core.cache import cache
         cache.clear()
 
+    # NOTE: login moved to the platform, so login brute-force protection lives
+    # there now. These tests exercise the rate-limit utility directly (still used
+    # by the password-reset flow).
     def test_lockout_after_repeated_failures(self):
-        from apps.accounts.ratelimit import is_locked_out
-
-        # 5 bad attempts → on the 5th, lockout flips on
-        for _ in range(5):
-            self.client.post(reverse("accounts:login"), {
-                "email": "user@ratetest.com",
-                "password": "wrong",
-            })
-
-        class _FakeReq:
-            META = {"REMOTE_ADDR": "127.0.0.1"}
-        self.assertTrue(is_locked_out("login", _FakeReq(), "user@ratetest.com"))
-
-    def test_successful_login_clears_counter(self):
         from apps.accounts.ratelimit import record_failure, is_locked_out
 
         class _FakeReq:
             META = {"REMOTE_ADDR": "127.0.0.1"}
 
-        record_failure("login", _FakeReq(), "user@ratetest.com")
-        record_failure("login", _FakeReq(), "user@ratetest.com")
+        req = _FakeReq()
+        for _ in range(5):
+            record_failure("login", req, "user@ratetest.com", max_attempts=5)
+        self.assertTrue(is_locked_out("login", req, "user@ratetest.com"))
 
-        # Simulate successful login by hitting the endpoint with good creds
-        self.client.post(reverse("accounts:login"), {
-            "email": "user@ratetest.com",
-            "password": "GoodPass!234",
-        }, HTTP_HOST="ratetest.yourbrand.com")
+    def test_clear_failures_resets_counter(self):
+        from apps.accounts.ratelimit import record_failure, clear_failures, is_locked_out
+
+        class _FakeReq:
+            META = {"REMOTE_ADDR": "127.0.0.1"}
+
+        req = _FakeReq()
+        for _ in range(5):
+            record_failure("login", req, "user@ratetest.com", max_attempts=5)
+        clear_failures("login", req, "user@ratetest.com")
+        self.assertFalse(is_locked_out("login", req, "user@ratetest.com"))
 
         # After success, counter should be reset (not locked)
         self.assertFalse(is_locked_out("login", _FakeReq(), "user@ratetest.com"))
