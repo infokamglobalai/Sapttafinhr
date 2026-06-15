@@ -32,5 +32,8 @@ export default defineConfig({
     // Served behind the nginx front door on :8080 as {workspace}.localhost.
     allowedHosts: ['localhost', '.localhost'],
     hmr: { clientPort: 8080 },
+    // Windows/Docker bind mounts don't emit native FS events, so edits never
+    // reach Vite's watcher. Poll instead so HMR works without a container restart.
+    watch: { usePolling: true, interval: 200 },
   },
 });

@@ -60,25 +60,25 @@ function ToastView({ t, onDismiss }: { t: Toast; onDismiss: () => void }) {
 
   const Icon = t.kind === 'success' ? CheckCircle2 : t.kind === 'error' ? AlertCircle : Info;
   const tone = {
-    success: 'border-emerald-200 bg-emerald-50 text-emerald-900',
-    error:   'border-red-200 bg-red-50 text-red-900',
-    info:    'border-sky-200 bg-sky-50 text-sky-900',
+    success: 'border-emerald-200 bg-emerald-50/80 text-emerald-950 backdrop-blur-md shadow-emerald-500/[0.03]',
+    error:   'border-rose-200 bg-rose-50/80 text-rose-950 backdrop-blur-md shadow-rose-500/[0.03]',
+    info:    'border-brand-200 bg-brand-50/80 text-brand-950 backdrop-blur-md shadow-brand-500/[0.03]',
   }[t.kind];
   const iconTone = {
     success: 'text-emerald-600',
-    error:   'text-red-600',
-    info:    'text-sky-600',
+    error:   'text-rose-600',
+    info:    'text-brand-600',
   }[t.kind];
 
   return (
-    <div className={`pointer-events-auto flex w-80 items-start gap-3 rounded-lg border ${tone} p-3 shadow-lg animate-in slide-in-from-right-2`}>
+    <div className={`pointer-events-auto flex w-80 items-start gap-3 rounded-xl border ${tone} p-3.5 shadow-xl animate-in slide-in-from-right-5 duration-300`}>
       <Icon size={18} className={`mt-0.5 shrink-0 ${iconTone}`} />
       <div className="min-w-0 flex-1">
-        <div className="text-sm font-semibold">{t.title}</div>
-        {t.message && <div className="mt-0.5 text-xs leading-snug opacity-80">{t.message}</div>}
+        <div className="text-xs font-bold tracking-tight">{t.title}</div>
+        {t.message && <div className="mt-1 text-[11px] font-medium leading-relaxed opacity-80">{t.message}</div>}
       </div>
-      <button onClick={onDismiss} className="shrink-0 opacity-60 hover:opacity-100">
-        <X size={14} />
+      <button onClick={onDismiss} className="shrink-0 text-ink-400 hover:text-ink-700 hover:bg-ink-200/40 p-1 rounded-lg transition-colors">
+        <X size={12} />
       </button>
     </div>
   );
