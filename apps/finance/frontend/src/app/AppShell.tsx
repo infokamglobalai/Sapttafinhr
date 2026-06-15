@@ -292,7 +292,7 @@ export default function AppShell() {
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-ink-50">
       {/* PRIMARY: labeled icon rail */}
-      <aside className="hidden w-[76px] shrink-0 flex-col items-center border-r border-ink-900 bg-ink-950 py-5 md:flex animate-slide-in-left">
+      <aside className="relative z-20 hidden w-[76px] shrink-0 flex-col items-center border-r border-ink-900 bg-ink-950 py-5 md:flex animate-slide-in-left">
         <div className="mb-6 flex items-center justify-center border-b border-ink-800 pb-5 w-full">
           <img src="/logo.png" alt="Saptta" className="h-8 w-auto object-contain brightness-0 invert" />
         </div>
@@ -341,7 +341,7 @@ export default function AppShell() {
 
       {/* SECONDARY: section panel */}
       {showSecondary && (
-        <aside className="hidden w-[230px] shrink-0 flex-col border-r border-ink-150 bg-ink-50/70 backdrop-blur-md py-6 md:flex animate-slide-in-left animation-delay-75">
+        <aside className="relative z-10 hidden w-[230px] shrink-0 flex-col border-r border-ink-150 bg-ink-50/70 backdrop-blur-md py-6 md:flex animate-slide-in-left animation-delay-75">
           <div className="px-6 pb-4 border-b border-ink-200/50 mb-4">
             <div className="text-[10px] font-bold uppercase tracking-widest text-brand-600">{activeSection!.label}</div>
           </div>
