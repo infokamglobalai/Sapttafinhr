@@ -1,0 +1,564 @@
+/* ============================================================
+   Saptta HRMS — Soft Glass Theme
+   Clean · Clear · Accessible · One neutral palette
+   Best for modern SaaS: soft light glass (Notion / Linear / Apple style)
+   ============================================================ */
+
+:root {
+  --soft-bg: #F4F7FB;
+  --soft-bg-gradient: linear-gradient(160deg, #F8FAFC 0%, #F4F7FB 50%, #EEF2F7 100%);
+  --soft-surface: rgba(255, 255, 255, 0.92);
+  --soft-surface-solid: #FFFFFF;
+  --soft-border: rgba(15, 23, 42, 0.08);
+  --soft-border-strong: rgba(15, 23, 42, 0.12);
+  --soft-text: #0F172A;
+  --soft-text-secondary: #475569;
+  --soft-text-tertiary: #94A3B8;
+  --soft-accent: #F97316;
+  --soft-accent-hover: #EA580C;
+  --color-secondary: #2563EB;
+  --color-secondary-hover: #1D4ED8;
+  --saptta-accent: #F97316;
+  --saptta-accent-soft: rgba(249, 115, 22, 0.12);
+  --soft-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 20px rgba(0, 0, 0, 0.04);
+  --soft-shadow-hover: 0 4px 8px rgba(0, 0, 0, 0.06), 0 12px 32px rgba(0, 0, 0, 0.06);
+  --soft-radius: 14px;
+  --soft-blur: blur(20px);
+  --soft-focus: 0 0 0 3px rgba(0, 0, 0, 0.08);
+}
+
+/* ── Base ── */
+html,
+body {
+  color: var(--soft-text) !important;
+  background: var(--soft-bg) !important;
+}
+
+.app-shell {
+  background: var(--soft-bg-gradient) !important;
+  min-height: 100vh;
+}
+
+.page {
+  background: transparent !important;
+  padding: 24px 28px 40px !important;
+  max-width: 1440px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ── Top bar ── */
+.topbar {
+  background: rgba(255, 255, 255, 0.72) !important;
+  backdrop-filter: var(--soft-blur) !important;
+  -webkit-backdrop-filter: var(--soft-blur) !important;
+  border-bottom: 1px solid var(--soft-border) !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset !important;
+}
+
+.topbar-title {
+  color: var(--soft-text) !important;
+  font-weight: 600 !important;
+}
+
+.topbar-sub {
+  color: var(--soft-text-secondary) !important;
+}
+
+.icon-btn {
+  color: var(--soft-text-secondary) !important;
+}
+
+.icon-btn:hover {
+  background: rgba(0, 0, 0, 0.04) !important;
+  color: var(--soft-text) !important;
+}
+
+.user-chip {
+  background: rgba(255, 255, 255, 0.6) !important;
+  border: 1px solid var(--soft-border) !important;
+}
+
+.user-chip--pro {
+  background: var(--saptta-surface) !important;
+  border: 1px solid var(--saptta-border) !important;
+}
+
+.user-chip--pro .user-avatar-fallback,
+.user-chip--pro .user-avatar.user-avatar-photo {
+  border-radius: 50% !important;
+}
+
+.user-chip:not(.user-chip--pro) .avatar {
+  background: var(--soft-accent) !important;
+  color: #FFFFFF !important;
+  border-radius: 8px !important;
+}
+
+.user-chip .name,
+.user-chip-name {
+  color: var(--soft-text) !important;
+}
+
+/* ── Sidebar — professional rail + sub-panel ── */
+@media (min-width: 1024px) {
+  .sidebar-primary {
+    background: rgba(250, 251, 252, 0.92) !important;
+    backdrop-filter: var(--soft-blur) !important;
+    -webkit-backdrop-filter: var(--soft-blur) !important;
+    border-right: 1px solid var(--soft-border) !important;
+  }
+
+  .sidebar-secondary {
+    background: rgba(255, 255, 255, 0.88) !important;
+    backdrop-filter: var(--soft-blur) !important;
+    -webkit-backdrop-filter: var(--soft-blur) !important;
+    border-right: 1px solid var(--soft-border) !important;
+  }
+
+  .primary-brand {
+    border-bottom-color: var(--soft-border) !important;
+  }
+
+  .dock-item {
+    color: var(--soft-text-secondary) !important;
+  }
+
+  .dock-item:hover {
+    background: rgba(0, 0, 0, 0.04) !important;
+    color: var(--soft-text) !important;
+  }
+
+  .dock-item.active {
+    background: var(--saptta-accent-soft) !important;
+    color: var(--soft-text) !important;
+  }
+
+  .dock-item.active::before {
+    background: var(--saptta-accent) !important;
+  }
+
+  .dock-section-label {
+    color: var(--soft-text-tertiary) !important;
+  }
+
+  .sidebar-secondary .nav-item {
+    font-size: 13px !important;
+    padding: 8px 10px !important;
+    border-radius: 10px !important;
+  }
+
+  .sidebar-secondary .nav-item.active {
+    background: var(--saptta-accent-soft) !important;
+    color: var(--soft-text) !important;
+  }
+
+  .sidebar-secondary .nav-item.active::before {
+    background: var(--saptta-accent) !important;
+  }
+
+  .sidebar-secondary .search-input {
+    border-radius: 10px !important;
+    background: rgba(0, 0, 0, 0.03) !important;
+    border: 1px solid var(--soft-border) !important;
+    font-size: 12.5px !important;
+  }
+
+  .secondary-header {
+    color: var(--soft-text) !important;
+    font-size: 15px !important;
+    text-transform: none !important;
+    letter-spacing: -0.02em !important;
+  }
+}
+
+.nav-item {
+  color: var(--soft-text-secondary) !important;
+}
+
+.nav-item:hover {
+  background: rgba(0, 0, 0, 0.04) !important;
+  color: var(--soft-text) !important;
+}
+
+.nav-item.active {
+  background: rgba(0, 0, 0, 0.05) !important;
+  color: var(--soft-text) !important;
+  font-weight: 600 !important;
+}
+
+.nav-item.active::before {
+  background: var(--saptta-accent) !important;
+}
+
+.nav-group-header {
+  color: var(--soft-text-tertiary) !important;
+}
+
+.secondary-header,
+.secondary-footer,
+.sidebar-footer {
+  color: var(--soft-text-tertiary) !important;
+  border-color: var(--soft-border) !important;
+}
+
+/* ── Cards & surfaces — soft glass ── */
+.card,
+.card.bg-base-100,
+.card.shadow,
+.card.shadow-xl,
+.surface,
+.chart-card,
+.stat,
+.glass-card,
+.overflow-x-auto,
+.saas-stat-box,
+.saas-form-card {
+  background: var(--soft-surface) !important;
+  backdrop-filter: var(--soft-blur) !important;
+  -webkit-backdrop-filter: var(--soft-blur) !important;
+  border: 1px solid var(--soft-border) !important;
+  border-radius: var(--soft-radius) !important;
+  box-shadow: var(--soft-shadow) !important;
+  color: var(--soft-text) !important;
+}
+
+.card:hover,
+.surface:hover,
+.stat:hover,
+.saas-stat-box:hover {
+  box-shadow: var(--soft-shadow-hover) !important;
+  border-color: var(--soft-border-strong) !important;
+}
+
+/* ── Dashboard hero — soft glass (NOT dark block) ── */
+.dashboard-hero,
+.dash-refresh .dashboard-hero,
+.dash-refresh .saas-hero {
+  background: var(--soft-surface) !important;
+  backdrop-filter: var(--soft-blur) !important;
+  -webkit-backdrop-filter: var(--soft-blur) !important;
+  border: 1px solid var(--soft-border) !important;
+  border-radius: 18px !important;
+  box-shadow: var(--soft-shadow) !important;
+  color: var(--soft-text) !important;
+  padding: 2rem 2.25rem !important;
+}
+
+.dashboard-hero::before {
+  background: radial-gradient(circle, rgba(0, 0, 0, 0.02) 0%, transparent 70%) !important;
+}
+
+.dash-refresh .saas-h1,
+.dashboard-hero h1,
+.hero-greeting {
+  color: var(--soft-text) !important;
+}
+
+.saas-p-sub,
+.dashboard-hero p {
+  color: var(--soft-text-secondary) !important;
+}
+
+.saas-preview-widget {
+  background: rgba(255, 255, 255, 0.55) !important;
+  border: 1px solid var(--soft-border) !important;
+  border-radius: 14px !important;
+}
+
+/* ── Buttons — single charcoal accent ── */
+.btn.btn-primary,
+.btn-primary,
+.saas-btn-solid {
+  background: var(--soft-accent) !important;
+  color: #FFFFFF !important;
+  border: 1px solid var(--soft-accent) !important;
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08) !important;
+}
+
+.btn.btn-primary:hover,
+.btn-primary:hover,
+.saas-btn-solid:hover {
+  background: var(--soft-accent-hover) !important;
+  border-color: var(--soft-accent-hover) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12) !important;
+  transform: translateY(-1px) !important;
+}
+
+.btn.btn-outline,
+.btn-outline,
+.saas-btn-outline {
+  background: rgba(255, 255, 255, 0.7) !important;
+  border: 1px solid var(--soft-border-strong) !important;
+  color: var(--soft-text) !important;
+  border-radius: 10px !important;
+}
+
+.btn.btn-outline:hover,
+.btn-outline:hover,
+.saas-btn-outline:hover {
+  background: #FFFFFF !important;
+  border-color: rgba(0, 0, 0, 0.15) !important;
+  color: var(--soft-text) !important;
+}
+
+.btn.btn-ghost {
+  color: var(--soft-text-secondary) !important;
+}
+
+.btn.btn-ghost:hover {
+  background: rgba(0, 0, 0, 0.04) !important;
+  color: var(--soft-text) !important;
+}
+
+/* ── Form inputs — soft white fields ── */
+.input,
+.input-bordered,
+.select,
+.select-bordered,
+.textarea,
+.textarea-bordered,
+.file-input,
+.file-input-bordered,
+.leave-field-input,
+.leave-field-select,
+.leave-field-textarea,
+.date-picker-wrap input.flatpickr-input[readonly] {
+  background: rgba(255, 255, 255, 0.85) !important;
+  color: var(--soft-text) !important;
+  border: 1px solid var(--soft-border-strong) !important;
+  border-radius: 10px !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+}
+
+.input::placeholder,
+.textarea::placeholder,
+input::placeholder {
+  color: var(--soft-text-tertiary) !important;
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus,
+.file-input:focus,
+.date-picker-wrap input:focus {
+  border-color: rgba(0, 0, 0, 0.2) !important;
+  box-shadow: var(--soft-focus) !important;
+  outline: none !important;
+}
+
+.label-text,
+.label .label-text {
+  color: var(--soft-text-secondary) !important;
+  font-weight: 500 !important;
+}
+
+/* ── Typography ── */
+h1, h2, h3, h4,
+.text-xl.font-bold,
+.page-header {
+  color: var(--soft-text) !important;
+}
+
+.text-base-content\/60,
+.text-sm.text-base-content\/60,
+p.text-sm,
+.page-subheader {
+  color: var(--soft-text-secondary) !important;
+}
+
+.link-primary {
+  color: var(--soft-text) !important;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.text-primary {
+  color: var(--soft-text) !important;
+}
+
+/* ── Dashboard stats — soft mono numbers ── */
+.dash-refresh .stat-value,
+.saas-stat-val {
+  color: var(--soft-text) !important;
+}
+
+.dash-refresh .stat-label,
+.saas-stat-label {
+  color: var(--soft-text-tertiary) !important;
+}
+
+.dash-refresh .stat-sub,
+.saas-stat-desc {
+  color: var(--soft-text-secondary) !important;
+}
+
+.dash-refresh .live-pill {
+  background: rgba(0, 0, 0, 0.04) !important;
+  border: 1px solid var(--soft-border) !important;
+  color: var(--soft-text-secondary) !important;
+}
+
+.dash-refresh .ch-title {
+  color: var(--soft-text) !important;
+}
+
+.dash-refresh .ch-sub {
+  color: var(--soft-text-secondary) !important;
+}
+
+.dash-refresh .list-row {
+  background: rgba(255, 255, 255, 0.5) !important;
+  border: 1px solid var(--soft-border) !important;
+}
+
+.dash-refresh .list-row:hover {
+  background: rgba(255, 255, 255, 0.85) !important;
+  border-color: var(--soft-border-strong) !important;
+}
+
+.dash-refresh .punch-widget {
+  background: var(--soft-surface) !important;
+  backdrop-filter: var(--soft-blur) !important;
+  border: 1px solid var(--soft-border) !important;
+  color: var(--soft-text) !important;
+}
+
+.dash-refresh .punch-widget .pw-time {
+  color: var(--soft-text) !important;
+}
+
+.dash-refresh .punch-widget button {
+  background: rgba(255, 255, 255, 0.8) !important;
+  border: 1px solid var(--soft-border-strong) !important;
+  color: var(--soft-text) !important;
+}
+
+/* ── Tables ── */
+.table th {
+  background: rgba(0, 0, 0, 0.02) !important;
+  color: var(--soft-text-tertiary) !important;
+  border-bottom: 1px solid var(--soft-border) !important;
+}
+
+.table td {
+  color: var(--soft-text) !important;
+  border-bottom: 1px solid var(--soft-border) !important;
+}
+
+.table tbody tr:hover td {
+  background: rgba(0, 0, 0, 0.02) !important;
+}
+
+/* ── Badges — soft semantic only ── */
+.badge-ghost,
+.badge-neutral {
+  background: rgba(0, 0, 0, 0.05) !important;
+  color: var(--soft-text-secondary) !important;
+}
+
+.badge-primary,
+.badge-info {
+  background: rgba(0, 0, 0, 0.06) !important;
+  color: var(--soft-text) !important;
+}
+
+.badge-success { background: rgba(16, 185, 129, 0.1) !important; color: #059669 !important; }
+.badge-error { background: rgba(239, 68, 68, 0.1) !important; color: #DC2626 !important; }
+.badge-warning { background: rgba(245, 158, 11, 0.1) !important; color: #B45309 !important; }
+
+/* ── Alerts ── */
+.alert {
+  border-radius: 12px !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+.alert-success { background: rgba(16, 185, 129, 0.08) !important; color: #065F46 !important; border-color: rgba(16, 185, 129, 0.15) !important; }
+.alert-error { background: rgba(239, 68, 68, 0.08) !important; color: #991B1B !important; }
+.alert-warning { background: rgba(245, 158, 11, 0.08) !important; color: #92400E !important; }
+.alert-info { background: rgba(0, 0, 0, 0.03) !important; color: var(--soft-text-secondary) !important; }
+
+/* ── Modals & dropdowns ── */
+.modal-box,
+#notif-dropdown.surface {
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: var(--soft-blur) !important;
+  border: 1px solid var(--soft-border) !important;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.12) !important;
+  color: var(--soft-text) !important;
+}
+
+/* ── Flatpickr ── */
+.flatpickr-calendar {
+  background: #FFFFFF !important;
+  border: 1px solid var(--soft-border-strong) !important;
+  box-shadow: var(--soft-shadow-hover) !important;
+  border-radius: 12px !important;
+}
+
+.flatpickr-day.selected {
+  background: var(--soft-accent) !important;
+  border-color: var(--soft-accent) !important;
+  color: #FFF !important;
+}
+
+.date-picker-btn {
+  background: rgba(0, 0, 0, 0.04) !important;
+  color: var(--soft-text-secondary) !important;
+}
+
+.date-picker-btn:hover {
+  background: rgba(0, 0, 0, 0.08) !important;
+  color: var(--soft-text) !important;
+}
+
+/* ── Pagination ── */
+.join .btn-active {
+  background: var(--soft-accent) !important;
+  color: #FFFFFF !important;
+  border-color: var(--soft-accent) !important;
+}
+
+.checkbox:checked,
+.toggle:checked {
+  background-color: var(--soft-accent) !important;
+  border-color: var(--soft-accent) !important;
+}
+
+/* ── Leave apply page ── */
+.leave-apply-page {
+  --leave-accent: #1D1D1F;
+  --leave-slate: #1D1D1F;
+  --leave-slate-muted: #6E6E73;
+  --leave-glass: rgba(255, 255, 255, 0.78);
+  --leave-glass-strong: rgba(255, 255, 255, 0.92);
+  --leave-glass-border: rgba(0, 0, 0, 0.06);
+}
+
+.leave-apply-page__bg {
+  display: none;
+}
+
+.leave-submit-btn {
+  background: var(--soft-accent) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+.leave-balance-card::before {
+  background: rgba(0, 0, 0, 0.12) !important;
+}
+
+.leave-balance-card__value {
+  color: var(--soft-text) !important;
+}
+
+.bg-base-100 {
+  background: var(--soft-surface-solid) !important;
+}
+
+.text-base-content {
+  color: var(--soft-text) !important;
+}

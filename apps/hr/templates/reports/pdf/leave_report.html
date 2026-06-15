@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<style>
+  body { font-family: Arial, sans-serif; font-size: 9pt; color: #333; padding: 20px; }
+  h1 { font-size: 16pt; color: #1E3A5F; margin: 0 0 4px; }
+  .sub { font-size: 9pt; color: #666; margin-bottom: 16px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+  th { background: #1E3A5F; color: #fff; text-align: left; padding: 6px 8px; font-size: 8pt; }
+  td { padding: 5px 8px; border-bottom: 1px solid #eee; font-size: 8.5pt; }
+  .kpi { display: inline-block; margin-right: 24px; margin-bottom: 8px; }
+  .kpi-val { font-size: 14pt; font-weight: bold; color: #1E3A5F; }
+  .kpi-lbl { font-size: 8pt; color: #666; }
+</style></head><body>
+<h1>{{ tenant.name }}</h1>
+<div class="sub">Leave Report · {{ period }}</div>
+<div class="kpi"><div class="kpi-val">{{ total }}</div><div class="kpi-lbl">Total requests</div></div>
+{% for s in by_status %}
+<div class="kpi"><div class="kpi-val">{{ s.count }}</div><div class="kpi-lbl">{{ s.status|title }}</div></div>
+{% endfor %}
+<table>
+  <thead><tr><th>Code</th><th>Employee</th><th>Type</th><th>From</th><th>To</th><th>Days</th><th>Status</th></tr></thead>
+  <tbody>
+  {% for r in rows %}
+  <tr>
+    <td>{{ r.code }}</td><td>{{ r.name }}</td><td>{{ r.type }}</td>
+    <td>{{ r.from|date:"d M Y" }}</td><td>{{ r.to|date:"d M Y" }}</td>
+    <td>{{ r.days }}</td><td>{{ r.status }}</td>
+  </tr>
+  {% empty %}
+  <tr><td colspan="7">No leave records in this period.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</body></html>

@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block page_title %}Service Requests{% endblock %}
+
+{% block content %}
+
+<div class="flex items-center justify-between mb-4">
+
+  <div>
+
+    <h2 class="text-xl font-bold">Service Requests</h2>
+
+    <p class="text-sm text-base-content/60">IT / Procurement inbox — {{ counts.open }} open</p>
+
+  </div>
+
+  <div class="join">
+
+    <a href="?status=open" class="btn btn-sm join-item {% if status == 'open' %}btn-primary{% else %}btn-ghost{% endif %}">Open</a>
+
+    <a href="?status=resolved" class="btn btn-sm join-item {% if status == 'resolved' %}btn-primary{% else %}btn-ghost{% endif %}">Resolved</a>
+
+    <a href="?status=all" class="btn btn-sm join-item {% if status == 'all' %}btn-primary{% else %}btn-ghost{% endif %}">All</a>
+
+  </div>
+
+</div>
+
+
+
+{% if requests %}
+
+<div class="card bg-base-100 shadow overflow-x-auto">
+
+  <table class="table table-sm">
+
+    <thead><tr><th>ID</th><th>Employee</th><th>Type</th><th>Subject</th><th>Priority</th><th>Status</th><th>Assigned</th><th></th></tr></thead>
+
+    <tbody>
+
+      {% for r in requests %}
+
+      <tr>
+
+        <td class="font-mono text-xs">{{ r.request_no }}</td>
+
+        <td>{{ r.employee.full_name }}</td>
+
+        <td>{{ r.get_category_display }}</td>
+
+        <td class="font-medium">{{ r.subject }}</td>
+
+        <td><span class="badge badge-xs {% if r.priority == 'urgent' %}badge-error{% else %}badge-ghost{% endif %}">{{ r.get_priority_display }}</span></td>
+
+        <td><span class="badge badge-sm badge-outline">{{ r.get_status_display }}</span></td>
+
+        <td class="text-xs">{{ r.assigned_to.email|default:"—" }}</td>
+
+        <td><a href="{% url 'hr_ops:service_request_admin_detail' r.pk %}" class="btn btn-ghost btn-xs">Open</a></td>
+
+      </tr>
+
+      {% endfor %}
+
+    </tbody>
+
+  </table>
+
+</div>
+
+{% else %}
+
+<div class="card bg-base-100 shadow">
+
+  {% include "partials/empty_state.html" with title="Queue is empty" message="No service requests match this filter. Employees can raise tickets from My Space → Help & Requests." %}
+
+</div>
+
+{% endif %}
+
+{% endblock %}
+
+

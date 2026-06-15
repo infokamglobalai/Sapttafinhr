@@ -1,4 +1,5 @@
 import datetime
+import json
 from decimal import Decimal
 
 from django.shortcuts import render, redirect
@@ -10,6 +11,44 @@ from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
 from .services import provision_tenant, validate_subdomain
+
+
+def _sparkline_paths(values, stroke: str, fill: str, spark_id: str = "kpi") -> dict:
+    """SVG line + area paths for KPI sparklines (viewBox 0 0 120 40)."""
+    import math
+
+    series = [float(v) for v in (values or [0])][-8:]
+    if len(series) < 2:
+        series = [series[0] if series else 0.0, series[0] if series else 0.0]
+
+    if max(series) == min(series):
+        base = max(series[0], 1.0)
+        series = [base * (0.45 + 0.35 * math.sin(i * 0.9 + 0.4)) for i in range(len(series))]
+
+    width, height, pad = 120.0, 40.0, 4.0
+    lo, hi = min(series), max(series)
+    if lo == hi:
+        lo = max(0.0, lo - 1.0)
+        hi = hi + 1.0
+
+    points = []
+    span = len(series) - 1
+    for i, value in enumerate(series):
+        x = pad + (width - 2 * pad) * i / span
+        y = height - pad - (height - 2 * pad) * (value - lo) / (hi - lo)
+        points.append((round(x, 1), round(y, 1)))
+
+    line = "M " + " L ".join(f"{x},{y}" for x, y in points)
+    area = f"{line} L {points[-1][0]},{height - 2} L {points[0][0]},{height - 2} Z"
+    return {"line": line, "area": area, "stroke": stroke, "fill": fill, "id": spark_id}
+
+
+def _ramp_series(current: int, length: int = 8) -> list[int]:
+    """Build a simple rising series ending at *current* for sparklines without history."""
+    current = max(0, int(current))
+    if current == 0:
+        return [0] * length
+    return [max(0, round(current * i / (length - 1))) for i in range(length)]
 
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -97,6 +136,16 @@ def dashboard(request):
         "is_hr_admin": user.is_hr_admin,
         "is_manager": user.is_manager and not user.is_hr_admin,
         "is_employee_only": not user.is_hr_admin and not user.is_manager,
+        "has_employee_profile": bool(getattr(user, "employee_profile", None)),
+        "needs_employee_profile": (
+            not user.is_hr_admin
+            and not getattr(user, "employee_profile", None)
+        ),
+        "needs_manager_profile": (
+            user.is_manager
+            and not user.is_hr_admin
+            and not getattr(user, "employee_profile", None)
+        ),
     }
 
     if user.is_hr_admin:
@@ -121,18 +170,28 @@ def _hr_admin_analytics(tenant, today, month_start):
 
     active_emps = Employee.objects.filter(tenant=tenant, is_active=True, employment_status="active")
 
+    total_employees = active_emps.count()
+    present_today = AttendanceRecord.objects.filter(
+        tenant=tenant, attendance_date=today, status="present"
+    ).count()
+    on_leave_today = LeaveRequest.objects.filter(
+        tenant=tenant, status="approved", from_date__lte=today, to_date__gte=today
+    ).count()
+    pending_leave_approvals = LeaveRequest.objects.filter(tenant=tenant, status="pending").count()
+    pending_regularizations = AttendanceRegularization.objects.filter(
+        tenant=tenant, status="pending"
+    ).count()
+
     kpis = {
-        "total_employees": active_emps.count(),
-        "present_today": AttendanceRecord.objects.filter(
-            tenant=tenant, attendance_date=today, status="present"
-        ).count(),
-        "on_leave_today": LeaveRequest.objects.filter(
-            tenant=tenant, status="approved", from_date__lte=today, to_date__gte=today
-        ).count(),
-        "pending_leave_approvals": LeaveRequest.objects.filter(tenant=tenant, status="pending").count(),
-        "pending_regularizations": AttendanceRegularization.objects.filter(
-            tenant=tenant, status="pending"
-        ).count(),
+        "total_employees": total_employees,
+        "present_today": present_today,
+        "on_leave_today": on_leave_today,
+        "absent_today": max(0, total_employees - present_today - on_leave_today),
+        "attendance_rate_pct": (
+            int(round(present_today / total_employees * 100)) if total_employees else 0
+        ),
+        "pending_leave_approvals": pending_leave_approvals,
+        "pending_regularizations": pending_regularizations,
         "new_joiners_this_month": active_emps.filter(date_of_joining__gte=month_start).count(),
         "exits_this_month": Employee.objects.filter(
             tenant=tenant, date_of_exit__gte=month_start, date_of_exit__lte=today
@@ -195,17 +254,132 @@ def _hr_admin_analytics(tenant, today, month_start):
         date_of_joining__gte=today - datetime.timedelta(days=30)
     ).order_by("-date_of_joining")[:5]
 
+    from apps.hr_ops.models import ServiceRequest
+    from apps.payroll.models import ExpenseClaim
+    from apps.recruitment.models import JobOpening, JobApplication
+    from .setup_checklist import get_setup_checklist
+
+    pending_service_requests = ServiceRequest.objects.filter(
+        tenant=tenant, status__in=("pending_it", "in_progress", "pending_manager")
+    ).count()
+    pending_expenses = ExpenseClaim.objects.filter(tenant=tenant, status="pending").count()
+
+    pending_work = {
+        "leaves": kpis["pending_leave_approvals"],
+        "regularizations": kpis["pending_regularizations"],
+        "service_requests": pending_service_requests,
+        "expenses": pending_expenses,
+    }
+    pending_total = sum(pending_work.values())
+
+    week_end = today + datetime.timedelta(days=7)
+    upcoming_leaves = list(
+        LeaveRequest.objects.filter(
+            tenant=tenant,
+            status="approved",
+            from_date__gte=today,
+            from_date__lte=week_end,
+        )
+        .select_related("employee", "leave_type")
+        .order_by("from_date")[:6]
+    )
+
+    birthdays_soon = []
+    for emp in active_emps.filter(date_of_birth__isnull=False).only(
+        "id", "first_name", "last_name", "date_of_birth"
+    ):
+        dob = emp.date_of_birth
+        for offset in range(8):
+            check = today + datetime.timedelta(days=offset)
+            if dob.month == check.month and dob.day == check.day:
+                birthdays_soon.append(emp)
+                break
+        if len(birthdays_soon) >= 5:
+            break
+
+    open_jobs = JobOpening.objects.filter(tenant=tenant, status="published").count()
+    pending_applications = JobApplication.objects.filter(
+        tenant=tenant, status__in=("applied", "screening", "interview")
+    ).count()
+
+    setup_checklist = get_setup_checklist(tenant)
+    latest_run = recent_runs[0] if recent_runs else None
+    setup_pct = setup_checklist["percent"]
+    if total_employees == 0:
+        health_score = setup_pct
+    else:
+        health_score = min(
+            100,
+            max(
+                0,
+                int(kpis["attendance_rate_pct"] * 0.5)
+                + int(max(0, 25 - pending_total * 5))
+                + int(setup_pct * 0.25),
+            ),
+        )
+
+    sparklines = {
+        "attendance": _sparkline_paths(
+            attendance_trend["data"],
+            "#10B981",
+            "rgba(16, 185, 129, 0.18)",
+            "attendance",
+        ),
+        "open_roles": _sparkline_paths(
+            _ramp_series(open_jobs),
+            "#3B82F6",
+            "rgba(59, 130, 246, 0.18)",
+            "roles",
+        ),
+        "pending": _sparkline_paths(
+            _ramp_series(pending_total),
+            "#F97316",
+            "rgba(249, 115, 22, 0.18)",
+            "pending",
+        ),
+        "growth": _sparkline_paths(
+            _ramp_series(kpis["new_joiners_this_month"]),
+            "#8B5CF6",
+            "rgba(139, 92, 246, 0.18)",
+            "growth",
+        ),
+    }
+
+    insights = {
+        "health_score": health_score,
+        "pending_total": pending_total,
+        "open_jobs": open_jobs,
+        "pending_applications": pending_applications,
+        "sparklines": sparklines,
+        "latest_payroll_net": latest_run.total_net if latest_run else None,
+        "latest_payroll_period": (
+            f"{latest_run.year}-{latest_run.month:02d}" if latest_run else None
+        ),
+        "avg_daily_present": (
+            int(round(sum(attendance_trend["data"]) / len(attendance_trend["data"])))
+            if attendance_trend["data"]
+            else 0
+        ),
+    }
+
     return {
         "kpis": kpis,
-        # Pass raw dicts; templates render them via {% ... json_script %}, which
-        # HTML-escapes <, >, & so tenant-controlled labels (e.g. department names)
-        # can't break out of the <script> context. See the |safe XSS fix.
+        "insights": insights,
+        # Raw dicts for templates that render via {% ... json_script %} (XSS-safe).
         "dept_chart": dept_chart,
         "gender_chart": gender_chart,
         "attendance_trend": attendance_trend,
+        # Pre-serialized JSON for the redesigned dashboard.
+        "dept_chart_json": json.dumps(dept_chart),
+        "gender_chart_json": json.dumps(gender_chart),
+        "attendance_trend_json": json.dumps(attendance_trend),
         "recent_runs": recent_runs,
         "cycle_progress": cycle_progress,
         "recent_joiners": recent_joiners,
+        "upcoming_leaves": upcoming_leaves,
+        "birthdays_soon": birthdays_soon,
+        "setup_checklist": setup_checklist,
+        "pending_work": pending_work,
     }
 
 

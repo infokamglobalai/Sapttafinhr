@@ -1,0 +1,48 @@
+<div class="leave-history-table-wrap overflow-x-auto">
+  <table class="table table-sm leave-history-table">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>From</th>
+        <th>To</th>
+        <th>Days</th>
+        <th>Status</th>
+        <th>Applied</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for req in leave_requests %}
+      <tr>
+        <td><span class="badge badge-outline badge-sm">{{ req.leave_type.code }}</span></td>
+        <td class="text-sm">{{ req.from_date|date:"d M Y" }}</td>
+        <td class="text-sm">{{ req.to_date|date:"d M Y" }}</td>
+        <td class="font-medium">{{ req.total_days }}</td>
+        <td>
+          <span class="badge badge-sm
+            {% if req.status == 'approved' %}badge-success
+            {% elif req.status == 'rejected' %}badge-error
+            {% elif req.status == 'pending' %}badge-warning
+            {% else %}badge-ghost{% endif %}">
+            {{ req.get_status_display }}
+          </span>
+        </td>
+        <td class="text-xs leave-history-table__muted">{{ req.applied_at|date:"d M Y" }}</td>
+        <td>
+          {% if req.status == 'pending' %}
+          <form method="post" action="{% url 'leaves:cancel' req.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-ghost btn-xs text-error"
+                    onclick="return confirm('Cancel this leave request?')">Cancel</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="7" class="text-center py-10 leave-history-table__empty">No leave requests yet. Submit your first request from the New request tab.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

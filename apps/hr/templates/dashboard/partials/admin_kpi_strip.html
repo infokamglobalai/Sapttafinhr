@@ -1,0 +1,89 @@
+{% if insights %}
+<section class="dash-kpi-section stagger" aria-label="Key workforce metrics">
+  <div class="dash-kpi-section__head">
+    <div>
+      <h2 class="dash-kpi-section__title">Key metrics</h2>
+      <p class="dash-kpi-section__sub">Live workforce signals</p>
+    </div>
+    <span class="dash-kpi-section__hint">Tap a card for details</span>
+  </div>
+
+  <div class="dash-kpi-grid">
+    <a href="{% url 'attendance:register' %}" class="dash-kpi-card dash-kpi-card--green">
+      <div class="dash-kpi-card__surface">
+        <div class="dash-kpi-card__top">
+          <div class="dash-kpi-card__icon">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <div class="dash-kpi-card__meta">
+            <span class="dash-kpi-card__label">Attendance rate</span>
+            <span class="dash-kpi-card__tag">14-day trend</span>
+          </div>
+        </div>
+        <div class="dash-kpi-card__value">{{ kpis.attendance_rate_pct }}<span class="dash-kpi-card__unit">%</span></div>
+        <p class="dash-kpi-card__sub">{{ kpis.present_today }} present of {{ kpis.total_employees }}</p>
+        <div class="dash-kpi-card__chart">
+          {% include "dashboard/partials/kpi_sparkline.html" with spark=insights.sparklines.attendance %}
+        </div>
+      </div>
+    </a>
+
+    <a href="{% url 'recruitment:job_list' %}" class="dash-kpi-card dash-kpi-card--blue">
+      <div class="dash-kpi-card__surface">
+        <div class="dash-kpi-card__top">
+          <div class="dash-kpi-card__icon">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+          </div>
+          <div class="dash-kpi-card__meta">
+            <span class="dash-kpi-card__label">Open roles</span>
+            <span class="dash-kpi-card__tag">Published jobs</span>
+          </div>
+        </div>
+        <div class="dash-kpi-card__value">{{ insights.open_jobs }}</div>
+        <p class="dash-kpi-card__sub">{{ insights.pending_applications }} active applicant{{ insights.pending_applications|pluralize }}</p>
+        <div class="dash-kpi-card__chart">
+          {% include "dashboard/partials/kpi_sparkline.html" with spark=insights.sparklines.open_roles %}
+        </div>
+      </div>
+    </a>
+
+    <a href="{% url 'leaves:pending' %}" class="dash-kpi-card dash-kpi-card--orange">
+      <div class="dash-kpi-card__surface">
+        <div class="dash-kpi-card__top">
+          <div class="dash-kpi-card__icon">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <div class="dash-kpi-card__meta">
+            <span class="dash-kpi-card__label">Pending actions</span>
+            <span class="dash-kpi-card__tag">Needs review</span>
+          </div>
+        </div>
+        <div class="dash-kpi-card__value">{{ insights.pending_total }}</div>
+        <p class="dash-kpi-card__sub">Leave, attendance &amp; ops queue</p>
+        <div class="dash-kpi-card__chart">
+          {% include "dashboard/partials/kpi_sparkline.html" with spark=insights.sparklines.pending %}
+        </div>
+      </div>
+    </a>
+
+    <a href="{% url 'employees:list' %}" class="dash-kpi-card dash-kpi-card--violet">
+      <div class="dash-kpi-card__surface">
+        <div class="dash-kpi-card__top">
+          <div class="dash-kpi-card__icon">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+          </div>
+          <div class="dash-kpi-card__meta">
+            <span class="dash-kpi-card__label">Headcount growth</span>
+            <span class="dash-kpi-card__tag">This month</span>
+          </div>
+        </div>
+        <div class="dash-kpi-card__value">+{{ kpis.new_joiners_this_month }}</div>
+        <p class="dash-kpi-card__sub">{{ kpis.exits_this_month }} exit{{ kpis.exits_this_month|pluralize }} this month</p>
+        <div class="dash-kpi-card__chart">
+          {% include "dashboard/partials/kpi_sparkline.html" with spark=insights.sparklines.growth %}
+        </div>
+      </div>
+    </a>
+  </div>
+</section>
+{% endif %}

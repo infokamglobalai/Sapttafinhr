@@ -3,14 +3,14 @@ import json
 import logging
 from django.http import JsonResponse
 from django.views import View
-from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
+from utils.access import hr_admin_required
 
 logger = logging.getLogger(__name__)
 
 
-@method_decorator([login_required, csrf_exempt], name="dispatch")
+@method_decorator([hr_admin_required, csrf_exempt], name="dispatch")
 class JDGeneratorView(View):
     """POST /recruitment/ai/generate-jd/
     Body: {role_title, department, experience_years, skills[], salary_range, company_name}
@@ -94,7 +94,7 @@ We are looking for an experienced {role} to join our growing team. This is an ex
 • Collaborative and inclusive work culture"""
 
 
-@method_decorator([login_required, csrf_exempt], name="dispatch")
+@method_decorator([hr_admin_required, csrf_exempt], name="dispatch")
 class OfferLetterGeneratorView(View):
     """POST /recruitment/ai/generate-offer/
     Body: {employee_id or candidate_name, role, department, salary, joining_date}
@@ -190,7 +190,7 @@ HR Manager
 Accepted by: _________________ Date: _________________"""
 
 
-@method_decorator([login_required, csrf_exempt], name="dispatch")
+@method_decorator([hr_admin_required, csrf_exempt], name="dispatch")
 class ResumeParsViewView(View):
     """POST /recruitment/ai/parse-resume/ — multipart upload of PDF/DOCX.
     Returns extracted candidate profile for ATS pre-fill.
@@ -211,9 +211,7 @@ class ResumeParsViewView(View):
         return JsonResponse(result)
 
 
-# CSRF-protected: the only caller (job_detail.html) sends X-CSRFToken, so this
-# session-authenticated POST no longer needs csrf_exempt.
-@method_decorator(login_required, name="dispatch")
+@method_decorator([hr_admin_required, csrf_exempt], name="dispatch")
 class ResumeRankView(View):
     """POST /recruitment/ai/rank-resumes/
     Body: {job_opening_id, application_ids: []} (application_ids optional — ranks all)
@@ -253,9 +251,16 @@ class ResumeRankView(View):
             return JsonResponse({"error": "ANTHROPIC_API_KEY not configured"}, status=503)
 
         jd_text = self._build_jd_text(job)
+        from django.utils import timezone
+
         results = []
         for app in applications:
             score_data = self._score_candidate(app.candidate, jd_text, job, api_key)
+            app.ai_score = score_data.get("score")
+            app.ai_band = score_data.get("band", "")
+            app.ai_recommendation = score_data.get("recommendation", "")
+            app.ai_ranked_at = timezone.now()
+            app.save(update_fields=["ai_score", "ai_band", "ai_recommendation", "ai_ranked_at", "updated_at"])
             results.append({
                 "application_id": app.id,
                 "candidate_id": app.candidate.id,

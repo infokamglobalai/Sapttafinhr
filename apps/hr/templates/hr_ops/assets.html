@@ -27,39 +27,18 @@
           </span>
         </td>
         <td class="text-sm">
-          {% with last=asset.assignments.filter|first %}
           {% if asset.status == 'assigned' %}
-            {{ asset.assignments.last.employee.full_name|default:"—" }}
+            {% with assignment=asset.assignments.last %}
+              {{ assignment.employee.full_name|default:"—" }}
+            {% endwith %}
           {% else %}—{% endif %}
-          {% endwith %}
         </td>
         <td>
           {% if asset.status == 'available' %}
-          <button class="btn btn-ghost btn-xs" onclick="document.getElementById('assign-modal-{{ asset.pk }}').showModal()">Assign</button>
-          <dialog id="assign-modal-{{ asset.pk }}" class="modal">
-            <div class="modal-box">
-              <h3 class="font-bold text-lg mb-4">Assign {{ asset.name }}</h3>
-              <form method="post" action="{% url 'hr_ops:asset_assign' asset.pk %}">
-                {% csrf_token %}
-                <div class="form-control mb-4">
-                  <label class="label"><span class="label-text">Employee ID</span></label>
-                  <input type="number" name="employee_id" class="input input-bordered" placeholder="Enter employee ID" required>
-                </div>
-                <div class="form-control mb-4">
-                  <label class="label"><span class="label-text">Condition</span></label>
-                  <select name="condition" class="select select-bordered">
-                    <option value="good">Good</option>
-                    <option value="fair">Fair</option>
-                    <option value="poor">Poor</option>
-                  </select>
-                </div>
-                <div class="modal-action">
-                  <button type="submit" class="btn btn-primary">Assign</button>
-                  <button type="button" class="btn btn-ghost" onclick="document.getElementById('assign-modal-{{ asset.pk }}').close()">Cancel</button>
-                </div>
-              </form>
-            </div>
-          </dialog>
+          <button type="button" class="btn btn-ghost btn-xs"
+            onclick="window.openAssetAssign({{ asset.pk }}, '{{ asset.name|escapejs }}')">
+            Assign
+          </button>
           {% endif %}
         </td>
       </tr>
@@ -74,4 +53,143 @@
     </tbody>
   </table>
 </div>
+
+{{ employees_for_assign|json_script:"asset-assign-employees" }}
+
+<dialog id="assign-asset-modal" class="modal">
+  <div class="modal-box max-w-md">
+    <h3 class="font-bold text-lg mb-1">Assign asset</h3>
+    <p class="text-sm text-base-content/60 mb-4" id="assign-asset-title"></p>
+
+    {% if employees_for_assign %}
+    <form method="post" id="assign-asset-form" action="">
+      {% csrf_token %}
+      <div class="form-control mb-4 relative">
+        <label class="label"><span class="label-text">Search employee</span></label>
+        <input type="text" id="assign-employee-search" class="input input-bordered w-full"
+          placeholder="Type name or employee code…" autocomplete="off">
+        <input type="hidden" name="employee_id" id="assign-employee-id" required>
+        <div id="assign-employee-picked" class="hidden mt-2 flex items-center justify-between gap-2 rounded-lg border border-base-300 bg-base-200/50 px-3 py-2 text-sm">
+          <span id="assign-employee-picked-label"></span>
+          <button type="button" class="btn btn-ghost btn-xs" id="assign-employee-clear">Change</button>
+        </div>
+        <ul id="assign-employee-results"
+          class="absolute left-0 right-0 z-20 mt-1 max-h-52 overflow-y-auto rounded-lg border border-base-300 bg-base-100 shadow-lg hidden">
+        </ul>
+      </div>
+      <div class="form-control mb-4">
+        <label class="label"><span class="label-text">Condition</span></label>
+        <select name="condition" class="select select-bordered w-full">
+          <option value="good">Good</option>
+          <option value="fair">Fair</option>
+          <option value="poor">Poor</option>
+        </select>
+      </div>
+      <div class="modal-action">
+        <button type="submit" class="btn btn-primary" id="assign-submit-btn" disabled>Assign</button>
+        <button type="button" class="btn btn-ghost" onclick="document.getElementById('assign-asset-modal').close()">Cancel</button>
+      </div>
+    </form>
+    {% else %}
+    <p class="text-sm text-warning">No active employees. <a href="{% url 'employees:create' %}" class="link">Add an employee</a> first.</p>
+    <div class="modal-action">
+      <button type="button" class="btn btn-ghost" onclick="document.getElementById('assign-asset-modal').close()">Close</button>
+    </div>
+    {% endif %}
+  </div>
+  <form method="dialog" class="modal-backdrop"><button type="button">close</button></form>
+</dialog>
+
+<script>
+(function () {
+  const employees = JSON.parse(document.getElementById('asset-assign-employees')?.textContent || '[]');
+  const modal = document.getElementById('assign-asset-modal');
+  const form = document.getElementById('assign-asset-form');
+  const titleEl = document.getElementById('assign-asset-title');
+  const searchInput = document.getElementById('assign-employee-search');
+  const hiddenId = document.getElementById('assign-employee-id');
+  const resultsEl = document.getElementById('assign-employee-results');
+  const pickedWrap = document.getElementById('assign-employee-picked');
+  const pickedLabel = document.getElementById('assign-employee-picked-label');
+  const clearBtn = document.getElementById('assign-employee-clear');
+  const submitBtn = document.getElementById('assign-submit-btn');
+
+  if (!modal || !form) return;
+
+  function resetPicker() {
+    hiddenId.value = '';
+    searchInput.value = '';
+    searchInput.classList.remove('hidden');
+    pickedWrap.classList.add('hidden');
+    resultsEl.classList.add('hidden');
+    resultsEl.innerHTML = '';
+    submitBtn.disabled = true;
+  }
+
+  function selectEmployee(emp) {
+    hiddenId.value = emp.id;
+    pickedLabel.textContent = emp.name + ' (' + emp.code + ')' + (emp.dept ? ' · ' + emp.dept : '');
+    searchInput.classList.add('hidden');
+    pickedWrap.classList.remove('hidden');
+    resultsEl.classList.add('hidden');
+    submitBtn.disabled = false;
+  }
+
+  function filterEmployees(q) {
+    q = q.trim().toLowerCase();
+    if (!q) return employees.slice(0, 12);
+    return employees.filter(function (e) {
+      return e.name.toLowerCase().includes(q)
+        || e.code.toLowerCase().includes(q)
+        || (e.dept && e.dept.toLowerCase().includes(q));
+    }).slice(0, 12);
+  }
+
+  function renderResults(list) {
+    resultsEl.innerHTML = '';
+    if (!list.length) {
+      resultsEl.innerHTML = '<li class="px-3 py-2 text-sm text-base-content/50">No matches</li>';
+      resultsEl.classList.remove('hidden');
+      return;
+    }
+    list.forEach(function (emp) {
+      const li = document.createElement('li');
+      li.className = 'cursor-pointer px-3 py-2 text-sm hover:bg-base-200 border-b border-base-200 last:border-0';
+      li.innerHTML = '<div class="font-medium">' + emp.name + '</div>'
+        + '<div class="text-xs text-base-content/60">' + emp.code
+        + (emp.dept ? ' · ' + emp.dept : '') + '</div>';
+      li.addEventListener('click', function () { selectEmployee(emp); });
+      resultsEl.appendChild(li);
+    });
+    resultsEl.classList.remove('hidden');
+  }
+
+  searchInput?.addEventListener('input', function () {
+    renderResults(filterEmployees(searchInput.value));
+  });
+
+  searchInput?.addEventListener('focus', function () {
+    renderResults(filterEmployees(searchInput.value));
+  });
+
+  clearBtn?.addEventListener('click', function () {
+    resetPicker();
+    searchInput.focus();
+  });
+
+  document.addEventListener('click', function (e) {
+    if (!resultsEl.contains(e.target) && e.target !== searchInput) {
+      resultsEl.classList.add('hidden');
+    }
+  });
+
+  window.openAssetAssign = function (assetPk, assetName) {
+    form.action = '/hr/assets/' + assetPk + '/assign/';
+    titleEl.textContent = assetName;
+    resetPicker();
+    modal.showModal();
+    setTimeout(function () { searchInput?.focus(); }, 100);
+  };
+})();
+</script>
 {% endblock %}

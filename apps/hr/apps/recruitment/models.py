@@ -68,6 +68,10 @@ class JobApplication(models.Model):
     applied_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     notes = models.TextField(blank=True)
+    ai_score = models.PositiveSmallIntegerField(null=True, blank=True)
+    ai_band = models.CharField(max_length=20, blank=True)
+    ai_recommendation = models.TextField(blank=True)
+    ai_ranked_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         db_table = "job_applications"

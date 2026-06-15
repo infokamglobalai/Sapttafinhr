@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block page_title %}Leave Report{% endblock %}
+{% block content %}
+<div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+  <div>
+    <a href="{% url 'reports:index' %}" class="text-sm link link-hover">← Reports</a>
+    <h2 class="text-xl font-bold mt-1">Leave Report</h2>
+    <p class="text-sm text-base-content/60">{{ total }} record(s)</p>
+  </div>
+  <a href="{% url 'reports:leave_export' %}?from={{ start_date|date:'Y-m-d' }}&to={{ end_date|date:'Y-m-d' }}{% if status %}&status={{ status }}{% endif %}"
+     class="btn btn-primary btn-sm">Export Excel</a>
+</div>
+<form method="get" class="card bg-base-100 shadow mb-4">
+  <div class="card-body p-4 flex flex-wrap gap-3 items-end">
+    <div>
+      <label class="label-text text-xs">From</label>
+      <input type="date" name="from" value="{{ start_date|date:'Y-m-d' }}" class="input input-bordered input-sm">
+    </div>
+    <div>
+      <label class="label-text text-xs">To</label>
+      <input type="date" name="to" value="{{ end_date|date:'Y-m-d' }}" class="input input-bordered input-sm">
+    </div>
+    <div>
+      <label class="label-text text-xs">Status</label>
+      <select name="status" class="select select-bordered select-sm">
+        <option value="">All</option>
+        <option value="pending" {% if status == 'pending' %}selected{% endif %}>Pending</option>
+        <option value="approved" {% if status == 'approved' %}selected{% endif %}>Approved</option>
+        <option value="rejected" {% if status == 'rejected' %}selected{% endif %}>Rejected</option>
+      </select>
+    </div>
+    <button type="submit" class="btn btn-sm btn-outline">Apply</button>
+  </div>
+</form>
+<div class="card bg-base-100 shadow overflow-x-auto">
+  <table class="table table-sm">
+    <thead><tr><th>Employee</th><th>Type</th><th>From</th><th>To</th><th>Days</th><th>Status</th></tr></thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <td>{{ row.employee.full_name }}</td>
+        <td>{{ row.leave_type.code }}</td>
+        <td>{{ row.from_date|date:"d M Y" }}</td>
+        <td>{{ row.to_date|date:"d M Y" }}</td>
+        <td>{{ row.total_days }}</td>
+        <td><span class="badge badge-sm badge-ghost">{{ row.get_status_display }}</span></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="text-center py-8 text-base-content/40">No records for this filter.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

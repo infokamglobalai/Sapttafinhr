@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<style>
+  body { font-family: Arial, sans-serif; font-size: 9pt; color: #333; padding: 20px; }
+  h1 { font-size: 16pt; color: #1E3A5F; margin: 0 0 4px; }
+  .sub { font-size: 9pt; color: #666; margin-bottom: 16px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+  th { background: #1E3A5F; color: #fff; text-align: left; padding: 6px 8px; font-size: 8pt; }
+  td { padding: 5px 8px; border-bottom: 1px solid #eee; font-size: 8.5pt; }
+  .kpi { display: inline-block; margin-right: 20px; margin-bottom: 8px; }
+  .kpi-val { font-size: 14pt; font-weight: bold; color: #1E3A5F; }
+  .kpi-lbl { font-size: 8pt; color: #666; }
+  h2 { font-size: 11pt; margin: 20px 0 8px; color: #334155; }
+</style></head><body>
+<h1>{{ tenant.name }}</h1>
+<div class="sub">Attendance MIS · {{ period }}</div>
+<div class="kpi"><div class="kpi-val">{{ total_records }}</div><div class="kpi-lbl">Daily records</div></div>
+{% for s in status_breakdown %}
+<div class="kpi"><div class="kpi-val">{{ s.count }}</div><div class="kpi-lbl">{{ s.status|title }}</div></div>
+{% endfor %}
+<h2>Monthly summary by employee</h2>
+<table>
+  <thead><tr><th>Code</th><th>Employee</th><th>Present</th><th>Leave</th><th>Absent</th><th>LOP</th></tr></thead>
+  <tbody>
+  {% for r in employee_rows %}
+  <tr>
+    <td>{{ r.code }}</td><td>{{ r.name }}</td>
+    <td>{{ r.present|floatformat:1 }}</td><td>{{ r.leave|floatformat:1 }}</td>
+    <td>{{ r.absent }}</td><td>{{ r.lop|floatformat:1 }}</td>
+  </tr>
+  {% empty %}
+  <tr><td colspan="6">No monthly summaries — run Prepare month in payroll review.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</body></html>

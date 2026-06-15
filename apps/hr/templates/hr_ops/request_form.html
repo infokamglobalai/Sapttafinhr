@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block page_title %}Raise Request{% endblock %}
+{% block content %}
+<div style="max-width: 680px; margin: 0 auto;">
+  <a href="{% url 'hr_ops:my_service_requests' %}" class="btn btn-ghost btn-sm mb-3">← My Requests</a>
+  <h2 class="text-xl font-bold mb-1">Raise a Request</h2>
+  <p class="text-sm text-base-content/60 mb-4">IT/laptop issues go to IT/Procurement. Hardware & software need manager approval first.</p>
+
+  <form method="post" enctype="multipart/form-data" class="card bg-base-100 shadow">
+    <div class="card-body gap-4">
+      {% csrf_token %}
+      {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors.0 }}</div>{% endif %}
+
+      <label class="form-control">
+        <span class="label-text font-semibold">Request type</span>
+        {{ form.category }}
+      </label>
+      <label class="form-control">
+        <span class="label-text font-semibold">Subject</span>
+        {{ form.subject }}
+      </label>
+      <label class="form-control">
+        <span class="label-text font-semibold">Details</span>
+        {{ form.description }}
+      </label>
+      <div class="grid grid-cols-2 gap-4">
+        <label class="form-control">
+          <span class="label-text font-semibold">Priority</span>
+          {{ form.priority }}
+        </label>
+        <label class="form-control">
+          <span class="label-text font-semibold">Related asset (optional)</span>
+          {{ form.asset }}
+          {% if not assigned_assets %}<span class="text-xs text-base-content/50 mt-1">No assets assigned to you</span>{% endif %}
+        </label>
+      </div>
+      <label class="form-control">
+        <span class="label-text font-semibold">Attachment (optional)</span>
+        {{ form.attachment }}
+      </label>
+      <div class="card-actions justify-end">
+        <a href="{% url 'hr_ops:my_service_requests' %}" class="btn btn-ghost">Cancel</a>
+        <button type="submit" class="btn btn-primary">Submit Request</button>
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -14,8 +14,9 @@
       <h3 style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-500); margin-bottom: 14px;">Identity</h3>
       <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 14px; margin-bottom: 14px;">
         <div>
-          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Asset Code *</label>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Asset Code {% if not asset %}<span style="font-weight:400;color:var(--ink-400)">(auto)</span>{% endif %}</label>
           {{ form.asset_code }}
+          {% if not asset %}<p style="font-size:12px;color:var(--ink-400);margin-top:4px;">Filled from category + brand on save — e.g. laptop + Apple → <strong>LP-APL-001</strong></p>{% endif %}
         </div>
         <div>
           <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Name *</label>

@@ -9,13 +9,30 @@ from django.views.decorators.http import require_POST
 from .models import Employee, Department, Designation, OfficeLocation, EmployeeDocument, AttritionScore
 from .forms import EmployeeForm, DepartmentForm, DesignationForm, OfficeLocationForm, DocumentUploadForm
 from .services import create_employee, bulk_import_employees, provision_employee_login, email_login_credentials
+from .access_services import (
+    get_employee_access,
+    get_login_url,
+    push_credential_session,
+    pop_credential_session,
+    revoke_employee_access,
+    restore_employee_access,
+    set_employee_roles,
+)
+from utils.access import hr_admin_required
 from utils.pdf import render_pdf_response
+
+
+def _hr_admin_required(request):
+    if not request.user.is_hr_admin:
+        messages.error(request, "HR admin access required.")
+        return False
+    return True
 
 
 # ---------------------------------------------------------------------------
 # Employee directory
 # ---------------------------------------------------------------------------
-@login_required
+@hr_admin_required
 def employee_list(request):
     tenant = request.tenant
     qs = Employee.objects.filter(tenant=tenant).select_related(
@@ -58,20 +75,23 @@ def employee_list(request):
     })
 
 
-@login_required
+@hr_admin_required
 def employee_detail(request, pk):
     tenant = request.tenant
     employee = get_object_or_404(Employee, pk=pk, tenant=tenant)
     documents = employee.documents.all().order_by("-uploaded_at")
     bank_accounts = employee.bank_accounts.all()
+    access = get_employee_access(employee)
     return render(request, "employees/detail.html", {
         "employee": employee,
         "documents": documents,
         "bank_accounts": bank_accounts,
+        "access": access,
+        "login_url": get_login_url(request),
     })
 
 
-@login_required
+@hr_admin_required
 def employee_create(request):
     tenant = request.tenant
     if request.method == "POST":
@@ -80,10 +100,16 @@ def employee_create(request):
             data = form.cleaned_data
             try:
                 emp, temp_password = create_employee(tenant, data, created_by=request.user)
-                messages.success(
-                    request,
-                    f"Employee {emp.full_name} created. Temporary password: {temp_password}"
-                )
+                if emp.user_id and temp_password:
+                    push_credential_session(
+                        request, emp, emp.user.email, temp_password
+                    )
+                    if request.htmx:
+                        return HttpResponse(
+                            headers={"HX-Redirect": f"/employees/{emp.pk}/credentials/"}
+                        )
+                    return redirect("employees:credentials", pk=emp.pk)
+                messages.success(request, f"Employee {emp.full_name} created.")
                 if request.htmx:
                     return HttpResponse(
                         headers={"HX-Redirect": f"/employees/{emp.pk}/"}
@@ -97,7 +123,7 @@ def employee_create(request):
     return render(request, "employees/create.html", {"form": form})
 
 
-@login_required
+@hr_admin_required
 @require_POST
 def employee_create_login(request, pk):
     """Provision (or reset) a self-service login for an employee.
@@ -107,40 +133,37 @@ def employee_create_login(request, pk):
     temporary password is shown once for the admin to share (until email is
     wired up).
     """
-    tenant = request.tenant
-    if not request.user.is_hr_admin:
-        messages.error(request, "HR admin access required.")
+    if not _hr_admin_required(request):
         return redirect("employees:detail", pk=pk)
+    tenant = request.tenant
     employee = get_object_or_404(Employee, pk=pk, tenant=tenant)
-    reset = bool(employee.user_id)  # already linked → treat as a password reset
+    reset = bool(employee.user_id)
     try:
         user, password = provision_employee_login(employee, created_by=request.user, reset_password=reset)
         if password:
             verb = "reset" if reset else "created"
-            from django.urls import reverse
-            login_url = request.build_absolute_uri(reverse("accounts:login"))
+            login_url = get_login_url(request)
             emailed = email_login_credentials(employee, password, login_url)
+            push_credential_session(request, employee, user.email, password)
             if emailed:
                 messages.success(
                     request,
                     f"Self-service login {verb} for {employee.full_name} and emailed to {user.email}.",
                 )
             else:
-                # Email not sent (no mail backend / send failed) — fall back to on-screen.
                 messages.success(
                     request,
                     f"Self-service login {verb} for {employee.full_name}. "
-                    f"Email: {user.email} · Temporary password: {password} "
-                    f"— share it securely; they can change it after signing in.",
+                    f"Save the temporary password on the next screen.",
                 )
-        else:
-            messages.info(request, f"{employee.full_name} already has a login ({user.email}).")
+            return redirect("employees:credentials", pk=pk)
+        messages.info(request, f"{employee.full_name} already has a login ({user.email}).")
     except Exception as exc:
         messages.error(request, f"Could not create login: {exc}")
     return redirect("employees:detail", pk=pk)
 
 
-@login_required
+@hr_admin_required
 @require_POST
 def bulk_provision_logins(request):
     """Provision login accounts for all employees in this tenant that don't have one yet."""
@@ -151,8 +174,7 @@ def bulk_provision_logins(request):
 
     no_login = Employee.objects.filter(tenant=tenant, user__isnull=True, is_active=True)
     created, skipped = [], []
-    from django.urls import reverse
-    login_url = request.build_absolute_uri(reverse("accounts:login"))
+    login_url = get_login_url(request)
 
     for emp in no_login:
         email = (emp.official_email or emp.personal_email or "").strip()
@@ -178,20 +200,103 @@ def bulk_provision_logins(request):
     return redirect("employees:list")
 
 
-@login_required
+@hr_admin_required
 def bulk_credentials(request):
     """One-time display of passwords generated by bulk_provision_logins."""
     credentials = request.session.pop("bulk_credentials", None)
     if not credentials:
         return redirect("employees:list")
-    login_url = request.build_absolute_uri("/auth/login/")
     return render(request, "employees/bulk_credentials.html", {
         "credentials": credentials,
-        "login_url": login_url,
+        "login_url": get_login_url(request),
     })
 
 
-@login_required
+@hr_admin_required
+def employee_credentials(request, pk):
+    """One-time display after create / reset login — admin can come back via Reset login."""
+    if not _hr_admin_required(request):
+        return redirect("employees:detail", pk=pk)
+    tenant = request.tenant
+    employee = get_object_or_404(Employee, pk=pk, tenant=tenant)
+    cred = pop_credential_session(request, pk)
+    if not cred:
+        messages.info(
+            request,
+            "No temporary password is stored. Use Reset login to generate a new one.",
+        )
+        return redirect("employees:detail", pk=pk)
+    return render(request, "employees/employee_credentials.html", {
+        "employee": employee,
+        "credential": cred,
+        "login_url": get_login_url(request),
+    })
+
+
+@hr_admin_required
+@require_POST
+def employee_revoke_access(request, pk):
+    if not _hr_admin_required(request):
+        return redirect("employees:detail", pk=pk)
+    tenant = request.tenant
+    employee = get_object_or_404(Employee, pk=pk, tenant=tenant)
+    if revoke_employee_access(employee):
+        messages.success(request, f"Application access disabled for {employee.full_name}.")
+    else:
+        messages.info(request, f"{employee.full_name} has no active login to disable.")
+    return redirect("employees:detail", pk=pk)
+
+
+@hr_admin_required
+@require_POST
+def employee_restore_access(request, pk):
+    if not _hr_admin_required(request):
+        return redirect("employees:detail", pk=pk)
+    tenant = request.tenant
+    employee = get_object_or_404(Employee, pk=pk, tenant=tenant)
+    if restore_employee_access(employee):
+        messages.success(request, f"Application access restored for {employee.full_name}.")
+    else:
+        messages.info(request, f"{employee.full_name} already has active access or no login exists.")
+    return redirect("employees:detail", pk=pk)
+
+
+@hr_admin_required
+def team_access(request):
+    """Assign Manager / HR Admin roles and review login status."""
+    if not _hr_admin_required(request):
+        return redirect("tenants:dashboard")
+    tenant = request.tenant
+    employees = (
+        Employee.objects.filter(tenant=tenant, user__isnull=False)
+        .select_related("user", "department", "designation")
+        .order_by("first_name", "last_name")
+    )
+    rows = []
+    for emp in employees:
+        access = get_employee_access(emp)
+        rows.append({"employee": emp, "access": access})
+    return render(request, "employees/team_access.html", {"rows": rows})
+
+
+@hr_admin_required
+@require_POST
+def team_access_update(request, pk):
+    if not _hr_admin_required(request):
+        return redirect("employees:team_access")
+    tenant = request.tenant
+    employee = get_object_or_404(Employee, pk=pk, tenant=tenant, user__isnull=False)
+    role_names = ["employee"]
+    if request.POST.get("role_manager") == "on":
+        role_names.append("manager")
+    if request.POST.get("role_hr_admin") == "on":
+        role_names.append("hr_admin")
+    set_employee_roles(employee.user, role_names, granted_by=request.user)
+    messages.success(request, f"Roles updated for {employee.full_name}.")
+    return redirect("employees:team_access")
+
+
+@hr_admin_required
 def employee_edit(request, pk):
     tenant = request.tenant
     employee = get_object_or_404(Employee, pk=pk, tenant=tenant)
@@ -215,7 +320,7 @@ def employee_edit(request, pk):
 # ---------------------------------------------------------------------------
 # Document management
 # ---------------------------------------------------------------------------
-@login_required
+@hr_admin_required
 def document_upload(request, employee_pk):
     tenant = request.tenant
     employee = get_object_or_404(Employee, pk=employee_pk, tenant=tenant)
@@ -250,7 +355,7 @@ def document_upload(request, employee_pk):
 # ---------------------------------------------------------------------------
 # Digital ID card
 # ---------------------------------------------------------------------------
-@login_required
+@hr_admin_required
 def id_card_pdf(request, pk):
     tenant = request.tenant
     employee = get_object_or_404(Employee, pk=pk, tenant=tenant)
@@ -264,7 +369,7 @@ def id_card_pdf(request, pk):
 # ---------------------------------------------------------------------------
 # Bulk import
 # ---------------------------------------------------------------------------
-@login_required
+@hr_admin_required
 def bulk_import(request):
     tenant = request.tenant
     if request.method == "POST" and request.FILES.get("csv_file"):
@@ -282,7 +387,7 @@ def bulk_import(request):
 # ---------------------------------------------------------------------------
 # Org structure management
 # ---------------------------------------------------------------------------
-@login_required
+@hr_admin_required
 def department_list(request):
     tenant = request.tenant
     departments = Department.objects.filter(tenant=tenant).order_by("name")
@@ -290,7 +395,7 @@ def department_list(request):
     return render(request, "employees/departments.html", {"departments": departments, "form": form})
 
 
-@login_required
+@hr_admin_required
 def department_create(request):
     tenant = request.tenant
     if request.method == "POST":
@@ -306,7 +411,7 @@ def department_create(request):
     return redirect("employees:departments")
 
 
-@login_required
+@hr_admin_required
 def designation_list(request):
     tenant = request.tenant
     designations = Designation.objects.filter(tenant=tenant).order_by("level", "name")
@@ -314,7 +419,7 @@ def designation_list(request):
     return render(request, "employees/designations.html", {"designations": designations, "form": form})
 
 
-@login_required
+@hr_admin_required
 def designation_create(request):
     tenant = request.tenant
     if request.method == "POST":
@@ -330,7 +435,7 @@ def designation_create(request):
     return redirect("employees:designations")
 
 
-@login_required
+@hr_admin_required
 def location_list(request):
     tenant = request.tenant
     locations = OfficeLocation.objects.filter(tenant=tenant).order_by("name")
@@ -338,7 +443,7 @@ def location_list(request):
     return render(request, "employees/locations.html", {"locations": locations, "form": form})
 
 
-@login_required
+@hr_admin_required
 def location_create(request):
     tenant = request.tenant
     if request.method == "POST":
@@ -357,7 +462,7 @@ def location_create(request):
 # ─────────────────────────────────────────────────────────────────────────
 # Attrition Risk Scoring (AI feature #4 — pure heuristic, no external API)
 # ─────────────────────────────────────────────────────────────────────────
-@login_required
+@hr_admin_required
 def attrition_dashboard(request):
     """HR-only view of every employee's flight-risk score."""
     tenant = request.tenant
@@ -393,13 +498,11 @@ def attrition_dashboard(request):
     })
 
 
-@login_required
+@hr_admin_required
 @require_POST
 def attrition_recompute(request):
     """Manually trigger a recompute for this tenant (also runs nightly via cron)."""
     tenant = request.tenant
-    if not request.user.is_hr_admin:
-        return JsonResponse({"error": "forbidden"}, status=403)
     from .attrition import recompute_all
     counts = recompute_all(tenant)
     messages.success(

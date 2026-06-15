@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block page_title %}Policy compliance — {{ policy.title }}{% endblock %}
+{% block content %}
+<a href="{% url 'hr_ops:policy_list' %}" class="text-sm link mb-3 inline-block">← Policies</a>
+
+<div class="flex flex-wrap items-start justify-between gap-4 mb-4">
+  <div>
+    <h2 class="text-xl font-bold">{{ policy.title }}</h2>
+    <p class="text-sm text-base-content/60">{{ policy.version_label }}{% if policy.category %} · {{ policy.category }}{% endif %}</p>
+  </div>
+  <div class="flex gap-2 flex-wrap">
+    {% if summary.pending %}
+    <form method="post" action="{% url 'hr_ops:policy_remind' policy.pk %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-warning btn-sm">Remind {{ summary.pending }} pending</button>
+    </form>
+    {% endif %}
+    <a href="{% url 'hr_ops:policy_distribute' policy.pk %}" class="btn btn-primary btn-sm">Send / re-send</a>
+  </div>
+</div>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+  <div class="stat premium-glass-card p-4">
+    <div class="stat-value text-2xl">{{ summary.total }}</div>
+    <div class="stat-label text-xs">Sent (current version)</div>
+  </div>
+  <div class="stat premium-glass-card p-4">
+    <div class="stat-value text-2xl text-success">{{ summary.acknowledged }}</div>
+    <div class="stat-label text-xs">Acknowledged</div>
+  </div>
+  <div class="stat premium-glass-card p-4">
+    <div class="stat-value text-2xl text-warning">{{ summary.pending }}</div>
+    <div class="stat-label text-xs">Pending</div>
+  </div>
+  <div class="stat premium-glass-card p-4">
+    <div class="stat-value text-2xl">{{ summary.ack_pct }}%</div>
+    <div class="stat-label text-xs">Compliance rate</div>
+  </div>
+</div>
+
+{% if versions %}
+<div class="mb-6">
+  <h3 class="font-semibold text-sm mb-2">Version history</h3>
+  <div class="overflow-x-auto">
+    <table class="table table-xs">
+      <thead><tr><th>Version</th><th>Archived</th><th>Change notes</th><th>By</th></tr></thead>
+      <tbody>
+        {% for v in versions %}
+        <tr>
+          <td>v{{ v.version_number }}</td>
+          <td class="text-xs">{{ v.created_at|date:"d M Y H:i" }}</td>
+          <td class="text-xs">{{ v.change_notes|default:"—" }}</td>
+          <td class="text-xs">{{ v.created_by.email|default:"—" }}</td>
+        </tr>
+        {% endfor %}
+        <tr class="font-medium">
+          <td>{{ policy.version_label }} (current)</td>
+          <td class="text-xs">{{ policy.updated_at|date:"d M Y H:i" }}</td>
+          <td colspan="2" class="text-xs text-base-content/60">Active version</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<h3 class="font-semibold text-sm mb-2">Employee acknowledgment report</h3>
+<div class="card bg-base-100 shadow overflow-x-auto">
+  <table class="table table-sm">
+    <thead>
+      <tr>
+        <th>Employee</th>
+        <th>Read</th>
+        <th>Acknowledged</th>
+        <th>Last reminded</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in recipients %}
+      <tr>
+        <td>
+          <span class="font-medium">{{ r.user.employee_profile.full_name|default:r.user.email }}</span>
+          <span class="text-xs text-base-content/50 block">{{ r.user.email }}</span>
+        </td>
+        <td class="text-xs">{{ r.read_at|date:"d M Y H:i"|default:"—" }}</td>
+        <td class="text-xs">{{ r.acknowledged_at|date:"d M Y H:i"|default:"—" }}</td>
+        <td class="text-xs">{{ r.last_reminded_at|date:"d M Y H:i"|default:"—" }}</td>
+        <td>
+          {% if r.acknowledged_at %}
+          <span class="badge badge-success badge-sm">Acknowledged</span>
+          {% elif r.read_at %}
+          <span class="badge badge-warning badge-sm">Read, not acked</span>
+          {% else %}
+          <span class="badge badge-ghost badge-sm">Pending</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="text-center py-8 text-base-content/50">No distribution for this version yet. Use Send to publish {{ policy.version_label }}.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

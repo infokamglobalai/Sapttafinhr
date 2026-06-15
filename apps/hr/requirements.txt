@@ -19,14 +19,18 @@ boto3==1.35.90            # for DigitalOcean Spaces (S3-compatible)
 # Email
 django-anymail==12.0
 
-# PDF generation
+# Template engine (HR letter generation)
+Jinja2>=3.1.0
+
+# PDF generation (WeasyPrint on Linux prod; xhtml2pdf fallback for Windows dev)
 weasyprint==62.3
+xhtml2pdf==0.2.16
 
 # Excel
 openpyxl==3.1.5
 
 # Encryption (Aadhaar, account numbers)
-cryptography==44.0.0
+cryptography>=44.0.0
 
 # Stronger password hashing (activated via PASSWORD_HASHERS once installed)
 argon2-cffi==23.1.0

@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block page_title %}Payroll Summary{% endblock %}
+{% block content %}
+<div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+  <div>
+    <a href="{% url 'reports:index' %}" class="text-sm link link-hover">← Reports</a>
+    <h2 class="text-xl font-bold mt-1">Payroll Summary</h2>
+    {% if selected_run %}<p class="text-sm text-base-content/60">{{ selected_run.month|stringformat:"02d" }}/{{ selected_run.year }} · {{ selected_run.get_status_display }}</p>{% endif %}
+  </div>
+  {% if selected_run %}
+  <a href="{% url 'reports:payroll_export' %}?run={{ selected_run.pk }}" class="btn btn-primary btn-sm">Export Excel</a>
+  {% endif %}
+</div>
+<form method="get" class="card bg-base-100 shadow mb-4">
+  <div class="card-body p-4 flex flex-wrap gap-3 items-end">
+    <div>
+      <label class="label-text text-xs">Payroll run</label>
+      <select name="run" class="select select-bordered select-sm">
+        {% for run in runs %}
+        <option value="{{ run.pk }}" {% if selected_run and selected_run.pk == run.pk %}selected{% endif %}>{{ run.month|stringformat:"02d" }}/{{ run.year }} ({{ run.get_status_display }})</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="btn btn-sm btn-outline">View</button>
+  </div>
+</form>
+{% if totals %}
+<div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+  <div class="stat bg-base-100 shadow rounded-lg p-3"><div class="text-xs text-base-content/60">Gross</div><div class="font-bold">₹{{ totals.gross|default:0|floatformat:0|intcomma }}</div></div>
+  <div class="stat bg-base-100 shadow rounded-lg p-3"><div class="text-xs text-base-content/60">Net</div><div class="font-bold">₹{{ totals.net|default:0|floatformat:0|intcomma }}</div></div>
+  <div class="stat bg-base-100 shadow rounded-lg p-3"><div class="text-xs text-base-content/60">PF</div><div class="font-bold">₹{{ totals.pf|default:0|floatformat:0|intcomma }}</div></div>
+  <div class="stat bg-base-100 shadow rounded-lg p-3"><div class="text-xs text-base-content/60">ESI</div><div class="font-bold">₹{{ totals.esi|default:0|floatformat:0|intcomma }}</div></div>
+  <div class="stat bg-base-100 shadow rounded-lg p-3"><div class="text-xs text-base-content/60">TDS</div><div class="font-bold">₹{{ totals.tds|default:0|floatformat:0|intcomma }}</div></div>
+</div>
+{% endif %}
+<div class="card bg-base-100 shadow overflow-x-auto">
+  <table class="table table-sm">
+    <thead><tr><th>Employee</th><th>Gross</th><th>Net</th><th>PF</th><th>ESI</th><th>TDS</th></tr></thead>
+    <tbody>
+      {% for rec in records %}
+      <tr>
+        <td>{{ rec.employee.full_name }}</td>
+        <td>₹{{ rec.gross_pay|floatformat:0|intcomma }}</td>
+        <td>₹{{ rec.net_pay|floatformat:0|intcomma }}</td>
+        <td>₹{{ rec.pf_employee|default:0|floatformat:0|intcomma }}</td>
+        <td>₹{{ rec.esi_employee|default:0|floatformat:0|intcomma }}</td>
+        <td>₹{{ rec.tds|default:0|floatformat:0|intcomma }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="text-center py-8 text-base-content/40">Select a payroll run.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

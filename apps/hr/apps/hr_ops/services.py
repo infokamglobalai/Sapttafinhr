@@ -118,56 +118,35 @@ from .models import LetterTemplate, HRLetter
 def generate_letter(tenant, employee, template: LetterTemplate, generated_by, extra_context: dict = None) -> HRLetter:
     """
     Render a LetterTemplate for an employee and save as PDF.
-    template_html is a Jinja2 string with access to employee, tenant, today.
+    template_html is a Jinja2 string with access to employee, tenant, company, today.
     """
     from jinja2 import Environment
-    from utils.pdf import render_pdf
+    from utils.pdf import render_html_to_pdf
+    from .letter_services import build_letter_context
 
     env = Environment(autoescape=True)
     tmpl = env.from_string(template.template_html)
-
-    context = {
-        "employee": employee,
-        "tenant": tenant,
-        "today": datetime.date.today(),
-        "today_formatted": datetime.date.today().strftime("%d %B %Y"),
-        **(extra_context or {}),
-    }
-
+    context = build_letter_context(tenant, employee, extra_context)
     html_content = tmpl.render(**context)
 
-    # Wrap in a printable HTML shell
     full_html = f"""
     <!DOCTYPE html>
     <html>
     <head>
       <meta charset="utf-8">
       <style>
-        body {{ font-family: Arial, sans-serif; font-size: 12pt; margin: 40px; }}
+        body {{ font-family: Arial, sans-serif; font-size: 12pt; margin: 40px; color: #111; }}
         .header {{ text-align: center; margin-bottom: 30px; }}
         .content {{ line-height: 1.6; }}
         .signature {{ margin-top: 60px; }}
+        table {{ width: 100%; }}
       </style>
     </head>
     <body>{html_content}</body>
     </html>
     """
 
-    # Use the shared renderer so we get the WeasyPrint -> xhtml2pdf fallback.
-    try:
-        from weasyprint import HTML
-        pdf_bytes = HTML(string=full_html).write_pdf()
-    except (OSError, ImportError) as exc:
-        msg = str(exc).lower()
-        if any(lib in msg for lib in ("gobject", "pango", "cairo", "harfbuzz",
-                                       "fontconfig", "weasyprint")):
-            from xhtml2pdf import pisa
-            import io as _io
-            buf = _io.BytesIO()
-            pisa.CreatePDF(src=full_html, dest=buf, encoding="utf-8")
-            pdf_bytes = buf.getvalue()
-        else:
-            raise
+    pdf_bytes = render_html_to_pdf(full_html)
 
     letter = HRLetter(
         tenant=tenant,

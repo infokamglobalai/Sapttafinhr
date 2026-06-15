@@ -13,12 +13,31 @@ from django.db.models import Q
 from .models import AttendanceLog, AttendanceRecord, AttendanceRegularization, Shift, EmployeeShiftAssignment
 from .services import validate_geo_fence, process_daily_attendance
 from apps.employees.models import Employee
+from utils.access import (
+    hr_admin_required,
+    manager_or_hr_required,
+    employee_profile_required,
+    can_manage_employee,
+    team_employee_ids,
+)
 
 
 # ---------------------------------------------------------------------------
 # Attendance anomaly scan (HR manager)
 # ---------------------------------------------------------------------------
-@login_required
+@hr_admin_required
+def anomaly_scan_page(request):
+    """HR admin UI to run attendance anomaly detection."""
+    result = None
+    if request.method == "POST":
+        since_days = int(request.POST.get("since_days", 7))
+        from .anomaly import run_scan
+        result = run_scan(request.tenant, since_days=since_days)
+    return render(request, "attendance/anomaly_scan.html", {"result": result})
+
+
+@hr_admin_required
+@require_POST
 def anomaly_scan(request):
     """POST /attendance/anomaly-scan/ — trigger anomaly detection for HR managers."""
     if request.method != "POST":
@@ -134,7 +153,7 @@ def punch_status(request):
 # ---------------------------------------------------------------------------
 # Admin: attendance register view
 # ---------------------------------------------------------------------------
-@login_required
+@manager_or_hr_required
 def attendance_register(request):
     tenant = request.tenant
     today = timezone.localdate()
@@ -181,12 +200,10 @@ def attendance_register(request):
 
 
 @login_required
+@employee_profile_required
 def my_attendance(request):
     """ESS: employee's own attendance history."""
-    employee = getattr(request.user, "employee_profile", None)
-    if not employee:
-        messages.error(request, "No employee profile found.")
-        return redirect("tenants:dashboard")
+    employee = request.user.employee_profile
 
     # Default to current month
     today = timezone.localdate()
@@ -209,10 +226,9 @@ def my_attendance(request):
 # Regularization
 # ---------------------------------------------------------------------------
 @login_required
+@employee_profile_required
 def regularization_request(request):
-    employee = getattr(request.user, "employee_profile", None)
-    if not employee:
-        return redirect("tenants:dashboard")
+    employee = request.user.employee_profile
 
     if request.method == "POST":
         date_str = request.POST.get("attendance_date")
@@ -242,22 +258,69 @@ def regularization_request(request):
     return render(request, "attendance/regularization_form.html")
 
 
-@login_required
+@manager_or_hr_required
 def regularization_list(request):
-    """HR/Manager view of pending regularizations."""
+    """HR / Manager view of pending regularizations."""
     tenant = request.tenant
     qs = AttendanceRegularization.objects.filter(
         tenant=tenant, status="pending"
     ).select_related("employee").order_by("-requested_at")
 
+    if not request.user.is_hr_admin:
+        manager = getattr(request.user, "employee_profile", None)
+        if manager:
+            qs = qs.filter(employee__reporting_manager=manager)
+        else:
+            qs = qs.none()
+
     return render(request, "attendance/regularizations.html", {"regularizations": qs})
 
 
-@login_required
+@manager_or_hr_required
+def team_attendance(request):
+    """Manager: direct reports' attendance for a selected date."""
+    tenant = request.tenant
+    today = timezone.localdate()
+    date_str = request.GET.get("date", str(today))
+    try:
+        selected_date = datetime.date.fromisoformat(date_str)
+    except ValueError:
+        selected_date = today
+
+    team_ids = team_employee_ids(request.user, tenant)
+    if request.user.is_hr_admin:
+        team_ids = list(
+            Employee.objects.filter(tenant=tenant, employment_status="active").values_list("id", flat=True)
+        )
+    elif not team_ids:
+        manager = getattr(request.user, "employee_profile", None)
+        if manager:
+            team_ids = list(
+                Employee.objects.filter(tenant=tenant, reporting_manager=manager, employment_status="active")
+                .values_list("id", flat=True)
+            )
+
+    records = AttendanceRecord.objects.filter(
+        tenant=tenant,
+        attendance_date=selected_date,
+        employee_id__in=team_ids,
+    ).select_related("employee", "employee__department").order_by("employee__first_name")
+
+    return render(request, "attendance/team_attendance.html", {
+        "records": records,
+        "selected_date": selected_date,
+        "team_size": len(team_ids),
+    })
+
+
+@manager_or_hr_required
 @require_POST
 def regularization_action(request, pk):
     tenant = request.tenant
     reg = get_object_or_404(AttendanceRegularization, pk=pk, tenant=tenant)
+    if not can_manage_employee(request.user, reg.employee):
+        messages.error(request, "You cannot action this regularization request.")
+        return redirect("attendance:regularizations")
     action = request.POST.get("action")
 
     if action not in ("approve", "reject"):
@@ -300,14 +363,14 @@ def regularization_action(request, pk):
 # ---------------------------------------------------------------------------
 # Shift management
 # ---------------------------------------------------------------------------
-@login_required
+@hr_admin_required
 def shift_list(request):
     tenant = request.tenant
     shifts = Shift.objects.filter(tenant=tenant).order_by("name")
     return render(request, "attendance/shifts.html", {"shifts": shifts})
 
 
-@login_required
+@hr_admin_required
 def shift_create_or_edit(request, pk=None):
     from .forms import ShiftForm
     tenant = request.tenant

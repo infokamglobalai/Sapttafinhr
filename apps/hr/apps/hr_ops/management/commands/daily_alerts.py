@@ -100,3 +100,12 @@ class Command(BaseCommand):
                 f"(birthdays: {counts['birthday']}, anniversaries: {counts['anniv']}, "
                 f"probation: {counts['probation']}, doc expiry: {counts['expiry']})"
             ))
+
+            # ── Auto-finalize exits due on or before today ──
+            from apps.hr_ops.exit_services import process_due_exits
+            finalized = process_due_exits(tenant, today)
+            if finalized:
+                names = ", ".join(r["employee"] for r in finalized)
+                self.stdout.write(self.style.SUCCESS(
+                    f"{tenant.subdomain}: {len(finalized)} exit(s) auto-finalized — {names}"
+                ))

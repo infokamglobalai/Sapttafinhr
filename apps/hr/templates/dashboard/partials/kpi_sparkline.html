@@ -1,0 +1,13 @@
+<svg class="dash-kpi-spark" viewBox="0 0 120 40" preserveAspectRatio="none" aria-hidden="true">
+  <defs>
+    <linearGradient id="spark-fill-{{ spark.id }}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="{{ spark.stroke }}" stop-opacity="0.28"></stop>
+      <stop offset="100%" stop-color="{{ spark.stroke }}" stop-opacity="0.02"></stop>
+    </linearGradient>
+  </defs>
+  <line x1="0" y1="32" x2="120" y2="32" stroke="{{ spark.stroke }}" stroke-opacity="0.12" stroke-width="1"></line>
+  <line x1="0" y1="20" x2="120" y2="20" stroke="{{ spark.stroke }}" stroke-opacity="0.06" stroke-width="1"></line>
+  <line x1="0" y1="8" x2="120" y2="8" stroke="{{ spark.stroke }}" stroke-opacity="0.06" stroke-width="1"></line>
+  <path class="dash-kpi-spark__area" d="{{ spark.area }}" fill="url(#spark-fill-{{ spark.id }})"></path>
+  <path class="dash-kpi-spark__line" d="{{ spark.line }}" fill="none" stroke="{{ spark.stroke }}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>

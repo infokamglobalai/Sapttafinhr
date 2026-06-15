@@ -15,4 +15,6 @@ urlpatterns = [
     path("shifts/new/", views.shift_create_or_edit, name="shift_create"),
     path("shifts/<int:pk>/edit/", views.shift_create_or_edit, name="shift_edit"),
     path("anomaly-scan/", views.anomaly_scan, name="anomaly_scan"),
+    path("anomaly/", views.anomaly_scan_page, name="anomaly"),
+    path("team/", views.team_attendance, name="team_attendance"),
 ]

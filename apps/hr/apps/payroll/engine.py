@@ -139,19 +139,30 @@ def compute_payroll_record(
     if not salary:
         raise ValueError(f"No active salary found for {employee}.")
 
+    existing = PayrollRecord.objects.filter(
+        tenant=tenant, payroll_run=payroll_run, employee=employee,
+    ).first()
+    lop_override = existing.lop_override if existing else None
+    bonus_amount = existing.bonus_amount if existing else Decimal("0")
+    manual_deduction = existing.manual_deduction if existing else Decimal("0")
+    hr_notes = existing.hr_notes if existing else ""
+
     structure = salary.structure
     components = list(
         structure.structure_components.select_related("component").order_by("sequence_order")
     )
 
     # ── 2. Attendance / LOP ───────────────────────────────────────────────
-    try:
-        att_summary = MonthlyAttendanceSummary.objects.get(
-            tenant=tenant, employee=employee, year=year, month=month
-        )
-        lop_days = att_summary.lop_days + att_summary.absent_days
-    except MonthlyAttendanceSummary.DoesNotExist:
-        lop_days = Decimal("0")
+    if lop_override is not None:
+        lop_days = Decimal(str(lop_override))
+    else:
+        try:
+            att_summary = MonthlyAttendanceSummary.objects.get(
+                tenant=tenant, employee=employee, year=year, month=month
+            )
+            lop_days = att_summary.lop_days + Decimal(str(att_summary.absent_days))
+        except MonthlyAttendanceSummary.DoesNotExist:
+            lop_days = Decimal("0")
 
     working_days = get_working_days_in_month(year, month)
     paid_days = Decimal(str(working_days)) - lop_days
@@ -279,11 +290,16 @@ def compute_payroll_record(
         claim.paid_in_run = payroll_run
         claim.save(update_fields=["status", "paid_in_run"])
 
-    # ── 7. Totals ─────────────────────────────────────────────────────────
-    total_deductions = (
-        pf_employee + esi_employee + pt + lwf_employee + tds + loan_deduction
-    )
-    net_payable = round2(total_gross - total_deductions + approved_reimbursements)
+    # ── 7. Totals (base) ──────────────────────────────────────────────────
+    bonus_amount = round2(bonus_amount or 0)
+    manual_deduction = round2(manual_deduction or 0)
+    if bonus_amount > 0:
+        total_gross += bonus_amount
+        earnings_detail["BONUS"] = {
+            "name": "Bonus / Incentive",
+            "amount": float(bonus_amount),
+            "is_taxable": True,
+        }
 
     deductions_detail = {
         "PF_EMP": {"name": "PF (Employee)", "amount": float(pf_employee)},
@@ -293,6 +309,16 @@ def compute_payroll_record(
         "TDS": {"name": "TDS", "amount": float(tds)},
         "LOAN": {"name": "Loan Deduction", "amount": float(loan_deduction)},
     }
+    if manual_deduction > 0:
+        deductions_detail["MANUAL"] = {
+            "name": "Other Deduction",
+            "amount": float(manual_deduction),
+        }
+
+    total_deductions = (
+        pf_employee + esi_employee + pt + lwf_employee + tds + loan_deduction + manual_deduction
+    )
+    net_payable = round2(total_gross - total_deductions + approved_reimbursements)
     if approved_reimbursements > 0:
         earnings_detail["REIMB"] = {
             "name": "Reimbursements",
@@ -300,11 +326,15 @@ def compute_payroll_record(
             "is_taxable": False,
         }
 
-    # ── 8. Persist ────────────────────────────────────────────────────────
+    # ── 9. Persist ────────────────────────────────────────────────────────
     record, _ = PayrollRecord.objects.update_or_create(
         tenant=tenant, payroll_run=payroll_run, employee=employee,
         defaults={
             "lop_days": lop_days,
+            "lop_override": lop_override,
+            "bonus_amount": bonus_amount,
+            "manual_deduction": manual_deduction,
+            "hr_notes": hr_notes,
             "paid_days": paid_days,
             "working_days": working_days,
             "basic": basic_monthly,

@@ -1,0 +1,21 @@
+{% comment %}
+  Professional user avatar — photo when uploaded, else styled initials.
+  Sizes: sm (header chip), lg (dropdown), profile (profile page)
+{% endcomment %}
+{% if user.profile_photo_url %}
+  {% if size == 'profile' %}
+  <img src="{{ user.profile_photo_url }}" alt="{{ user.display_name }}" class="user-avatar-photo user-avatar-photo--profile" loading="lazy">
+  {% elif size == 'lg' %}
+  <img src="{{ user.profile_photo_url }}" alt="{{ user.display_name }}" class="user-menu-avatar user-avatar-photo" loading="lazy">
+  {% else %}
+  <img src="{{ user.profile_photo_url }}" alt="{{ user.display_name }}" class="user-avatar user-avatar-photo" loading="lazy">
+  {% endif %}
+{% else %}
+  {% if size == 'profile' %}
+  <div class="user-avatar-fallback user-avatar-fallback--profile user-avatar-fallback--{{ user.avatar_tone }}" aria-hidden="true">{{ user.avatar_initials }}</div>
+  {% elif size == 'lg' %}
+  <div class="user-menu-avatar user-avatar-fallback user-avatar-fallback--{{ user.avatar_tone }}" aria-hidden="true">{{ user.avatar_initials }}</div>
+  {% else %}
+  <div class="user-avatar user-avatar-fallback user-avatar-fallback--{{ user.avatar_tone }}" aria-hidden="true">{{ user.avatar_initials }}</div>
+  {% endif %}
+{% endif %}

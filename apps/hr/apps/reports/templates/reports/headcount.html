@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block page_title %}Headcount Report{% endblock %}
+{% block content %}
+<div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+  <div>
+    <a href="{% url 'reports:index' %}" class="text-sm link link-hover">← Reports</a>
+    <h2 class="text-xl font-bold mt-1">Headcount</h2>
+    <p class="text-sm text-base-content/60">{{ total }} employee(s)</p>
+  </div>
+  <a href="{% url 'reports:headcount_export' %}" class="btn btn-primary btn-sm">Export Excel</a>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+  <div class="card bg-base-100 shadow"><div class="card-body p-4">
+    <h3 class="font-semibold text-sm mb-2">By department</h3>
+    {% for d in by_dept %}<div class="flex justify-between text-sm py-1"><span>{{ d.department__name|default:"Unassigned" }}</span><span class="font-medium">{{ d.count }}</span></div>{% empty %}<p class="text-base-content/40 text-sm">No data</p>{% endfor %}
+  </div></div>
+  <div class="card bg-base-100 shadow"><div class="card-body p-4">
+    <h3 class="font-semibold text-sm mb-2">By designation</h3>
+    {% for d in by_desig %}<div class="flex justify-between text-sm py-1"><span>{{ d.designation__name|default:"—" }}</span><span class="font-medium">{{ d.count }}</span></div>{% empty %}<p class="text-base-content/40 text-sm">No data</p>{% endfor %}
+  </div></div>
+</div>
+<div class="card bg-base-100 shadow overflow-x-auto">
+  <table class="table table-sm">
+    <thead><tr><th>Code</th><th>Name</th><th>Department</th><th>Designation</th><th>Status</th></tr></thead>
+    <tbody>
+      {% for emp in employees %}
+      <tr>
+        <td>{{ emp.employee_code }}</td>
+        <td>{{ emp.full_name }}</td>
+        <td>{{ emp.department.name|default:"—" }}</td>
+        <td>{{ emp.designation.name|default:"—" }}</td>
+        <td>{{ emp.employment_status }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="text-center py-8 text-base-content/40">No employees.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

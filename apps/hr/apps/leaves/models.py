@@ -159,6 +159,13 @@ class CompOffCredit(models.Model):
     approved_by = models.ForeignKey(
         "accounts.User", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
     )
+    leave_request = models.ForeignKey(
+        "LeaveRequest",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="comp_off_credits",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

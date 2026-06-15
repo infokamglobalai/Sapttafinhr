@@ -6,14 +6,11 @@
   <div class="card bg-base-100 shadow">
     <div class="card-body">
       <div class="flex items-center gap-4 mb-6">
-        <div class="avatar placeholder">
-          <div class="bg-primary text-primary-content rounded-full w-16">
-            <span class="text-2xl">{{ user.get_full_name|first|upper }}</span>
-          </div>
-        </div>
+        {% include "partials/user_avatar.html" with size="profile" %}
         <div>
           <p class="font-bold text-lg">{{ user.get_full_name }}</p>
           <p class="text-base-content/60">{{ user.email }}</p>
+          <p class="text-xs font-semibold uppercase tracking-wide text-primary mt-1">{{ user.role_label }}</p>
         </div>
       </div>
       {% if user.employee_profile %}

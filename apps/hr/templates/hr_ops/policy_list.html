@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block page_title %}HR Policies{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+  <div>
+    <h2 class="text-xl font-bold">HR Policy Hub</h2>
+    <p class="text-sm text-base-content/60">Upload, version, distribute, and track acknowledgments.</p>
+  </div>
+  <a href="{% url 'hr_ops:policy_create' %}" class="btn btn-primary btn-sm">+ Upload Policy</a>
+</div>
+
+<div class="overflow-x-auto">
+  <table class="table table-sm">
+    <thead>
+      <tr>
+        <th>Title</th>
+        <th>Version</th>
+        <th>Category</th>
+        <th>Acknowledged</th>
+        <th>Last sent</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in policy_rows %}
+      {% with p=row.policy c=row.compliance %}
+      <tr>
+        <td class="font-medium">{{ p.title }}</td>
+        <td><span class="badge badge-outline badge-sm">{{ p.version_label }}</span></td>
+        <td>{{ p.category|default:"—" }}</td>
+        <td class="text-xs">
+          {% if c.total %}
+          <a href="{% url 'hr_ops:policy_compliance' p.pk %}" class="link">{{ c.acknowledged }}/{{ c.total }} ({{ c.ack_pct }}%)</a>
+          {% if c.pending %}<span class="badge badge-warning badge-xs ml-1">{{ c.pending }} pending</span>{% endif %}
+          {% else %}
+          <span class="text-base-content/40">Not sent</span>
+          {% endif %}
+        </td>
+        <td class="text-xs">{{ p.last_distributed_at|date:"d M Y"|default:"—" }}</td>
+        <td class="text-right whitespace-nowrap">
+          <a href="{% url 'hr_ops:policy_compliance' p.pk %}" class="btn btn-ghost btn-xs">Report</a>
+          <a href="{% url 'hr_ops:policy_distribute' p.pk %}" class="btn btn-primary btn-xs">Send</a>
+          <a href="{% url 'hr_ops:policy_edit' p.pk %}" class="btn btn-ghost btn-xs">Edit</a>
+        </td>
+      </tr>
+      {% endwith %}
+      {% empty %}
+      <tr><td colspan="6" class="text-center py-10">
+        {% url 'hr_ops:policy_create' as create_url %}
+        {% include "partials/empty_state.html" with title="No policies yet" message="Upload your leave, WFH, POSH, and conduct policies as PDF or DOCX." cta_url=create_url cta_label="Upload first policy" %}
+      </td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

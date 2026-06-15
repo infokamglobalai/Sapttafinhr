@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Saptta Pricing — Executive Deck (Jun 2026)</title>
+  <style>
+    :root {
+      --green: #1a7f5a;
+      --green-light: #e8f5ef;
+      --blue: #2563eb;
+      --blue-light: #eff6ff;
+      --text: #1a1a1a;
+      --muted: #5c5c5c;
+      --border: #e2e2e2;
+      --bg: #fafafa;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      color: var(--text);
+      background: #fff;
+      line-height: 1.5;
+      font-size: 11pt;
+    }
+    @page { size: A4; margin: 14mm; }
+    @media print {
+      body { font-size: 10pt; }
+      .page-break { page-break-before: always; }
+      .no-print { display: none !important; }
+    }
+    .wrap { max-width: 210mm; margin: 0 auto; padding: 16mm; }
+    .badge {
+      display: inline-block;
+      background: var(--green-light);
+      color: var(--green);
+      font-size: 9pt;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 4px;
+      margin-bottom: 8px;
+    }
+    h1 { font-size: 22pt; font-weight: 700; margin-bottom: 8px; line-height: 1.2; }
+    h2 { font-size: 13pt; font-weight: 700; margin-bottom: 10px; color: var(--text); }
+    h3 { font-size: 11pt; font-weight: 600; margin-bottom: 6px; }
+    .subtitle { color: var(--muted); font-size: 11pt; margin-bottom: 20px; }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      margin: 20px 0;
+    }
+    .stat {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      text-align: center;
+    }
+    .stat-value { font-size: 16pt; font-weight: 700; color: var(--green); }
+    .stat-label { font-size: 8pt; color: var(--muted); margin-top: 4px; }
+    .callout {
+      background: var(--blue-light);
+      border-left: 4px solid var(--blue);
+      padding: 14px 16px;
+      border-radius: 0 8px 8px 0;
+      margin: 20px 0;
+      font-size: 10.5pt;
+    }
+    .callout strong { display: block; margin-bottom: 4px; }
+    .section { margin: 24px 0; }
+    .card {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .card-head {
+      background: var(--bg);
+      padding: 10px 14px;
+      font-weight: 600;
+      font-size: 10.5pt;
+      border-bottom: 1px solid var(--border);
+    }
+    .card-body { padding: 14px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .product-box { padding: 4px 0; }
+    .product-box p { color: var(--muted); font-size: 9.5pt; margin-top: 4px; }
+    .product-box .prepay { font-size: 9pt; color: #888; margin-top: 6px; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9.5pt;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 7px 10px;
+      text-align: left;
+    }
+    th { background: var(--bg); font-weight: 600; }
+    td.num, th.num { text-align: right; }
+    tr:nth-child(even) { background: #fafafa; }
+    tr.highlight td { background: var(--green-light); font-weight: 600; }
+    .bar-row { margin: 8px 0; }
+    .bar-label { display: flex; justify-content: space-between; font-size: 9pt; margin-bottom: 3px; }
+    .bar-track { height: 10px; background: #eee; border-radius: 4px; overflow: hidden; }
+    .bar-fill { height: 100%; background: var(--green); border-radius: 4px; }
+    .compare-row {
+      display: flex;
+      gap: 12px;
+      margin: 12px 0;
+    }
+    .compare-item {
+      flex: 1;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px;
+      text-align: center;
+    }
+    .compare-item .val { font-size: 14pt; font-weight: 700; }
+    .compare-item .lbl { font-size: 8pt; color: var(--muted); }
+    .checklist { list-style: none; }
+    .checklist li {
+      padding: 5px 0;
+      padding-left: 22px;
+      position: relative;
+      font-size: 10pt;
+    }
+    .checklist li::before {
+      content: "☐";
+      position: absolute;
+      left: 0;
+      color: var(--green);
+      font-weight: 700;
+    }
+    .footer {
+      margin-top: 30px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+      font-size: 8.5pt;
+      color: var(--muted);
+      text-align: center;
+    }
+    .print-btn {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--green);
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-size: 11pt;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .print-btn:hover { opacity: 0.9; }
+    .verdict-strong { color: var(--green); font-weight: 600; }
+    .verdict-healthy { color: var(--blue); font-weight: 600; }
+    .note { font-size: 9pt; color: var(--muted); margin-top: 8px; }
+    .mrr-chart { display: flex; align-items: flex-end; gap: 16px; height: 120px; margin: 16px 0; }
+    .mrr-bar { flex: 1; text-align: center; }
+    .mrr-bar-inner {
+      background: var(--green);
+      border-radius: 4px 4px 0 0;
+      margin: 0 auto 6px;
+      width: 60%;
+      min-height: 4px;
+    }
+    .mrr-bar-label { font-size: 9pt; font-weight: 600; }
+    .mrr-bar-value { font-size: 8pt; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <button class="print-btn no-print" onclick="window.print()">Save as PDF / Print</button>
+
+  <div class="wrap">
+    <!-- Cover -->
+    <span class="badge">CEO / Manager · Confidential</span>
+    <h1>Saptta Pricing — Executive Deck</h1>
+    <p class="subtitle">Fixed per-seat · Bundle value · Prepay growth · June 2026</p>
+
+    <div class="stats">
+      <div class="stat"><div class="stat-value">₹111</div><div class="stat-label">Per employee / mo</div></div>
+      <div class="stat"><div class="stat-value">₹4,999</div><div class="stat-label">Finance / mo</div></div>
+      <div class="stat"><div class="stat-value">₹7,999</div><div class="stat-label">Complete (50 emp)</div></div>
+      <div class="stat"><div class="stat-value">24%</div><div class="stat-label">Bundle vs list</div></div>
+      <div class="stat"><div class="stat-value">~68%</div><div class="stat-label">Gross margin</div></div>
+    </div>
+
+    <div class="callout">
+      <strong>One-line pitch for leadership</strong>
+      Every employee pays ₹111 — revenue scales linearly with headcount. Complete bundle at ₹7,999
+      (vs ₹10,549 list) drives dual-product adoption. Prepay on 3/6/12 months locks cash and lifts LTV
+      without eroding margin below 60%.
+    </div>
+
+    <!-- Pricing rules -->
+    <div class="section card">
+      <div class="card-head">Pricing rules — customer-facing</div>
+      <div class="card-body grid-3">
+        <div class="product-box">
+          <h3>HRMS</h3>
+          <p><strong>₹111 × employees / month</strong></p>
+          <p>Fixed per person at every band — 10 = ₹1,110 · 50 = ₹5,550 · 500 = ₹55,500</p>
+          <p class="prepay">Prepay: 3 mo 3% · 6 mo 5% · 1 yr 9%</p>
+        </div>
+        <div class="product-box">
+          <h3>Finance (Saptta Accounts)</h3>
+          <p><strong>₹4,999 / company / month</strong></p>
+          <p>Unlimited finance users · GST, ledger, bank recon · flat like Zoho / Tally</p>
+          <p class="prepay">Prepay: 3 mo 3% · 6 mo 5% · 1 yr 9%</p>
+        </div>
+        <div class="product-box">
+          <h3>Saptta Complete</h3>
+          <p><strong>List price − 24% bundle discount</strong></p>
+          <p>50 emp: ₹5,550 + ₹4,999 = ₹10,549 list → <strong>₹7,999/mo</strong></p>
+          <p class="prepay">Prepay: 3 mo 4% · 6 mo 6% · 1 yr 11%</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Complete anchor -->
+    <div class="section card">
+      <div class="card-head">Complete bundle anchor — 50 employees</div>
+      <div class="card-body">
+        <table>
+          <tr><th>Component</th><th class="num">Amount / month</th></tr>
+          <tr><td>HRMS (50 × ₹111)</td><td class="num">₹5,550</td></tr>
+          <tr><td>Finance</td><td class="num">₹4,999</td></tr>
+          <tr><td><strong>List total (separate)</strong></td><td class="num"><strong>₹10,549</strong></td></tr>
+          <tr class="highlight"><td><strong>Saptta Complete bundle</strong></td><td class="num"><strong>₹7,999</strong></td></tr>
+          <tr><td>Customer saves</td><td class="num">₹2,550/mo (24%)</td></tr>
+        </table>
+        <p class="note" style="margin-top:12px"><strong>Complete + 1-year prepay (11% off):</strong> Effective ₹7,119/mo · Upfront ₹85,429</p>
+        <div class="compare-row">
+          <div class="compare-item"><div class="val">₹10,549</div><div class="lbl">List (separate)</div></div>
+          <div class="compare-item"><div class="val" style="color:var(--green)">₹7,999</div><div class="lbl">Complete bundle</div></div>
+          <div class="compare-item"><div class="val" style="color:var(--green)">₹2,550</div><div class="lbl">Customer saves / mo</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-break"></div>
+
+    <!-- Bands -->
+    <div class="section card">
+      <div class="card-head">Employee bands — per-seat stays ₹111 at every tier</div>
+      <div class="card-body" style="padding:0">
+        <table>
+          <thead>
+            <tr>
+              <th>Band</th><th class="num">Max emp</th><th class="num">HRMS / mo</th>
+              <th class="num">Finance / mo</th><th class="num">List total</th>
+              <th class="num">Complete bundle</th><th class="num">₹ / person</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="highlight"><td>1–50</td><td class="num">50</td><td class="num">₹5,550</td><td class="num">₹4,999</td><td class="num">₹10,549</td><td class="num">₹7,999</td><td class="num">₹111</td></tr>
+            <tr><td>51–150</td><td class="num">150</td><td class="num">₹16,650</td><td class="num">₹4,999</td><td class="num">₹21,649</td><td class="num">₹16,453</td><td class="num">₹111</td></tr>
+            <tr><td>151–300</td><td class="num">300</td><td class="num">₹33,300</td><td class="num">₹4,999</td><td class="num">₹38,299</td><td class="num">₹29,107</td><td class="num">₹111</td></tr>
+            <tr><td>301–500</td><td class="num">500</td><td class="num">₹55,500</td><td class="num">₹4,999</td><td class="num">₹60,499</td><td class="num">₹45,979</td><td class="num">₹111</td></tr>
+            <tr><td>501+</td><td class="num">—</td><td class="num" colspan="4">Reach out — sales-led</td><td class="num">Custom</td></tr>
+          </tbody>
+        </table>
+        <p class="note" style="padding:10px 14px">Bands set signup limits, not discounted price. No volume discount on per-seat.</p>
+      </div>
+    </div>
+
+    <!-- Prepay matrix -->
+    <div class="section card">
+      <div class="card-head">Prepay discount matrix — profit-optimised</div>
+      <div class="card-body" style="padding:0">
+        <table>
+          <thead>
+            <tr><th>Product</th><th class="num">1 month</th><th class="num">3 months</th><th class="num">6 months</th><th class="num">1 year</th><th>Strategy</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>HRMS</td><td class="num">0%</td><td class="num">3%</td><td class="num">5%</td><td class="num">9%</td><td>Modest — nudges toward Complete</td></tr>
+            <tr><td>Finance</td><td class="num">0%</td><td class="num">3%</td><td class="num">5%</td><td class="num">9%</td><td>Same as HRMS — bundle is better deal</td></tr>
+            <tr class="highlight"><td>Complete</td><td class="num">0%</td><td class="num">4%</td><td class="num">6%</td><td class="num">11%</td><td>Best discounts — highest LTV, dual-product lock-in</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Complete prepay table -->
+    <div class="section card">
+      <div class="card-head">Complete prepay — 50 employees (base ₹7,999/mo)</div>
+      <div class="card-body" style="padding:0">
+        <table>
+          <thead>
+            <tr><th>Term</th><th class="num">Discount</th><th class="num">Effective / mo</th><th class="num">Term savings</th><th>Billing</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>1 month</td><td class="num">—</td><td class="num">₹7,999</td><td class="num">—</td><td>Monthly</td></tr>
+            <tr><td>3 months</td><td class="num">4%</td><td class="num">₹7,679</td><td class="num">₹960</td><td>₹23,037 upfront</td></tr>
+            <tr><td>6 months</td><td class="num">6%</td><td class="num">₹7,519</td><td class="num">₹2,880</td><td>₹45,115 upfront</td></tr>
+            <tr class="highlight"><td>1 year</td><td class="num">11%</td><td class="num">₹7,119</td><td class="num">₹10,559</td><td>₹85,429 upfront</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="page-break"></div>
+
+    <!-- Margin analysis -->
+    <div class="section card">
+      <div class="card-head">Gross margin analysis — 50-employee Complete (internal)</div>
+      <div class="card-body">
+        <p class="note" style="margin-bottom:12px"><strong>Assumptions:</strong> ₹28/emp (infra + support) · ₹950 finance module · ₹400 platform overhead. Validate against actual AWS + ops costs.</p>
+        <table>
+          <thead>
+            <tr><th>Scenario</th><th class="num">Revenue / mo</th><th class="num">Est. cost</th><th class="num">Gross profit</th><th class="num">Margin</th><th>Verdict</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>HRMS only (50 emp)</td><td class="num">₹5,550</td><td class="num">₹1,800</td><td class="num">₹3,750</td><td class="num">68%</td><td class="verdict-strong">Strong</td></tr>
+            <tr><td>Finance only</td><td class="num">₹4,999</td><td class="num">₹1,350</td><td class="num">₹3,649</td><td class="num">73%</td><td class="verdict-strong">Strong</td></tr>
+            <tr><td>Separate (HRMS + Finance)</td><td class="num">₹10,549</td><td class="num">₹2,750</td><td class="num">₹7,799</td><td class="num">74%</td><td class="verdict-strong">Strong</td></tr>
+            <tr class="highlight"><td>Saptta Complete bundle</td><td class="num">₹7,999</td><td class="num">₹2,750</td><td class="num">₹5,249</td><td class="num">66%</td><td class="verdict-strong">Strong</td></tr>
+            <tr><td>Complete + 1-yr prepay</td><td class="num">₹7,119</td><td class="num">₹2,750</td><td class="num">₹4,369</td><td class="num">61%</td><td class="verdict-healthy">Healthy</td></tr>
+          </tbody>
+        </table>
+        <div class="grid-2" style="margin-top:16px">
+          <div>
+            <h3>Why bundle still wins on profit</h3>
+            <p class="note">We discount ₹2,550 in revenue but Finance marginal cost is only ~₹950. Net: ~₹1,600 incremental profit vs HRMS-only at same headcount — plus dual-product lock-in.</p>
+          </div>
+          <div>
+            <h3>Prepay trade-off</h3>
+            <p class="note">11% annual prepay = effective ₹7,119/mo with ~61% margin — acceptable for 12-month cash lock and lower churn.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Growth -->
+    <div class="section card">
+      <div class="card-head">Year-1 MRR growth scenario (conservative)</div>
+      <div class="card-body">
+        <div class="mrr-chart">
+          <div class="mrr-bar"><div class="mrr-bar-inner" style="height:24px"></div><div class="mrr-bar-label">Q1</div><div class="mrr-bar-value">₹66K</div></div>
+          <div class="mrr-bar"><div class="mrr-bar-inner" style="height:48px"></div><div class="mrr-bar-label">Q2</div><div class="mrr-bar-value">₹1.6L</div></div>
+          <div class="mrr-bar"><div class="mrr-bar-inner" style="height:80px"></div><div class="mrr-bar-label">Q3</div><div class="mrr-bar-value">₹3.2L</div></div>
+          <div class="mrr-bar"><div class="mrr-bar-inner" style="height:120px"></div><div class="mrr-bar-label">Q4</div><div class="mrr-bar-value">₹5.5L</div></div>
+        </div>
+        <div class="compare-row">
+          <div class="compare-item"><div class="val">85</div><div class="lbl">Customers by Q4</div></div>
+          <div class="compare-item"><div class="val" style="color:var(--green)">₹5.5L</div><div class="lbl">MRR at Q4</div></div>
+          <div class="compare-item"><div class="val" style="color:var(--green)">₹66L</div><div class="lbl">ARR run-rate</div></div>
+          <div class="compare-item"><div class="val">70%</div><div class="lbl">Complete mix Q4</div></div>
+        </div>
+        <table style="margin-top:12px">
+          <thead><tr><th>Quarter</th><th class="num">Customers</th><th class="num">Avg emp</th><th class="num">Complete %</th><th class="num">Annual prepay %</th><th class="num">MRR</th></tr></thead>
+          <tbody>
+            <tr><td>Q1</td><td class="num">12</td><td class="num">35</td><td class="num">55%</td><td class="num">15%</td><td class="num">₹66,277</td></tr>
+            <tr><td>Q2</td><td class="num">28</td><td class="num">38</td><td class="num">60%</td><td class="num">22%</td><td class="num">₹1,61,533</td></tr>
+            <tr><td>Q3</td><td class="num">52</td><td class="num">42</td><td class="num">65%</td><td class="num">30%</td><td class="num">₹3,19,822</td></tr>
+            <tr class="highlight"><td>Q4</td><td class="num">85</td><td class="num">45</td><td class="num">70%</td><td class="num">38%</td><td class="num">₹5,47,509</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="page-break"></div>
+
+    <!-- Roadmap -->
+    <div class="section card">
+      <div class="card-head">Growth & enhancement roadmap — 12 months</div>
+      <div class="card-body" style="padding:0">
+        <table>
+          <thead><tr><th>Phase</th><th>Action</th><th>Expected outcome</th><th>Owner</th></tr></thead>
+          <tbody>
+            <tr><td>Now</td><td>Launch Complete ₹7,999 on website + sales deck</td><td>+35% dual-product attach</td><td>Product + Sales</td></tr>
+            <tr><td>Q1</td><td>In-app "Upgrade to Complete" on Finance trial</td><td>15% HRMS→Complete conversion</td><td>Growth</td></tr>
+            <tr><td>Q1</td><td>Annual prepay CTA at checkout (6-mo highlighted)</td><td>25% prepay adoption in 90 days</td><td>Product</td></tr>
+            <tr><td>Q2</td><td>Band-limit nudge at 80% headcount</td><td>+18% expansion MRR</td><td>CS + Product</td></tr>
+            <tr><td>Q2</td><td>Partner channel — CAs / payroll consultants</td><td>30 net-new Complete deals</td><td>Partnerships</td></tr>
+            <tr><td>Q3</td><td>Enterprise 501+ custom SLA (no per-seat drop)</td><td>3–5 deals @ ₹55K+ MRR</td><td>Sales</td></tr>
+            <tr><td>Q4</td><td>CEO dashboard — MRR, margin, churn, NRR</td><td>Board-ready metrics monthly</td><td>Finance + Eng</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Revenue levers -->
+    <div class="section card">
+      <div class="card-head">Revenue levers — ranked by impact</div>
+      <div class="card-body">
+        <div class="bar-row"><div class="bar-label"><span>Complete bundle upsell</span><span>92/100</span></div><div class="bar-track"><div class="bar-fill" style="width:92%"></div></div></div>
+        <div class="bar-row"><div class="bar-label"><span>Headcount expansion within band</span><span>85/100</span></div><div class="bar-track"><div class="bar-fill" style="width:85%"></div></div></div>
+        <div class="bar-row"><div class="bar-label"><span>Annual prepay on Complete</span><span>78/100</span></div><div class="bar-track"><div class="bar-fill" style="width:78%"></div></div></div>
+        <div class="bar-row"><div class="bar-label"><span>Finance → Complete cross-sell</span><span>70/100</span></div><div class="bar-track"><div class="bar-fill" style="width:70%"></div></div></div>
+        <div class="bar-row"><div class="bar-label"><span>Band upgrade (51→150)</span><span>60/100</span></div><div class="bar-track"><div class="bar-fill" style="width:60%"></div></div></div>
+      </div>
+    </div>
+
+    <!-- CEO checklist -->
+    <div class="section grid-2">
+      <div class="card">
+        <div class="card-head">CEO approval — pricing</div>
+        <div class="card-body">
+          <ul class="checklist">
+            <li>HRMS ₹111/employee — fixed, no volume discount</li>
+            <li>Finance ₹4,999/month flat per company</li>
+            <li>Complete bundle = list − 24% (50 emp = ₹7,999)</li>
+            <li>Prepay: HRMS/Finance 3·5·9% · Complete 4·6·11%</li>
+          </ul>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head">CEO approval — targets</div>
+        <div class="card-body">
+          <ul class="checklist">
+            <li>Target gross margin ≥ 60% on Complete</li>
+            <li>Year-1: 85 customers · ₹5.5L MRR run-rate</li>
+            <li>Complete mix ≥ 65% of new signups</li>
+            <li>501+ employees → sales-led</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      Saptta · Pricing Executive Deck · June 2026 · Internal use<br />
+      HRMS ₹111/emp · Finance ₹4,999 · Complete ₹7,999 (50 emp)
+    </div>
+  </div>
+</body>
+</html>

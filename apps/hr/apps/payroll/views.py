@@ -1,5 +1,6 @@
 import datetime
 from django.shortcuts import render, get_object_or_404, redirect
+from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import HttpResponse
@@ -14,19 +15,20 @@ from .models import (
 )
 from utils.pdf import render_pdf_response
 from utils.excel import make_workbook, apply_header_row, auto_fit_columns, workbook_response
+from utils.access import hr_admin_required, manager_or_hr_required, employee_profile_required, can_manage_employee
 
 
 # ---------------------------------------------------------------------------
 # Payroll run management (HR admin)
 # ---------------------------------------------------------------------------
-@login_required
+@hr_admin_required
 def payroll_run_list(request):
     tenant = request.tenant
     runs = PayrollRun.objects.filter(tenant=tenant).order_by("-year", "-month")
     return render(request, "payroll/run_list.html", {"runs": runs})
 
 
-@login_required
+@hr_admin_required
 def payroll_run_create(request):
     tenant = request.tenant
     if request.method == "POST":
@@ -51,7 +53,7 @@ def payroll_run_create(request):
     return render(request, "payroll/run_create.html", {"today": today})
 
 
-@login_required
+@hr_admin_required
 def payroll_run_detail(request, pk):
     tenant = request.tenant
     run = get_object_or_404(PayrollRun, pk=pk, tenant=tenant)
@@ -67,7 +69,7 @@ def payroll_run_detail(request, pk):
     })
 
 
-@login_required
+@hr_admin_required
 @require_POST
 def payroll_run_approve(request, pk):
     tenant = request.tenant
@@ -90,7 +92,7 @@ def payroll_run_approve(request, pk):
     return redirect("payroll:run_detail", pk=pk)
 
 
-@login_required
+@hr_admin_required
 @require_POST
 def payroll_run_publish(request, pk):
     """Publish payslips so employees can see them in ESS."""
@@ -134,14 +136,160 @@ def payroll_run_publish(request, pk):
     except Exception:
         pass
 
-    messages.success(request, f"Published {len(payslips_to_publish)} payslip(s) to employee ESS.")
+    # Email PDF + WhatsApp summary (async when Celery is available)
+    try:
+        from apps.hr_ops.tasks import deliver_payslips_task
+        deliver_payslips_task.delay(run.id)
+    except Exception:
+        try:
+            from apps.hr_ops.payslip_delivery import deliver_payslips_for_run
+            deliver_payslips_for_run(run)
+        except Exception:
+            pass
+
+    # HR admin monthly summary email
+    try:
+        from apps.hr_ops.hr_report_email import notify_hr_payroll_published
+        notify_hr_payroll_published(run, payslip_count=len(payslips_to_publish))
+    except Exception:
+        pass
+
+    messages.success(
+        request,
+        f"Published {len(payslips_to_publish)} payslip(s). Email and WhatsApp delivery started.",
+    )
+    return redirect("payroll:run_detail", pk=pk)
+
+
+# ---------------------------------------------------------------------------
+# Pre-payroll review & per-employee adjustments
+# ---------------------------------------------------------------------------
+@hr_admin_required
+def payroll_monthly_review(request):
+    tenant = request.tenant
+    today = timezone.localdate()
+    year = int(request.GET.get("year", today.year))
+    month = int(request.GET.get("month", today.month))
+
+    from .review_services import build_monthly_readiness, prepare_month_attendance
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "prepare":
+            count = prepare_month_attendance(tenant, year, month)
+            messages.success(request, f"Attendance summaries computed for {count} employee(s).")
+        elif action == "run_payroll":
+            if PayrollRun.objects.filter(tenant=tenant, year=year, month=month).exists():
+                messages.error(request, f"Payroll for {year}-{month:02d} already exists.")
+            else:
+                prepare_month_attendance(tenant, year, month)
+                run = PayrollRun.objects.create(
+                    tenant=tenant, year=year, month=month,
+                    status="draft", run_by=request.user,
+                )
+                from .tasks import run_payroll_for_tenant
+                run_payroll_for_tenant.delay(str(tenant.id), run.id)
+                messages.success(request, f"Payroll run started for {year}-{month:02d}.")
+                return redirect("payroll:run_detail", pk=run.pk)
+        return redirect(f"{request.path}?year={year}&month={month}")
+
+    data = build_monthly_readiness(tenant, year, month)
+    return render(request, "payroll/monthly_review.html", {
+        "year": year,
+        "month": month,
+        **data,
+    })
+
+
+@hr_admin_required
+def payroll_record_detail(request, run_pk, record_pk):
+    tenant = request.tenant
+    run = get_object_or_404(PayrollRun, pk=run_pk, tenant=tenant)
+    record = get_object_or_404(
+        PayrollRecord, pk=record_pk, payroll_run=run, tenant=tenant,
+    )
+    from .review_services import get_employee_month_context
+
+    ctx = get_employee_month_context(
+        tenant, record.employee, run.year, run.month, payroll_run=run,
+    )
+    return render(request, "payroll/record_detail.html", {
+        "run": run,
+        "record": record,
+        "employee": record.employee,
+        **ctx,
+    })
+
+
+@hr_admin_required
+@require_POST
+def payroll_record_edit(request, run_pk, record_pk):
+    tenant = request.tenant
+    run = get_object_or_404(PayrollRun, pk=run_pk, tenant=tenant)
+    if run.status not in ("review", "draft", "processing"):
+        messages.error(request, "This payroll run can no longer be edited.")
+        return redirect("payroll:run_detail", pk=run.pk)
+
+    record = get_object_or_404(
+        PayrollRecord, pk=record_pk, payroll_run=run, tenant=tenant,
+    )
+    if record.is_locked:
+        messages.error(request, "This record is locked.")
+        return redirect("payroll:record_detail", run_pk=run.pk, record_pk=record.pk)
+
+    from decimal import Decimal, InvalidOperation
+
+    lop_raw = (request.POST.get("lop_override") or "").strip()
+    bonus_raw = (request.POST.get("bonus_amount") or "0").strip()
+    ded_raw = (request.POST.get("manual_deduction") or "0").strip()
+    hr_notes = (request.POST.get("hr_notes") or "").strip()
+
+    try:
+        record.lop_override = Decimal(lop_raw) if lop_raw else None
+        record.bonus_amount = Decimal(bonus_raw or "0")
+        record.manual_deduction = Decimal(ded_raw or "0")
+        record.hr_notes = hr_notes
+        record.save(update_fields=["lop_override", "bonus_amount", "manual_deduction", "hr_notes"])
+
+        from .engine import compute_payroll_record
+        from .review_services import refresh_run_totals
+
+        compute_payroll_record(tenant, record.employee, run, run.year, run.month)
+        refresh_run_totals(run)
+        messages.success(request, f"Updated payroll for {record.employee.full_name} and recalculated.")
+    except (InvalidOperation, ValueError) as exc:
+        messages.error(request, f"Invalid values: {exc}")
+
+    return redirect("payroll:record_detail", run_pk=run.pk, record_pk=record.pk)
+
+
+@hr_admin_required
+@require_POST
+def payroll_run_recompute(request, pk):
+    tenant = request.tenant
+    run = get_object_or_404(PayrollRun, pk=pk, tenant=tenant)
+    if run.status not in ("review", "draft"):
+        messages.error(request, "Only draft or review runs can be recomputed.")
+        return redirect("payroll:run_detail", pk=pk)
+
+    from .review_services import prepare_month_attendance, refresh_run_totals
+    from .engine import compute_payroll_record
+
+    prepare_month_attendance(tenant, run.year, run.month)
+    for rec in run.records.select_related("employee"):
+        try:
+            compute_payroll_record(tenant, rec.employee, run, run.year, run.month)
+        except ValueError as exc:
+            messages.warning(request, str(exc))
+    refresh_run_totals(run)
+    messages.success(request, "Payroll recomputed from latest attendance.")
     return redirect("payroll:run_detail", pk=pk)
 
 
 # ---------------------------------------------------------------------------
 # Exports
 # ---------------------------------------------------------------------------
-@login_required
+@hr_admin_required
 def salary_register_excel(request, pk):
     """
     Salary register Excel — the primary document HR sends to the bank
@@ -242,7 +390,7 @@ def salary_register_excel(request, pk):
     return workbook_response(wb, f"salary_register_{run.year}_{run.month:02d}.xlsx")
 
 
-@login_required
+@hr_admin_required
 def bank_advice_excel(request, pk):
     """
     Bank advice / disbursement file — minimal format that most banks accept
@@ -292,7 +440,7 @@ def bank_advice_excel(request, pk):
     return workbook_response(wb, f"bank_advice_{run.year}_{run.month:02d}.xlsx")
 
 
-@login_required
+@hr_admin_required
 def pf_statement_excel(request, pk):
     """PF ECR format export for EPFO portal upload."""
     tenant = request.tenant
@@ -329,10 +477,9 @@ def pf_statement_excel(request, pk):
 # ESS: employee payslip
 # ---------------------------------------------------------------------------
 @login_required
+@employee_profile_required
 def my_payslips(request):
-    employee = getattr(request.user, "employee_profile", None)
-    if not employee:
-        return redirect("tenants:dashboard")
+    employee = request.user.employee_profile
     payslips = Payslip.objects.filter(
         employee=employee, is_published=True
     ).order_by("-year", "-month")
@@ -358,21 +505,21 @@ def payslip_view(request, pk):
 # ---------------------------------------------------------------------------
 # Salary structure management
 # ---------------------------------------------------------------------------
-@login_required
+@hr_admin_required
 def salary_structure_list(request):
     tenant = request.tenant
     structures = SalaryStructure.objects.filter(tenant=tenant)
     return render(request, "payroll/structures.html", {"structures": structures})
 
 
-@login_required
+@hr_admin_required
 def statutory_settings_view(request):
     tenant = request.tenant
     settings = StatutorySetting.objects.filter(tenant=tenant, is_active=True).order_by("statutory_type", "state_code")
     return render(request, "payroll/statutory.html", {"settings": settings})
 
 
-@login_required
+@hr_admin_required
 def statutory_create_or_edit(request, pk=None):
     from .forms import StatutorySettingForm
     tenant = request.tenant
@@ -391,7 +538,7 @@ def statutory_create_or_edit(request, pk=None):
     return render(request, "payroll/statutory_form.html", {"form": form, "setting": s})
 
 
-@login_required
+@hr_admin_required
 def structure_create_or_edit(request, pk=None):
     from .forms import SalaryStructureForm
     tenant = request.tenant
@@ -410,7 +557,7 @@ def structure_create_or_edit(request, pk=None):
 # ────────────────────────────────────────────────────────────────────────────
 # LOANS — admin & employee views
 # ────────────────────────────────────────────────────────────────────────────
-@login_required
+@hr_admin_required
 def loan_list(request):
     """Admin view: all loans across employees."""
     tenant = request.tenant
@@ -437,7 +584,7 @@ def loan_list(request):
     })
 
 
-@login_required
+@hr_admin_required
 def loan_create_or_edit(request, pk=None):
     from .forms import EmployeeLoanForm
     tenant = request.tenant
@@ -474,7 +621,7 @@ def loan_create_or_edit(request, pk=None):
     return render(request, "payroll/loan_form.html", {"form": form, "loan": loan})
 
 
-@login_required
+@hr_admin_required
 def loan_detail(request, pk):
     tenant = request.tenant
     loan = get_object_or_404(EmployeeLoan, pk=pk, tenant=tenant)
@@ -497,7 +644,7 @@ def my_loans(request):
 # ────────────────────────────────────────────────────────────────────────────
 # REIMBURSEMENTS (Expense Claims) — admin & employee views
 # ────────────────────────────────────────────────────────────────────────────
-@login_required
+@hr_admin_required
 def expense_list(request):
     """Admin view: all expense claims to approve."""
     tenant = request.tenant
@@ -522,15 +669,29 @@ def expense_list(request):
     })
 
 
+@manager_or_hr_required
+def team_expenses(request):
+    """Manager: pending expense claims from direct reports."""
+    tenant = request.tenant
+    qs = ExpenseClaim.objects.filter(tenant=tenant, status="pending").select_related("employee")
+    if not request.user.is_hr_admin:
+        manager = getattr(request.user, "employee_profile", None)
+        if manager:
+            qs = qs.filter(employee__reporting_manager=manager)
+        else:
+            qs = qs.none()
+    return render(request, "payroll/team_expenses.html", {
+        "expenses": qs.order_by("-expense_date"),
+    })
+
+
 @login_required
+@employee_profile_required
 def expense_submit(request, pk=None):
     """Employee: submit a new expense claim (or edit a pending one)."""
     from .forms import ExpenseClaimForm
     tenant = request.tenant
-    employee = getattr(request.user, "employee_profile", None)
-    if not employee:
-        messages.error(request, "Employee profile required to submit expenses.")
-        return redirect("tenants:dashboard")
+    employee = request.user.employee_profile
 
     claim = None
     if pk:
@@ -555,7 +716,7 @@ def expense_submit(request, pk=None):
                         approver, "general",
                         f"New expense claim from {employee.full_name}",
                         message=f"{employee.full_name} submitted a {obj.category or 'reimbursement'} claim of ₹{obj.amount:,.2f}.\n\n{obj.description}",
-                        action_url="/payroll/expenses/",
+                        action_url="/payroll/team-expenses/",
                     )
             except Exception:
                 pass
@@ -575,12 +736,16 @@ def my_expenses(request):
     return render(request, "payroll/my_expenses.html", {"claims": claims})
 
 
-@login_required
+@manager_or_hr_required
 @require_POST
 def expense_action(request, pk):
     """Approve or reject a pending expense claim."""
     tenant = request.tenant
     claim = get_object_or_404(ExpenseClaim, pk=pk, tenant=tenant, status="pending")
+    if not can_manage_employee(request.user, claim.employee):
+        messages.error(request, "You cannot action this expense claim.")
+        next_url = "payroll:team_expenses" if request.user.is_manager and not request.user.is_hr_admin else "payroll:expenses"
+        return redirect(next_url)
     action = request.POST.get("action")
 
     if action not in ("approve", "reject"):
@@ -699,15 +864,11 @@ def my_tax_declaration(request):
     })
 
 
-@login_required
+@hr_admin_required
 def tax_declaration_admin_list(request):
     """HR view: all employee declarations for an FY."""
     from .tax import current_financial_year
     tenant = request.tenant
-    if not request.user.is_hr_admin:
-        messages.error(request, "HR admin access required.")
-        return redirect("tenants:dashboard")
-
     fy = request.GET.get("fy") or current_financial_year()
     declarations = TaxDeclaration.objects.filter(
         tenant=tenant, financial_year=fy,
@@ -718,14 +879,11 @@ def tax_declaration_admin_list(request):
     })
 
 
-@login_required
+@hr_admin_required
 @require_POST
 def tax_declaration_verify(request, pk):
     """HR marks a declaration as verified."""
     tenant = request.tenant
-    if not request.user.is_hr_admin:
-        messages.error(request, "HR admin access required.")
-        return redirect("tenants:dashboard")
     decl = get_object_or_404(TaxDeclaration, pk=pk, tenant=tenant)
     decl.status = "verified"
     decl.verified_at = timezone.now()
@@ -749,15 +907,11 @@ def tax_declaration_verify(request, pk):
 # ---------------------------------------------------------------------------
 # Form 16 generation (annual TDS certificate)
 # ---------------------------------------------------------------------------
-@login_required
+@hr_admin_required
 def form16_admin_list(request):
     """HR view to bulk-generate Form 16 Part B PDFs for an FY."""
     from .tax import current_financial_year
     tenant = request.tenant
-    if not request.user.is_hr_admin:
-        messages.error(request, "HR admin access required.")
-        return redirect("tenants:dashboard")
-
     fy = request.GET.get("fy") or current_financial_year()
     form16s = Form16.objects.filter(tenant=tenant, financial_year=fy).select_related("employee")
     return render(request, "payroll/form16_admin.html", {
@@ -765,15 +919,12 @@ def form16_admin_list(request):
     })
 
 
-@login_required
+@hr_admin_required
 @require_POST
 def form16_generate_all(request):
     """Trigger Form 16 generation for all employees who had payroll in the given FY."""
     from .form16 import generate_form16_for_fy
     tenant = request.tenant
-    if not request.user.is_hr_admin:
-        messages.error(request, "HR admin access required.")
-        return redirect("tenants:dashboard")
     fy = request.POST.get("fy")
     if not fy:
         messages.error(request, "Financial year is required.")
@@ -782,6 +933,33 @@ def form16_generate_all(request):
     created, skipped = generate_form16_for_fy(tenant, fy, generated_by=request.user)
     messages.success(request, f"Form 16 Part B generated: {created} created, {skipped} skipped.")
     return redirect("payroll:form16_admin")
+
+
+@hr_admin_required
+@require_POST
+def form16_issue(request, pk):
+    tenant = request.tenant
+    form16 = get_object_or_404(Form16, pk=pk, tenant=tenant)
+    from .form16_delivery import issue_form16
+    if issue_form16(form16, issued_by=request.user):
+        messages.success(request, f"Form 16 issued and emailed to {form16.employee.full_name}.")
+    else:
+        messages.error(request, "Could not issue — ensure Part B PDF exists and employee has email.")
+    return redirect(f"{reverse('payroll:form16_admin')}?fy={form16.financial_year}")
+
+
+@hr_admin_required
+@require_POST
+def form16_issue_all(request):
+    tenant = request.tenant
+    fy = request.POST.get("fy")
+    if not fy:
+        messages.error(request, "Financial year is required.")
+        return redirect("payroll:form16_admin")
+    from .form16_delivery import issue_all_form16_for_fy
+    issued, failed = issue_all_form16_for_fy(tenant, fy)
+    messages.success(request, f"Issued {issued} Form 16(s). {failed} failed or skipped.")
+    return redirect(f"{reverse('payroll:form16_admin')}?fy={fy}")
 
 
 @login_required
@@ -798,7 +976,7 @@ def my_form16s(request):
 # ---------------------------------------------------------------------------
 # Tally / PF ECR / ESI exports
 # ---------------------------------------------------------------------------
-@login_required
+@hr_admin_required
 def tally_xml_export(request, pk):
     """Export payroll run as Tally XML voucher batch."""
     from .exports import build_tally_xml
@@ -812,7 +990,7 @@ def tally_xml_export(request, pk):
     return resp
 
 
-@login_required
+@hr_admin_required
 def pf_ecr_export(request, pk):
     """PF ECR file (pipe-delimited TXT per EPFO format)."""
     from .exports import build_pf_ecr
@@ -826,7 +1004,7 @@ def pf_ecr_export(request, pk):
     return resp
 
 
-@login_required
+@hr_admin_required
 def esi_return_export(request, pk):
     """ESI monthly contribution return (CSV per ESIC format)."""
     from .exports import build_esi_return
@@ -836,5 +1014,19 @@ def esi_return_export(request, pk):
     resp = HttpResponse(csv_text, content_type="text/csv; charset=utf-8")
     resp["Content-Disposition"] = (
         f'attachment; filename="esi_return_{run.year}-{run.month:02d}.csv"'
+    )
+    return resp
+
+
+@hr_admin_required
+def statutory_bundle_export(request, pk):
+    """ZIP bundle of PF ECR + ESI return for statutory filing."""
+    from .exports import build_statutory_zip
+    tenant = request.tenant
+    run = get_object_or_404(PayrollRun, pk=pk, tenant=tenant)
+    data = build_statutory_zip(tenant, run)
+    resp = HttpResponse(data, content_type="application/zip")
+    resp["Content-Disposition"] = (
+        f'attachment; filename="statutory_{run.year}-{run.month:02d}.zip"'
     )
     return resp

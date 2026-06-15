@@ -1,0 +1,23 @@
+<div class="request-timeline mb-5">
+  <ol class="flex flex-wrap items-center gap-0 list-none p-0 m-0">
+    {% for step in timeline %}
+    <li class="flex items-center {% if not forloop.last %}flex-1 min-w-0{% endif %}">
+      <div class="flex flex-col items-center text-center min-w-[4.5rem] max-w-[5.5rem]">
+        <span class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2
+          {% if step.state == 'done' %}bg-success/15 border-success text-success
+          {% elif step.state == 'current' %}bg-primary/15 border-primary text-primary
+          {% elif step.state == 'rejected' %}bg-error/15 border-error text-error
+          {% elif step.state == 'skipped' %}bg-base-200 border-base-300 text-base-content/30
+          {% else %}bg-base-100 border-base-300 text-base-content/40{% endif %}">
+          {% if step.state == 'done' %}✓{% elif step.state == 'rejected' %}✕{% else %}{{ forloop.counter }}{% endif %}
+        </span>
+        <span class="text-[10px] leading-tight mt-1.5 px-0.5 {% if step.state == 'current' %}font-semibold{% else %}text-base-content/60{% endif %}">{{ step.label }}</span>
+      </div>
+      {% if not forloop.last %}
+      <div class="flex-1 h-0.5 mx-1 min-w-[1rem] rounded
+        {% if step.state == 'done' %}bg-success/40{% else %}bg-base-300{% endif %}"></div>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+</div>

@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block page_title %}Send Policy{% endblock %}
+{% block content %}
+<a href="{% url 'hr_ops:policy_list' %}" class="text-sm link mb-3 inline-block">← Policies</a>
+
+<div class="max-w-2xl" x-data="{ audience: 'company' }">
+  <h2 class="text-xl font-bold mb-1">Send policy to employees</h2>
+  <p class="text-sm text-base-content/60 mb-4">
+    <strong>{{ policy.title }}</strong> · <span class="badge badge-outline badge-sm">{{ policy.version_label }}</span>
+    {% if policy.category %} · {{ policy.category }}{% endif %}
+    — employees get an in-app notification and email.
+    {% if compliance.pending %}<span class="text-warning">{{ compliance.pending }} still pending acknowledgment.</span>{% endif %}
+  </p>
+
+  <form method="post" class="card bg-base-100 shadow">
+    <div class="card-body gap-4">
+      {% csrf_token %}
+
+      <label class="label cursor-pointer justify-start gap-3 p-3 rounded-lg border border-base-200">
+        <input type="checkbox" name="requires_acknowledgment" class="checkbox checkbox-primary" checked>
+        <span>
+          <span class="font-medium block">Require acknowledgment</span>
+          <span class="text-xs text-base-content/60">Employees must tick “I have read and agree” — tracked in compliance report</span>
+        </span>
+      </label>
+
+      <div class="form-control">
+        <span class="label-text font-medium mb-2">Who should receive this?</span>
+        <label class="flex items-start gap-3 p-3 rounded-lg border border-base-200 cursor-pointer hover:bg-base-200/30">
+          <input type="radio" name="audience" value="company" class="radio radio-primary mt-0.5" x-model="audience">
+          <span>
+            <span class="font-medium block">Entire company</span>
+            <span class="text-xs text-base-content/60">All active employees with login access</span>
+          </span>
+        </label>
+        <label class="flex items-start gap-3 p-3 rounded-lg border border-base-200 cursor-pointer hover:bg-base-200/30 mt-2">
+          <input type="radio" name="audience" value="departments" class="radio radio-primary mt-0.5" x-model="audience">
+          <span>
+            <span class="font-medium block">Selected departments</span>
+            <span class="text-xs text-base-content/60">Engineering, Sales, HR, etc.</span>
+          </span>
+        </label>
+        <div class="ml-8 mt-2 grid grid-cols-2 gap-2" x-show="audience === 'departments'" x-cloak>
+          {% for d in departments %}
+          <label class="label cursor-pointer justify-start gap-2 py-1">
+            <input type="checkbox" name="departments" value="{{ d.pk }}" class="checkbox checkbox-xs">
+            <span class="label-text text-sm">{{ d.name }}</span>
+          </label>
+          {% empty %}
+          <p class="text-xs text-base-content/50 col-span-2">No departments yet — add them under Setup → Departments.</p>
+          {% endfor %}
+        </div>
+        <label class="flex items-start gap-3 p-3 rounded-lg border border-base-200 cursor-pointer hover:bg-base-200/30 mt-2">
+          <input type="radio" name="audience" value="employees" class="radio radio-primary mt-0.5" x-model="audience">
+          <span>
+            <span class="font-medium block">Selected employees</span>
+            <span class="text-xs text-base-content/60">Pick specific people (e.g. managers only)</span>
+          </span>
+        </label>
+        <div class="ml-8 mt-2 max-h-40 overflow-y-auto border border-base-200 rounded-lg p-2" x-show="audience === 'employees'" x-cloak>
+          {% for e in employees %}
+          <label class="label cursor-pointer justify-start gap-2 py-0.5">
+            <input type="checkbox" name="employees" value="{{ e.pk }}" class="checkbox checkbox-xs">
+            <span class="label-text text-sm">{{ e.full_name }} · {{ e.department.name|default:"—" }}</span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="card-actions justify-end gap-2">
+        <a href="{% url 'hr_ops:policy_compliance' policy.pk %}" class="btn btn-ghost">Compliance report</a>
+        <a href="{% url 'hr_ops:policy_edit' policy.pk %}" class="btn btn-ghost">Back to edit</a>
+        <button type="submit" class="btn btn-primary">Send {{ policy.version_label }} now</button>
+      </div>
+    </div>
+  </form>
+
+  {% if distributions %}
+  <div class="mt-6">
+    <h3 class="font-semibold text-sm mb-2">Previous sends</h3>
+    <ul class="text-sm space-y-1 text-base-content/70">
+      {% for d in distributions %}
+      <li>{{ d.distributed_at|date:"d M Y H:i" }} · v{{ d.version_number }} · {{ d.get_audience_display }} · {{ d.recipient_count }} people</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

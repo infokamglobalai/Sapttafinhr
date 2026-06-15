@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block page_title %}Request Approvals{% endblock %}
+
+{% block content %}
+
+<h2 class="text-xl font-bold mb-4">Request Approvals</h2>
+
+<p class="text-sm text-base-content/60 mb-4">Hardware and software requests from your team need your approval before IT/Procurement can act.</p>
+
+
+
+{% if requests %}
+
+<div class="card bg-base-100 shadow overflow-x-auto">
+
+  <table class="table table-sm">
+
+    <thead><tr><th>ID</th><th>Employee</th><th>Type</th><th>Subject</th><th>Raised</th><th></th></tr></thead>
+
+    <tbody>
+
+      {% for r in requests %}
+
+      <tr>
+
+        <td class="font-mono text-xs">{{ r.request_no }}</td>
+
+        <td>{{ r.employee.full_name }}</td>
+
+        <td>{{ r.get_category_display }}</td>
+
+        <td>{{ r.subject }}</td>
+
+        <td class="text-xs">{{ r.created_at|date:"d M Y" }}</td>
+
+        <td><a href="{% url 'hr_ops:team_service_request_detail' r.pk %}" class="btn btn-primary btn-xs">Review</a></td>
+
+      </tr>
+
+      {% endfor %}
+
+    </tbody>
+
+  </table>
+
+</div>
+
+{% else %}
+
+<div class="card bg-base-100 shadow">
+
+  {% include "partials/empty_state.html" with title="No pending approvals" message="When your team raises hardware or software requests, they will appear here for your review." %}
+
+</div>
+
+{% endif %}
+
+{% endblock %}
+
+

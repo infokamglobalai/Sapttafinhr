@@ -1,0 +1,149 @@
+/* ============================================================
+   SAPTTA DESIGN TOKENS — single source of truth
+   Load this file FIRST (before app.css / theme / responsive)
+
+   HOW PRO PRODUCTS USE COLOR (keep these rules):
+   ─────────────────────────────────────────────
+   1. Primary (orange)  → main actions only: Save, Run Payroll, Submit
+   2. Secondary (blue)  → links, outline buttons, focus, secondary CTAs
+   3. Module tones      → sidebar icons + KPI accents ONLY (never full buttons)
+   4. Neutrals (90%)    → backgrounds, text, borders — most of the UI
+   5. Status colors     → success / warning / error badges & alerts only
+   6. Never mix         → don’t use module colors for primary buttons
+   ============================================================ */
+
+:root {
+  /* ── Brand ── */
+  --saptta-primary: #F97316;
+  --saptta-primary-hover: #EA580C;
+  --saptta-primary-soft: rgba(249, 115, 22, 0.12);
+  --saptta-primary-muted: rgba(249, 115, 22, 0.22);
+  --saptta-primary-ring: rgba(249, 115, 22, 0.28);
+
+  --saptta-secondary: #2563EB;
+  --saptta-secondary-hover: #1D4ED8;
+  --saptta-secondary-soft: rgba(37, 99, 235, 0.12);
+  --saptta-secondary-muted: rgba(37, 99, 235, 0.22);
+
+  /* ── Surfaces & text ── */
+  --saptta-bg: #F4F7FB;
+  --saptta-bg-alt: #EEF2F7;
+  --saptta-bg-gradient: linear-gradient(160deg, #F8FAFC 0%, #F4F7FB 50%, #EEF2F7 100%);
+  --saptta-surface: #FFFFFF;
+  --saptta-surface-glass: rgba(255, 255, 255, 0.88);
+  --saptta-border: rgba(15, 23, 42, 0.08);
+  --saptta-border-strong: rgba(15, 23, 42, 0.12);
+
+  --saptta-text: #0F172A;
+  --saptta-text-secondary: #475569;
+  --saptta-text-tertiary: #94A3B8;
+  --saptta-text-muted: #64748B;
+
+  /* ── Status (semantic only) ── */
+  --saptta-success: #059669;
+  --saptta-success-soft: rgba(5, 150, 105, 0.12);
+  --saptta-warning: #D97706;
+  --saptta-warning-soft: rgba(217, 119, 6, 0.12);
+  --saptta-error: #DC2626;
+  --saptta-error-soft: rgba(220, 38, 38, 0.12);
+  --saptta-info: #2563EB;
+  --saptta-info-soft: rgba(37, 99, 235, 0.12);
+
+  /* ── Module tones (icons, KPI chips, charts — one per feature area) ── */
+  --tone-orange: #F97316;
+  --tone-orange-soft: rgba(249, 115, 22, 0.12);
+  --tone-blue: #2563EB;
+  --tone-blue-soft: rgba(37, 99, 235, 0.12);
+  --tone-indigo: #6366F1;
+  --tone-indigo-soft: rgba(99, 102, 241, 0.12);
+  --tone-cyan: #0891B2;
+  --tone-cyan-soft: rgba(8, 145, 178, 0.12);
+  --tone-green: #059669;
+  --tone-green-soft: rgba(5, 150, 105, 0.12);
+  --tone-amber: #D97706;
+  --tone-amber-soft: rgba(217, 119, 6, 0.12);
+  --tone-violet: #7C3AED;
+  --tone-violet-soft: rgba(124, 58, 237, 0.12);
+  --tone-rose: #E11D48;
+  --tone-rose-soft: rgba(225, 29, 72, 0.12);
+  --tone-slate: #64748B;
+  --tone-slate-soft: rgba(100, 116, 139, 0.12);
+
+  /* ── Elevation ── */
+  --saptta-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --saptta-shadow-md: 0 4px 20px rgba(15, 23, 42, 0.06);
+  --saptta-radius: 14px;
+  --saptta-radius-pill: 999px;
+
+  /* ── Backward-compatible aliases (legacy CSS) ── */
+  --color-primary: var(--saptta-primary);
+  --color-primary-hover: var(--saptta-primary-hover);
+  --color-primary-soft: var(--saptta-primary-soft);
+  --color-primary-ring: var(--saptta-primary-ring);
+  --color-secondary: var(--saptta-secondary);
+  --color-secondary-hover: var(--saptta-secondary-hover);
+  --color-secondary-soft: var(--saptta-secondary-soft);
+  --color-bg: var(--saptta-bg);
+  --color-bg-alt: var(--saptta-bg-alt);
+  --color-surface: var(--saptta-surface);
+  --color-border: var(--saptta-border);
+  --soft-bg: var(--saptta-bg);
+  --soft-accent: var(--saptta-primary);
+  --soft-accent-hover: var(--saptta-primary-hover);
+  --saptta-accent: var(--saptta-primary);
+  --saptta-accent-soft: var(--saptta-primary-soft);
+  --icon-orange: var(--tone-orange);
+  --icon-blue: var(--tone-blue);
+  --icon-indigo: var(--tone-indigo);
+  --icon-cyan: var(--tone-cyan);
+  --icon-green: var(--tone-green);
+  --icon-amber: var(--tone-amber);
+  --icon-violet: var(--tone-violet);
+  --icon-rose: var(--tone-rose);
+  --icon-slate: var(--tone-slate);
+}
+
+/* ── Module tone utilities (KPI cards, tags) ── */
+.dash-refresh .stat--orange .stat-icon { background: var(--tone-orange-soft); color: var(--tone-orange); }
+.dash-refresh .stat--blue .stat-icon { background: var(--tone-blue-soft); color: var(--tone-blue); }
+.dash-refresh .stat--green .stat-icon { background: var(--tone-green-soft); color: var(--tone-green); }
+.dash-refresh .stat--amber .stat-icon { background: var(--tone-amber-soft); color: var(--tone-amber); }
+.dash-refresh .stat--rose .stat-icon { background: var(--tone-rose-soft); color: var(--tone-rose); }
+.dash-refresh .stat--indigo .stat-icon { background: var(--tone-indigo-soft); color: var(--tone-indigo); }
+.dash-refresh .stat--cyan .stat-icon { background: var(--tone-cyan-soft); color: var(--tone-cyan); }
+
+.dash-refresh .insight-icon--orange { background: var(--tone-orange-soft); color: var(--tone-orange); }
+.dash-refresh .insight-icon--blue { background: var(--tone-blue-soft); color: var(--tone-blue); }
+.dash-refresh .insight-icon--green { background: var(--tone-green-soft); color: var(--tone-green); }
+.dash-refresh .insight-icon--violet { background: var(--tone-violet-soft); color: var(--tone-violet); }
+
+/* ── Semantic badges ── */
+.badge-success, .badge.badge-success { background: var(--saptta-success-soft) !important; color: var(--saptta-success) !important; }
+.badge-warning, .badge.badge-warning { background: var(--saptta-warning-soft) !important; color: var(--saptta-warning) !important; }
+.badge-error, .badge.badge-error { background: var(--saptta-error-soft) !important; color: var(--saptta-error) !important; }
+.badge-info, .badge.badge-info { background: var(--saptta-info-soft) !important; color: var(--saptta-info) !important; }
+
+/* ── Primary / secondary actions (use these classes in templates) ── */
+.saptta-btn-primary,
+.saas-btn-solid {
+  background: var(--saptta-primary) !important;
+  border-color: var(--saptta-primary) !important;
+  color: #fff !important;
+}
+.saptta-btn-primary:hover,
+.saas-btn-solid:hover {
+  background: var(--saptta-primary-hover) !important;
+  border-color: var(--saptta-primary-hover) !important;
+}
+
+.saptta-btn-secondary,
+.saas-btn-outline {
+  background: var(--saptta-secondary-soft) !important;
+  border: 1px solid rgba(37, 99, 235, 0.25) !important;
+  color: var(--saptta-secondary) !important;
+}
+.saptta-btn-secondary:hover,
+.saas-btn-outline:hover {
+  background: var(--saptta-secondary-muted) !important;
+  color: var(--saptta-secondary-hover) !important;
+}

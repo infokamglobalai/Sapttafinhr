@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block page_title %}Generate {{ template.get_letter_type_display }}{% endblock %}
+{% block content %}
+<div style="max-width: 560px; margin: 0 auto;">
+  <a href="{% url 'hr_ops:employee_letter_picker' employee.pk %}" class="text-sm link mb-3 inline-block">← Choose template</a>
+  <h2 class="text-xl font-bold mb-1">Generate {{ template.get_letter_type_display }}</h2>
+  <p class="text-sm text-base-content/60 mb-4">For <strong>{{ employee.full_name }}</strong> · {{ template.name }}</p>
+
+  <form method="post" class="card bg-base-100 shadow">
+    <div class="card-body gap-4">
+      {% csrf_token %}
+      <div class="text-sm bg-base-200/50 rounded-lg p-3">
+        <p><strong>Company:</strong> {{ profile.name }}</p>
+        <p><strong>Signatory:</strong> {{ profile.signatory_name|default:"—" }} ({{ profile.signatory_title }})</p>
+      </div>
+
+      {% if extra_fields %}
+      <p class="text-sm font-medium">Fill in for this letter (optional overrides)</p>
+      {% for name, label, field_type, default_val in extra_fields %}
+      <label class="form-control">
+        <span class="label-text">{{ label }}</span>
+        <input type="{{ field_type }}" name="{{ name }}" class="input input-bordered"
+          {% if field_type == 'date' and name == 'joining_date' and employee.date_of_joining %}value="{{ employee.date_of_joining|date:'Y-m-d' }}"{% endif %}
+          {% if field_type == 'date' and name == 'last_working_day' and employee.date_of_exit %}value="{{ employee.date_of_exit|date:'Y-m-d' }}"{% endif %}
+          placeholder="{{ default_val }}">
+      </label>
+      {% endfor %}
+      {% else %}
+      <p class="text-sm text-base-content/60">Employee and company details will be filled automatically from their profile and your letterhead settings.</p>
+      {% endif %}
+
+      <div class="card-actions justify-end">
+        <button type="submit" class="btn btn-primary">Generate PDF</button>
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock %}

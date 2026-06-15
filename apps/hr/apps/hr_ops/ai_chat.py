@@ -98,9 +98,35 @@ TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "employee_id": {"type": "integer"}
+                "employee_id": {"type": "integer"},
+                "year": {"type": "integer", "description": "Optional payslip year"},
+                "month": {"type": "integer", "description": "Optional payslip month (1-12)"},
             },
             "required": ["employee_id"]
+        }
+    },
+    {
+        "name": "explain_payslip",
+        "description": "Explain payslip line items (earnings, deductions, statutory) in plain language",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "employee_id": {"type": "integer"},
+                "year": {"type": "integer"},
+                "month": {"type": "integer"},
+            },
+            "required": ["employee_id"]
+        }
+    },
+    {
+        "name": "ask_hr_policy",
+        "description": "Answer a question about company HR policies (leave, conduct, WFH, etc.)",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "question": {"type": "string"}
+            },
+            "required": ["question"]
         }
     },
     {
@@ -129,20 +155,35 @@ def _execute_tool(name: str, inputs: dict, tenant, user) -> str:
             ).select_related("leave_type")
             if not balances.exists():
                 return "No leave balance records found."
-            lines = [f"{b.leave_type.name} ({b.leave_type.code}): {b.remaining_days} days remaining (used {b.used_days}/{b.allocated_days})" for b in balances]
+            lines = [
+                f"{b.leave_type.name} ({b.leave_type.code}): {b.available} days available "
+                f"(credited {b.credited}, taken {b.taken})"
+                for b in balances
+            ]
             return "\n".join(lines)
 
         elif name == "get_upcoming_holidays":
-            from apps.hr_ops.models import Holiday
+            from apps.leaves.models import Holiday, HolidayCalendar
+            from datetime import timedelta
             days = inputs.get("days_ahead", 30)
             today = date.today()
-            from datetime import timedelta
+            calendar = HolidayCalendar.objects.filter(
+                tenant=tenant, year=today.year, is_default=True
+            ).first()
+            if not calendar:
+                return f"No holiday calendar configured for {today.year}."
             upcoming = Holiday.objects.filter(
-                tenant=tenant, date__gte=today, date__lte=today + timedelta(days=days)
-            ).order_by("date")
+                calendar=calendar,
+                holiday_date__gte=today,
+                holiday_date__lte=today + timedelta(days=days),
+                is_active=True,
+            ).order_by("holiday_date")
             if not upcoming.exists():
                 return f"No holidays in the next {days} days."
-            return "\n".join([f"{h.date.strftime('%d %b %Y')} ({h.date.strftime('%A')}): {h.name}" for h in upcoming])
+            return "\n".join([
+                f"{h.holiday_date.strftime('%d %b %Y')} ({h.holiday_date.strftime('%A')}): {h.name}"
+                for h in upcoming
+            ])
 
         elif name == "get_attendance_summary":
             from apps.attendance.models import AttendanceRecord
@@ -180,13 +221,67 @@ def _execute_tool(name: str, inputs: dict, tenant, user) -> str:
 
         elif name == "get_payslip_summary":
             from apps.payroll.models import Payslip
-            payslip = Payslip.objects.filter(
-                employee_id=inputs["employee_id"], tenant=tenant
-            ).order_by("-pay_period_end").first()
+            qs = Payslip.objects.filter(
+                employee_id=inputs["employee_id"], tenant=tenant, is_published=True
+            ).select_related("payroll_record")
+            if inputs.get("year") and inputs.get("month"):
+                qs = qs.filter(year=inputs["year"], month=inputs["month"])
+            payslip = qs.order_by("-year", "-month").first()
             if not payslip:
-                return "No payslips found."
-            return (f"Latest payslip: {payslip.pay_period_start} to {payslip.pay_period_end}\n"
-                    f"Gross: ₹{payslip.gross_pay:,.0f} | Deductions: ₹{payslip.total_deductions:,.0f} | Net: ₹{payslip.net_pay:,.0f}")
+                return "No published payslips found."
+            rec = payslip.payroll_record
+            return (
+                f"Payslip: {payslip.year}-{payslip.month:02d}\n"
+                f"Gross: ₹{rec.gross_earnings:,.2f} | Deductions: ₹{rec.total_deductions:,.2f} | "
+                f"Net payable: ₹{rec.net_payable:,.2f}\n"
+                f"Paid days: {rec.paid_days} | PF (emp): ₹{rec.pf_employee:,.2f} | "
+                f"ESI (emp): ₹{rec.esi_employee:,.2f} | TDS: ₹{rec.tds:,.2f}"
+            )
+
+        elif name == "explain_payslip":
+            from apps.payroll.models import Payslip
+            qs = Payslip.objects.filter(
+                employee_id=inputs["employee_id"], tenant=tenant, is_published=True
+            ).select_related("payroll_record", "employee")
+            if inputs.get("year") and inputs.get("month"):
+                qs = qs.filter(year=inputs["year"], month=inputs["month"])
+            payslip = qs.order_by("-year", "-month").first()
+            if not payslip:
+                return "No published payslip found to explain."
+            rec = payslip.payroll_record
+            emp = payslip.employee
+            breakdown = (
+                f"Employee: {emp.full_name} ({emp.employee_code})\n"
+                f"Period: {payslip.year}-{payslip.month:02d}\n\n"
+                f"EARNINGS\n"
+                f"  Basic: ₹{rec.basic:,.2f}\n"
+                f"  HRA: ₹{rec.hra:,.2f}\n"
+                f"  Other earnings: ₹{rec.other_earnings:,.2f}\n"
+                f"  Gross earnings: ₹{rec.gross_earnings:,.2f}\n\n"
+                f"DEDUCTIONS\n"
+                f"  PF (employee): ₹{rec.pf_employee:,.2f}\n"
+                f"  ESI (employee): ₹{rec.esi_employee:,.2f}\n"
+                f"  Professional tax: ₹{rec.professional_tax:,.2f}\n"
+                f"  LWF: ₹{rec.lwf_employee:,.2f}\n"
+                f"  TDS: ₹{rec.tds:,.2f}\n"
+                f"  Loan EMI: ₹{rec.loan_deduction:,.2f}\n"
+                f"  Total deductions: ₹{rec.total_deductions:,.2f}\n\n"
+                f"NET PAYABLE: ₹{rec.net_payable:,.2f}\n\n"
+                f"Employer contributions (not deducted from salary): "
+                f"PF ₹{rec.pf_employer:,.2f}, ESI ₹{rec.esi_employer:,.2f}"
+            )
+            return (
+                breakdown + "\n\n"
+                "In plain terms: your net pay is gross earnings minus statutory deductions "
+                "(PF, ESI, PT, TDS) and any loan EMI."
+            )
+
+        elif name == "ask_hr_policy":
+            from apps.hr_ops.policy_ai import answer_policy_question
+            question = inputs.get("question", "").strip()
+            if not question:
+                return "Please provide a policy question."
+            return answer_policy_question(tenant, question)
 
         elif name == "get_team_summary":
             from apps.employees.models import Employee

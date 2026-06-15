@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8">
+<style>
+  body { font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; background: #F5F1E8; margin: 0; padding: 24px; }
+  .wrapper { max-width: 560px; margin: 0 auto; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 16px rgba(15,23,42,0.08); }
+  .header { background: linear-gradient(135deg, #F97316 0%, #C2410C 100%); padding: 24px 28px; color: white; }
+  .header h1 { margin: 0; font-size: 18px; }
+  .body { padding: 28px; color: #334155; font-size: 14px; line-height: 1.6; }
+  ul { padding-left: 20px; margin: 12px 0; }
+  li { margin: 6px 0; }
+  .footer { padding: 16px 28px; background: #FFF7ED; font-size: 11px; color: #92400E; text-align: center; }
+</style></head>
+<body>
+<div class="wrapper">
+  <div class="header">
+    <h1>{{ tenant.name }}</h1>
+    <p>Monthly HR Report Pack — {{ period }}</p>
+  </div>
+  <div class="body">
+    <p>Your monthly HR report pack for <strong>{{ period }}</strong> is attached as a ZIP file containing:</p>
+    <ul>
+      <li>Leave report (PDF)</li>
+      <li>Attendance MIS (PDF)</li>
+      <li>Payroll summary (PDF, if payroll run exists)</li>
+    </ul>
+    <p style="font-size:12px;color:#64748B;">📎 Attachment: hr_reports_{{ period|slugify }}.zip</p>
+  </div>
+  <div class="footer">HR Admin report · {{ tenant.name }} HRMS</div>
+</div>
+</body>
+</html>
