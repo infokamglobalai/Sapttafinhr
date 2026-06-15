@@ -1,91 +1,406 @@
 {% extends "base.html" %}
+
+{% load static %}
+
 {% block page_title %}Apply Leave{% endblock %}
 
+
+
+{% block extra_head %}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
+
+<link rel="stylesheet" href="{% static 'css/leave-apply.css' %}">
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+
+{% endblock %}
+
+
+
 {% block content %}
-<div class="max-w-2xl mx-auto">
-  <div class="flex items-center gap-3 mb-6">
-    <a href="{% url 'leaves:my_leaves' %}" class="btn btn-ghost btn-sm">← Back</a>
-    <h2 class="text-xl font-bold">Apply for Leave</h2>
-  </div>
 
-  <!-- Balance summary -->
-  <div class="grid grid-cols-3 gap-3 mb-6">
-    {% for lt in leave_types %}
-    {% with balance=balances|default_if_none:None %}
-    <div class="card bg-base-100 shadow p-3 text-center">
-      <div class="text-2xl font-bold text-primary">
-        {% for b_id, b in balances.items %}{% if b.leave_type_id == lt.id %}{{ b.available|floatformat:1 }}{% endif %}{% endfor %}
+<div class="leave-apply-page" x-data="{ view: '{{ initial_view }}' }">
+
+  <div class="leave-apply-page__bg" aria-hidden="true"></div>
+
+
+
+  <div class="leave-apply-page__content max-w-4xl mx-auto">
+
+
+
+    <!-- Hero header -->
+
+    <header class="leave-glass leave-apply-hero">
+
+      <div>
+
+        <h1 class="leave-apply-hero__title">Apply for Leave</h1>
+
+        <p class="leave-apply-hero__sub">Submit a new request or review your leave history in one place.</p>
+
       </div>
-      <div class="text-xs text-base-content/60 mt-1">{{ lt.name }} ({{ lt.code }})</div>
+
+      <div class="leave-apply-hero__actions">
+
+        {% if pending_count %}
+
+        <span class="leave-pending-badge">{{ pending_count }} pending approval</span>
+
+        {% endif %}
+
+        <button type="button" class="leave-link-btn" x-show="view === 'apply'" @click="view = 'history'">
+
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+
+          Leave history
+
+          {% if all_leaves %}<span class="leave-link-btn__count">{{ all_leaves|length }}</span>{% endif %}
+
+        </button>
+
+        <button type="button" class="leave-link-btn leave-link-btn--primary" x-show="view === 'history'" @click="view = 'apply'" x-cloak>
+
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+
+          New request
+
+        </button>
+
+      </div>
+
+    </header>
+
+
+
+    <!-- Leave balances -->
+
+    <div class="leave-balance-grid">
+
+      {% for row in leave_type_balances %}
+
+      <div class="leave-balance-card leave-balance-card--{% if row.leave_type.code|lower == 'cl' %}cl{% elif row.leave_type.code|lower == 'el' %}el{% elif row.leave_type.code|lower == 'sl' %}sl{% else %}default{% endif %}">
+
+        <div class="leave-balance-card__value">{% if row.balance %}{{ row.balance.available|floatformat:1 }}{% else %}0{% endif %}</div>
+
+        <div class="leave-balance-card__code">{{ row.leave_type.code }}</div>
+
+        <div class="leave-balance-card__name">{{ row.leave_type.name }}</div>
+
+      </div>
+
+      {% empty %}
+
+      <div class="col-span-full text-center text-sm py-3 leave-balance-empty">No leave types configured.</div>
+
+      {% endfor %}
+
+      {% if comp_off_available %}
+
+      <div class="leave-balance-card leave-balance-card--default">
+
+        <div class="leave-balance-card__value">{{ comp_off_available|floatformat:1 }}</div>
+
+        <div class="leave-balance-card__code">CO</div>
+
+        <div class="leave-balance-card__name">Comp-off credits</div>
+
+      </div>
+
+      {% endif %}
+
     </div>
-    {% endwith %}
-    {% endfor %}
+
+
+
+    <!-- View switcher tabs -->
+
+    <div class="leave-apply-tabs" role="tablist" aria-label="Leave views">
+
+      <button type="button" role="tab" class="leave-apply-tab" :class="{ 'active': view === 'apply' }" :aria-selected="view === 'apply'" @click="view = 'apply'">New request</button>
+
+      <button type="button" role="tab" class="leave-apply-tab" :class="{ 'active': view === 'history' }" :aria-selected="view === 'history'" @click="view = 'history'">
+
+        Leave history
+
+        {% if all_leaves %}<span class="leave-apply-tab__count">{{ all_leaves|length }}</span>{% endif %}
+
+      </button>
+
+    </div>
+
+
+
+    <!-- New request form -->
+
+    <div x-show="view === 'apply'" x-cloak>
+
+      <div class="leave-glass leave-glass--solid leave-panel">
+
+        <h2 class="leave-panel__title">
+
+          <span class="leave-panel__title-icon">
+
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+
+          </span>
+
+          New leave request
+
+        </h2>
+
+
+
+        <form method="post" enctype="multipart/form-data" id="leave-apply-form">
+
+          {% csrf_token %}
+
+
+
+          <div class="leave-field-group">
+
+            <label class="leave-field-label" for="leave_type">Leave type *</label>
+
+            <select id="leave_type" name="leave_type" class="leave-field-select" required>
+
+              <option value="">Select leave type</option>
+
+              {% for lt in leave_types %}
+
+              <option value="{{ lt.id }}">{{ lt.name }} ({{ lt.code }}){% if lt.is_paid %} · Paid{% else %} · Unpaid{% endif %}</option>
+
+              {% endfor %}
+
+            </select>
+
+          </div>
+
+
+
+          <div class="leave-field-row leave-field-group">
+
+            <div>
+
+              <label class="leave-field-label" for="from_date_visible">From date *</label>
+
+              <div class="date-picker-wrap" id="from_date_wrap">
+
+                <input type="text" id="from_date" name="from_date" class="leave-field-input"
+
+                       data-input placeholder="Pick start date" autocomplete="off" required>
+
+                <button type="button" class="date-picker-btn" data-toggle aria-label="Open calendar">
+
+                  <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+
+                  </svg>
+
+                </button>
+
+              </div>
+
+            </div>
+
+            <div>
+
+              <label class="leave-field-label" for="to_date_visible">To date *</label>
+
+              <div class="date-picker-wrap" id="to_date_wrap">
+
+                <input type="text" id="to_date" name="to_date" class="leave-field-input"
+
+                       data-input placeholder="Pick end date" autocomplete="off" required>
+
+                <button type="button" class="date-picker-btn" data-toggle aria-label="Open calendar">
+
+                  <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+
+                  </svg>
+
+                </button>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+
+          <div class="leave-field-group">
+
+            <label class="leave-field-label" for="half_day_type">Half day</label>
+
+            <select id="half_day_type" name="half_day_type" class="leave-field-select">
+
+              <option value="">Full day(s)</option>
+
+              <option value="first_half">First half</option>
+
+              <option value="second_half">Second half</option>
+
+            </select>
+
+          </div>
+
+
+
+          <div class="leave-field-group">
+
+            <label class="leave-field-label" for="reason">Reason</label>
+
+            <textarea id="reason" name="reason" class="leave-field-textarea" rows="3" placeholder="Briefly describe the reason for your leave..."></textarea>
+
+          </div>
+
+
+
+          <div class="leave-field-group">
+
+            <label class="leave-field-label">Supporting document</label>
+
+            <div class="leave-file-zone">
+
+              <input type="file" name="document" accept=".pdf,.jpg,.jpeg,.png">
+
+              <div class="leave-file-zone__icon">
+
+                <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+
+              </div>
+
+              <div class="leave-file-zone__text">Click or drag to upload</div>
+
+              <div class="leave-file-zone__hint">PDF, JPG, PNG · Required for medical leave &gt; 3 days</div>
+
+            </div>
+
+          </div>
+
+
+
+          <div class="flex justify-end pt-2">
+
+            <button type="submit" class="leave-submit-btn">Submit request</button>
+
+          </div>
+
+        </form>
+
+      </div>
+
+    </div>
+
+
+
+    <!-- Full leave history -->
+
+    <div x-show="view === 'history'" x-cloak>
+
+      <div class="leave-glass leave-glass--solid leave-panel">
+
+        <div class="leave-history-panel__head">
+
+          <h2 class="leave-panel__title" style="margin-bottom: 0;">
+
+            <span class="leave-panel__title-icon">
+
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+
+            </span>
+
+            All leave requests
+
+          </h2>
+
+          <span class="leave-count-pill">{{ all_leaves|length }} total</span>
+
+        </div>
+
+        <p class="leave-history-panel__sub">Upcoming, past, pending, and cancelled requests in one list.</p>
+
+        {% include "leaves/partials/leave_history_table.html" with leave_requests=all_leaves %}
+
+      </div>
+
+    </div>
+
+
+
   </div>
 
-  <div class="card bg-base-100 shadow">
-    <div class="card-body">
-      <form method="post" enctype="multipart/form-data" x-data="leaveForm()">
-        {% csrf_token %}
-
-        <div class="form-control mb-4">
-          <label class="label"><span class="label-text font-medium">Leave Type *</span></label>
-          <select name="leave_type" class="select select-bordered w-full" x-model="selectedType">
-            <option value="">— Select Leave Type —</option>
-            {% for lt in leave_types %}
-            <option value="{{ lt.id }}">{{ lt.name }} ({{ lt.code }}){% if lt.is_paid %} · Paid{% else %} · Unpaid{% endif %}</option>
-            {% endfor %}
-          </select>
-        </div>
-
-        <div class="grid grid-cols-2 gap-4 mb-4">
-          <div class="form-control">
-            <label class="label"><span class="label-text font-medium">From Date *</span></label>
-            <input type="date" name="from_date" class="input input-bordered" x-model="fromDate"
-                   min="{{ today|date:'Y-m-d' }}" required>
-          </div>
-          <div class="form-control">
-            <label class="label"><span class="label-text font-medium">To Date *</span></label>
-            <input type="date" name="to_date" class="input input-bordered" x-model="toDate"
-                   :min="fromDate" required>
-          </div>
-        </div>
-
-        <div class="form-control mb-4">
-          <label class="label"><span class="label-text font-medium">Half Day?</span></label>
-          <select name="half_day_type" class="select select-bordered">
-            <option value="">No — Full Day(s)</option>
-            <option value="first_half">First Half</option>
-            <option value="second_half">Second Half</option>
-          </select>
-        </div>
-
-        <div class="form-control mb-4">
-          <label class="label"><span class="label-text font-medium">Reason</span></label>
-          <textarea name="reason" class="textarea textarea-bordered" rows="3" placeholder="Briefly describe the reason..."></textarea>
-        </div>
-
-        <div class="form-control mb-6">
-          <label class="label"><span class="label-text font-medium">Supporting Document</span></label>
-          <input type="file" name="document" class="file-input file-input-bordered w-full">
-          <div class="label"><span class="label-text-alt text-base-content/50">Required for medical leave > 3 days</span></div>
-        </div>
-
-        <div class="flex justify-end gap-3">
-          <a href="{% url 'leaves:my_leaves' %}" class="btn btn-ghost">Cancel</a>
-          <button type="submit" class="btn btn-primary">Submit Request</button>
-        </div>
-      </form>
-    </div>
-  </div>
 </div>
 
+
+
 <script>
-function leaveForm() {
-  return {
-    selectedType: '',
-    fromDate: '',
-    toDate: '',
-  }
-}
+
+document.addEventListener('DOMContentLoaded', function () {
+
+  if (typeof flatpickr === 'undefined') return;
+
+
+
+  const today = '{{ today|date:"Y-m-d" }}';
+
+  const fpOpts = {
+
+    wrap: true,
+
+    minDate: today,
+
+    dateFormat: 'Y-m-d',
+
+    altInput: true,
+
+    altFormat: 'd M Y',
+
+    altInputClass: 'leave-field-input',
+
+    disableMobile: true,
+
+    allowInput: false,
+
+    clickOpens: true,
+
+  };
+
+
+
+  const fromPicker = flatpickr('#from_date_wrap', {
+
+    ...fpOpts,
+
+    onChange: function (_dates, dateStr) {
+
+      toPicker.set('minDate', dateStr || today);
+
+      const toDate = toPicker.selectedDates[0];
+
+      const fromDate = fromPicker.selectedDates[0];
+
+      if (toDate && fromDate && toDate < fromDate) {
+
+        toPicker.clear();
+
+      }
+
+    },
+
+  });
+
+
+
+  const toPicker = flatpickr('#to_date_wrap', { ...fpOpts });
+
+});
+
 </script>
+
 {% endblock %}
+

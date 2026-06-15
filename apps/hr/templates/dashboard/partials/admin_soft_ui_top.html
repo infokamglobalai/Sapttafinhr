@@ -1,0 +1,134 @@
+{% load static humanize %}
+
+<div class="dash-top-grid stagger">
+
+  <div class="dash-welcome-card">
+
+    <div class="dash-welcome-card__content">
+
+    <div class="live-pill">
+
+      <span class="live-dot"></span> LIVE
+
+    </div>
+
+    <h1 class="saas-h1">
+
+      Good {% now "H" as hr_now %}{% if hr_now < "12" %}morning{% elif hr_now < "17" %}afternoon{% else %}evening{% endif %}, {{ user.display_name|default:"Admin" }} 👋
+
+    </h1>
+
+    <p class="saas-p-sub"><strong>{{ tenant.name }}</strong> — your unified HR command center for attendance, payroll, compliance, and people operations.</p>
+
+    <div class="dash-welcome-actions">
+
+      <a href="{% url 'employees:create' %}" class="dash-action-btn dash-action-btn--violet">
+
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+
+        Add Employee
+
+      </a>
+
+      <a href="{% url 'payroll:run_create' %}" class="dash-action-btn dash-action-btn--orange">
+
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+
+        Run Payroll
+
+      </a>
+
+      <a href="{% url 'attendance:register' %}" class="dash-action-btn dash-action-btn--blue">
+
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+
+        Attendance
+
+      </a>
+
+    </div>
+
+    <div class="quick-links">
+
+      <a href="{% url 'leaves:pending' %}" class="quick-link">Leave queue</a>
+
+      <a href="{% url 'hr_ops:policy_list' %}" class="quick-link">Policies</a>
+
+      <a href="{% url 'recruitment:job_list' %}" class="quick-link">Hiring</a>
+
+      <a href="{% url 'hr_ops:service_request_queue' %}" class="quick-link">Requests</a>
+
+    </div>
+
+    </div>
+
+    <div class="dash-welcome-illustration-wrap" aria-hidden="true">
+      <img src="{% static 'images/dashboard-hero-illustration.png' %}" alt="" class="dash-welcome-illustration" width="280" height="240" loading="lazy" decoding="async">
+    </div>
+
+  </div>
+
+
+
+  <div class="dash-health-card">
+
+    <div class="dash-health-card__head">
+
+      <span class="dash-health-card__title">Workforce Health</span>
+
+      <span class="dash-health-badge {% if insights.health_score >= 80 %}dash-health-badge--ok{% elif insights.health_score >= 60 %}dash-health-badge--warn{% endif %}">
+
+        {% if insights.health_score >= 80 %}Excellent{% elif insights.health_score >= 60 %}Good{% else %}Needs attention{% endif %}
+
+      </span>
+
+    </div>
+
+    <div class="dash-health-body">
+
+      <div class="dash-health-ring" style="--pct: {{ insights.health_score }};">
+
+        <div class="dash-health-ring-inner">{{ insights.health_score }}</div>
+
+      </div>
+
+      <div class="dash-health-stats">
+
+        <div><strong>{{ kpis.attendance_rate_pct }}%</strong> attendance today</div>
+
+        <div>{{ insights.pending_total }} pending action{{ insights.pending_total|pluralize }}</div>
+
+        <div>{{ insights.avg_daily_present }} avg daily present (14d)</div>
+
+      </div>
+
+    </div>
+
+    <div class="dash-health-mini-grid">
+
+      <div class="dash-health-mini">
+
+        <div class="dash-health-mini-label">On leave</div>
+
+        <div class="dash-health-mini-value">{{ kpis.on_leave_today }}</div>
+
+      </div>
+
+      <div class="dash-health-mini">
+
+        <div class="dash-health-mini-label">Absent</div>
+
+        <div class="dash-health-mini-value">{{ kpis.absent_today }}</div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+
+{% include "dashboard/partials/admin_kpi_strip.html" %}
+

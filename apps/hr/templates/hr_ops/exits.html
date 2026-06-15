@@ -2,20 +2,59 @@
 {% block page_title %}Exit Management{% endblock %}
 {% block content %}
 <div class="flex items-center justify-between mb-4">
-  <h2 class="text-xl font-bold">Exit Requests</h2>
+  <div>
+    <h2 class="text-xl font-bold">Exit Requests</h2>
+    <p class="text-sm text-base-content/60">Set last working day, track clearance, finalize exit, or disable login.</p>
+  </div>
 </div>
+
+<div class="alert alert-info text-sm mb-4">
+  <span>Logins are <strong>disabled automatically</strong> on last working day (daily job). Use <strong>Finalize exit</strong> to mark someone as exited before that date.</span>
+</div>
+
 <div class="card bg-base-100 shadow overflow-x-auto">
   <table class="table table-sm">
-    <thead><tr><th>Employee</th><th>Resignation Date</th><th>Last Working Day</th><th>Status</th><th>FnF</th><th>Assets</th></tr></thead>
+    <thead>
+      <tr>
+        <th>Employee</th>
+        <th>Resignation</th>
+        <th>Last working day</th>
+        <th>Employment</th>
+        <th>Status</th>
+        <th>Clearance</th>
+        {% if user.is_hr_admin %}<th>Actions</th>{% endif %}
+      </tr>
+    </thead>
     <tbody>
       {% for exit in exits %}
       <tr>
         <td>
-          <div class="font-medium text-sm">{{ exit.employee.full_name }}</div>
+          <a href="{% url 'employees:detail' exit.employee.pk %}" class="font-medium text-sm link link-hover">{{ exit.employee.full_name }}</a>
           <div class="text-xs text-base-content/50">{{ exit.employee.department.name|default:"" }}</div>
         </td>
-        <td>{{ exit.resignation_date|date:"d M Y" }}</td>
-        <td>{{ exit.last_working_date|date:"d M Y"|default:"TBD" }}</td>
+        <td class="text-sm">{{ exit.resignation_date|date:"d M Y" }}</td>
+        <td>
+          {% if user.is_hr_admin and exit.employee.employment_status != 'exited' %}
+          <form method="post" action="{% url 'hr_ops:exit_update' exit.pk %}" class="flex items-center gap-1">
+            {% csrf_token %}
+            <input type="date" name="last_working_date" value="{{ exit.last_working_date|date:'Y-m-d' }}"
+                   class="input input-bordered input-xs w-36">
+            <input type="hidden" name="fnf_cleared" value="{% if exit.fnf_cleared %}on{% endif %}">
+            <input type="hidden" name="assets_returned" value="{% if exit.assets_returned %}on{% endif %}">
+            <button type="submit" class="btn btn-ghost btn-xs" title="Save last working day">Save</button>
+          </form>
+          {% else %}
+          {{ exit.last_working_date|date:"d M Y"|default:"—" }}
+          {% endif %}
+          {% if exit.last_working_date and exit.last_working_date <= today and exit.employee.employment_status == 'notice_period' %}
+          <div class="badge badge-warning badge-xs mt-1">Due today</div>
+          {% endif %}
+        </td>
+        <td>
+          <span class="badge badge-sm {% if exit.employee.employment_status == 'exited' %}badge-ghost{% elif exit.employee.employment_status == 'notice_period' %}badge-warning{% else %}badge-success{% endif %}">
+            {{ exit.employee.get_employment_status_display }}
+          </span>
+        </td>
         <td>
           <span class="badge badge-sm
             {% if exit.status == 'accepted' %}badge-success
@@ -25,11 +64,56 @@
             {{ exit.get_status_display }}
           </span>
         </td>
-        <td>{% if exit.fnf_cleared %}<span class="badge badge-success badge-xs">Done</span>{% else %}<span class="badge badge-ghost badge-xs">Pending</span>{% endif %}</td>
-        <td>{% if exit.assets_returned %}<span class="badge badge-success badge-xs">Returned</span>{% else %}<span class="badge badge-warning badge-xs">Pending</span>{% endif %}</td>
+        <td>
+          {% if user.is_hr_admin and exit.employee.employment_status != 'exited' %}
+          <form method="post" action="{% url 'hr_ops:exit_update' exit.pk %}" class="flex flex-col gap-1 text-xs">
+            {% csrf_token %}
+            <input type="hidden" name="last_working_date" value="{{ exit.last_working_date|date:'Y-m-d' }}">
+            <label class="label cursor-pointer justify-start gap-2 py-0">
+              <input type="checkbox" name="fnf_cleared" class="checkbox checkbox-xs" {% if exit.fnf_cleared %}checked{% endif %} onchange="this.form.submit()">
+              <span class="label-text">FnF cleared</span>
+            </label>
+            <label class="label cursor-pointer justify-start gap-2 py-0">
+              <input type="checkbox" name="assets_returned" class="checkbox checkbox-xs" {% if exit.assets_returned %}checked{% endif %} onchange="this.form.submit()">
+              <span class="label-text">Assets returned</span>
+            </label>
+          </form>
+          {% else %}
+          <div class="text-xs">
+            FnF: {% if exit.fnf_cleared %}<span class="text-success">Done</span>{% else %}Pending{% endif %}<br>
+            Assets: {% if exit.assets_returned %}<span class="text-success">Returned</span>{% else %}Pending{% endif %}
+          </div>
+          {% endif %}
+        </td>
+        {% if user.is_hr_admin %}
+        <td>
+          <div class="flex flex-col gap-1">
+            {% if exit.employee.employment_status != 'exited' %}
+            <form method="post" action="{% url 'hr_ops:exit_finalize' exit.pk %}"
+                  onsubmit="return confirm('Finalize exit for {{ exit.employee.full_name }}? This marks them exited and disables login.');">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-primary btn-xs w-full">Finalize exit</button>
+            </form>
+            {% else %}
+            <span class="badge badge-ghost badge-xs">Finalized</span>
+            {% endif %}
+            {% if exit.employee.user_id %}
+              {% if exit.employee.user.is_active %}
+              <form method="post" action="{% url 'hr_ops:exit_revoke_login' exit.pk %}"
+                    onsubmit="return confirm('Disable login for {{ exit.employee.full_name }}?');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-error btn-outline btn-xs w-full">Disable login</button>
+              </form>
+              {% else %}
+              <span class="badge badge-ghost badge-xs">Login disabled</span>
+              {% endif %}
+            {% endif %}
+          </div>
+        </td>
+        {% endif %}
       </tr>
       {% empty %}
-      <tr><td colspan="6" class="text-center py-8 text-base-content/40">No exit requests. Initiate from an employee's profile page.</td></tr>
+      <tr><td colspan="{% if user.is_hr_admin %}7{% else %}6{% endif %}" class="text-center py-8 text-base-content/40">No exit requests. Initiate from an employee's profile page.</td></tr>
       {% endfor %}
     </tbody>
   </table>

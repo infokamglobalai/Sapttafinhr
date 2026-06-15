@@ -31,6 +31,26 @@ def _render_with_xhtml2pdf(html_string: str) -> bytes:
     return buf.getvalue()
 
 
+def render_html_to_pdf(html_string: str, base_url: str = None) -> bytes:
+    """Convert a complete HTML document string to PDF bytes."""
+    base = base_url or f"file://{settings.BASE_DIR}/static/"
+    try:
+        return _render_with_weasyprint(html_string, base)
+    except (OSError, ImportError) as exc:
+        msg = str(exc).lower()
+        if any(lib in msg for lib in ("gobject", "pango", "cairo", "harfbuzz",
+                                       "fontconfig", "weasyprint")):
+            logger.warning("WeasyPrint native libs unavailable; falling back to xhtml2pdf.")
+            try:
+                return _render_with_xhtml2pdf(html_string)
+            except ModuleNotFoundError:
+                raise RuntimeError(
+                    "PDF generation requires xhtml2pdf on Windows. "
+                    "Run: pip install xhtml2pdf"
+                ) from exc
+        raise
+
+
 def render_pdf(template_name: str, context: dict, base_url: str = None) -> bytes:
     """
     Render a Django template to PDF bytes.
@@ -39,19 +59,7 @@ def render_pdf(template_name: str, context: dict, base_url: str = None) -> bytes
     libraries are unavailable (e.g., Windows dev box without GTK).
     """
     html_string = render_to_string(template_name, context)
-    base = base_url or f"file://{settings.BASE_DIR}/static/"
-
-    try:
-        return _render_with_weasyprint(html_string, base)
-    except (OSError, ImportError) as exc:
-        # OSError is what WeasyPrint raises on Windows when GTK is missing
-        # ("cannot load library 'gobject-2.0-0'", "pango-1.0-0", etc.)
-        msg = str(exc).lower()
-        if any(lib in msg for lib in ("gobject", "pango", "cairo", "harfbuzz",
-                                       "fontconfig", "weasyprint")):
-            logger.warning("WeasyPrint native libs unavailable; falling back to xhtml2pdf.")
-            return _render_with_xhtml2pdf(html_string)
-        raise
+    return render_html_to_pdf(html_string, base_url)
 
 
 def render_pdf_response(template_name: str, context: dict, filename: str):

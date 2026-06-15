@@ -41,14 +41,58 @@ class LetterTemplateForm(forms.ModelForm):
         model = LetterTemplate
         fields = ["letter_type", "name", "template_html", "is_active"]
         widgets = {
-            "letter_type": forms.Select(attrs={"class": SELECT}),
-            "name": forms.TextInput(attrs={"class": INPUT, "placeholder": "Experience Letter — Standard"}),
+            "letter_type": forms.Select(attrs={"class": SELECT, "id": "id_letter_type"}),
+            "name": forms.TextInput(attrs={"class": INPUT, "placeholder": "Offer Letter — Standard"}),
             "template_html": forms.Textarea(attrs={
-                "class": TEXTAREA, "rows": 16, "spellcheck": "false",
+                "class": TEXTAREA, "rows": 18, "spellcheck": "false", "id": "id_template_html",
                 "style": "font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.6;",
-                "placeholder": '<p>To Whom It May Concern,</p>\n<p>This is to certify that {{ employee.full_name }} has been working with {{ tenant.name }} as {{ employee.designation.name }} since {{ employee.date_of_joining }}.</p>',
             }),
         }
+
+
+class CompanyLetterSettingsForm(forms.Form):
+    display_name = forms.CharField(
+        label="Company name on letters",
+        max_length=255,
+        required=False,
+        widget=forms.TextInput(attrs={"class": INPUT, "placeholder": "Saptta Technologies Pvt Ltd"}),
+    )
+    address = forms.CharField(
+        label="Registered address",
+        required=False,
+        widget=forms.Textarea(attrs={"class": TEXTAREA, "rows": 3, "placeholder": "Building, street, area…"}),
+    )
+    city = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={"class": INPUT, "placeholder": "Bengaluru, Karnataka"}),
+    )
+    signatory_name = forms.CharField(
+        label="Signatory name (Director / HR head)",
+        max_length=255,
+        required=False,
+        widget=forms.TextInput(attrs={"class": INPUT, "placeholder": "Priya Sharma"}),
+    )
+    signatory_title = forms.CharField(
+        label="Signatory designation",
+        max_length=255,
+        required=False,
+        widget=forms.TextInput(attrs={"class": INPUT, "placeholder": "Director — Human Resources"}),
+    )
+    contact_email = forms.EmailField(
+        required=False,
+        widget=forms.EmailInput(attrs={"class": INPUT, "placeholder": "hr@company.com"}),
+    )
+    contact_phone = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={"class": INPUT, "placeholder": "+91 98765 43210"}),
+    )
+    ref_prefix = forms.CharField(
+        label="Reference prefix",
+        max_length=20,
+        required=False,
+        widget=forms.TextInput(attrs={"class": INPUT, "placeholder": "HR"}),
+        help_text="Used in letter refs e.g. HR/OFF/EMP001",
+    )
 
 
 class AssetForm(forms.ModelForm):
@@ -57,10 +101,22 @@ class AssetForm(forms.ModelForm):
         fields = ["asset_code", "name", "category", "make", "model", "serial_number",
                   "purchase_date", "purchase_value", "status", "notes"]
         widgets = {
-            "asset_code": forms.TextInput(attrs={"class": INPUT, "placeholder": "LP-001"}),
+            "asset_code": forms.TextInput(attrs={
+                "class": INPUT,
+                "placeholder": "Auto-generated e.g. LP-APL-001",
+                "readonly": "readonly",
+            }),
             "name": forms.TextInput(attrs={"class": INPUT, "placeholder": "MacBook Pro 14\""}),
-            "category": forms.TextInput(attrs={"class": INPUT, "placeholder": "laptop / phone / access_card"}),
-            "make": forms.TextInput(attrs={"class": INPUT, "placeholder": "Apple"}),
+            "category": forms.TextInput(attrs={
+                "class": INPUT,
+                "placeholder": "laptop / phone / access_card",
+                "id": "asset-category",
+            }),
+            "make": forms.TextInput(attrs={
+                "class": INPUT,
+                "placeholder": "Apple",
+                "id": "asset-make",
+            }),
             "model": forms.TextInput(attrs={"class": INPUT, "placeholder": "M2 Pro 14\""}),
             "serial_number": forms.TextInput(attrs={"class": INPUT}),
             "purchase_date": forms.DateInput(attrs={"class": INPUT, "type": "date"}),
@@ -68,6 +124,14 @@ class AssetForm(forms.ModelForm):
             "status": forms.Select(attrs={"class": SELECT}),
             "notes": forms.Textarea(attrs={"class": TEXTAREA, "rows": 3}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self.instance.pk:
+            self.fields["asset_code"].required = False
+            self.fields["asset_code"].help_text = "Generated on save from category + brand"
+        else:
+            self.fields["asset_code"].widget.attrs.pop("readonly", None)
 
 
 class AnnouncementForm(forms.ModelForm):
@@ -79,3 +143,34 @@ class AnnouncementForm(forms.ModelForm):
             "content": forms.Textarea(attrs={"class": TEXTAREA, "rows": 6}),
             "expires_at": forms.DateTimeInput(attrs={"class": INPUT, "type": "datetime-local"}),
         }
+
+
+class ServiceRequestForm(forms.Form):
+    category = forms.ChoiceField(
+        choices=[
+            ("it_issue", "IT / Laptop issue"),
+            ("hardware", "Hardware request (needs manager approval)"),
+            ("software", "Software / Subscription / API key (needs manager approval)"),
+            ("hr_other", "HR / Other"),
+        ],
+        widget=forms.Select(attrs={"class": SELECT, "id": "sr-category"}),
+    )
+    subject = forms.CharField(max_length=255, widget=forms.TextInput(attrs={"class": INPUT, "placeholder": "Brief summary"}))
+    description = forms.CharField(widget=forms.Textarea(attrs={"class": TEXTAREA, "rows": 5, "placeholder": "Describe the issue or what you need..."}))
+    priority = forms.ChoiceField(
+        choices=[("low", "Low"), ("normal", "Normal"), ("urgent", "Urgent")],
+        initial="normal",
+        widget=forms.Select(attrs={"class": SELECT}),
+    )
+    asset = forms.ModelChoiceField(
+        queryset=Asset.objects.none(),
+        required=False,
+        empty_label="— Not linked to an asset —",
+        widget=forms.Select(attrs={"class": SELECT}),
+    )
+    attachment = forms.FileField(required=False, widget=forms.ClearableFileInput(attrs={"class": "file-input file-input-bordered w-full"}))
+
+    def __init__(self, *args, assigned_assets=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if assigned_assets is not None:
+            self.fields["asset"].queryset = assigned_assets

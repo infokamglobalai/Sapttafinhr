@@ -236,9 +236,7 @@
   <aside class="login-brand">
     <div>
       <div style="display:flex; align-items:center; gap:12px; margin-bottom: 56px;">
-        <div style="width:44px; height:44px; background: var(--bg-card); border-radius:var(--r-sm); display:flex; align-items:center; justify-content:center; font-weight:600; font-size:18px; border: 1px solid var(--border-light); color: var(--brand-500);">
-          {% if tenant %}{{ tenant.name|slice:":1"|upper }}{% else %}H{% endif %}
-        </div>
+        <img src="{% static 'images/logo.jpeg' %}" alt="Saptta" class="brand-logo-img brand-logo-img--auth">
         <div style="font-weight:600; font-size:17px; color: var(--ink-950);">{% if tenant %}{{ tenant.name }}{% else %}HRMS{% endif %}</div>
       </div>
 
@@ -275,7 +273,7 @@
   <main class="login-form-side">
     <div class="login-card">
       <div class="mobile-brand">
-        <div class="mobile-brand-mark">{% if tenant %}{{ tenant.name|slice:":1"|upper }}{% else %}H{% endif %}</div>
+        <img src="{% static 'images/logo.jpeg' %}" alt="Saptta" class="brand-logo-img brand-logo-img--auth-sm">
         <div>
           <div style="font-weight:600; font-size:16px;">{% if tenant %}{{ tenant.name }}{% else %}HRMS{% endif %}</div>
           <div style="font-size:12px; color: var(--ink-500);">Human Resources</div>

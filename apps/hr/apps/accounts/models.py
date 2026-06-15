@@ -63,10 +63,81 @@ class User(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return self.email
 
+    def _employee_profile_or_none(self):
+        try:
+            return self.employee_profile
+        except Exception:
+            return None
+
+    @property
+    def display_name(self) -> str:
+        """Short friendly name for nav, chips, and greetings."""
+        profile = self._employee_profile_or_none()
+        if profile:
+            if profile.first_name:
+                return profile.first_name
+            if profile.full_name:
+                return profile.full_name.split()[0]
+
+        if self.is_superuser:
+            return "Super Admin"
+        if self.is_hr_admin:
+            return "Admin"
+        if self.is_manager:
+            return "Manager"
+
+        local = (self.email or "").split("@")[0]
+        return local.replace(".", " ").replace("_", " ").strip().title() or "User"
+
+    @property
+    def role_label(self) -> str:
+        """Human-readable primary role for profile menus."""
+        if self.is_superuser:
+            return "Platform Super Admin"
+        if self.is_hr_admin:
+            return "HR Administrator"
+        if self.is_manager:
+            return "Manager"
+        profile = self._employee_profile_or_none()
+        if profile:
+            return "Employee"
+        role = self.user_roles.select_related("role").first()
+        if role:
+            return role.role.name.replace("_", " ").title()
+        return "User"
+
     def get_full_name(self):
-        if hasattr(self, "employee_profile"):
-            return self.employee_profile.full_name
-        return self.email
+        profile = self._employee_profile_or_none()
+        if profile and profile.full_name:
+            return profile.full_name
+        return self.display_name
+
+    @property
+    def profile_photo_url(self):
+        """Employee profile photo URL when linked, else None."""
+        profile = self._employee_profile_or_none()
+        if profile and profile.profile_photo:
+            return profile.profile_photo.url
+        return None
+
+    @property
+    def avatar_initials(self) -> str:
+        """Up to two letters for avatar fallback."""
+        profile = self._employee_profile_or_none()
+        if profile and profile.first_name and profile.last_name:
+            return f"{profile.first_name[0]}{profile.last_name[0]}".upper()
+        parts = self.display_name.split()
+        if len(parts) >= 2:
+            return f"{parts[0][0]}{parts[1][0]}".upper()
+        name = self.display_name or "U"
+        return name[:2].upper()
+
+    @property
+    def avatar_tone(self) -> str:
+        """Stable accent tone for initials avatar (orange, blue, indigo, teal, violet, slate)."""
+        tones = ("orange", "blue", "indigo", "teal", "violet", "slate")
+        key = (self.email or str(self.pk or "")).encode("utf-8")
+        return tones[sum(key) % len(tones)]
 
     def has_perm_code(self, codename):
         """Check if user has a specific RBAC permission codename."""

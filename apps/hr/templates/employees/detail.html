@@ -11,20 +11,6 @@
     </span>
   </div>
   <div class="flex gap-2">
-    {% if user.is_hr_admin %}
-      {% if employee.user_id %}
-        <form method="post" action="{% url 'employees:create_login' employee.pk %}"
-              onsubmit="return confirm('Reset this employee\'s self-service password? A new temporary password will be shown.');">
-          {% csrf_token %}
-          <button type="submit" class="btn btn-outline btn-sm" title="Reset self-service password">Reset login</button>
-        </form>
-      {% else %}
-        <form method="post" action="{% url 'employees:create_login' employee.pk %}">
-          {% csrf_token %}
-          <button type="submit" class="btn btn-outline btn-sm" title="Create a self-service login for this employee">Create login</button>
-        </form>
-      {% endif %}
-    {% endif %}
     <a href="{% url 'employees:id_card' employee.pk %}" class="btn btn-outline btn-sm" target="_blank">ID Card PDF</a>
     <a href="{% url 'employees:edit' employee.pk %}" class="btn btn-primary btn-sm">Edit</a>
   </div>
@@ -101,12 +87,74 @@
       </div>
     </div>
 
+    <!-- Application access (HR admin) -->
+    {% if user.is_hr_admin %}
+    <div class="card bg-base-100 shadow">
+      <div class="card-body">
+        <h3 class="font-semibold text-sm mb-2">Application access</h3>
+        {% if access.has_login %}
+        <div class="text-sm space-y-2">
+          <div>
+            <span class="text-base-content/60 text-xs">Login email</span>
+            <p class="font-mono text-sm">{{ access.email }}</p>
+          </div>
+          <div>
+            <span class="text-base-content/60 text-xs">Status</span>
+            <p>
+              {% if access.is_active %}
+              <span class="badge badge-success badge-sm">Active</span>
+              {% else %}
+              <span class="badge badge-error badge-sm">Disabled</span>
+              {% endif %}
+            </p>
+          </div>
+          <div>
+            <span class="text-base-content/60 text-xs">Roles</span>
+            <p class="flex flex-wrap gap-1 mt-1">
+              {% for label in access.role_labels %}
+              <span class="badge badge-ghost badge-xs">{{ label }}</span>
+              {% endfor %}
+            </p>
+          </div>
+          <p class="text-xs text-base-content/50">Login URL: <a href="{{ login_url }}" class="link link-primary" target="_blank">{{ login_url }}</a></p>
+        </div>
+        <div class="flex flex-col gap-2 mt-3">
+          <form method="post" action="{% url 'employees:create_login' employee.pk %}"
+                onsubmit="return confirm('Generate a new temporary password? You will see it on the next screen.');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline btn-sm w-full">Reset login &amp; show password</button>
+          </form>
+          {% if access.is_active %}
+          <form method="post" action="{% url 'employees:revoke_access' employee.pk %}"
+                onsubmit="return confirm('Disable application login for {{ employee.full_name }}? They will not be able to sign in.');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-error btn-outline btn-sm w-full">Disable access</button>
+          </form>
+          {% else %}
+          <form method="post" action="{% url 'employees:restore_access' employee.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success btn-outline btn-sm w-full">Restore access</button>
+          </form>
+          {% endif %}
+          <a href="{% url 'employees:team_access' %}" class="btn btn-ghost btn-sm w-full">Team access &amp; roles →</a>
+        </div>
+        {% else %}
+        <p class="text-sm text-base-content/60 mb-3">No login account yet. Add an official email, then create access.</p>
+        <form method="post" action="{% url 'employees:create_login' employee.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-outline btn-sm w-full" {% if not employee.official_email and not employee.personal_email %}disabled title="Add email first"{% endif %}>Create login</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
     <!-- Quick actions -->
     <div class="card bg-base-100 shadow">
       <div class="card-body">
         <h3 class="font-semibold text-sm mb-2">Actions</h3>
         <div class="flex flex-col gap-2">
-          <a href="{% url 'hr_ops:letter_templates' %}" class="btn btn-outline btn-sm w-full">Generate Letter</a>
+          <a href="{% url 'hr_ops:employee_letter_picker' employee.pk %}" class="btn btn-outline btn-sm w-full">Generate Letter</a>
           <form method="post" action="{% url 'hr_ops:onboarding_start' employee.pk %}">
             {% csrf_token %}
             <button class="btn btn-outline btn-sm w-full">Start Onboarding</button>
@@ -118,9 +166,17 @@
               <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px; color: #991B1B;">Resignation date</label>
               <input type="date" name="resignation_date" value="{% now 'Y-m-d' %}" required
                      style="width: 100%; padding: 6px 10px; border: 1px solid #FCA5A5; border-radius: 6px; font-size: 13px; margin-bottom: 8px;">
+              <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px; color: #991B1B;">Last working day</label>
+              <input type="date" name="last_working_date"
+                     style="width: 100%; padding: 6px 10px; border: 1px solid #FCA5A5; border-radius: 6px; font-size: 13px; margin-bottom: 8px;">
+              <p style="font-size: 11px; color: #B45309; margin: 0 0 8px;">Login is disabled automatically on this date. Leave blank if unknown yet.</p>
               <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px; color: #991B1B;">Reason (optional)</label>
               <textarea name="exit_reason" rows="2" placeholder="Brief reason"
                         style="width: 100%; padding: 6px 10px; border: 1px solid #FCA5A5; border-radius: 6px; font-size: 13px; font-family: inherit; margin-bottom: 8px;"></textarea>
+              <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #991B1B; margin-bottom: 10px; cursor: pointer;">
+                <input type="checkbox" name="disable_login" style="width: 14px; height: 14px;">
+                Disable application login immediately (instead of on last working day)
+              </label>
               <button class="btn btn-error btn-sm w-full"
                       onclick="return confirm('This will mark {{ employee.full_name }} as on notice. Continue?')">
                 Confirm Exit Request

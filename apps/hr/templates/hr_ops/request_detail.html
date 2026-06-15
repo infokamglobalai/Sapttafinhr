@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block page_title %}{{ req.request_no }}{% endblock %}
+
+{% block content %}
+
+<div style="max-width: 760px; margin: 0 auto;">
+
+  {% if view_mode == 'employee' %}
+
+  <a href="{% url 'hr_ops:my_service_requests' %}" class="btn btn-ghost btn-sm mb-3">← My Requests</a>
+
+  {% elif view_mode == 'manager' %}
+
+  <a href="{% url 'hr_ops:team_service_requests' %}" class="btn btn-ghost btn-sm mb-3">← Team Approvals</a>
+
+  {% else %}
+
+  <a href="{% url 'hr_ops:service_request_queue' %}" class="btn btn-ghost btn-sm mb-3">← IT Queue</a>
+
+  {% endif %}
+
+
+
+  <div class="flex items-start justify-between gap-4 mb-2">
+
+    <div>
+
+      <p class="font-mono text-xs text-base-content/50">{{ req.request_no }}</p>
+
+      <h2 class="text-xl font-bold">{{ req.subject }}</h2>
+
+      <p class="text-sm text-base-content/60">{{ req.get_category_display }} · {{ req.employee.full_name }}</p>
+
+    </div>
+
+    <span class="badge badge-lg badge-outline">{{ req.get_status_display }}</span>
+
+  </div>
+
+
+
+  {% include "hr_ops/partials/request_timeline.html" %}
+
+
+
+  <div class="card bg-base-100 shadow mb-4">
+
+    <div class="card-body p-4 text-sm">
+
+      <p class="whitespace-pre-line">{{ req.description }}</p>
+
+      {% if req.asset %}<p class="mt-2 text-base-content/60">Asset: <strong>{{ req.asset.asset_code }}</strong> — {{ req.asset.name }}</p>{% endif %}
+
+      {% if req.rejection_reason %}<p class="mt-2 text-error">Declined: {{ req.rejection_reason }}</p>{% endif %}
+
+      {% if req.assigned_to %}<p class="mt-2 text-base-content/60">Assigned to: {{ req.assigned_to.full_name|default:req.assigned_to.email }}</p>{% endif %}
+
+    </div>
+
+  </div>
+
+
+
+  {% if comments %}
+
+  <h3 class="font-semibold mb-2">Updates</h3>
+
+  <div class="space-y-2 mb-4">
+
+    {% for c in comments %}
+
+    <div class="card bg-base-100 shadow-sm border border-base-200">
+
+      <div class="card-body p-3 text-sm">
+
+        <div class="text-xs text-base-content/50 mb-1">{{ c.author.full_name|default:c.author.email }} · {{ c.created_at|date:"d M Y H:i" }}{% if c.is_internal %} · internal{% endif %}</div>
+
+        <p class="whitespace-pre-line">{{ c.body }}</p>
+
+      </div>
+
+    </div>
+
+    {% endfor %}
+
+  </div>
+
+  {% endif %}
+
+
+
+  {% if view_mode == 'manager' %}
+
+  <div class="card bg-base-100 shadow">
+
+    <div class="card-body gap-3">
+
+      <h3 class="font-semibold">Manager decision</h3>
+
+      <form method="post" class="space-y-3">
+
+        {% csrf_token %}
+
+        <textarea name="remarks" class="textarea textarea-bordered w-full" rows="2" placeholder="Optional note to IT/Procurement"></textarea>
+
+        <div class="flex gap-2 flex-wrap">
+
+          <button name="action" value="approve" class="btn btn-success btn-sm">Approve → send to IT/Procurement</button>
+
+        </div>
+
+      </form>
+
+      <form method="post" class="mt-2">
+
+        {% csrf_token %}
+
+        <textarea name="reason" class="textarea textarea-bordered w-full mb-2" rows="2" placeholder="Reason for declining"></textarea>
+
+        <button name="action" value="reject" class="btn btn-error btn-outline btn-sm">Decline</button>
+
+      </form>
+
+    </div>
+
+  </div>
+
+  {% endif %}
+
+
+
+  {% if view_mode == 'admin' %}
+
+  <div class="card bg-base-100 shadow mb-4">
+
+    <div class="card-body gap-3">
+
+      <h3 class="font-semibold">IT / Procurement actions</h3>
+
+      {% if req.status == 'pending_it' %}
+
+      <form method="post">{% csrf_token %}<button name="action" value="assign" class="btn btn-primary btn-sm">Take ownership</button></form>
+
+      {% endif %}
+
+      {% if req.status == 'in_progress' or req.status == 'pending_it' %}
+
+      <form method="post" class="space-y-2">
+
+        {% csrf_token %}
+
+        <textarea name="note" class="textarea textarea-bordered w-full" rows="3" placeholder="Reply to employee"></textarea>
+
+        <label class="label cursor-pointer justify-start gap-2"><input type="checkbox" name="is_internal" class="checkbox checkbox-xs"><span class="label-text text-xs">Internal note (hidden from employee)</span></label>
+
+        <button name="action" value="comment" class="btn btn-outline btn-sm">Post reply</button>
+
+      </form>
+
+      <form method="post" class="mt-2">
+
+        {% csrf_token %}
+
+        <textarea name="note" class="textarea textarea-bordered w-full mb-2" rows="2" placeholder="Resolution summary"></textarea>
+
+        <button name="action" value="resolve" class="btn btn-success btn-sm">Mark resolved</button>
+
+      </form>
+
+      {% endif %}
+
+      {% if req.status == 'resolved' %}
+
+      <form method="post">{% csrf_token %}<button name="action" value="close" class="btn btn-ghost btn-sm">Close ticket</button></form>
+
+      {% endif %}
+
+    </div>
+
+  </div>
+
+  {% endif %}
+
+</div>
+
+{% endblock %}
+
+

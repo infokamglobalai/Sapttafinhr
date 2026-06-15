@@ -5,7 +5,9 @@
 <div class="flex items-center justify-between mb-4">
   <div>
     <h2 class="text-xl font-bold">Job Openings</h2>
-    <p class="text-sm text-base-content/60">{{ open_count }} published · {{ page_obj.paginator.count }} total</p>
+    <p class="text-sm text-base-content/60">
+      {{ open_count }} published · {{ in_pipeline }} in pipeline · {{ total_applications }} total applicants
+    </p>
   </div>
   {% if user.is_hr_admin %}
   <a href="{% url 'recruitment:job_create' %}" class="btn btn-primary btn-sm">+ New Opening</a>

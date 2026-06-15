@@ -12,6 +12,7 @@ urlpatterns = [
     path("<int:pk>/close/", views.job_close, name="job_close"),
     path("<int:pk>/applicants/new/", views.add_applicant, name="add_applicant"),
     path("applications/<int:pk>/move/", views.move_application, name="move_application"),
+    path("applications/<int:pk>/move-api/", views.move_application_api, name="move_application_api"),
     # AI tools
     path("ai/generate-jd/", JDGeneratorView.as_view(), name="ai_generate_jd"),
     path("ai/generate-offer/", OfferLetterGeneratorView.as_view(), name="ai_generate_offer"),

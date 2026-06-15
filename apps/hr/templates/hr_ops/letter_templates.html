@@ -1,11 +1,32 @@
 {% extends "base.html" %}
 {% block page_title %}HR Letter Templates{% endblock %}
 {% block content %}
-<div class="flex items-center justify-between mb-4">
-  <h2 class="text-xl font-bold">Letter Templates</h2>
-  <a href="{% url 'hr_ops:letter_template_create' %}" class="btn btn-primary btn-sm">+ New Template</a>
+<div class="flex flex-wrap items-start justify-between gap-3 mb-4">
+  <div>
+    <h2 class="text-xl font-bold">Letter Templates</h2>
+    <p class="text-sm text-base-content/60">Offer, appointment, experience, relieving & more — with your company name and signatory auto-filled.</p>
+  </div>
+  <div class="flex flex-wrap gap-2">
+    <a href="{% url 'hr_ops:letter_company_settings' %}" class="btn btn-outline btn-sm">Company letterhead</a>
+    {% if has_defaults_available %}
+    <form method="post" action="{% url 'hr_ops:letter_seed_defaults' %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-secondary btn-sm">Install default pack</button>
+    </form>
+    {% endif %}
+    <a href="{% url 'hr_ops:letter_template_create' %}" class="btn btn-primary btn-sm">+ New Template</a>
+  </div>
 </div>
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+{% if not profile.signatory_name %}
+<div class="alert alert-warning text-sm mb-4">
+  Set your <strong>director / HR signatory name</strong> once under
+  <a href="{% url 'hr_ops:letter_company_settings' %}" class="link">Company letterhead</a>
+  — it appears on every generated letter.
+</div>
+{% endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
   {% for tmpl in templates %}
   <div class="card bg-base-100 shadow">
     <div class="card-body p-4">
@@ -14,21 +35,37 @@
           <span class="badge badge-outline badge-sm mb-1">{{ tmpl.get_letter_type_display }}</span>
           <h3 class="font-semibold">{{ tmpl.name }}</h3>
         </div>
-        <span class="badge badge-sm {% if tmpl.is_active %}badge-success{% else %}badge-ghost{% endif %}">{% if tmpl.is_active %}Active{% else %}Off{% endif %}</span>
+        <span class="badge badge-sm badge-success">Active</span>
       </div>
       <div class="card-actions mt-3">
-        <a href="{% url 'hr_ops:letter_template_edit' tmpl.pk %}" class="btn btn-ghost btn-xs">Edit Template</a>
+        <a href="{% url 'hr_ops:letter_template_edit' tmpl.pk %}" class="btn btn-ghost btn-xs">Edit</a>
       </div>
     </div>
   </div>
   {% empty %}
   <div class="col-span-3 card bg-base-100 shadow">
-    <div class="card-body text-center py-12">
-      <p class="text-base-content/40 mb-3">No letter templates yet.</p>
-      <p class="text-sm text-base-content/30 mb-4">Create templates for Experience, Relieving, Increment, Warning letters using Jinja2 HTML.</p>
-      <a href="{% url 'hr_ops:letter_template_create' %}" class="btn btn-primary btn-sm">Create first template</a>
+    <div class="card-body text-center py-10">
+      <p class="text-base-content/60 mb-2">No letter templates yet.</p>
+      <p class="text-sm text-base-content/50 mb-4">Install the ready-made pack (Offer, Relieving, Experience, Appointment…) and customize company name & signatory once.</p>
+      <form method="post" action="{% url 'hr_ops:letter_seed_defaults' %}" class="inline">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary btn-sm">Install default templates</button>
+      </form>
     </div>
   </div>
   {% endfor %}
 </div>
+
+<div class="premium-glass-card p-5">
+  <h3 class="font-semibold text-sm mb-2">Quick start — create from default</h3>
+  <div class="flex flex-wrap gap-2">
+    {% for code, label in letter_type_choices %}
+    <a href="{% url 'hr_ops:letter_template_create' %}?type={{ code }}" class="btn btn-outline btn-xs">{{ label }}</a>
+    {% endfor %}
+  </div>
+</div>
 {% endblock %}
+
+{% endblock %}
+
+

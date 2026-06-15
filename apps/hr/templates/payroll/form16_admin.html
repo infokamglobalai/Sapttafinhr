@@ -5,13 +5,20 @@
     <div>
       <div style="font-size: 12px; color: var(--ink-500); text-transform: uppercase; letter-spacing: 0.06em;">HR · Annual</div>
       <h1 style="font-size: 24px; font-weight: 700;">Form 16 — FY {{ fy }}</h1>
-      <p style="font-size: 13px; color: var(--ink-500); margin-top: 4px;">Part B is generated from payroll &amp; declarations. Upload Part A from TRACES separately for each employee.</p>
+      <p style="font-size: 13px; color: var(--ink-500); margin-top: 4px;">Generate Part B → Issue to employees (email + portal). Upload Part A from TRACES separately.</p>
     </div>
-    <form method="post" action="{% url 'payroll:form16_generate_all' %}" style="display:flex; gap:8px;">
-      {% csrf_token %}
-      <input name="fy" value="{{ fy }}" placeholder="2024-25" class="input input-bordered" style="width: 140px;">
-      <button class="btn-base btn-primary">Generate Part B for all</button>
-    </form>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <form method="post" action="{% url 'payroll:form16_generate_all' %}" style="display:flex; gap:8px;">
+        {% csrf_token %}
+        <input name="fy" value="{{ fy }}" placeholder="2024-25" class="input input-bordered" style="width: 140px;">
+        <button class="btn-base btn-primary">Generate Part B</button>
+      </form>
+      <form method="post" action="{% url 'payroll:form16_issue_all' %}" onsubmit="return confirm('Issue and email Form 16 to all employees with Part B?');">
+        {% csrf_token %}
+        <input type="hidden" name="fy" value="{{ fy }}">
+        <button class="btn-base btn-outline">Issue &amp; email all</button>
+      </form>
+    </div>
   </div>
 
   {% if messages %}{% for m in messages %}<div class="alert alert-{% if m.tags == 'error' %}error{% else %}success{% endif %}" style="margin-bottom:14px;">{{ m }}</div>{% endfor %}{% endif %}
@@ -23,10 +30,9 @@
           <th style="padding: 10px 14px; text-align: left; font-size: 12px; color: #7C2D12;">Employee</th>
           <th style="padding: 10px 14px; text-align: left; font-size: 12px; color: #7C2D12;">Regime</th>
           <th style="padding: 10px 14px; text-align: right; font-size: 12px; color: #7C2D12;">Gross</th>
-          <th style="padding: 10px 14px; text-align: right; font-size: 12px; color: #7C2D12;">Taxable</th>
-          <th style="padding: 10px 14px; text-align: right; font-size: 12px; color: #7C2D12;">Tax</th>
-          <th style="padding: 10px 14px; text-align: right; font-size: 12px; color: #7C2D12;">TDS deposited</th>
-          <th style="padding: 10px 14px; text-align: center; font-size: 12px; color: #7C2D12;">Part B</th>
+          <th style="padding: 10px 14px; text-align: right; font-size: 12px; color: #7C2D12;">TDS</th>
+          <th style="padding: 10px 14px; text-align: center; font-size: 12px; color: #7C2D12;">Status</th>
+          <th style="padding: 10px 14px; text-align: center; font-size: 12px; color: #7C2D12;">Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -35,15 +41,21 @@
           <td style="padding: 10px 14px;"><strong>{{ f.employee.full_name }}</strong><br><span style="font-size:11px;color:var(--ink-500);">{{ f.employee.employee_code }}</span></td>
           <td style="padding: 10px 14px; font-size: 13px;">{{ f.regime|upper }}</td>
           <td style="padding: 10px 14px; text-align: right; font-size: 13px;">₹{{ f.gross_salary|floatformat:0 }}</td>
-          <td style="padding: 10px 14px; text-align: right; font-size: 13px;">₹{{ f.taxable_income|floatformat:0 }}</td>
-          <td style="padding: 10px 14px; text-align: right; font-size: 13px;">₹{{ f.tax_payable|floatformat:0 }}</td>
           <td style="padding: 10px 14px; text-align: right; font-size: 13px;">₹{{ f.tds_deducted|floatformat:0 }}</td>
           <td style="padding: 10px 14px; text-align: center;">
-            {% if f.part_b_pdf %}<a href="{{ f.part_b_pdf.url }}" target="_blank" style="color:#C2410C; font-weight:600; font-size:12.5px;">Download</a>{% else %}—{% endif %}
+            {% if f.is_issued %}<span class="badge badge-success badge-sm">Issued</span>{% elif f.part_b_pdf %}<span class="badge badge-warning badge-sm">Draft</span>{% else %}—{% endif %}
+          </td>
+          <td style="padding: 10px 14px; text-align: center; white-space: nowrap;">
+            {% if f.part_b_pdf %}<a href="{{ f.part_b_pdf.url }}" target="_blank" style="color:#C2410C; font-weight:600; font-size:12px; margin-right:8px;">PDF</a>{% endif %}
+            {% if f.part_b_pdf and not f.is_issued %}
+            <form method="post" action="{% url 'payroll:form16_issue' f.pk %}" style="display:inline;">{% csrf_token %}
+              <button type="submit" class="btn btn-xs btn-primary">Issue &amp; email</button>
+            </form>
+            {% endif %}
           </td>
         </tr>
         {% empty %}
-        <tr><td colspan="7" style="padding: 28px; text-align: center; color: var(--ink-500);">No Form 16s generated for FY {{ fy }} yet.</td></tr>
+        <tr><td colspan="6" style="padding: 28px; text-align: center; color: var(--ink-500);">No Form 16s generated for FY {{ fy }} yet.</td></tr>
         {% endfor %}
       </tbody>
     </table>

@@ -5,24 +5,24 @@
 ```powershell
 cd "apps\hr"
 $env:DJANGO_SETTINGS_MODULE = "hrms.settings.development"
-.\venv\Scripts\activate
-python manage.py seed_dummy_login
+.\.venv\Scripts\activate
+python manage.py seed_dummy_login --subdomain sapttadev --email admin@saptta.local --password Saptta@12345 --name "Kamglobal"
 ```
 
-Reset password if the user already exists:
+Reset passwords if users already exist:
 
 ```powershell
-python manage.py seed_dummy_login --reset-password
+python manage.py seed_dummy_login --subdomain sapttadev --email admin@saptta.local --password Saptta@12345 --reset-password
+python manage.py seed_dummy_login --reset-employee --employee-email manju@saptta.com --employee-password Employee@1234
 ```
 
-## Default credentials
+## Default credentials (sapttadev workspace)
 
-| Field | Value |
-|-------|--------|
-| **Email** | `admin@saptta.local` |
-| **Password** | `Saptta@12345` |
-| **Company** | Saptta Demo Company |
-| **Subdomain** | `sapttadev` |
+| Role | Email | Password |
+|------|--------|----------|
+| **HR Admin** | `admin@saptta.local` | `Saptta@12345` |
+| **Employee** (Manjunath) | `manju@saptta.com` | `Employee@1234` |
+| **Subdomain** | `sapttadev` | |
 
 ## Login URLs
 
@@ -37,3 +37,7 @@ python manage.py runserver 127.0.0.1:8001
 ```
 
 Django admin (platform): http://localhost:8001/superadmin/ — create with `python manage.py createsuperuser` (no tenant).
+
+## Comp-off leave
+
+Create a leave type with code **CO** (Comp Off). When an employee applies using that type, available comp-off credits are validated on apply and redeemed automatically on approval.

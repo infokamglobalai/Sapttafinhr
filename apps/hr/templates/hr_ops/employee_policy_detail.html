@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block page_title %}{{ policy.title }}{% endblock %}
+{% block content %}
+<a href="{% url 'hr_ops:employee_policies' %}" class="btn btn-ghost btn-sm mb-3">← Company Policies</a>
+
+<div class="max-w-3xl">
+  <div class="flex items-start justify-between gap-4 mb-4">
+    <div>
+      <p class="text-xs text-base-content/50">{{ policy.category|default:"Policy" }} · {{ policy.version_label }}</p>
+      <h2 class="text-xl font-bold">{{ policy.title }}</h2>
+      {% if receipt and receipt.acknowledged_at %}
+      <p class="text-xs text-success mt-1">Acknowledged on {{ receipt.acknowledged_at|date:"d M Y H:i" }}</p>
+      {% elif receipt and receipt.read_at %}
+      <p class="text-xs text-warning mt-1">Read on {{ receipt.read_at|date:"d M Y" }} — acknowledgment required</p>
+      {% endif %}
+    </div>
+    {% if policy.attachment %}
+    <a href="{% url 'hr_ops:policy_download' policy.pk %}" class="btn btn-outline btn-sm" target="_blank">Download PDF</a>
+    {% endif %}
+  </div>
+
+  {% if policy.body %}
+  <div class="card bg-base-100 shadow mb-4">
+    <div class="card-body p-5 text-sm whitespace-pre-line leading-relaxed">{{ policy.body }}</div>
+  </div>
+  {% elif policy.attachment %}
+  <div class="card bg-base-100 shadow mb-4">
+    <div class="card-body p-5 text-sm text-base-content/60">
+      This policy is available as a document. Download and read the full PDF before acknowledging.
+    </div>
+  </div>
+  {% endif %}
+
+  {% if needs_ack %}
+  <div class="card bg-base-100 shadow border border-warning/30">
+    <div class="card-body gap-4">
+      <p class="text-sm font-medium">Please confirm you have read and understood this policy.</p>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="acknowledge">
+        <label class="flex items-start gap-3 cursor-pointer mb-4">
+          <input type="checkbox" name="confirm" class="checkbox checkbox-warning mt-0.5" required>
+          <span class="text-sm">I have read and agree to comply with this policy ({{ policy.version_label }}).</span>
+        </label>
+        <button type="submit" class="btn btn-primary btn-sm">Submit acknowledgment</button>
+      </form>
+    </div>
+  </div>
+  {% elif receipt and receipt.distribution.requires_acknowledgment and receipt.acknowledged_at %}
+  <div class="alert alert-success text-sm">You have acknowledged this policy. Thank you.</div>
+  {% endif %}
+</div>
+{% endblock %}

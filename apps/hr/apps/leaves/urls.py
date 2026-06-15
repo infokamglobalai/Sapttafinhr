@@ -15,4 +15,7 @@ urlpatterns = [
     path("holidays/", views.holiday_calendar, name="holidays"),
     path("holidays/create/", views.holiday_create, name="holiday_create"),
     path("balances/", views.leave_balance_admin, name="balances"),
+    path("comp-off/", views.comp_off_list, name="comp_off"),
+    path("comp-off/pending/", views.comp_off_pending, name="comp_off_pending"),
+    path("comp-off/<int:pk>/action/", views.comp_off_action, name="comp_off_action"),
 ]

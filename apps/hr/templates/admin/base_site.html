@@ -5,8 +5,9 @@
 
 {% block branding %}
 <h1 id="site-name">
-  <a href="{% url 'admin:index' %}">
-    HRMS · Platform Admin
+  <a href="{% url 'admin:index' %}" style="display:inline-flex;align-items:center;gap:10px;">
+    <img src="{% static 'images/logo.jpeg' %}" alt="Saptta" style="height:28px;width:auto;object-fit:contain;">
+    <span>HRMS · Platform Admin</span>
   </a>
 </h1>
 {% endblock %}

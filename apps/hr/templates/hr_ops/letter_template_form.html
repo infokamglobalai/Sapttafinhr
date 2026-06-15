@@ -1,48 +1,96 @@
 {% extends "base.html" %}
 {% block page_title %}{% if template %}Edit{% else %}New{% endif %} Letter Template{% endblock %}
 {% block content %}
-<div style="max-width: 920px; margin: 0 auto;">
-  <a href="{% url 'hr_ops:letter_templates' %}" class="btn-base btn-ghost btn-sm" style="margin-bottom: 14px;">← Back to Templates</a>
-  <h2 style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 4px;">{% if template %}Edit{% else %}New{% endif %} Letter Template</h2>
-  <p style="font-size: 13.5px; color: var(--ink-500); margin-bottom: 22px;">Write HTML with Jinja2 placeholders. The system fills in employee + tenant data on generation.</p>
+<div style="max-width: 960px; margin: 0 auto;">
+  <a href="{% url 'hr_ops:letter_templates' %}" class="text-sm link mb-3 inline-block">← Letter Templates</a>
+  <div class="flex flex-wrap items-start justify-between gap-3 mb-4">
+    <div>
+      <h2 class="text-xl font-bold">{% if template %}Edit{% else %}New{% endif %} Letter Template</h2>
+      <p class="text-sm text-base-content/60">Start from a default, then tweak wording. Company name & signatory come from <a href="{% url 'hr_ops:letter_company_settings' %}" class="link">letterhead settings</a>.</p>
+    </div>
+    {% if not template %}
+    <button type="button" id="load-default-btn" class="btn btn-outline btn-sm">Load default for type</button>
+    {% endif %}
+  </div>
 
   <form method="post">
     {% csrf_token %}
-    {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors.0 }}</div>{% endif %}
+    {% if form.non_field_errors %}<div class="alert alert-error mb-4">{{ form.non_field_errors.0 }}</div>{% endif %}
 
-    <div class="surface" style="padding: 22px; margin-bottom: 14px;">
-      <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 14px; margin-bottom: 14px;">
-        <div>
-          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Letter Type *</label>
-          {{ form.letter_type }}
+    <div class="card bg-base-100 shadow mb-4">
+      <div class="card-body gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <label class="form-control">
+            <span class="label-text font-medium">Letter type</span>
+            {{ form.letter_type }}
+          </label>
+          <label class="form-control">
+            <span class="label-text font-medium">Template name</span>
+            {{ form.name }}
+          </label>
         </div>
-        <div>
-          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Template Name *</label>
-          {{ form.name }}
+        <label class="label cursor-pointer justify-start gap-3">{{ form.is_active }} <span class="label-text">Active</span></label>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div class="lg:col-span-2 card bg-base-100 shadow">
+        <div class="card-body">
+          <h3 class="font-semibold text-sm mb-2">Letter body (HTML + placeholders)</h3>
+          {{ form.template_html }}
         </div>
       </div>
-      <label style="display: flex; align-items: center; gap: 8px; font-size: 13px;">{{ form.is_active }} Active</label>
+      <div class="card bg-base-100 shadow">
+        <div class="card-body text-xs space-y-3">
+          <p class="font-semibold">Auto-filled variables — click to copy</p>
+          <p class="text-base-content/60"><strong>Employee</strong></p>
+          <code class="block bg-base-200 p-1 rounded cursor-pointer var-chip">{% verbatim %}{{ employee.full_name }}{% endverbatim %}</code>
+          <code class="block bg-base-200 p-1 rounded cursor-pointer var-chip">{% verbatim %}{{ employee.designation.name }}{% endverbatim %}</code>
+          <code class="block bg-base-200 p-1 rounded cursor-pointer var-chip">{% verbatim %}{{ employee.department.name }}{% endverbatim %}</code>
+          <code class="block bg-base-200 p-1 rounded cursor-pointer var-chip">{% verbatim %}{{ employee.date_of_joining }}{% endverbatim %}</code>
+          <code class="block bg-base-200 p-1 rounded cursor-pointer var-chip">{% verbatim %}{{ employee.employee_code }}{% endverbatim %}</code>
+          <p class="text-base-content/60 pt-2"><strong>Company</strong> (from letterhead settings)</p>
+          <code class="block bg-base-200 p-1 rounded cursor-pointer var-chip">{% verbatim %}{{ company.name }}{% endverbatim %}</code>
+          <code class="block bg-base-200 p-1 rounded cursor-pointer var-chip">{% verbatim %}{{ company.address }}{% endverbatim %}</code>
+          <code class="block bg-base-200 p-1 rounded cursor-pointer var-chip">{% verbatim %}{{ company.signatory_name }}{% endverbatim %}</code>
+          <code class="block bg-base-200 p-1 rounded cursor-pointer var-chip">{% verbatim %}{{ company.signatory_title }}{% endverbatim %}</code>
+          <p class="text-base-content/60 pt-2"><strong>Other</strong></p>
+          <code class="block bg-base-200 p-1 rounded cursor-pointer var-chip">{% verbatim %}{{ today_formatted }}{% endverbatim %}</code>
+          <code class="block bg-base-200 p-1 rounded cursor-pointer var-chip">{% verbatim %}{{ ctc }}{% endverbatim %}</code>
+          <code class="block bg-base-200 p-1 rounded cursor-pointer var-chip">{% verbatim %}{{ last_working_day }}{% endverbatim %}</code>
+        </div>
+      </div>
     </div>
 
-    <div class="surface" style="padding: 22px; margin-bottom: 14px;">
-      <h3 style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-500); margin-bottom: 6px;">Template HTML</h3>
-      {% verbatim %}
-      <p style="font-size: 12.5px; color: var(--ink-500); margin-bottom: 12px;">
-        Available variables:
-        <code style="background: #F1F5F9; padding: 2px 6px; border-radius: 4px;">{{ employee.full_name }}</code>,
-        <code style="background: #F1F5F9; padding: 2px 6px; border-radius: 4px;">{{ employee.designation.name }}</code>,
-        <code style="background: #F1F5F9; padding: 2px 6px; border-radius: 4px;">{{ employee.date_of_joining }}</code>,
-        <code style="background: #F1F5F9; padding: 2px 6px; border-radius: 4px;">{{ tenant.name }}</code>,
-        <code style="background: #F1F5F9; padding: 2px 6px; border-radius: 4px;">{{ today_formatted }}</code>
-      </p>
-      {% endverbatim %}
-      {{ form.template_html }}
-    </div>
-
-    <div style="display: flex; justify-content: flex-end; gap: 12px;">
-      <a href="{% url 'hr_ops:letter_templates' %}" class="btn-base btn-ghost">Cancel</a>
-      <button type="submit" class="btn-base btn-primary">{% if template %}Save Changes{% else %}Create Template{% endif %}</button>
+    <div class="flex justify-end gap-2 mt-4">
+      <a href="{% url 'hr_ops:letter_templates' %}" class="btn btn-ghost">Cancel</a>
+      <button type="submit" class="btn btn-primary">Save template</button>
     </div>
   </form>
 </div>
+
+{% if not template %}
+{{ defaults_json|json_script:"letter-defaults" }}
+<script>
+(function() {
+  const defaults = JSON.parse(document.getElementById('letter-defaults').textContent);
+  const typeEl = document.getElementById('id_letter_type');
+  const nameEl = document.querySelector('[name="name"]');
+  const htmlEl = document.getElementById('id_template_html');
+  function loadDefault() {
+    const t = typeEl.value;
+    if (defaults[t]) {
+      if (confirm('Replace current content with the default template for this letter type?')) {
+        nameEl.value = defaults[t].name;
+        htmlEl.value = defaults[t].html;
+      }
+    }
+  }
+  document.getElementById('load-default-btn')?.addEventListener('click', loadDefault);
+  document.querySelectorAll('.var-chip').forEach(el => {
+    el.addEventListener('click', () => navigator.clipboard?.writeText(el.textContent.trim()));
+  });
+})();
+</script>
+{% endif %}
 {% endblock %}

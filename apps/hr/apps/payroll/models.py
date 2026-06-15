@@ -164,6 +164,13 @@ class PayrollRecord(models.Model):
     employee = models.ForeignKey("employees.Employee", on_delete=models.CASCADE)
 
     lop_days = models.DecimalField(max_digits=4, decimal_places=1, default=0)
+    lop_override = models.DecimalField(
+        max_digits=4, decimal_places=1, null=True, blank=True,
+        help_text="HR override for LOP days; blank = use attendance summary",
+    )
+    bonus_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    manual_deduction = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    hr_notes = models.TextField(blank=True)
     paid_days = models.DecimalField(max_digits=4, decimal_places=1, default=0)
     working_days = models.PositiveSmallIntegerField(default=0)
 

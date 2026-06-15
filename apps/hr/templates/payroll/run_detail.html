@@ -54,6 +54,12 @@
             <div class="text-xs text-base-content/50">Upload to ESIC portal</div>
           </div>
         </a></li>
+        <li><a href="{% url 'payroll:statutory_bundle' run.pk %}">
+          <div>
+            <div class="font-medium">Statutory Bundle (.zip)</div>
+            <div class="text-xs text-base-content/50">PF ECR + ESI in one download</div>
+          </div>
+        </a></li>
         <li><a href="{% url 'payroll:tally_xml' run.pk %}">
           <div>
             <div class="font-medium">Tally Journal (.xml)</div>
@@ -62,6 +68,12 @@
         </a></li>
       </ul>
     </div>
+    {% endif %}
+    {% if run.status in 'review,draft' %}
+    <form method="post" action="{% url 'payroll:run_recompute' run.pk %}">
+      {% csrf_token %}
+      <button class="btn btn-outline btn-sm">Recompute all</button>
+    </form>
     {% endif %}
     {% if run.status == 'review' %}
     <form method="post" action="{% url 'payroll:run_approve' run.pk %}">
@@ -173,7 +185,7 @@
       <tr>
         <th>Employee</th><th>Department</th><th>Days</th><th>LOP</th>
         <th>Gross</th><th>PF</th><th>ESI</th><th>PT</th><th>TDS</th>
-        <th>Deductions</th><th>Net Pay</th>
+        <th>Deductions</th><th>Net Pay</th><th></th>
       </tr>
     </thead>
     <tbody>
@@ -193,9 +205,10 @@
         <td class="text-xs">&#8377;{{ rec.tds|floatformat:0 }}</td>
         <td class="text-sm text-error">&#8377;{{ rec.total_deductions|floatformat:0 }}</td>
         <td class="font-bold text-success">&#8377;{{ rec.net_payable|floatformat:0 }}</td>
+        <td><a href="{% url 'payroll:record_detail' run.pk rec.pk %}" class="btn btn-ghost btn-xs">Review</a></td>
       </tr>
       {% empty %}
-      <tr><td colspan="11" class="text-center py-8 text-base-content/40">
+      <tr><td colspan="12" class="text-center py-8 text-base-content/40">
         {% if run.status == 'draft' or run.status == 'processing' %}
         Payroll is being processed. Refresh in a moment.
         {% else %}No records found.{% endif %}

@@ -11,6 +11,7 @@ from django.utils import timezone
 from django.db import transaction
 
 from .models import LeaveRequest, LeaveBalance, LeaveType, Holiday, HolidayCalendar
+from .comp_off_services import is_comp_off_leave_type, available_comp_off_total, redeem_comp_off_for_leave, restore_comp_off_for_leave
 
 
 # ---------------------------------------------------------------------------
@@ -150,8 +151,14 @@ def apply_leave(tenant, employee, leave_type_id: int, from_date, to_date, half_d
     if total_days <= 0:
         raise ValueError("No working days in the selected date range.")
 
-    # Balance check (only for paid leaves)
-    if leave_type.is_paid:
+    # Balance check (paid leaves) or comp-off credit check
+    if is_comp_off_leave_type(leave_type):
+        available = available_comp_off_total(tenant, employee)
+        if available < total_days:
+            raise ValueError(
+                f"Insufficient comp-off balance. Available: {available}, Requested: {total_days}"
+            )
+    elif leave_type.is_paid:
         balance = get_or_create_balance(tenant, employee, leave_type, year)
         if balance.available < total_days:
             raise ValueError(
@@ -205,14 +212,22 @@ def approve_leave(leave_request: LeaveRequest, actioned_by, remarks: str = "") -
     leave_request.remarks = remarks
     leave_request.save()
 
-    # Deduct balance
-    deduct_leave_balance(
-        leave_request.tenant,
-        leave_request.employee,
-        leave_request.leave_type,
-        leave_request.total_days,
-        leave_request.from_date.year,
-    )
+    # Deduct balance or redeem comp-off credits
+    if is_comp_off_leave_type(leave_request.leave_type):
+        redeem_comp_off_for_leave(
+            leave_request.tenant,
+            leave_request.employee,
+            leave_request.total_days,
+            leave_request,
+        )
+    else:
+        deduct_leave_balance(
+            leave_request.tenant,
+            leave_request.employee,
+            leave_request.leave_type,
+            leave_request.total_days,
+            leave_request.from_date.year,
+        )
 
     # Update attendance records to "on_leave" for the approved dates
     _mark_attendance_on_leave(leave_request)
@@ -283,13 +298,16 @@ def cancel_leave(leave_request: LeaveRequest) -> LeaveRequest:
     leave_request.save()
 
     if was_approved:
-        restore_leave_balance(
-            leave_request.tenant,
-            leave_request.employee,
-            leave_request.leave_type,
-            leave_request.total_days,
-            leave_request.from_date.year,
-        )
+        if is_comp_off_leave_type(leave_request.leave_type):
+            restore_comp_off_for_leave(leave_request)
+        else:
+            restore_leave_balance(
+                leave_request.tenant,
+                leave_request.employee,
+                leave_request.leave_type,
+                leave_request.total_days,
+                leave_request.from_date.year,
+            )
     return leave_request
 
 
@@ -334,3 +352,44 @@ def credit_upfront_leaves(tenant, year: int):
             if not created and balance.credited == 0:
                 balance.credited = lt.accrual_value or 0
                 balance.save()
+
+
+def credit_monthly_accrual(tenant, year: int | None = None, month: int | None = None) -> int:
+    """Credit monthly-accrual leave types for all active employees. Returns credits applied."""
+    from apps.employees.models import Employee
+
+    today = datetime.date.today()
+    year = year or today.year
+    month = month or today.month
+
+    employees = Employee.objects.filter(tenant=tenant, is_active=True, employment_status="active")
+    leave_types = LeaveType.objects.filter(tenant=tenant, is_active=True, accrual_type="monthly")
+
+    credits = 0
+    for emp in employees:
+        for lt in leave_types:
+            if lt.applicable_gender == "female" and emp.gender != "female":
+                continue
+            if lt.applicable_gender == "male" and emp.gender != "male":
+                continue
+            if lt.applicable_after_months > 0:
+                months_served = (today - emp.date_of_joining).days // 30
+                if months_served < lt.applicable_after_months:
+                    continue
+
+            balance = get_or_create_balance(tenant, emp, lt, year)
+            accrual = lt.accrual_value or Decimal("0")
+            if accrual <= 0:
+                continue
+
+            new_credited = balance.credited + accrual
+            if lt.max_annual_balance is not None:
+                cap = lt.max_annual_balance + balance.opening_balance + balance.carry_forward
+                new_credited = min(new_credited, cap)
+
+            if new_credited > balance.credited:
+                balance.credited = new_credited
+                balance.save(update_fields=["credited", "updated_at"])
+                credits += 1
+
+    return credits

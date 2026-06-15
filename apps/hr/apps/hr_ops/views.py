@@ -5,39 +5,71 @@ from django.http import HttpResponse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
+from utils.access import hr_admin_required
+
 from .models import (
     LetterTemplate, HRLetter, Asset, AssetAssignment,
     OnboardingTemplate, EmployeeOnboarding, OnboardingItem,
     ExitRequest, Announcement,
 )
-from .services import generate_letter, start_onboarding
+from .services import start_onboarding
 from apps.employees.models import Employee
 
 
 # ---------------------------------------------------------------------------
 # HR Letters
 # ---------------------------------------------------------------------------
-@login_required
+@hr_admin_required
 def letter_template_list(request):
     tenant = request.tenant
     templates = LetterTemplate.objects.filter(tenant=tenant, is_active=True).order_by("letter_type")
-    return render(request, "hr_ops/letter_templates.html", {"templates": templates})
+    from .letter_company import get_company_profile
+    profile = get_company_profile(tenant)
+    return render(request, "hr_ops/letter_templates.html", {
+        "templates": templates,
+        "profile": profile,
+        "has_defaults_available": templates.count() < 7,
+        "letter_type_choices": LetterTemplate.LETTER_TYPES,
+    })
 
 
-@login_required
-def generate_letter_view(request, employee_pk, template_pk):
+@hr_admin_required
+def letter_template_create_or_edit(request, pk=None):
+    from .forms import LetterTemplateForm
+    from .letter_defaults import get_default_html, get_default_name
     tenant = request.tenant
-    employee = get_object_or_404(Employee, pk=employee_pk, tenant=tenant)
-    template = get_object_or_404(LetterTemplate, pk=template_pk, tenant=tenant)
-
+    t = get_object_or_404(LetterTemplate, pk=pk, tenant=tenant) if pk else None
     if request.method == "POST":
-        extra = {k: v for k, v in request.POST.items() if not k.startswith("csrfmiddlewaretoken")}
-        letter = generate_letter(tenant, employee, template, request.user, extra_context=extra)
-        messages.success(request, f"{template.get_letter_type_display()} generated.")
-        return redirect("hr_ops:letter_download", pk=letter.pk)
-
-    return render(request, "hr_ops/generate_letter.html", {
-        "employee": employee, "template": template
+        form = LetterTemplateForm(request.POST, instance=t)
+        if form.is_valid():
+            obj = form.save(commit=False)
+            obj.tenant = tenant
+            obj.created_by = obj.created_by or request.user
+            obj.save()
+            messages.success(request, f'Template "{obj.name}" saved.')
+            return redirect("hr_ops:letter_templates")
+    else:
+        initial = {}
+        if not t:
+            letter_type = request.GET.get("type", "offer")
+            if letter_type in dict(LetterTemplate.LETTER_TYPES):
+                initial = {
+                    "letter_type": letter_type,
+                    "name": get_default_name(letter_type),
+                    "template_html": get_default_html(letter_type) or "",
+                }
+        form = LetterTemplateForm(instance=t, initial=initial if not t else None)
+    from .letter_defaults import DEFAULT_LETTER_TEMPLATES
+    import json
+    defaults_json = {
+        k: {"name": v["name"], "html": v["html"].strip()}
+        for k, v in DEFAULT_LETTER_TEMPLATES.items()
+    }
+    return render(request, "hr_ops/letter_template_form.html", {
+        "form": form,
+        "template": t,
+        "default_types": list(DEFAULT_LETTER_TEMPLATES.keys()),
+        "defaults_json": json.dumps(defaults_json),
     })
 
 
@@ -60,7 +92,7 @@ def letter_download(request, pk):
     return response
 
 
-@login_required
+@hr_admin_required
 @require_POST
 def share_letter(request, pk):
     tenant = request.tenant
@@ -75,20 +107,50 @@ def share_letter(request, pk):
 # ---------------------------------------------------------------------------
 # Asset management
 # ---------------------------------------------------------------------------
-@login_required
+@hr_admin_required
 def asset_list(request):
     tenant = request.tenant
-    assets = Asset.objects.filter(tenant=tenant).order_by("name")
-    return render(request, "hr_ops/assets.html", {"assets": assets})
+    assets = (
+        Asset.objects.filter(tenant=tenant)
+        .prefetch_related("assignments__employee")
+        .order_by("name")
+    )
+    employees = (
+        Employee.objects.filter(tenant=tenant, is_active=True, employment_status="active")
+        .select_related("department")
+        .order_by("first_name", "last_name")
+    )
+    employees_for_assign = [
+        {
+            "id": e.pk,
+            "name": e.full_name,
+            "code": e.employee_code,
+            "dept": e.department.name if e.department else "",
+        }
+        for e in employees
+    ]
+    return render(
+        request,
+        "hr_ops/assets.html",
+        {"assets": assets, "employees": employees, "employees_for_assign": employees_for_assign},
+    )
 
 
-@login_required
+@hr_admin_required
 @require_POST
 def asset_assign(request, asset_pk):
     tenant = request.tenant
     asset = get_object_or_404(Asset, pk=asset_pk, tenant=tenant, status="available")
     employee_id = request.POST.get("employee_id")
-    employee = get_object_or_404(Employee, pk=employee_id, tenant=tenant)
+    if not employee_id:
+        messages.error(request, "Please select an employee.")
+        return redirect("hr_ops:assets")
+
+    try:
+        employee = Employee.objects.get(pk=employee_id, tenant=tenant, is_active=True)
+    except Employee.DoesNotExist:
+        messages.error(request, "Employee not found. Please pick from the list.")
+        return redirect("hr_ops:assets")
 
     AssetAssignment.objects.create(
         asset=asset, employee=employee,
@@ -101,7 +163,7 @@ def asset_assign(request, asset_pk):
     return redirect("hr_ops:assets")
 
 
-@login_required
+@hr_admin_required
 @require_POST
 def asset_return(request, assignment_pk):
     tenant = request.tenant
@@ -118,7 +180,7 @@ def asset_return(request, assignment_pk):
 # ---------------------------------------------------------------------------
 # Onboarding
 # ---------------------------------------------------------------------------
-@login_required
+@hr_admin_required
 def onboarding_list(request):
     tenant = request.tenant
     onboardings = EmployeeOnboarding.objects.filter(
@@ -127,7 +189,7 @@ def onboarding_list(request):
     return render(request, "hr_ops/onboarding.html", {"onboardings": onboardings})
 
 
-@login_required
+@hr_admin_required
 @require_POST
 def onboarding_start(request, employee_pk):
     tenant = request.tenant
@@ -140,7 +202,7 @@ def onboarding_start(request, employee_pk):
     return redirect("employees:detail", pk=employee_pk)
 
 
-@login_required
+@hr_admin_required
 @require_POST
 def onboarding_item_complete(request, item_pk):
     tenant = request.tenant
@@ -159,14 +221,19 @@ def onboarding_item_complete(request, item_pk):
 # ---------------------------------------------------------------------------
 # Exit management
 # ---------------------------------------------------------------------------
-@login_required
+@hr_admin_required
 def exit_list(request):
     tenant = request.tenant
-    exits = ExitRequest.objects.filter(tenant=tenant).select_related("employee").order_by("-created_at")
-    return render(request, "hr_ops/exits.html", {"exits": exits})
+    exits = ExitRequest.objects.filter(tenant=tenant).select_related(
+        "employee", "employee__department", "employee__user"
+    ).order_by("-created_at")
+    return render(request, "hr_ops/exits.html", {
+        "exits": exits,
+        "today": timezone.localdate(),
+    })
 
 
-@login_required
+@hr_admin_required
 @require_POST
 def exit_request_create(request, employee_pk):
     import datetime
@@ -174,6 +241,7 @@ def exit_request_create(request, employee_pk):
     employee = get_object_or_404(Employee, pk=employee_pk, tenant=tenant)
 
     raw_date = (request.POST.get("resignation_date") or "").strip()
+    raw_lwd = (request.POST.get("last_working_date") or "").strip()
     exit_reason = request.POST.get("exit_reason", "")
 
     # Default to today if blank — HR typically clicks the button when employee resigns in-person
@@ -189,9 +257,24 @@ def exit_request_create(request, employee_pk):
             )
             return redirect("employees:detail", pk=employee_pk)
 
+    last_working_date = None
+    if raw_lwd:
+        try:
+            last_working_date = datetime.datetime.strptime(raw_lwd, "%Y-%m-%d").date()
+        except ValueError:
+            messages.error(
+                request,
+                f"Invalid last working date '{raw_lwd}'. Use YYYY-MM-DD format.",
+            )
+            return redirect("employees:detail", pk=employee_pk)
+
     _, created = ExitRequest.objects.get_or_create(
         tenant=tenant, employee=employee,
-        defaults={"resignation_date": resignation_date, "exit_reason": exit_reason},
+        defaults={
+            "resignation_date": resignation_date,
+            "last_working_date": last_working_date,
+            "exit_reason": exit_reason,
+        },
     )
     if not created:
         messages.warning(request, f"{employee.full_name} already has an open exit request.")
@@ -200,6 +283,16 @@ def exit_request_create(request, employee_pk):
     # Update employee status
     employee.employment_status = "notice_period"
     employee.save(update_fields=["employment_status"])
+
+    if request.POST.get("disable_login") == "on":
+        from apps.employees.access_services import revoke_employee_access
+        if revoke_employee_access(employee):
+            messages.info(request, f"Application login disabled for {employee.full_name}.")
+    elif last_working_date:
+        messages.info(
+            request,
+            f"Login will be disabled automatically on last working day ({last_working_date.strftime('%d %b %Y')}).",
+        )
 
     # Audit trail
     try:
@@ -216,9 +309,77 @@ def exit_request_create(request, employee_pk):
     return redirect("hr_ops:exit_list")
 
 
-# ---------------------------------------------------------------------------
-# Announcements
-# ---------------------------------------------------------------------------
+@hr_admin_required
+@require_POST
+def exit_update(request, pk):
+    """Update last working day, FnF, and asset return flags."""
+    if not request.user.is_hr_admin:
+        messages.error(request, "HR admin access required.")
+        return redirect("hr_ops:exit_list")
+    import datetime
+    tenant = request.tenant
+    exit_req = get_object_or_404(ExitRequest, pk=pk, tenant=tenant)
+
+    raw_lwd = (request.POST.get("last_working_date") or "").strip()
+    if raw_lwd:
+        try:
+            exit_req.last_working_date = datetime.datetime.strptime(raw_lwd, "%Y-%m-%d").date()
+        except ValueError:
+            messages.error(request, "Invalid last working date.")
+            return redirect("hr_ops:exit_list")
+    elif "last_working_date" in request.POST and not raw_lwd:
+        exit_req.last_working_date = None
+
+    if "fnf_cleared" in request.POST:
+        exit_req.fnf_cleared = request.POST.get("fnf_cleared") == "on"
+    if "assets_returned" in request.POST:
+        exit_req.assets_returned = request.POST.get("assets_returned") == "on"
+    exit_req.save(update_fields=["last_working_date", "fnf_cleared", "assets_returned"])
+    messages.success(request, f"Exit details updated for {exit_req.employee.full_name}.")
+    return redirect("hr_ops:exit_list")
+
+
+@hr_admin_required
+@require_POST
+def exit_finalize(request, pk):
+    """One-click: mark employee exited, deactivate profile, disable login."""
+    if not request.user.is_hr_admin:
+        messages.error(request, "HR admin access required.")
+        return redirect("hr_ops:exit_list")
+    tenant = request.tenant
+    exit_req = get_object_or_404(ExitRequest, pk=pk, tenant=tenant)
+    from apps.hr_ops.exit_services import finalize_exit
+
+    was_exited = exit_req.employee.employment_status == "exited"
+    result = finalize_exit(exit_req, actor=request.user, disable_login=True)
+    emp = result["employee"]
+    if was_exited:
+        messages.info(request, f"{emp.full_name} was already marked as exited.")
+    else:
+        msg = f"{emp.full_name} marked as exited (last working day {result['exit_date'].strftime('%d %b %Y')})."
+        if result["login_disabled"]:
+            msg += " Application login disabled."
+        messages.success(request, msg)
+    return redirect("hr_ops:exit_list")
+
+
+@hr_admin_required
+@require_POST
+def exit_revoke_login(request, pk):
+    """Disable application login from the exit management list."""
+    if not request.user.is_hr_admin:
+        messages.error(request, "HR admin access required.")
+        return redirect("hr_ops:exit_list")
+    tenant = request.tenant
+    exit_req = get_object_or_404(ExitRequest, pk=pk, tenant=tenant)
+    from apps.employees.access_services import revoke_employee_access
+    if revoke_employee_access(exit_req.employee):
+        messages.success(request, f"Login disabled for {exit_req.employee.full_name}.")
+    else:
+        messages.info(request, f"No active login to disable for {exit_req.employee.full_name}.")
+    return redirect("hr_ops:exit_list")
+
+
 @login_required
 def announcement_list(request):
     tenant = request.tenant
@@ -229,7 +390,7 @@ def announcement_list(request):
 
 
 # ───────── Onboarding Templates ─────────
-@login_required
+@hr_admin_required
 def onboarding_template_list(request):
     tenant = request.tenant
     templates = OnboardingTemplate.objects.filter(tenant=tenant).order_by("-is_default", "name")
@@ -238,7 +399,7 @@ def onboarding_template_list(request):
     return render(request, "hr_ops/onboarding_templates.html", {"templates": templates})
 
 
-@login_required
+@hr_admin_required
 def onboarding_template_create_or_edit(request, pk=None):
     from .forms import OnboardingTemplateForm, OnboardingTaskFormSet
     tenant = request.tenant
@@ -266,7 +427,7 @@ def onboarding_template_create_or_edit(request, pk=None):
     })
 
 
-@login_required
+@hr_admin_required
 def onboarding_detail(request, pk):
     """View one employee's onboarding checklist."""
     tenant = request.tenant
@@ -277,7 +438,7 @@ def onboarding_detail(request, pk):
     })
 
 
-@login_required
+@hr_admin_required
 @require_POST
 def onboarding_complete_view(request, pk):
     tenant = request.tenant
@@ -288,7 +449,7 @@ def onboarding_complete_view(request, pk):
     return redirect("hr_ops:onboarding")
 
 
-@login_required
+@hr_admin_required
 @require_POST
 def onboarding_item_skip(request, item_pk):
     tenant = request.tenant
@@ -302,7 +463,7 @@ def onboarding_item_skip(request, item_pk):
 
 
 # ───────── Audit log ─────────
-@login_required
+@hr_admin_required
 def audit_log_list(request):
     from .models import AuditLog
     from django.core.paginator import Paginator
@@ -341,7 +502,7 @@ def audit_log_list(request):
 
 
 # ───────── Document expiry ─────────
-@login_required
+@hr_admin_required
 def document_expiry(request):
     """List documents that are expiring soon (or have expired)."""
     import datetime
@@ -375,7 +536,7 @@ def document_expiry(request):
 
 
 # ───────── People Pulse — birthdays / anniversaries / probation ─────────
-@login_required
+@hr_admin_required
 def people_pulse(request):
     import datetime
     from apps.employees.models import Employee
@@ -488,29 +649,11 @@ def notification_dropdown(request):
     })
 
 
-# ───────── Generic create/edit views for letter templates, assets, announcements ─────────
-@login_required
-def letter_template_create_or_edit(request, pk=None):
-    from .forms import LetterTemplateForm
-    tenant = request.tenant
-    t = get_object_or_404(LetterTemplate, pk=pk, tenant=tenant) if pk else None
-    if request.method == "POST":
-        form = LetterTemplateForm(request.POST, instance=t)
-        if form.is_valid():
-            obj = form.save(commit=False)
-            obj.tenant = tenant
-            obj.created_by = obj.created_by or request.user
-            obj.save()
-            messages.success(request, f'Template "{obj.name}" saved.')
-            return redirect("hr_ops:letter_templates")
-    else:
-        form = LetterTemplateForm(instance=t)
-    return render(request, "hr_ops/letter_template_form.html", {"form": form, "template": t})
-
-
-@login_required
+# ───────── Generic create/edit views for assets, announcements ─────────
+@hr_admin_required
 def asset_create_or_edit(request, pk=None):
     from .forms import AssetForm
+    from .asset_services import generate_asset_code
     tenant = request.tenant
     a = get_object_or_404(Asset, pk=pk, tenant=tenant) if pk else None
     if request.method == "POST":
@@ -518,15 +661,17 @@ def asset_create_or_edit(request, pk=None):
         if form.is_valid():
             obj = form.save(commit=False)
             obj.tenant = tenant
+            if not obj.asset_code:
+                obj.asset_code = generate_asset_code(tenant, obj.category, obj.make)
             obj.save()
-            messages.success(request, f'Asset "{obj.name}" saved.')
+            messages.success(request, f'Asset "{obj.name}" saved as {obj.asset_code}.')
             return redirect("hr_ops:assets")
     else:
         form = AssetForm(instance=a)
     return render(request, "hr_ops/asset_form.html", {"form": form, "asset": a})
 
 
-@login_required
+@hr_admin_required
 def announcement_create_or_edit(request, pk=None):
     from .forms import AnnouncementForm
     from django.utils import timezone

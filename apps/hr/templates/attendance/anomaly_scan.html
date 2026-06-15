@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block page_title %}Attendance Anomaly Scan{% endblock %}
+{% block content %}
+<h2 class="text-xl font-bold mb-2">Attendance anomaly scan</h2>
+<p class="text-sm text-base-content/60 mb-4">Detect missing punches, late check-ins, and irregular patterns across the organisation.</p>
+<form method="post" class="card bg-base-100 shadow mb-4">
+  <div class="card-body p-4 flex flex-wrap gap-3 items-end">
+    {% csrf_token %}
+    <div>
+      <label class="label-text text-xs">Look back (days)</label>
+      <input type="number" name="since_days" value="7" min="1" max="90" class="input input-bordered input-sm w-24">
+    </div>
+    <button type="submit" class="btn btn-primary btn-sm">Run scan</button>
+  </div>
+</form>
+{% if result %}
+<div class="card bg-base-100 shadow">
+  <div class="card-body">
+    <h3 class="font-semibold mb-2">Results</h3>
+    <pre class="text-xs bg-base-200 p-4 rounded-lg overflow-x-auto">{{ result }}</pre>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

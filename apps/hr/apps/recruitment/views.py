@@ -3,10 +3,13 @@
 Server-rendered to match the rest of HR. Admin-facing (gated by is_hr_admin where
 it mutates). Mirrors the leaves/employees view conventions.
 """
+import json
+
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
+from utils.access import hr_admin_required
 from django.core.paginator import Paginator
 from django.db.models import Count, Q
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -19,7 +22,7 @@ PIPELINE = ["applied", "screening", "interview", "offer", "hired", "rejected"]
 
 
 # ── Job openings ────────────────────────────────────────────────────────────
-@login_required
+@hr_admin_required
 def job_list(request):
     tenant = request.tenant
     qs = JobOpening.objects.filter(tenant=tenant).select_related("department", "designation")
@@ -32,15 +35,21 @@ def job_list(request):
     qs = qs.annotate(applicant_count=Count("applications")).order_by("-created_at")
 
     page = Paginator(qs, 20).get_page(request.GET.get("page"))
+    total_applications = JobApplication.objects.filter(tenant=tenant).count()
+    in_pipeline = JobApplication.objects.filter(
+        tenant=tenant, status__in=["applied", "screening", "interview", "offer"]
+    ).count()
     ctx = {
         "page_obj": page, "status": status, "search": search,
         "status_choices": JobOpening.STATUS_CHOICES,
         "open_count": JobOpening.objects.filter(tenant=tenant, status="published").count(),
+        "total_applications": total_applications,
+        "in_pipeline": in_pipeline,
     }
     return render(request, "recruitment/job_list.html", ctx)
 
 
-@login_required
+@hr_admin_required
 def job_create(request):
     if not request.user.is_hr_admin:
         return redirect("recruitment:job_list")
@@ -77,7 +86,7 @@ def job_create(request):
     return render(request, "recruitment/job_form.html", ctx)
 
 
-@login_required
+@hr_admin_required
 def job_detail(request, pk):
     tenant = request.tenant
     job = get_object_or_404(JobOpening, pk=pk, tenant=tenant)
@@ -91,7 +100,7 @@ def job_detail(request, pk):
     return render(request, "recruitment/job_detail.html", ctx)
 
 
-@login_required
+@hr_admin_required
 @require_POST
 def job_publish(request, pk):
     if not request.user.is_hr_admin:
@@ -104,7 +113,7 @@ def job_publish(request, pk):
     return redirect("recruitment:job_detail", pk=pk)
 
 
-@login_required
+@hr_admin_required
 @require_POST
 def job_close(request, pk):
     if not request.user.is_hr_admin:
@@ -117,7 +126,7 @@ def job_close(request, pk):
 
 
 # ── Candidates / applications ───────────────────────────────────────────────
-@login_required
+@hr_admin_required
 def add_applicant(request, pk):
     """Add a candidate + application to a job in one step."""
     if not request.user.is_hr_admin:
@@ -126,6 +135,7 @@ def add_applicant(request, pk):
     job = get_object_or_404(JobOpening, pk=pk, tenant=tenant)
     if request.method == "POST":
         p = request.POST
+        resume_file = request.FILES.get("resume")
         cand = Candidate.objects.create(
             tenant=tenant,
             first_name=p.get("first_name", "").strip(),
@@ -136,16 +146,37 @@ def add_applicant(request, pk):
             current_designation=p.get("current_designation", "").strip(),
             expected_ctc=p.get("expected_ctc") or None,
             total_experience=p.get("total_experience") or None,
-            resume=request.FILES.get("resume"),
+            resume=resume_file,
             source=p.get("source", "direct"),
         )
+        if resume_file:
+            try:
+                from .resume_parser import parse_resume
+                parsed = parse_resume(resume_file.read(), resume_file.name)
+                if parsed.get("name") and not cand.first_name:
+                    parts = parsed["name"].split(None, 1)
+                    cand.first_name = parts[0]
+                    cand.last_name = parts[1] if len(parts) > 1 else ""
+                if parsed.get("email") and not cand.email:
+                    cand.email = parsed["email"]
+                if parsed.get("phone") and not cand.phone:
+                    cand.phone = parsed["phone"]
+                if parsed.get("current_company") and not cand.current_company:
+                    cand.current_company = parsed["current_company"]
+                if parsed.get("current_designation") and not cand.current_designation:
+                    cand.current_designation = parsed["current_designation"]
+                if parsed.get("total_experience") and not cand.total_experience:
+                    cand.total_experience = parsed["total_experience"]
+                cand.save()
+            except Exception:
+                pass
         JobApplication.objects.create(tenant=tenant, job_opening=job, candidate=cand, status="applied")
         messages.success(request, f"{cand.first_name} added to the pipeline.")
         return redirect("recruitment:job_detail", pk=pk)
     return render(request, "recruitment/applicant_form.html", {"job": job})
 
 
-@login_required
+@hr_admin_required
 @require_POST
 def move_application(request, pk):
     """Move an application to a new pipeline stage."""
@@ -160,3 +191,24 @@ def move_application(request, pk):
         app.save(update_fields=["status", "updated_at"])
         messages.success(request, f"Moved {app.candidate.first_name} to {new_status}.")
     return redirect("recruitment:job_detail", pk=app.job_opening_id)
+
+
+@hr_admin_required
+@require_POST
+def move_application_api(request, pk):
+    """JSON API for kanban drag-and-drop stage changes."""
+    if not request.user.is_hr_admin:
+        return JsonResponse({"error": "Forbidden"}, status=403)
+    app = get_object_or_404(
+        JobApplication.objects.select_related("job_opening"), pk=pk, tenant=request.tenant
+    )
+    try:
+        data = json.loads(request.body.decode())
+    except (ValueError, UnicodeDecodeError):
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    new_status = data.get("status")
+    if new_status not in dict(JobApplication.STATUS_CHOICES):
+        return JsonResponse({"error": "Invalid status"}, status=400)
+    app.status = new_status
+    app.save(update_fields=["status", "updated_at"])
+    return JsonResponse({"ok": True, "application_id": app.id, "status": app.status})

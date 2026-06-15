@@ -9,6 +9,10 @@ urlpatterns = [
     path("run/<int:pk>/", views.payroll_run_detail, name="run_detail"),
     path("run/<int:pk>/approve/", views.payroll_run_approve, name="run_approve"),
     path("run/<int:pk>/publish/", views.payroll_run_publish, name="run_publish"),
+    path("run/<int:pk>/recompute/", views.payroll_run_recompute, name="run_recompute"),
+    path("run/<int:run_pk>/record/<int:record_pk>/", views.payroll_record_detail, name="record_detail"),
+    path("run/<int:run_pk>/record/<int:record_pk>/edit/", views.payroll_record_edit, name="record_edit"),
+    path("review/", views.payroll_monthly_review, name="monthly_review"),
     path("run/<int:pk>/salary-register/", views.salary_register_excel, name="salary_register"),
     path("run/<int:pk>/bank-advice/", views.bank_advice_excel, name="bank_advice"),
     path("run/<int:pk>/pf-statement/", views.pf_statement_excel, name="pf_statement"),
@@ -33,6 +37,7 @@ urlpatterns = [
     path("expenses/new/", views.expense_submit, name="expense_submit"),
     path("expenses/<int:pk>/edit/", views.expense_submit, name="expense_edit"),
     path("expenses/<int:pk>/action/", views.expense_action, name="expense_action"),
+    path("team-expenses/", views.team_expenses, name="team_expenses"),
     path("my-expenses/", views.my_expenses, name="my_expenses"),
     # Tax declarations
     path("my-tax-declaration/", views.my_tax_declaration, name="my_tax_declaration"),
@@ -41,9 +46,12 @@ urlpatterns = [
     # Form 16
     path("form16/", views.form16_admin_list, name="form16_admin"),
     path("form16/generate/", views.form16_generate_all, name="form16_generate_all"),
+    path("form16/<int:pk>/issue/", views.form16_issue, name="form16_issue"),
+    path("form16/issue-all/", views.form16_issue_all, name="form16_issue_all"),
     path("my-form16/", views.my_form16s, name="my_form16s"),
     # Statutory & accounting exports
     path("run/<int:pk>/tally-xml/", views.tally_xml_export, name="tally_xml"),
     path("run/<int:pk>/pf-ecr/", views.pf_ecr_export, name="pf_ecr"),
     path("run/<int:pk>/esi-return/", views.esi_return_export, name="esi_return"),
+    path("run/<int:pk>/statutory-bundle/", views.statutory_bundle_export, name="statutory_bundle"),
 ]

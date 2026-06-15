@@ -29,6 +29,9 @@ class Command(BaseCommand):
             help="Reset password on existing user",
         )
         parser.add_argument("--port", default="8001", help="Dev server port for URL hint")
+        parser.add_argument("--reset-employee", action="store_true", help="Reset employee login password")
+        parser.add_argument("--employee-email", default="", help="Employee user email to reset")
+        parser.add_argument("--employee-password", default="Employee@1234", help="New employee password")
 
     @transaction.atomic
     def handle(self, *args, **options):
@@ -48,6 +51,11 @@ class Command(BaseCommand):
             call_command("seed_permissions")
 
         tenant = Tenant.objects.filter(subdomain=subdomain).first()
+        if tenant is not None and tenant.name != name:
+            tenant.name = name
+            tenant.save(update_fields=["name"])
+            self.stdout.write(self.style.SUCCESS(f"Updated company name to '{name}'."))
+
         if tenant is None:
             tenant, user = provision_tenant(
                 company_name=name,
@@ -84,3 +92,29 @@ class Command(BaseCommand):
         self.stdout.write("")
         self.stdout.write("  Alternate (plain localhost): http://localhost:{0}/auth/login/".format(port))
         self.stdout.write("  (same email/password after dev auth is enabled)")
+
+        if options["reset_employee"]:
+            emp_email = (options["employee_email"] or "").strip().lower()
+            if not emp_email:
+                self.stderr.write(self.style.ERROR("--employee-email is required with --reset-employee"))
+                return
+            emp_user = User.objects.filter(email__iexact=emp_email, tenant=tenant).first()
+            if emp_user is None:
+                self.stderr.write(self.style.ERROR(f"No user found: {emp_email}"))
+            else:
+                emp_user.set_password(options["employee_password"])
+                emp_user.is_active = True
+                emp_user.save(update_fields=["password", "is_active"])
+                from apps.accounts.ratelimit import clear_failures
+                from django.test import RequestFactory
+                req = RequestFactory().post("/", REMOTE_ADDR="127.0.0.1")
+                clear_failures("login", req, emp_email)
+                self.stdout.write("")
+                self.stdout.write(self.style.SUCCESS(f"Employee password reset: {emp_email}"))
+
+        self.stdout.write("")
+        self.stdout.write("All workspace logins:")
+        from apps.accounts.models import UserRole
+        for u in User.objects.filter(tenant=tenant).order_by("email"):
+            roles = list(UserRole.objects.filter(user=u).values_list("role__name", flat=True))
+            self.stdout.write(f"  {u.email}  roles={roles}  active={u.is_active}")

@@ -181,3 +181,15 @@ def build_esi_return(tenant, payroll_run) -> str:
             "",  # last working day: only on exit
         ])
     return buf.getvalue()
+
+
+def build_statutory_zip(tenant, payroll_run) -> bytes:
+    """Bundle PF ECR + ESI return into a single ZIP for compliance upload."""
+    import zipfile
+
+    buf = io.BytesIO()
+    period = f"{payroll_run.year}-{payroll_run.month:02d}"
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr(f"pf_ecr_{period}.txt", build_pf_ecr(tenant, payroll_run))
+        zf.writestr(f"esi_return_{period}.csv", build_esi_return(tenant, payroll_run))
+    return buf.getvalue()

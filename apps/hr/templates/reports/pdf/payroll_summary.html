@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<style>
+  body { font-family: Arial, sans-serif; font-size: 9pt; color: #333; padding: 20px; }
+  h1 { font-size: 16pt; color: #1E3A5F; margin: 0 0 4px; }
+  .sub { font-size: 9pt; color: #666; margin-bottom: 16px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+  th { background: #1E3A5F; color: #fff; text-align: left; padding: 6px 8px; font-size: 8pt; }
+  td { padding: 5px 8px; border-bottom: 1px solid #eee; font-size: 8.5pt; }
+  .right { text-align: right; }
+  .totals { margin-top: 16px; padding: 12px; background: #F0FDF4; border-radius: 6px; }
+  .totals strong { color: #15803D; font-size: 12pt; }
+</style></head><body>
+<h1>{{ tenant.name }}</h1>
+<div class="sub">Payroll Summary · {{ period }} · Status: {{ run.get_status_display }}</div>
+<div class="totals">
+  Employees: <strong>{{ run.total_employees }}</strong> &nbsp;|&nbsp;
+  Gross: <strong>₹{{ run.total_gross|floatformat:0 }}</strong> &nbsp;|&nbsp;
+  Net: <strong>₹{{ run.total_net|floatformat:0 }}</strong>
+</div>
+<table>
+  <thead><tr><th>Code</th><th>Employee</th><th>Dept</th><th>Days</th><th>LOP</th><th class="right">Gross</th><th class="right">Deductions</th><th class="right">Net</th></tr></thead>
+  <tbody>
+  {% for r in records %}
+  <tr>
+    <td>{{ r.code }}</td><td>{{ r.name }}</td><td>{{ r.dept }}</td>
+    <td>{{ r.paid_days|floatformat:1 }}</td><td>{{ r.lop|floatformat:1 }}</td>
+    <td class="right">₹{{ r.gross|floatformat:0 }}</td>
+    <td class="right">₹{{ r.deductions|floatformat:0 }}</td>
+    <td class="right">₹{{ r.net|floatformat:0 }}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</body></html>

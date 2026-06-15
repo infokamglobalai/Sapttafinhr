@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block page_title %}{% if policy %}Edit{% else %}Add{% endif %} Policy{% endblock %}
+{% block content %}
+<a href="{% url 'hr_ops:policy_list' %}" class="text-sm link mb-3 inline-block">← Policies</a>
+<h2 class="text-xl font-bold mb-1">{% if policy %}Edit{% else %}Add{% endif %} Policy {% if policy %}<span class="badge badge-outline">{{ policy.version_label }}</span>{% endif %}</h2>
+<p class="text-sm text-base-content/60 mb-4">Upload a PDF/DOCX or paste text. Changing content creates a new version (v2, v3…).</p>
+
+<form method="post" enctype="multipart/form-data" class="card bg-base-100 shadow max-w-3xl">
+  <div class="card-body gap-4">
+    {% csrf_token %}
+    <label class="form-control">
+      <span class="label-text font-medium">Title</span>
+      <input name="title" class="input input-bordered" value="{{ policy.title|default:'' }}" required>
+    </label>
+    <label class="form-control">
+      <span class="label-text font-medium">Category (optional)</span>
+      <input name="category" class="input input-bordered" value="{{ policy.category|default:'' }}" placeholder="e.g. Leave, Conduct, WFH, POSH">
+    </label>
+
+    <div class="form-control">
+      <span class="label-text font-medium mb-2">Upload document (PDF, DOCX)</span>
+      <input type="file" name="attachment" accept=".pdf,.doc,.docx" class="file-input file-input-bordered w-full">
+      {% if policy.attachment %}
+      <p class="text-xs text-base-content/60 mt-2">Current file: <a href="{% url 'hr_ops:policy_download' policy.pk %}" class="link" target="_blank">{{ policy.attachment.name|cut:"policies/" }}</a></p>
+      {% endif %}
+    </div>
+
+    <label class="form-control">
+      <span class="label-text font-medium">Policy text (optional if uploading a file)</span>
+      <textarea name="body" class="textarea textarea-bordered h-48" placeholder="Paste policy text here…">{{ policy.body|default:'' }}</textarea>
+    </label>
+
+    {% if policy %}
+    <label class="form-control">
+      <span class="label-text font-medium">Change notes (required when content changes → new version)</span>
+      <input name="change_notes" class="input input-bordered" placeholder="e.g. Updated WFH days from 2 to 3 per week">
+    </label>
+    {% endif %}
+
+    <label class="label cursor-pointer justify-start gap-3">
+      <input type="checkbox" name="is_active" class="checkbox" {% if not policy or policy.is_active %}checked{% endif %}>
+      <span class="label-text">Active (powers AI assistant &amp; employee library)</span>
+    </label>
+
+    <div class="card-actions justify-end gap-2 flex-wrap">
+      {% if policy %}
+      <a href="{% url 'hr_ops:policy_compliance' policy.pk %}" class="btn btn-ghost">Compliance report</a>
+      <a href="{% url 'hr_ops:policy_distribute' policy.pk %}" class="btn btn-outline">Send to team</a>
+      {% endif %}
+      <button type="submit" class="btn btn-primary">Save &amp; continue</button>
+    </div>
+  </div>
+</form>
+
+{% if versions %}
+<div class="mt-6 max-w-3xl">
+  <h3 class="font-semibold text-sm mb-2">Previous versions</h3>
+  <ul class="text-sm space-y-1 text-base-content/70">
+    {% for v in versions %}
+    <li>v{{ v.version_number }} · {{ v.created_at|date:"d M Y" }} · {{ v.change_notes|default:"Archived" }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+{% endblock %}

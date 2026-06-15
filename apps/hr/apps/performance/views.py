@@ -9,6 +9,7 @@ from django import forms as djforms
 from .models import ReviewCycle, PerformanceReview
 from .forms import PerformanceReviewForm, EmployeeAcknowledgementForm
 from apps.employees.models import Employee
+from utils.access import hr_admin_required, manager_or_hr_required
 
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -173,14 +174,14 @@ def acknowledge_review(request, pk):
 # ────────────────────────────────────────────────────────────────────────────
 # HR ADMIN — manage review cycles
 # ────────────────────────────────────────────────────────────────────────────
-@login_required
+@hr_admin_required
 def cycle_list(request):
     tenant = request.tenant
     cycles = ReviewCycle.objects.filter(tenant=tenant).order_by("-review_period_end")
     return render(request, "performance/cycles.html", {"cycles": cycles})
 
 
-@login_required
+@hr_admin_required
 def cycle_detail(request, pk):
     tenant = request.tenant
     cycle = get_object_or_404(ReviewCycle, pk=pk, tenant=tenant)
@@ -219,7 +220,7 @@ class ReviewCycleForm(djforms.ModelForm):
         }
 
 
-@login_required
+@hr_admin_required
 def cycle_create_or_edit(request, pk=None):
     tenant = request.tenant
     cycle = get_object_or_404(ReviewCycle, pk=pk, tenant=tenant) if pk else None

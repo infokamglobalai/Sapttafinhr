@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block page_title %}Payroll — {{ employee.full_name }}{% endblock %}
+{% block content %}
+<a href="{% url 'payroll:run_detail' run.pk %}" class="btn btn-ghost btn-sm mb-4">← Back to run</a>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+  <div class="card bg-base-100 shadow lg:col-span-2">
+    <div class="card-body">
+      <h2 class="text-lg font-bold">{{ employee.full_name }}</h2>
+      <p class="text-sm text-base-content/60">{{ employee.employee_code }} · {{ employee.department.name|default:"—" }} · {{ run.year }}-{{ run.month|stringformat:"02d" }}</p>
+
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+        <div class="bg-base-200 rounded-lg p-3 text-center">
+          <div class="text-lg font-bold">{{ record.paid_days|floatformat:1 }}/{{ record.working_days }}</div>
+          <div class="text-xs text-base-content/60">Paid days</div>
+        </div>
+        <div class="bg-base-200 rounded-lg p-3 text-center">
+          <div class="text-lg font-bold {% if record.lop_days > 0 %}text-error{% endif %}">{{ record.lop_days|floatformat:1 }}</div>
+          <div class="text-xs text-base-content/60">LOP days</div>
+        </div>
+        <div class="bg-base-200 rounded-lg p-3 text-center">
+          <div class="text-lg font-bold text-primary">₹{{ record.gross_earnings|floatformat:0 }}</div>
+          <div class="text-xs text-base-content/60">Gross</div>
+        </div>
+        <div class="bg-success/10 rounded-lg p-3 text-center">
+          <div class="text-lg font-bold text-success">₹{{ record.net_payable|floatformat:0 }}</div>
+          <div class="text-xs text-base-content/60">Net pay</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if run.status == 'review' and not record.is_locked %}
+  <div class="card bg-base-100 shadow">
+    <div class="card-body">
+      <h3 class="font-semibold mb-3">HR adjustments</h3>
+      <form method="post" action="{% url 'payroll:record_edit' run.pk record.pk %}">
+        {% csrf_token %}
+        <label class="label"><span class="label-text text-xs">LOP override (blank = attendance)</span></label>
+        <input type="number" step="0.5" min="0" name="lop_override" value="{{ record.lop_override|default:'' }}" class="input input-bordered input-sm w-full mb-2">
+        <label class="label"><span class="label-text text-xs">Bonus / incentive (₹)</span></label>
+        <input type="number" step="0.01" min="0" name="bonus_amount" value="{{ record.bonus_amount }}" class="input input-bordered input-sm w-full mb-2">
+        <label class="label"><span class="label-text text-xs">Manual deduction (₹)</span></label>
+        <input type="number" step="0.01" min="0" name="manual_deduction" value="{{ record.manual_deduction }}" class="input input-bordered input-sm w-full mb-2">
+        <label class="label"><span class="label-text text-xs">Notes</span></label>
+        <textarea name="hr_notes" rows="2" class="textarea textarea-bordered textarea-sm w-full mb-3">{{ record.hr_notes }}</textarea>
+        <button type="submit" class="btn btn-primary btn-sm w-full">Save &amp; recalculate</button>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+  <div class="card bg-base-100 shadow">
+    <div class="card-body">
+      <h3 class="font-semibold mb-2">Attendance summary</h3>
+      {% if summary %}
+      <ul class="text-sm space-y-1">
+        <li>Present: <strong>{{ summary.present_days|floatformat:1 }}</strong></li>
+        <li>On leave: <strong>{{ summary.on_leave_days|floatformat:1 }}</strong></li>
+        <li>Absent: <strong>{{ summary.absent_days }}</strong></li>
+        <li>LOP marked: <strong>{{ summary.lop_days|floatformat:1 }}</strong></li>
+      </ul>
+      {% else %}
+      <p class="text-sm text-base-content/50">Not computed — use Prepare month on review screen.</p>
+      {% endif %}
+    </div>
+  </div>
+  <div class="card bg-base-100 shadow">
+    <div class="card-body">
+      <h3 class="font-semibold mb-2">Leave requests (this month)</h3>
+      <ul class="text-sm space-y-1 max-h-40 overflow-y-auto">
+        {% for lv in leaves %}
+        <li>{{ lv.from_date|date:"d M" }}–{{ lv.to_date|date:"d M" }} · {{ lv.leave_type.code }} · {{ lv.total_days }}d · <span class="badge badge-xs">{{ lv.status }}</span></li>
+        {% empty %}
+        <li class="text-base-content/50">No leave in this period.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

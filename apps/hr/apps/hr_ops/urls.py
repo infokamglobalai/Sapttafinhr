@@ -1,14 +1,20 @@
 from django.urls import path
 from . import views
+from . import policy_views
+from . import letter_views
+from . import request_views
 from .ai_views import AIChatView
 
 app_name = "hr_ops"
 
 urlpatterns = [
     path("letters/", views.letter_template_list, name="letter_templates"),
+    path("letters/settings/", letter_views.letter_company_settings, name="letter_company_settings"),
+    path("letters/seed-defaults/", letter_views.letter_seed_defaults, name="letter_seed_defaults"),
     path("letters/<int:pk>/download/", views.letter_download, name="letter_download"),
     path("letters/<int:pk>/share/", views.share_letter, name="share_letter"),
-    path("letters/generate/<int:employee_pk>/<int:template_pk>/", views.generate_letter_view, name="generate_letter"),
+    path("letters/generate/<int:employee_pk>/", letter_views.employee_letter_picker, name="employee_letter_picker"),
+    path("letters/generate/<int:employee_pk>/<int:template_pk>/", letter_views.generate_letter_view, name="generate_letter"),
     path("assets/", views.asset_list, name="assets"),
     path("assets/<int:asset_pk>/assign/", views.asset_assign, name="asset_assign"),
     path("assets/return/<int:assignment_pk>/", views.asset_return, name="asset_return"),
@@ -23,6 +29,9 @@ urlpatterns = [
     path("onboarding/templates/<int:pk>/edit/", views.onboarding_template_create_or_edit, name="onboarding_template_edit"),
     path("exits/", views.exit_list, name="exit_list"),
     path("exits/create/<int:employee_pk>/", views.exit_request_create, name="exit_create"),
+    path("exits/<int:pk>/update/", views.exit_update, name="exit_update"),
+    path("exits/<int:pk>/finalize/", views.exit_finalize, name="exit_finalize"),
+    path("exits/<int:pk>/revoke-login/", views.exit_revoke_login, name="exit_revoke_login"),
     path("announcements/", views.announcement_list, name="announcements"),
     path("letters/new/", views.letter_template_create_or_edit, name="letter_template_create"),
     path("letters/<int:pk>/edit/", views.letter_template_create_or_edit, name="letter_template_edit"),
@@ -40,4 +49,23 @@ urlpatterns = [
     path("pulse/", views.people_pulse, name="people_pulse"),
     # AI Chat
     path("ai/chat/", AIChatView.as_view(), name="ai_chat"),
+    # HR policies (powers policy bot)
+    path("policies/", policy_views.policy_list, name="policy_list"),
+    path("policies/new/", policy_views.policy_create_or_edit, name="policy_create"),
+    path("policies/<int:pk>/edit/", policy_views.policy_create_or_edit, name="policy_edit"),
+    path("policies/<int:pk>/distribute/", policy_views.policy_distribute, name="policy_distribute"),
+    path("policies/<int:pk>/compliance/", policy_views.policy_compliance, name="policy_compliance"),
+    path("policies/<int:pk>/remind/", policy_views.policy_remind, name="policy_remind"),
+    path("policies/<int:pk>/download/", policy_views.policy_download, name="policy_download"),
+    path("policies/view/", policy_views.employee_policy_list, name="employee_policies"),
+    path("policies/view/<int:pk>/", policy_views.employee_policy_view, name="employee_policy_view"),
+    path("policies/<int:pk>/delete/", policy_views.policy_delete, name="policy_delete"),
+    # Service requests (helpdesk)
+    path("requests/my/", request_views.my_requests, name="my_service_requests"),
+    path("requests/new/", request_views.request_create, name="request_create"),
+    path("requests/my/<int:pk>/", request_views.my_request_detail, name="my_service_request_detail"),
+    path("requests/team/", request_views.team_requests, name="team_service_requests"),
+    path("requests/team/<int:pk>/", request_views.team_request_detail, name="team_service_request_detail"),
+    path("requests/queue/", request_views.admin_queue, name="service_request_queue"),
+    path("requests/queue/<int:pk>/", request_views.admin_request_detail, name="service_request_admin_detail"),
 ]

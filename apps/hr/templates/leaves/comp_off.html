@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block page_title %}Comp-off{% endblock %}
+{% block content %}
+<div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+  <div>
+    <h2 class="text-xl font-bold">Comp-off (Compensatory Leave)</h2>
+    <p class="text-sm text-base-content/60">Request credit for working on a holiday or week-off. {{ available_count }} day(s) available to use.</p>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+  <div class="card bg-base-100 shadow">
+    <div class="card-body">
+      <h3 class="font-semibold mb-3">Request comp-off credit</h3>
+      <form method="post" class="space-y-3">
+        {% csrf_token %}
+        <div>
+          <label class="label-text text-xs">Date you worked *</label>
+          <input type="date" name="worked_date" class="input input-bordered input-sm w-full" required>
+        </div>
+        <div>
+          <label class="label-text text-xs">Reason (optional)</label>
+          <textarea name="reason" class="textarea textarea-bordered textarea-sm w-full" rows="2" placeholder="Holiday deployment, client deadline…"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm">Submit request</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="card bg-base-100 shadow overflow-x-auto">
+    <div class="card-body p-0">
+      <table class="table table-sm">
+        <thead><tr><th>Worked</th><th>Days</th><th>Valid until</th><th>Status</th></tr></thead>
+        <tbody>
+          {% for c in credits %}
+          <tr>
+            <td>{{ c.worked_date|date:"d M Y" }}</td>
+            <td>{{ c.days_earned }}</td>
+            <td>{{ c.valid_until|date:"d M Y" }}</td>
+            <td><span class="badge badge-sm badge-ghost">{{ c.status|title }}</span></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="text-center py-8 text-base-content/40">No comp-off records yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

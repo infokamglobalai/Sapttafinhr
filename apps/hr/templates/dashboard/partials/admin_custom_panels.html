@@ -1,0 +1,318 @@
+{% load humanize %}
+{# Customizable panels: By Department and below — reorder + half/full width #}
+<div x-data="dashboardPanelLayout()" x-init="init()">
+  <div class="dash-layout-bar">
+    <div class="section-label" style="margin-bottom:0; flex:1;">Insights &amp; reports</div>
+    <button type="button" class="dash-layout-btn" :class="{ 'is-active': editMode }" @click="editMode = !editMode">
+      <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h7"/></svg>
+      <span x-text="editMode ? 'Done' : 'Customize layout'"></span>
+    </button>
+    <template x-if="editMode">
+      <button type="button" class="dash-layout-btn" @click="setAllWidth('half')">Half width</button>
+    </template>
+    <template x-if="editMode">
+      <button type="button" class="dash-layout-btn" @click="setAllWidth('full')">Full width</button>
+    </template>
+    <template x-if="editMode">
+      <button type="button" class="dash-layout-btn dash-layout-btn--ghost" @click="resetLayout()">Reset</button>
+    </template>
+    <span class="dash-layout-hint" x-show="editMode" x-cloak>Reorder with arrows · toggle ½ or full width per panel</span>
+  </div>
+
+  <div class="dash-panel-grid stagger" :class="{ 'is-editing': editMode }">
+
+    {# ── By Department ── #}
+    <div class="premium-glass-card p-6 dash-panel" :class="panelClass('dept')" :style="{ order: panelOrder('dept') }">
+      <div class="dash-panel-toolbar" x-show="editMode" x-cloak>
+        <span class="dash-panel-toolbar-label">By Department</span>
+        <button type="button" class="dash-panel-tool" @click="movePanel('dept','up')" :disabled="!canMove('dept','up')" title="Move up">↑</button>
+        <button type="button" class="dash-panel-tool" @click="movePanel('dept','down')" :disabled="!canMove('dept','down')" title="Move down">↓</button>
+        <button type="button" class="dash-panel-tool dash-panel-tool--wide" :class="{ 'is-on': panelWidth('dept') === 'half' }" @click="setWidth('dept','half')">½</button>
+        <button type="button" class="dash-panel-tool dash-panel-tool--wide" :class="{ 'is-on': panelWidth('dept') === 'full' }" @click="setWidth('dept','full')">Full</button>
+      </div>
+      <div class="mb-4">
+        <div class="ch-title">By Department</div>
+        <div class="ch-sub" style="margin-bottom:0;">Active Headcount distribution</div>
+      </div>
+      <div class="chart-wrap flex items-center justify-center" style="height: 240px; position: relative;">
+        <canvas id="deptChart"></canvas>
+      </div>
+    </div>
+
+    {# ── Workforce Diversity ── #}
+    <div class="premium-glass-card p-6 dash-panel" :class="panelClass('gender')" :style="{ order: panelOrder('gender') }">
+      <div class="dash-panel-toolbar" x-show="editMode" x-cloak>
+        <span class="dash-panel-toolbar-label">Workforce Diversity</span>
+        <button type="button" class="dash-panel-tool" @click="movePanel('gender','up')" :disabled="!canMove('gender','up')">↑</button>
+        <button type="button" class="dash-panel-tool" @click="movePanel('gender','down')" :disabled="!canMove('gender','down')">↓</button>
+        <button type="button" class="dash-panel-tool dash-panel-tool--wide" :class="{ 'is-on': panelWidth('gender') === 'half' }" @click="setWidth('gender','half')">½</button>
+        <button type="button" class="dash-panel-tool dash-panel-tool--wide" :class="{ 'is-on': panelWidth('gender') === 'full' }" @click="setWidth('gender','full')">Full</button>
+      </div>
+      <div class="mb-4">
+        <div class="ch-title">Workforce Diversity</div>
+        <div class="ch-sub" style="margin-bottom:0;">Gender distribution · active employees</div>
+      </div>
+      <div class="chart-wrap flex items-center justify-center" style="height: 200px; position: relative;">
+        <canvas id="genderChart"></canvas>
+      </div>
+    </div>
+
+    {# ── Upcoming Leave ── #}
+    <div class="premium-glass-card p-6 dash-panel" :class="panelClass('upcoming-leave')" :style="{ order: panelOrder('upcoming-leave') }">
+      <div class="dash-panel-toolbar" x-show="editMode" x-cloak>
+        <span class="dash-panel-toolbar-label">Upcoming Leave</span>
+        <button type="button" class="dash-panel-tool" @click="movePanel('upcoming-leave','up')" :disabled="!canMove('upcoming-leave','up')">↑</button>
+        <button type="button" class="dash-panel-tool" @click="movePanel('upcoming-leave','down')" :disabled="!canMove('upcoming-leave','down')">↓</button>
+        <button type="button" class="dash-panel-tool dash-panel-tool--wide" :class="{ 'is-on': panelWidth('upcoming-leave') === 'half' }" @click="setWidth('upcoming-leave','half')">½</button>
+        <button type="button" class="dash-panel-tool dash-panel-tool--wide" :class="{ 'is-on': panelWidth('upcoming-leave') === 'full' }" @click="setWidth('upcoming-leave','full')">Full</button>
+      </div>
+      <div class="flex justify-between items-center mb-4">
+        <div>
+          <div class="ch-title">Upcoming Leave</div>
+          <div class="ch-sub" style="margin-bottom:0;">Approved · next 7 days</div>
+        </div>
+        <a href="{% url 'leaves:pending' %}" class="btn-base btn-ghost btn-xs text-indigo-600 font-extrabold">Queue</a>
+      </div>
+      <div class="flex flex-col gap-2">
+        {% for lv in upcoming_leaves %}
+        <div class="list-row">
+          <div class="flex items-center gap-3 min-width-0">
+            <div class="w-9 h-9 rounded-xl grad-avatar text-xs font-bold">{{ lv.employee.first_name|first }}{{ lv.employee.last_name|first }}</div>
+            <div style="min-width: 0;">
+              <div class="row-title font-bold text-[13px]" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ lv.employee.full_name }}</div>
+              <div class="row-sub text-xs">{{ lv.leave_type.name|default:"Leave" }}</div>
+            </div>
+          </div>
+          <div class="row-end text-[11px] font-bold text-slate-500">{{ lv.from_date|date:"d M" }}{% if lv.to_date != lv.from_date %}–{{ lv.to_date|date:"d M" }}{% endif %}</div>
+        </div>
+        {% empty %}
+        <div class="text-center py-8 text-slate-400 text-xs">No approved leave in the next week.</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    {# ── Birthdays ── #}
+    <div class="premium-glass-card p-6 dash-panel" :class="panelClass('birthdays')" :style="{ order: panelOrder('birthdays') }">
+      <div class="dash-panel-toolbar" x-show="editMode" x-cloak>
+        <span class="dash-panel-toolbar-label">Birthdays</span>
+        <button type="button" class="dash-panel-tool" @click="movePanel('birthdays','up')" :disabled="!canMove('birthdays','up')">↑</button>
+        <button type="button" class="dash-panel-tool" @click="movePanel('birthdays','down')" :disabled="!canMove('birthdays','down')">↓</button>
+        <button type="button" class="dash-panel-tool dash-panel-tool--wide" :class="{ 'is-on': panelWidth('birthdays') === 'half' }" @click="setWidth('birthdays','half')">½</button>
+        <button type="button" class="dash-panel-tool dash-panel-tool--wide" :class="{ 'is-on': panelWidth('birthdays') === 'full' }" @click="setWidth('birthdays','full')">Full</button>
+      </div>
+      <div class="mb-4">
+        <div class="ch-title">Birthdays This Week</div>
+        <div class="ch-sub" style="margin-bottom:0;">Celebrate your team</div>
+      </div>
+      <div class="flex flex-col gap-2">
+        {% for emp in birthdays_soon %}
+        <a href="{% url 'employees:detail' emp.pk %}" class="list-row">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl grad-avatar text-xs font-bold" style="background:rgba(249,115,22,0.12);color:#EA580C;border-color:rgba(249,115,22,0.2);">🎂</div>
+            <div>
+              <div class="row-title font-bold text-[13px]">{{ emp.full_name }}</div>
+              <div class="row-sub text-xs">{{ emp.date_of_birth|date:"j F" }}</div>
+            </div>
+          </div>
+        </a>
+        {% empty %}
+        <div class="text-center py-8 text-slate-400 text-xs">No birthdays in the next 7 days.</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    {# ── Recent Joiners ── #}
+    <div class="premium-glass-card p-6 dash-panel" :class="panelClass('joiners')" :style="{ order: panelOrder('joiners') }">
+      <div class="dash-panel-toolbar" x-show="editMode" x-cloak>
+        <span class="dash-panel-toolbar-label">Recent Joiners</span>
+        <button type="button" class="dash-panel-tool" @click="movePanel('joiners','up')" :disabled="!canMove('joiners','up')">↑</button>
+        <button type="button" class="dash-panel-tool" @click="movePanel('joiners','down')" :disabled="!canMove('joiners','down')">↓</button>
+        <button type="button" class="dash-panel-tool dash-panel-tool--wide" :class="{ 'is-on': panelWidth('joiners') === 'half' }" @click="setWidth('joiners','half')">½</button>
+        <button type="button" class="dash-panel-tool dash-panel-tool--wide" :class="{ 'is-on': panelWidth('joiners') === 'full' }" @click="setWidth('joiners','full')">Full</button>
+      </div>
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="ch-title" style="margin: 0;">Recent Joiners</h3>
+        <a href="{% url 'employees:list' %}" class="btn-base btn-ghost btn-xs text-indigo-600 font-extrabold">All</a>
+      </div>
+      <div class="flex flex-col gap-2 mt-2">
+        {% for j in recent_joiners %}
+        <a href="{% url 'employees:detail' j.pk %}" class="list-row">
+          <div class="flex items-center gap-3 min-width-0">
+            <div class="w-9 h-9 rounded-xl grad-avatar text-xs font-bold">{{ j.first_name|first }}{{ j.last_name|first }}</div>
+            <div style="min-width: 0;">
+              <div class="row-title font-bold" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size:13.5px;">{{ j.full_name }}</div>
+              <div class="row-sub text-xs" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ j.designation.name|default:"Member" }}</div>
+            </div>
+          </div>
+          <div class="row-end text-[11px] font-bold text-slate-400 white-space-nowrap">{{ j.date_of_joining|date:"d M" }}</div>
+        </a>
+        {% empty %}
+        <div class="text-center py-8 text-slate-400 text-xs">No recent joiners found.</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    {# ── Payroll Runs ── #}
+    <div class="premium-glass-card p-6 dash-panel" :class="panelClass('payroll')" :style="{ order: panelOrder('payroll') }">
+      <div class="dash-panel-toolbar" x-show="editMode" x-cloak>
+        <span class="dash-panel-toolbar-label">Payroll Runs</span>
+        <button type="button" class="dash-panel-tool" @click="movePanel('payroll','up')" :disabled="!canMove('payroll','up')">↑</button>
+        <button type="button" class="dash-panel-tool" @click="movePanel('payroll','down')" :disabled="!canMove('payroll','down')">↓</button>
+        <button type="button" class="dash-panel-tool dash-panel-tool--wide" :class="{ 'is-on': panelWidth('payroll') === 'half' }" @click="setWidth('payroll','half')">½</button>
+        <button type="button" class="dash-panel-tool dash-panel-tool--wide" :class="{ 'is-on': panelWidth('payroll') === 'full' }" @click="setWidth('payroll','full')">Full</button>
+      </div>
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="ch-title" style="margin: 0;">Payroll Runs</h3>
+        <a href="{% url 'payroll:run_list' %}" class="btn-base btn-ghost btn-xs text-indigo-600 font-extrabold">All</a>
+      </div>
+      <div class="flex flex-col gap-2 mt-2">
+        {% for r in recent_runs %}
+        <a href="{% url 'payroll:run_detail' r.pk %}" class="list-row">
+          <div>
+            <div class="row-title font-bold" style="font-size:13.5px;">{{ r.year }} - {{ r.month|stringformat:"02d" }}</div>
+            <div class="row-sub text-xs">{{ r.total_employees }} employees · Processed</div>
+          </div>
+          <div class="row-end flex flex-col items-end">
+            <div class="font-extrabold text-[13px] text-slate-900">&#8377;{{ r.total_net|floatformat:0|intcomma }}</div>
+            <span class="badge badge-xs mt-1 font-bold {% if r.status == 'paid' %}badge-success{% elif r.status == 'approved' %}badge-info{% else %}badge-ghost{% endif %}">{{ r.get_status_display }}</span>
+          </div>
+        </a>
+        {% empty %}
+        <div class="text-center py-8 text-slate-400 text-xs">No payroll runs yet.</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    {# ── Performance Cycle ── #}
+    <div class="premium-glass-card p-6 dash-panel" :class="panelClass('performance')" :style="{ order: panelOrder('performance') }">
+      <div class="dash-panel-toolbar" x-show="editMode" x-cloak>
+        <span class="dash-panel-toolbar-label">Performance Cycle</span>
+        <button type="button" class="dash-panel-tool" @click="movePanel('performance','up')" :disabled="!canMove('performance','up')">↑</button>
+        <button type="button" class="dash-panel-tool" @click="movePanel('performance','down')" :disabled="!canMove('performance','down')">↓</button>
+        <button type="button" class="dash-panel-tool dash-panel-tool--wide" :class="{ 'is-on': panelWidth('performance') === 'half' }" @click="setWidth('performance','half')">½</button>
+        <button type="button" class="dash-panel-tool dash-panel-tool--wide" :class="{ 'is-on': panelWidth('performance') === 'full' }" @click="setWidth('performance','full')">Full</button>
+      </div>
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="ch-title" style="margin: 0;">Performance Cycle</h3>
+        {% if cycle_progress %}
+        <a href="{% url 'performance:cycle_detail' cycle_progress.cycle.pk %}" class="btn-base btn-ghost btn-xs text-indigo-600 font-extrabold">Open</a>
+        {% endif %}
+      </div>
+      {% if cycle_progress %}
+      <div class="mt-2">
+        <div class="font-bold text-[14px] text-slate-800">{{ cycle_progress.cycle.name }}</div>
+        <div class="text-[11px] text-slate-400 font-medium mt-0.5">Closes on {{ cycle_progress.cycle.closes_at|date:"d M Y" }}</div>
+        <div class="mt-4">
+          <div class="flex justify-between text-xs font-bold mb-1.5">
+            <span class="text-indigo-600">{{ cycle_progress.completion_pct }}% Complete</span>
+            <span class="text-slate-500">{{ cycle_progress.acknowledged }} / {{ cycle_progress.total }} reviews</span>
+          </div>
+          <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200/50">
+            <div class="h-full rounded-full bg-gradient-to-r from-indigo-500 to-pink-500 transition-all duration-1000 ease-out" style="width: {{ cycle_progress.completion_pct }}%; box-shadow: 0 0 10px rgba(124, 58, 237, 0.4);"></div>
+          </div>
+        </div>
+        <div class="flex justify-between gap-2 mt-5 text-[11px] font-bold">
+          <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-500"></span>{{ cycle_progress.acknowledged }} Done</span>
+          <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-sky-500"></span>{{ cycle_progress.submitted }} Sent</span>
+          <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-slate-400"></span>{{ cycle_progress.draft }} Draft</span>
+        </div>
+      </div>
+      {% else %}
+      <div class="text-center py-8 text-slate-400 text-xs">No active performance cycles.</div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+
+<script>
+  function dashboardPanelLayout() {
+    const STORAGE_KEY = 'saptta-dashboard-panels-v1';
+    const DEFAULT_PANELS = [
+      { id: 'dept', width: 'half', order: 0 },
+      { id: 'gender', width: 'half', order: 1 },
+      { id: 'upcoming-leave', width: 'half', order: 2 },
+      { id: 'birthdays', width: 'half', order: 3 },
+      { id: 'joiners', width: 'half', order: 4 },
+      { id: 'payroll', width: 'half', order: 5 },
+      { id: 'performance', width: 'full', order: 6 },
+    ];
+
+    return {
+      editMode: false,
+      panels: [],
+
+      init() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          this.panels = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(DEFAULT_PANELS));
+          this._normalizeOrders();
+        } catch {
+          this.panels = JSON.parse(JSON.stringify(DEFAULT_PANELS));
+        }
+      },
+
+      _normalizeOrders() {
+        const sorted = [...this.panels].sort((a, b) => a.order - b.order);
+        sorted.forEach((p, i) => { p.order = i; });
+        this.panels = sorted;
+      },
+
+      save() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.panels));
+      },
+
+      resetLayout() {
+        this.panels = JSON.parse(JSON.stringify(DEFAULT_PANELS));
+        this.save();
+      },
+
+      setAllWidth(width) {
+        this.panels.forEach(p => { p.width = width; });
+        this.save();
+      },
+
+      panelOrder(id) {
+        const p = this.panels.find(x => x.id === id);
+        return p ? p.order : 99;
+      },
+
+      panelWidth(id) {
+        const p = this.panels.find(x => x.id === id);
+        return p ? p.width : 'half';
+      },
+
+      panelClass(id) {
+        return 'dash-panel--' + this.panelWidth(id);
+      },
+
+      setWidth(id, width) {
+        const p = this.panels.find(x => x.id === id);
+        if (!p) return;
+        p.width = width;
+        this.save();
+      },
+
+      sortedPanels() {
+        return [...this.panels].sort((a, b) => a.order - b.order);
+      },
+
+      movePanel(id, dir) {
+        const items = this.sortedPanels();
+        const i = items.findIndex(p => p.id === id);
+        const j = dir === 'up' ? i - 1 : i + 1;
+        if (j < 0 || j >= items.length) return;
+        [items[i], items[j]] = [items[j], items[i]];
+        items.forEach((p, idx) => { p.order = idx; });
+        this.panels = items;
+        this.save();
+      },
+
+      canMove(id, dir) {
+        const items = this.sortedPanels();
+        const i = items.findIndex(p => p.id === id);
+        return dir === 'up' ? i > 0 : i < items.length - 1;
+      },
+    };
+  }
+</script>

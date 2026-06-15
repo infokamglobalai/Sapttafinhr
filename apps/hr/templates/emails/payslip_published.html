@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body { font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; background: #F0F4F8; margin: 0; padding: 24px; color: #1E293B; }
+  .wrapper { max-width: 560px; margin: 0 auto; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.1); }
+  .header { background: linear-gradient(135deg, #1E3A5F 0%, #0F172A 100%); padding: 28px; color: white; }
+  .header h1 { margin: 0; font-size: 20px; font-weight: 700; }
+  .header p { margin: 6px 0 0; opacity: 0.85; font-size: 13px; }
+  .period-badge { display: inline-block; margin-top: 12px; background: rgba(255,255,255,0.15); padding: 6px 14px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .body { padding: 28px; }
+  .greeting { font-size: 15px; margin: 0 0 16px; color: #475569; }
+  .net-card { background: linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%); border: 1px solid #BBF7D0; border-radius: 12px; padding: 20px; text-align: center; margin: 20px 0; }
+  .net-label { font-size: 12px; color: #166534; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+  .net-amount { font-size: 32px; font-weight: 800; color: #15803D; margin: 6px 0; letter-spacing: -0.02em; }
+  .net-sub { font-size: 12px; color: #166534; }
+  .details { display: table; width: 100%; margin: 16px 0; font-size: 13px; }
+  .details-row { display: table-row; }
+  .details-cell { display: table-cell; padding: 8px 0; border-bottom: 1px solid #F1F5F9; }
+  .details-cell.right { text-align: right; font-weight: 600; }
+  .cta { display: inline-block; padding: 12px 24px; background: linear-gradient(180deg, #1E3A5F, #0F172A); color: white !important; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 14px; margin-top: 12px; }
+  .footer { padding: 18px 28px; background: #F8FAFC; border-top: 1px solid #E2E8F0; font-size: 11px; color: #64748B; text-align: center; }
+  .attach-note { font-size: 12px; color: #64748B; margin-top: 16px; padding: 12px; background: #F8FAFC; border-radius: 8px; }
+</style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="header">
+      <h1>{{ tenant.name }}</h1>
+      <p>Salary Statement</p>
+      <span class="period-badge">{{ period }}</span>
+    </div>
+    <div class="body">
+      <p class="greeting">Hi {{ first_name }},</p>
+      <p style="margin:0 0 8px;font-size:14px;line-height:1.6;color:#334155;">
+        Your salary for <strong>{{ period }}</strong> has been processed. A detailed payslip PDF is attached to this email.
+      </p>
+
+      <div class="net-card">
+        <div class="net-label">Net pay credited</div>
+        <div class="net-amount">₹{{ net_pay|floatformat:2 }}</div>
+        <div class="net-sub">Employee ID: {{ employee_code }}</div>
+      </div>
+
+      <div class="details">
+        <div class="details-row">
+          <div class="details-cell">Gross earnings</div>
+          <div class="details-cell right">₹{{ gross|floatformat:0 }}</div>
+        </div>
+        <div class="details-row">
+          <div class="details-cell">Total deductions</div>
+          <div class="details-cell right">₹{{ deductions|floatformat:0 }}</div>
+        </div>
+      </div>
+
+      {% if portal_url %}
+      <a class="cta" href="{{ portal_url }}/payroll/my-payslips/">View payslip in portal →</a>
+      {% endif %}
+
+      <p class="attach-note">📎 Payslip PDF attached · Keep for your records</p>
+    </div>
+    <div class="footer">
+      This is an automated message from {{ tenant.name }} HRMS. Do not reply to this email.
+    </div>
+  </div>
+</body>
+</html>

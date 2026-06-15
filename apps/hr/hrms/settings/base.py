@@ -45,6 +45,7 @@ LOCAL_APPS = [
     "apps.hr_ops",
     "apps.performance",
     "apps.recruitment",
+    "apps.reports",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -255,3 +256,46 @@ SSO_TOKEN_MAX_AGE_SECONDS = config("SSO_TOKEN_MAX_AGE_SECONDS", default=120, cas
 
 # AI (Anthropic Claude) — get key at https://console.anthropic.com
 ANTHROPIC_API_KEY = config("ANTHROPIC_API_KEY", default="")
+
+# ---------------------------------------------------------------------------
+# WhatsApp notifications (payslip delivery, leave alerts)
+# ---------------------------------------------------------------------------
+WHATSAPP_PROVIDER = config("WHATSAPP_PROVIDER", default="console")  # console | twilio | meta
+TWILIO_ACCOUNT_SID = config("TWILIO_ACCOUNT_SID", default="")
+TWILIO_AUTH_TOKEN = config("TWILIO_AUTH_TOKEN", default="")
+TWILIO_WHATSAPP_FROM = config("TWILIO_WHATSAPP_FROM", default="")
+META_WHATSAPP_TOKEN = config("META_WHATSAPP_TOKEN", default="")
+META_WHATSAPP_PHONE_ID = config("META_WHATSAPP_PHONE_ID", default="")
+HR_PORTAL_URL = config("HR_PORTAL_URL", default="")
+
+# ---------------------------------------------------------------------------
+# Celery beat — static schedules (django-celery-beat admin can override)
+# ---------------------------------------------------------------------------
+from celery.schedules import crontab
+
+CELERY_BEAT_SCHEDULE = {
+    "monthly-leave-accrual": {
+        "task": "apps.hr_ops.tasks.monthly_leave_accrual_task",
+        "schedule": crontab(minute=0, hour=6, day_of_month=1),
+    },
+    "payroll-reminders": {
+        "task": "apps.hr_ops.tasks.payroll_reminders_task",
+        "schedule": crontab(minute=0, hour=9),
+    },
+    "weekly-hr-digest": {
+        "task": "apps.hr_ops.tasks.weekly_hr_digest_task",
+        "schedule": crontab(minute=0, hour=8, day_of_week="mon"),
+    },
+    "process-due-exits": {
+        "task": "apps.hr_ops.tasks.process_due_exits_task",
+        "schedule": crontab(minute=30, hour=0),
+    },
+    "monthly-payroll-kickoff": {
+        "task": "apps.hr_ops.tasks.monthly_payroll_kickoff_task",
+        "schedule": crontab(minute=0, hour=7, day_of_month=1),
+    },
+    "monthly-hr-report-pack": {
+        "task": "apps.hr_ops.tasks.monthly_hr_report_pack_task",
+        "schedule": crontab(minute=30, hour=7, day_of_month=1),
+    },
+}

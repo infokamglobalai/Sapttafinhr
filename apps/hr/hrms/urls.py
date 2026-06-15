@@ -15,6 +15,7 @@ urlpatterns = [
     path("hr/", include("apps.hr_ops.urls", namespace="hr_ops")),
     path("performance/", include("apps.performance.urls", namespace="performance")),
     path("recruitment/", include("apps.recruitment.urls", namespace="recruitment")),
+    path("reports/", include("apps.reports.urls", namespace="reports")),
     path("api/ai/hr-chat/", HRAIChatView.as_view(), name="hr_ai_chat"),
 ]
 

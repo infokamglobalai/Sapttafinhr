@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block page_title %}Generate Letter — {{ employee.full_name }}{% endblock %}
+{% block content %}
+<a href="{% url 'employees:detail' employee.pk %}" class="text-sm link mb-3 inline-block">← {{ employee.full_name }}</a>
+<h2 class="text-xl font-bold mb-1">Generate HR Letter</h2>
+<p class="text-sm text-base-content/60 mb-4">Pick a template — company name, address and signatory are applied automatically.</p>
+
+{% if needs_setup %}
+<div class="alert alert-warning text-sm mb-4 max-w-2xl">
+  <a href="{% url 'hr_ops:letter_company_settings' %}" class="link font-medium">Set company letterhead</a>
+  (signatory name & address) for professional letters.
+</div>
+{% endif %}
+
+{% if templates %}
+<div class="grid gap-3 max-w-2xl">
+  {% for tmpl in templates %}
+  <a href="{% url 'hr_ops:generate_letter' employee.pk tmpl.pk %}" class="card bg-base-100 shadow border border-base-200 hover:border-primary/40 no-underline text-inherit">
+    <div class="card-body p-4 flex-row items-center justify-between">
+      <div>
+        <span class="badge badge-outline badge-sm">{{ tmpl.get_letter_type_display }}</span>
+        <h3 class="font-semibold mt-1">{{ tmpl.name }}</h3>
+      </div>
+      <span class="btn btn-primary btn-sm">Generate →</span>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card bg-base-100 shadow max-w-lg">
+  <div class="card-body text-center py-10">
+    <p class="mb-3">No letter templates yet.</p>
+    <form method="post" action="{% url 'hr_ops:letter_seed_defaults' %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-primary btn-sm">Install default templates</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

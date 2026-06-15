@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block page_title %}Team Expenses{% endblock %}
+{% block content %}
+<h2 class="text-xl font-bold mb-4">Team expense approvals</h2>
+<div class="card bg-base-100 shadow overflow-x-auto">
+  <table class="table table-sm">
+    <thead><tr><th>Employee</th><th>Category</th><th>Date</th><th>Amount</th><th>Description</th><th></th></tr></thead>
+    <tbody>
+      {% for exp in expenses %}
+      <tr>
+        <td>{{ exp.employee.full_name }}</td>
+        <td>{{ exp.category|default:"—" }}</td>
+        <td>{{ exp.expense_date|date:"d M Y" }}</td>
+        <td>₹{{ exp.amount|floatformat:0|intcomma }}</td>
+        <td class="max-w-xs truncate">{{ exp.description }}</td>
+        <td class="flex gap-1">
+          <form method="post" action="{% url 'payroll:expense_action' exp.pk %}">{% csrf_token %}<input type="hidden" name="action" value="approve"><button class="btn btn-success btn-xs">Approve</button></form>
+          <form method="post" action="{% url 'payroll:expense_action' exp.pk %}">{% csrf_token %}<input type="hidden" name="action" value="reject"><button class="btn btn-error btn-xs">Reject</button></form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="text-center py-8 text-base-content/40">No pending expense claims from your team.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

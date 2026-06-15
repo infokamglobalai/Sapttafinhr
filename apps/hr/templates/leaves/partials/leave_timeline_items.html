@@ -1,0 +1,48 @@
+{% for req in leaves %}
+<div class="leave-timeline-item {% if req.status == 'pending' %}leave-timeline-item--pending{% elif req.status == 'approved' %}leave-timeline-item--approved{% else %}leave-timeline-item--rejected{% endif %}">
+  <div class="leave-timeline-item__dates">
+    <span class="leave-timeline-item__day">{{ req.from_date|date:"d" }}</span>
+    <span class="leave-timeline-item__month">{{ req.from_date|date:"M" }}</span>
+    {% if req.from_date != req.to_date %}
+    <span class="leave-timeline-item__sep">→</span>
+    <span class="leave-timeline-item__day">{{ req.to_date|date:"d" }}</span>
+    <span class="leave-timeline-item__month">{{ req.to_date|date:"M" }}</span>
+    {% endif %}
+  </div>
+  <div class="leave-timeline-item__body">
+    <div class="leave-timeline-item__top">
+      <span class="badge badge-outline badge-sm">{{ req.leave_type.code }}</span>
+      <span class="leave-timeline-item__days">{{ req.total_days }} day{{ req.total_days|pluralize }}</span>
+      <span class="badge badge-sm
+        {% if req.status == 'approved' %}badge-success
+        {% elif req.status == 'rejected' %}badge-error
+        {% elif req.status == 'pending' %}badge-warning
+        {% else %}badge-ghost{% endif %}">
+        {{ req.get_status_display }}
+      </span>
+      {% if today and req.status == 'approved' %}
+        {% if req.from_date <= today and req.to_date >= today %}
+        <span class="badge badge-info badge-xs">Ongoing</span>
+        {% elif req.from_date > today %}
+        <span class="badge badge-ghost badge-xs">Upcoming</span>
+        {% endif %}
+      {% endif %}
+    </div>
+    <div class="leave-timeline-item__meta">
+      {{ req.from_date|date:"d M Y" }}{% if req.from_date != req.to_date %} – {{ req.to_date|date:"d M Y" }}{% endif %}
+      {% if req.reason %}
+      · <span class="leave-timeline-item__reason">{{ req.reason|truncatechars:40 }}</span>
+      {% endif %}
+    </div>
+    {% if req.status == 'pending' %}
+    <form method="post" action="{% url 'leaves:cancel' req.pk %}" class="leave-timeline-item__cancel">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-ghost btn-xs text-error px-0 min-h-0 h-auto"
+              onclick="return confirm('Cancel this leave request?')">Cancel request</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+{% empty %}
+<div class="leave-timeline-empty">{{ empty_message|default:"No leave requests in this section." }}</div>
+{% endfor %}

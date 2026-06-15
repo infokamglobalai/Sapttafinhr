@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block page_title %}My Requests{% endblock %}
+
+{% block content %}
+
+<div class="flex items-center justify-between mb-4">
+
+  <div>
+
+    <h2 class="text-xl font-bold">Help & Requests</h2>
+
+    <p class="text-sm text-base-content/60">IT issues, hardware, software subscriptions, HR queries</p>
+
+  </div>
+
+  <a href="{% url 'hr_ops:request_create' %}" class="btn btn-primary btn-sm">+ Raise Request</a>
+
+</div>
+
+
+
+{% if requests %}
+
+<div class="card bg-base-100 shadow overflow-x-auto">
+
+  <table class="table table-sm">
+
+    <thead>
+
+      <tr><th>ID</th><th>Category</th><th>Subject</th><th>Priority</th><th>Status</th><th>Raised</th><th></th></tr>
+
+    </thead>
+
+    <tbody>
+
+      {% for r in requests %}
+
+      <tr>
+
+        <td class="font-mono text-xs">{{ r.request_no }}</td>
+
+        <td>{{ r.get_category_display }}</td>
+
+        <td class="font-medium">{{ r.subject }}</td>
+
+        <td><span class="badge badge-xs {% if r.priority == 'urgent' %}badge-error{% elif r.priority == 'low' %}badge-ghost{% else %}badge-info{% endif %}">{{ r.get_priority_display }}</span></td>
+
+        <td><span class="badge badge-sm badge-outline">{{ r.get_status_display }}</span></td>
+
+        <td class="text-xs">{{ r.created_at|date:"d M Y" }}</td>
+
+        <td><a href="{% url 'hr_ops:my_service_request_detail' r.pk %}" class="link link-primary text-xs">View</a></td>
+
+      </tr>
+
+      {% endfor %}
+
+    </tbody>
+
+  </table>
+
+</div>
+
+{% else %}
+
+<div class="card bg-base-100 shadow">
+  {% url 'hr_ops:request_create' as request_create_url %}
+  {% include "partials/empty_state.html" with title="No requests yet" message="Raise a ticket for IT issues, laptop problems, software access, or HR help. Hardware and software requests go to your manager first, then IT." cta_url=request_create_url cta_label="Raise your first request" %}
+</div>
+
+{% endif %}
+
+{% endblock %}
+
+

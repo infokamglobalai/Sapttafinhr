@@ -226,6 +226,111 @@ class Announcement(models.Model):
 
 
 # ---------------------------------------------------------------------------
+# HR policy documents (for AI policy bot)
+# ---------------------------------------------------------------------------
+class PolicyDocument(models.Model):
+    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE, related_name="policy_documents")
+    title = models.CharField(max_length=255)
+    body = models.TextField(blank=True, help_text="Plain text or markdown — auto-filled when you upload PDF/DOCX")
+    category = models.CharField(max_length=100, blank=True)
+    attachment = models.FileField(
+        upload_to="policies/%Y/",
+        null=True,
+        blank=True,
+        help_text="PDF, DOCX, or other policy document",
+    )
+    is_active = models.BooleanField(default=True)
+    version_number = models.PositiveIntegerField(default=1)
+    last_distributed_at = models.DateTimeField(null=True, blank=True)
+    created_by = models.ForeignKey("accounts.User", on_delete=models.SET_NULL, null=True, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "policy_documents"
+        ordering = ["title"]
+
+    def __str__(self):
+        return self.title
+
+    @property
+    def has_attachment(self):
+        return bool(self.attachment)
+
+    @property
+    def version_label(self):
+        return f"v{self.version_number}"
+
+
+class PolicyVersion(models.Model):
+    """Historical snapshot when policy content is revised."""
+    policy = models.ForeignKey(PolicyDocument, on_delete=models.CASCADE, related_name="versions")
+    version_number = models.PositiveIntegerField()
+    title = models.CharField(max_length=255)
+    body = models.TextField(blank=True)
+    category = models.CharField(max_length=100, blank=True)
+    attachment = models.FileField(upload_to="policies/versions/%Y/", null=True, blank=True)
+    change_notes = models.CharField(max_length=500, blank=True)
+    created_by = models.ForeignKey("accounts.User", on_delete=models.SET_NULL, null=True, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "policy_versions"
+        ordering = ["-version_number"]
+        unique_together = ("policy", "version_number")
+
+    def __str__(self):
+        return f"{self.policy.title} v{self.version_number}"
+
+
+class PolicyDistribution(models.Model):
+    AUDIENCE_CHOICES = [
+        ("company", "Entire company"),
+        ("departments", "Selected departments"),
+        ("employees", "Selected employees"),
+    ]
+
+    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE, related_name="policy_distributions")
+    policy = models.ForeignKey(PolicyDocument, on_delete=models.CASCADE, related_name="distributions")
+    version_number = models.PositiveIntegerField(default=1)
+    requires_acknowledgment = models.BooleanField(default=True)
+    audience = models.CharField(max_length=20, choices=AUDIENCE_CHOICES, default="company")
+    distributed_by = models.ForeignKey("accounts.User", on_delete=models.SET_NULL, null=True, related_name="+")
+    distributed_at = models.DateTimeField(auto_now_add=True)
+    recipient_count = models.PositiveIntegerField(default=0)
+    departments = models.ManyToManyField("employees.Department", blank=True, related_name="+")
+    employees = models.ManyToManyField("employees.Employee", blank=True, related_name="+")
+
+    class Meta:
+        db_table = "policy_distributions"
+        ordering = ["-distributed_at"]
+
+
+class PolicyRecipient(models.Model):
+    distribution = models.ForeignKey(PolicyDistribution, on_delete=models.CASCADE, related_name="recipients")
+    user = models.ForeignKey("accounts.User", on_delete=models.CASCADE, related_name="policy_receipts")
+    read_at = models.DateTimeField(null=True, blank=True)
+    acknowledged_at = models.DateTimeField(null=True, blank=True)
+    last_reminded_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = "policy_recipients"
+        unique_together = ("distribution", "user")
+
+    @property
+    def is_acknowledged(self):
+        return bool(self.acknowledged_at)
+
+    @property
+    def status(self):
+        if self.acknowledged_at:
+            return "acknowledged"
+        if self.read_at:
+            return "read"
+        return "pending"
+
+
+# ---------------------------------------------------------------------------
 # Notifications
 # ---------------------------------------------------------------------------
 class Notification(models.Model):
@@ -241,6 +346,7 @@ class Notification(models.Model):
         ("attendance_regularization_approved", "Attendance Correction Approved"),
         ("attendance_regularization_rejected", "Attendance Correction Rejected"),
         ("announcement", "Announcement"),
+        ("policy_published", "Policy Published"),
         ("birthday", "Birthday"),
         ("work_anniversary", "Work Anniversary"),
         ("document_expiring", "Document Expiring"),
@@ -320,3 +426,79 @@ class AuditLog(models.Model):
 
     def __str__(self):
         return f"{self.actor_name} {self.action} {self.resource_type}#{self.resource_id}"
+
+
+# ---------------------------------------------------------------------------
+# Employee service requests (IT / procurement / HR helpdesk)
+# ---------------------------------------------------------------------------
+class ServiceRequest(models.Model):
+    CATEGORY_CHOICES = [
+        ("it_issue", "IT / Laptop issue"),
+        ("hardware", "Hardware request"),
+        ("software", "Software / Subscription / API key"),
+        ("hr_other", "HR / Other"),
+    ]
+    PRIORITY_CHOICES = [
+        ("low", "Low"),
+        ("normal", "Normal"),
+        ("urgent", "Urgent"),
+    ]
+    STATUS_CHOICES = [
+        ("pending_manager", "Pending manager approval"),
+        ("pending_it", "Pending IT / Procurement"),
+        ("in_progress", "In progress"),
+        ("resolved", "Resolved"),
+        ("closed", "Closed"),
+        ("rejected", "Rejected"),
+    ]
+
+    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE, related_name="service_requests")
+    request_no = models.CharField(max_length=20)
+    employee = models.ForeignKey("employees.Employee", on_delete=models.CASCADE, related_name="service_requests")
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES)
+    subject = models.CharField(max_length=255)
+    description = models.TextField()
+    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default="normal")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending_it")
+    asset = models.ForeignKey(Asset, on_delete=models.SET_NULL, null=True, blank=True, related_name="service_requests")
+    attachment = models.FileField(upload_to="service_requests/%Y/", null=True, blank=True)
+
+    manager = models.ForeignKey(
+        "employees.Employee", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    manager_actioned_by = models.ForeignKey(
+        "accounts.User", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    manager_actioned_at = models.DateTimeField(null=True, blank=True)
+    rejection_reason = models.TextField(blank=True)
+
+    assigned_to = models.ForeignKey(
+        "accounts.User", on_delete=models.SET_NULL, null=True, blank=True, related_name="assigned_service_requests"
+    )
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "service_requests"
+        unique_together = ("tenant", "request_no")
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["tenant", "status", "created_at"]),
+            models.Index(fields=["employee", "created_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.request_no} — {self.subject}"
+
+
+class ServiceRequestComment(models.Model):
+    request = models.ForeignKey(ServiceRequest, on_delete=models.CASCADE, related_name="comments")
+    author = models.ForeignKey("accounts.User", on_delete=models.SET_NULL, null=True, related_name="+")
+    body = models.TextField()
+    is_internal = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "service_request_comments"
+        ordering = ["created_at"]

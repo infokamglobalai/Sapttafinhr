@@ -29,18 +29,30 @@
 {% if job.description %}<div class="card bg-base-100 shadow mb-4"><div class="card-body p-4 text-sm whitespace-pre-line">{{ job.description }}</div></div>{% endif %}
 
 <h3 class="font-semibold mb-2">Applicant Pipeline</h3>
-<div class="flex gap-3 overflow-x-auto pb-4">
+<p class="text-xs text-base-content/50 mb-3">Drag cards between columns to change stage{% if user.is_hr_admin %} · AI scores appear after ranking{% endif %}</p>
+<div class="flex gap-3 overflow-x-auto pb-4" id="pipeline-board">
   {% for stage in stages %}
-  <div class="min-w-[230px] w-[230px] flex-shrink-0">
+  <div class="min-w-[240px] w-[240px] flex-shrink-0 pipeline-column" data-stage="{{ stage.key }}">
     <div class="text-xs font-bold uppercase tracking-wide text-base-content/50 mb-2 px-1">
-      {{ stage.key }} <span class="badge badge-xs badge-ghost ml-1">{{ stage.count }}</span>
+      {{ stage.key }} <span class="badge badge-xs badge-ghost ml-1 stage-count">{{ stage.count }}</span>
     </div>
-    <div class="space-y-2">
+    <div class="space-y-2 min-h-[120px] pipeline-dropzone rounded-lg p-1" data-stage="{{ stage.key }}">
       {% for app in stage.apps %}
-      <div class="card bg-base-100 shadow-sm border border-base-200">
+      <div class="card bg-base-100 shadow-sm border border-base-200 pipeline-card cursor-grab active:cursor-grabbing"
+           draggable="{% if user.is_hr_admin %}true{% else %}false{% endif %}"
+           data-app-id="{{ app.pk }}">
         <div class="card-body p-3">
-          <div class="font-semibold text-sm">{{ app.candidate.first_name }} {{ app.candidate.last_name }}</div>
+          <div class="flex items-start justify-between gap-1">
+            <div class="font-semibold text-sm">{{ app.candidate.first_name }} {{ app.candidate.last_name }}</div>
+            {% if app.ai_score is not None %}
+            <span class="badge badge-xs {% if app.ai_score >= 80 %}badge-success{% elif app.ai_score >= 60 %}badge-info{% elif app.ai_score >= 40 %}badge-warning{% else %}badge-error{% endif %}"
+                  title="{{ app.ai_recommendation|default:app.ai_band }}">
+              {{ app.ai_score }}
+            </span>
+            {% endif %}
+          </div>
           <div class="text-xs text-base-content/60">{{ app.candidate.current_designation|default:app.candidate.email }}</div>
+          {% if app.ai_band %}<div class="text-xs text-base-content/40 mt-1">{{ app.ai_band }}</div>{% endif %}
           {% if user.is_hr_admin %}
           <form method="post" action="{% url 'recruitment:move_application' app.pk %}" class="mt-2">
             {% csrf_token %}
@@ -52,7 +64,7 @@
         </div>
       </div>
       {% empty %}
-      <div class="text-xs text-base-content/30 italic px-1">—</div>
+      <div class="text-xs text-base-content/30 italic px-1 empty-hint">Drop here</div>
       {% endfor %}
     </div>
   </div>
@@ -74,6 +86,56 @@
 </dialog>
 
 <script>
+{% if user.is_hr_admin %}
+(function() {
+  let dragged = null;
+  document.querySelectorAll('.pipeline-card').forEach(card => {
+    card.addEventListener('dragstart', e => {
+      dragged = card;
+      e.dataTransfer.effectAllowed = 'move';
+      card.classList.add('opacity-50');
+    });
+    card.addEventListener('dragend', () => {
+      card.classList.remove('opacity-50');
+      dragged = null;
+    });
+  });
+  document.querySelectorAll('.pipeline-dropzone').forEach(zone => {
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('bg-base-200'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('bg-base-200'));
+    zone.addEventListener('drop', async e => {
+      e.preventDefault();
+      zone.classList.remove('bg-base-200');
+      if (!dragged) return;
+      const newStatus = zone.dataset.stage;
+      const appId = dragged.dataset.appId;
+      const oldZone = dragged.closest('.pipeline-dropzone');
+      if (oldZone === zone) return;
+      zone.appendChild(dragged);
+      const hint = zone.querySelector('.empty-hint');
+      if (hint) hint.remove();
+      try {
+        const resp = await fetch(`/recruitment/applications/${appId}/move-api/`, {
+          method: 'POST',
+          headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: newStatus }),
+        });
+        const data = await resp.json();
+        if (!data.ok) throw new Error(data.error || 'Move failed');
+        document.querySelectorAll('.pipeline-column').forEach(col => {
+          const count = col.querySelectorAll('.pipeline-card').length;
+          const badge = col.querySelector('.stage-count');
+          if (badge) badge.textContent = count;
+        });
+      } catch (err) {
+        oldZone.appendChild(dragged);
+        alert('Could not move candidate: ' + err.message);
+      }
+    });
+  });
+})();
+{% endif %}
+
 async function rankCandidates(jobId) {
   const modal = document.getElementById('ranking-modal');
   const content = document.getElementById('ranking-content');
@@ -95,7 +157,7 @@ async function rankCandidates(jobId) {
     }
 
     const bandBadge = { Excellent: 'badge-success', Good: 'badge-info', Average: 'badge-warning', Poor: 'badge-error', Error: 'badge-ghost' };
-    let html = `<p class="text-xs text-base-content/60 mb-3">${data.total} candidate(s) ranked against <strong>${data.job_title}</strong></p>`;
+    let html = `<p class="text-xs text-base-content/60 mb-3">${data.total} candidate(s) ranked · scores saved to pipeline cards</p>`;
     html += '<div class="space-y-3">';
 
     data.ranked.forEach((c, i) => {
@@ -127,7 +189,7 @@ async function rankCandidates(jobId) {
           </div>
         </div>`;
     });
-    html += '</div>';
+    html += '</div><div class="mt-4"><button class="btn btn-sm btn-primary" onclick="location.reload()">Refresh pipeline</button></div>';
     content.innerHTML = html;
   } catch (e) {
     content.innerHTML = `<div class="alert alert-error">Ranking failed: ${e.message}</div>`;

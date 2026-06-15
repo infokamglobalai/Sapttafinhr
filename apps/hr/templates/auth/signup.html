@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% block extra_head %}
 <style>
   .signup-wrap {
@@ -141,7 +142,7 @@
   <aside class="signup-pitch">
     <div>
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:48px;">
-        <div style="width:42px;height:42px;background:var(--bg-card);border:1px solid var(--border-light);border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;color:var(--brand-500);font-weight:600;font-size:18px;">H</div>
+        <img src="{% static 'images/logo.jpeg' %}" alt="Saptta" class="brand-logo-img brand-logo-img--auth">
         <div style="font-weight:600;font-size:18px;color:var(--ink-950);">HRMS</div>
       </div>
       <h1 class="pitch-title">Set up your HR<br>workspace in 60 seconds.</h1>

@@ -1,0 +1,41 @@
+{% if pending_work %}
+<div class="premium-glass-card p-5 mb-6" style="border-color: rgba(249, 115, 22, 0.12);">
+  <div class="flex flex-wrap items-start justify-between gap-3 mb-4">
+    <div>
+      <h2 class="ch-title mb-1">Needs your attention</h2>
+      <p class="ch-sub mb-0">Pending approvals and open queues — act before they pile up</p>
+    </div>
+    {% with total=pending_work.leaves|add:pending_work.regularizations|add:pending_work.service_requests|add:pending_work.expenses %}
+    {% if total %}
+    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide" style="background:rgba(249,115,22,0.1);color:#EA580C;">
+      {{ total }} open
+    </span>
+    {% endif %}
+    {% endwith %}
+  </div>
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <a href="{% url 'leaves:pending' %}" class="list-row flex-col items-start !gap-1 {% if pending_work.leaves %}!border-orange-200{% endif %}">
+      <span class="text-2xl font-bold {% if pending_work.leaves %}text-orange-600{% else %}text-base-content/30{% endif %}">{{ pending_work.leaves }}</span>
+      <span class="text-xs text-base-content/60">Leave requests</span>
+    </a>
+    <a href="{% url 'attendance:regularizations' %}" class="list-row flex-col items-start !gap-1 {% if pending_work.regularizations %}!border-orange-200{% endif %}">
+      <span class="text-2xl font-bold {% if pending_work.regularizations %}text-orange-600{% else %}text-base-content/30{% endif %}">{{ pending_work.regularizations }}</span>
+      <span class="text-xs text-base-content/60">Attendance corrections</span>
+    </a>
+    <a href="{% url 'hr_ops:service_request_queue' %}" class="list-row flex-col items-start !gap-1 {% if pending_work.service_requests %}!border-blue-200{% endif %}">
+      <span class="text-2xl font-bold {% if pending_work.service_requests %}text-blue-600{% else %}text-base-content/30{% endif %}">{{ pending_work.service_requests }}</span>
+      <span class="text-xs text-base-content/60">Service requests</span>
+    </a>
+    <a href="{% url 'payroll:expenses' %}" class="list-row flex-col items-start !gap-1 {% if pending_work.expenses %}!border-orange-200{% endif %}">
+      <span class="text-2xl font-bold {% if pending_work.expenses %}text-orange-600{% else %}text-base-content/30{% endif %}">{{ pending_work.expenses }}</span>
+      <span class="text-xs text-base-content/60">Expense claims</span>
+    </a>
+  </div>
+  {% if not pending_work.leaves and not pending_work.regularizations and not pending_work.service_requests and not pending_work.expenses %}
+  <p class="text-sm text-base-content/50 mb-0 mt-2 flex items-center gap-2">
+    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+    All clear — no pending items right now.
+  </p>
+  {% endif %}
+</div>
+{% endif %}
