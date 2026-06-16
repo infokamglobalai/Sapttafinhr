@@ -15,7 +15,7 @@ from django.utils.html import strip_tags
 from django.conf import settings
 
 from .forms import SetPasswordForm, LoginForm
-from .platform import platform_login_url, platform_logout_url
+from .platform import platform_login_url, platform_logout_url, platform_forgot_password_url
 from .ratelimit import is_locked_out, record_failure, clear_failures
 
 User = get_user_model()
@@ -139,12 +139,19 @@ def profile(request):
 # ────────────────────────────────────────────────────────────────────────────
 # Password reset (forgot password flow)
 # ────────────────────────────────────────────────────────────────────────────
-def _send_password_reset_email(user, request):
-    """Build a signed reset URL and email it to the user."""
+
+@require_http_methods(["GET"])
+def password_reset_request(request):
+    """Employer / standard tenant password reset redirects to the platform forgot password page."""
+    return redirect(platform_forgot_password_url())
+
+
+def _send_employee_password_reset_email(user, request):
+    """Build a signed reset URL and email it to the employee."""
     uid = urlsafe_base64_encode(force_bytes(user.pk))
     token = default_token_generator.make_token(user)
     reset_url = request.build_absolute_uri(
-        reverse("accounts:password_reset_confirm", kwargs={"uidb64": uid, "token": token})
+        reverse("accounts:employee_password_reset_confirm", kwargs={"uidb64": uid, "token": token})
     )
     html = render_to_string("auth/emails/password_reset.html", {
         "user": user,
@@ -162,8 +169,8 @@ def _send_password_reset_email(user, request):
 
 
 @require_http_methods(["GET", "POST"])
-def password_reset_request(request):
-    """Step 1: user enters email, we send them a reset link."""
+def employee_password_reset_request(request):
+    """Step 1 for employees: enter email, we send them a reset link."""
     if request.method == "POST":
         email = (request.POST.get("email") or "").strip().lower()
         if not email:
@@ -174,7 +181,7 @@ def password_reset_request(request):
                 request,
                 "If an account exists for that email, a reset link has been sent.",
             )
-            return redirect("accounts:login")
+            return redirect("accounts:employee_login")
         else:
             tenant = getattr(request, "tenant", None)
             qs = User.objects.filter(email__iexact=email, is_active=True)
@@ -183,7 +190,7 @@ def password_reset_request(request):
             user = qs.first()
             if user:
                 try:
-                    _send_password_reset_email(user, request)
+                    _send_employee_password_reset_email(user, request)
                 except Exception:
                     pass
             # Count every reset attempt (real or not) to throttle email spam.
@@ -193,13 +200,13 @@ def password_reset_request(request):
                 request,
                 "If an account exists for that email, a reset link has been sent.",
             )
-            return redirect("accounts:login")
+            return redirect("accounts:employee_login")
     return render(request, "auth/password_reset_request.html")
 
 
 @require_http_methods(["GET", "POST"])
-def password_reset_confirm(request, uidb64, token):
-    """Step 2: user clicks email link, lands here, sets new password."""
+def employee_password_reset_confirm(request, uidb64, token):
+    """Step 2 for employees: click email link, land here, set new password."""
     try:
         uid = force_str(urlsafe_base64_decode(uidb64))
         user = User.objects.get(pk=uid)
@@ -208,7 +215,7 @@ def password_reset_confirm(request, uidb64, token):
 
     if user is None or not default_token_generator.check_token(user, token):
         messages.error(request, "That reset link is invalid or has expired. Request a new one.")
-        return redirect("accounts:password_reset_request")
+        return redirect("accounts:employee_password_reset_request")
 
     if request.method == "POST":
         form = SetPasswordForm(data=request.POST)
@@ -216,7 +223,7 @@ def password_reset_confirm(request, uidb64, token):
             user.set_password(form.cleaned_data["password1"])
             user.save()
             messages.success(request, "Your password has been updated. Please log in.")
-            return redirect("accounts:login")
+            return redirect("accounts:employee_login")
     else:
         form = SetPasswordForm()
 

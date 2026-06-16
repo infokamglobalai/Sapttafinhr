@@ -13,5 +13,6 @@ urlpatterns = [
     path("change-password/", views.change_password, name="change_password"),
     path("profile/", views.profile, name="profile"),
     path("password-reset/", views.password_reset_request, name="password_reset_request"),
-    path("password-reset/<uidb64>/<token>/", views.password_reset_confirm, name="password_reset_confirm"),
+    path("employee-password-reset/", views.employee_password_reset_request, name="employee_password_reset_request"),
+    path("employee-password-reset/<uidb64>/<token>/", views.employee_password_reset_confirm, name="employee_password_reset_confirm"),
 ]

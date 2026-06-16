@@ -33,3 +33,9 @@ def platform_logout_url() -> str:
     platform session — which HR can't clear cross-origin — is ended too.
     """
     return f"{_platform_base()}/logout"
+
+
+def platform_forgot_password_url() -> str:
+    """Absolute URL of the platform's forgot password page."""
+    return f"{_platform_base()}/forgot-password"
+

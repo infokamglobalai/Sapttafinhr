@@ -198,7 +198,7 @@ class PasswordResetFlowTest(TestCase):
         )
 
     def test_reset_request_page_renders(self):
-        r = self.client.get(reverse("accounts:password_reset_request"))
+        r = self.client.get(reverse("accounts:employee_password_reset_request"))
         self.assertEqual(r.status_code, 200)
         self.assertContains(r, "Forgot your password")
 
@@ -209,7 +209,7 @@ class PasswordResetFlowTest(TestCase):
         # On localhost with no auth, password_reset_request still works — it just
         # doesn't filter by tenant. We need to ensure the user lookup finds them.
         mail.outbox = []
-        r = self.client.post(reverse("accounts:password_reset_request"), {
+        r = self.client.post(reverse("accounts:employee_password_reset_request"), {
             "email": "user@resettest.com",
         })
         self.assertEqual(r.status_code, 302)
@@ -219,7 +219,7 @@ class PasswordResetFlowTest(TestCase):
 
     def test_reset_request_silently_succeeds_for_unknown_email(self):
         mail.outbox = []
-        r = self.client.post(reverse("accounts:password_reset_request"), {
+        r = self.client.post(reverse("accounts:employee_password_reset_request"), {
             "email": "nobody@nowhere.com",
         })
         # No email sent but request still redirects with a success message
@@ -230,7 +230,7 @@ class PasswordResetFlowTest(TestCase):
         from django.utils.http import urlsafe_base64_encode
         from django.utils.encoding import force_bytes
         uid = urlsafe_base64_encode(force_bytes(self.user.pk))
-        r = self.client.get(reverse("accounts:password_reset_confirm",
+        r = self.client.get(reverse("accounts:employee_password_reset_confirm",
                                     kwargs={"uidb64": uid, "token": "invalid-token"}))
         self.assertEqual(r.status_code, 302)
 
