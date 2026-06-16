@@ -108,7 +108,7 @@ services:
       SECRET_KEY: ${HR_SECRET_KEY}
       DEBUG: "False"
       ALLOWED_HOSTS: ${HR_ALLOWED_HOSTS}
-      DB_NAME: ${POSTGRES_DB}
+      DB_NAME: ${HR_POSTGRES_DB:-saptta_hr}
       DB_USER: ${POSTGRES_USER}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       DB_HOST: db
@@ -124,10 +124,7 @@ services:
     depends_on:
       db: { condition: service_healthy }
       redis: { condition: service_healthy }
-    command: >
-      sh -c "python manage.py migrate --noinput &&
-             gunicorn hrms.wsgi:application --bind 0.0.0.0:8000
-             --workers 4 --timeout 120 --access-logfile -"
+    command: sh -c "python manage.py migrate --noinput && gunicorn hrms.wsgi:application --bind 0.0.0.0:8000 --workers 4 --timeout 120 --access-logfile -"
 
   finance-web:
     build:
