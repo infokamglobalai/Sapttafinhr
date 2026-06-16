@@ -282,24 +282,6 @@ export default function Dashboard({ onGo }: DashboardProps) {
         </div>
       )}
 
-      {/* Unified Metrics Board */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-[1px] bg-ink-200/80 border border-ink-150 rounded-2xl overflow-hidden shadow-sm">
-        <Kpi label="Cash & Bank" value={formatINR(data.cash_balance)} icon={Wallet}
-             tone={Number(data.cash_balance) >= 0 ? 'positive' : 'negative'} subtitle="Aggregated liquid assets" />
-        <Kpi label="Receivables" value={formatINR(data.accounts_receivable)} icon={ArrowDown} tone="default" subtitle="Pending customer payments" />
-        <Kpi label="Payables" value={formatINR(data.accounts_payable)} icon={ArrowUp} tone="default" subtitle="Outstanding supplier dues" />
-        <Kpi label="Overdue" value={formatINR(data.overdue_amount)} icon={AlertTriangle}
-             tone={Number(data.overdue_amount) > 0 ? 'warning' : 'default'}
-             subtitle={`${data.overdue_count} invoice(s) past terms`} />
-        
-        <Kpi label="Income (MTD)" value={formatINR(data.mtd_income)} icon={TrendingUp} tone="positive" subtitle="Total Sales recorded" />
-        <Kpi label="Expense (MTD)" value={formatINR(data.mtd_expense)} icon={ArrowUp} tone="negative" subtitle="Operational expenditures" />
-        <Kpi label="Net Profit (MTD)" value={formatINR(data.mtd_net)} icon={BadgeIndianRupee}
-             tone={Number(data.mtd_net) >= 0 ? 'positive' : 'negative'} subtitle="Before tax calculations" />
-        <Kpi label="GST Due (MTD)" value={data.gst_dues ? formatINR(data.gst_dues.total) : '₹0'} icon={FileText}
-             tone="warning" subtitle={data.gst_dues ? `CGST ${formatINR(data.gst_dues.cgst)} · SGST ${formatINR(data.gst_dues.sgst)}` : 'No GST liabilities'} />
-      </div>
-
       {/* Unified Master Analytics Board (4 Charts Grid) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-[1px] bg-ink-200/80 border border-ink-150 rounded-2xl overflow-hidden shadow-sm">
         
@@ -475,6 +457,24 @@ export default function Dashboard({ onGo }: DashboardProps) {
           </ResponsiveContainer>
         </div>
 
+      </div>
+
+      {/* Unified Metrics Board */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-[1px] bg-ink-200/80 border border-ink-150 rounded-2xl overflow-hidden shadow-sm">
+        <Kpi label="Cash & Bank" value={formatINR(data.cash_balance)} icon={Wallet}
+             tone={Number(data.cash_balance) >= 0 ? 'positive' : 'negative'} subtitle="Aggregated liquid assets" />
+        <Kpi label="Receivables" value={formatINR(data.accounts_receivable)} icon={ArrowDown} tone="default" subtitle="Pending customer payments" />
+        <Kpi label="Payables" value={formatINR(data.accounts_payable)} icon={ArrowUp} tone="default" subtitle="Outstanding supplier dues" />
+        <Kpi label="Overdue" value={formatINR(data.overdue_amount)} icon={AlertTriangle}
+             tone={Number(data.overdue_amount) > 0 ? 'warning' : 'default'}
+             subtitle={`${data.overdue_count} invoice(s) past terms`} />
+        
+        <Kpi label="Income (MTD)" value={formatINR(data.mtd_income)} icon={TrendingUp} tone="positive" subtitle="Total Sales recorded" />
+        <Kpi label="Expense (MTD)" value={formatINR(data.mtd_expense)} icon={ArrowUp} tone="negative" subtitle="Operational expenditures" />
+        <Kpi label="Net Profit (MTD)" value={formatINR(data.mtd_net)} icon={BadgeIndianRupee}
+             tone={Number(data.mtd_net) >= 0 ? 'positive' : 'negative'} subtitle="Before tax calculations" />
+        <Kpi label="GST Due (MTD)" value={data.gst_dues ? formatINR(data.gst_dues.total) : '₹0'} icon={FileText}
+             tone="warning" subtitle={data.gst_dues ? `CGST ${formatINR(data.gst_dues.cgst)} · SGST ${formatINR(data.gst_dues.sgst)}` : 'No GST liabilities'} />
       </div>
 
       {/* Creative Tabbed watchlist Panel */}

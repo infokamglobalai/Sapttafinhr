@@ -40,6 +40,19 @@ class JournalEntry(TimeStampedModel):
     narration = models.CharField(max_length=500, blank=True)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.DRAFT)
 
+    class Category(models.TextChoices):
+        SALES = "sales", "Sales Invoice"
+        PURCHASE = "purchase", "Vendor Bill"
+        RECEIPT = "receipt", "Customer Receipt"
+        PAYMENT = "payment", "Vendor Payment"
+        UNCATEGORIZED = "uncategorized", "Uncategorized"
+
+    category = models.CharField(
+        max_length=20,
+        choices=Category.choices,
+        default=Category.UNCATEGORIZED,
+    )
+
     # Polymorphic link to the source document (Invoice, Payment, Bill, ...).
     # Null for manual entries.
     source_content_type = models.ForeignKey(
@@ -108,6 +121,53 @@ class JournalEntry(TimeStampedModel):
         self._assert_period_open()
         return super().delete(*args, **kwargs)
 
+    def classify(self) -> str:
+        if self.source_content_type:
+            model_name = self.source_content_type.model
+            if model_name == "invoice":
+                return self.Category.SALES
+            elif model_name == "vendorbill":
+                return self.Category.PURCHASE
+            elif model_name == "receipt":
+                return self.Category.RECEIPT
+            elif model_name == "vendorpayment":
+                return self.Category.PAYMENT
+
+        lines = list(self.lines.all())
+        if not lines:
+            return self.Category.UNCATEGORIZED
+
+        debit_codes = {l.account.code for l in lines if l.debit > 0}
+        credit_codes = {l.account.code for l in lines if l.credit > 0}
+        debit_types = {l.account.type for l in lines if l.debit > 0}
+        credit_types = {l.account.type for l in lines if l.credit > 0}
+
+        CASH_BANK = {"1110", "1121"}
+        AR_CODE = "1130"
+        AP_CODE = "2110"
+        SUSPENSE_CODES = {"2990", "1999"}
+
+        if (debit_codes & SUSPENSE_CODES) or (credit_codes & SUSPENSE_CODES):
+            return self.Category.UNCATEGORIZED
+
+        # 1. Customer Receipt: Debits Cash/Bank and Credits Accounts Receivable
+        if (debit_codes & CASH_BANK) and (AR_CODE in credit_codes):
+            return self.Category.RECEIPT
+
+        # 2. Vendor Payment: Debits Accounts Payable and Credits Cash/Bank
+        if (AP_CODE in debit_codes) and (credit_codes & CASH_BANK):
+            return self.Category.PAYMENT
+
+        # 3. Sales Invoice: Debits Accounts Receivable and Credits Revenue (INCOME)
+        if (AR_CODE in debit_codes) and ("INCOME" in credit_types):
+            return self.Category.SALES
+
+        # 4. Vendor Bill: Debits Expense and Credits Accounts Payable
+        if ("EXPENSE" in debit_types) and (AP_CODE in credit_codes):
+            return self.Category.PURCHASE
+
+        return self.Category.UNCATEGORIZED
+
     @transaction.atomic
     def post(self, user=None) -> "JournalEntry":
         """Move from DRAFT to POSTED. Validates D=C."""
@@ -122,7 +182,27 @@ class JournalEntry(TimeStampedModel):
         self.status = self.Status.POSTED
         self.posted_at = timezone.now()
         self.posted_by = user
-        self.save(update_fields=["status", "posted_at", "posted_by", "updated_at"])
+        self.category = self.classify()
+        self.save(update_fields=["status", "posted_at", "posted_by", "category", "updated_at"])
+
+        # Create alert notification if uncategorized
+        if self.category == self.Category.UNCATEGORIZED:
+            try:
+                from apps.notifications.models import Notification
+                notify_user = user
+                if not notify_user:
+                    from apps.identity.models import User
+                    notify_user = User.objects.filter(is_active=True).first()
+                if notify_user:
+                    Notification.objects.create(
+                        user=notify_user,
+                        title="⚠️ Uncategorized Entry Saved",
+                        body=f"Journal entry {self.voucher_no} was saved as uncategorized. Please review it.",
+                        level=Notification.Level.WARNING,
+                        link="#/uncategorized",
+                    )
+            except Exception:
+                pass
         return self
 
 

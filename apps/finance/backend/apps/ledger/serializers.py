@@ -28,9 +28,9 @@ class JournalEntrySerializer(serializers.ModelSerializer):
         model = JournalEntry
         fields = (
             "id", "company", "fiscal_year", "voucher_no", "date",
-            "narration", "status", "posted_at", "lines",
+            "narration", "status", "posted_at", "category", "lines",
         )
-        read_only_fields = ("status", "posted_at")
+        read_only_fields = ("status", "posted_at", "category")
 
 
 class ManualLineInputSerializer(serializers.Serializer):

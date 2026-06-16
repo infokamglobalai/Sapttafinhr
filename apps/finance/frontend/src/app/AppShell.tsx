@@ -5,11 +5,14 @@ import {
   ShoppingCart, Truck, FileInput, Landmark, Calendar, Warehouse, Boxes,
   Building2, ReceiptText, CalendarDays, Settings, FileCheck2,
   BarChart3, Briefcase, BookCopy, ChevronRight, Plus, Menu, X as XIcon, Webhook, Share2, Hash, UserCircle2,
-  Search, LayoutGrid,
+  Search, LayoutGrid, AlertTriangle,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { cn } from '@/lib/cn';
 import { Toaster } from '@/components/Toaster';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '@/lib/api';
+import { useActiveCompany } from '@/hooks/useActiveCompany';
 
 import Dashboard from '@/features/reports/Dashboard';
 import TrialBalancePage from '@/features/ledger/TrialBalancePage';
@@ -57,6 +60,7 @@ import NotificationBell from '@/features/notifications/NotificationBell';
 import NumberSeriesPage from '@/features/settings/NumberSeriesPage';
 import TeamPage from '@/features/team/TeamPage';
 import TDSPage from '@/features/taxation/TDSPage';
+import UncategorizedPage from '@/features/ledger/UncategorizedPage';
 
 type RouteId =
   | 'dashboard'
@@ -71,7 +75,7 @@ type RouteId =
   | 'ar-aging' | 'sales-register' | 'hsn-summary' | 'gstr-export' | 'audit-log'
   | 'budget-vs-actual' | 'cost-center-pnl' | 'consolidation'
   | 'settings' | 'company-profile' | 'api-keys' | 'webhooks' | 'number-series'
-  | 'team' | 'tds';
+  | 'team' | 'tds' | 'uncategorized';
 
 interface SubItem { id: RouteId; label: string; icon: LucideIcon; description?: string; }
 
@@ -85,6 +89,7 @@ interface Section {
 
 const SECTIONS: Section[] = [
   { id: 'dashboard', label: 'Home', icon: LayoutDashboard, direct: 'dashboard' },
+  { id: 'day-book', label: 'Day Book', icon: Calendar, direct: 'day-book' },
 
   {
     id: 'masters', label: 'Masters', icon: BookCopy, children: [
@@ -146,7 +151,6 @@ const SECTIONS: Section[] = [
       { id: 'pnl', label: 'Profit & Loss', icon: TrendingUp, description: 'Income vs Expense' },
       { id: 'balance-sheet', label: 'Balance Sheet', icon: Scale, description: 'Assets vs Liabilities + Equity' },
       { id: 'cash-flow', label: 'Cash Flow', icon: Wallet, description: 'Net change in cash + bank' },
-      { id: 'day-book', label: 'Day Book', icon: Calendar, description: 'All entries on one day' },
       { id: 'party-ledger', label: 'Party Statement', icon: BookText, description: 'Per-customer / vendor ledger' },
       { id: 'ar-aging', label: 'Receivables Aging', icon: Wallet, description: 'Who owes you and for how long' },
       { id: 'sales-register', label: 'Sales Register', icon: FileText, description: 'GST-style invoice register' },
@@ -161,6 +165,7 @@ const SECTIONS: Section[] = [
 
   { id: 'team', label: 'Team', icon: UserCircle2, direct: 'team' },
   { id: 'tds', label: 'TDS', icon: FileText, direct: 'tds' },
+  { id: 'uncategorized', label: 'Uncategorized', icon: AlertTriangle, direct: 'uncategorized' },
 
   {
     id: 'settings', label: 'Settings', icon: Settings, children: [
@@ -218,6 +223,19 @@ export default function AppShell() {
   const [quickOpen, setQuickOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const { companyId } = useActiveCompany();
+  const { data: uncategorizedCount = 0 } = useQuery({
+    queryKey: ['uncategorized-count', companyId],
+    enabled: companyId != null,
+    queryFn: async () => {
+      const res = await api.get('/ledger/entries/', {
+        params: { company: companyId, category: 'uncategorized', page_size: 1 },
+      });
+      return res.data.count || 0;
+    },
+    refetchInterval: 15_000,
+  });
 
   useEffect(() => {
     const onHash = () => {
@@ -313,6 +331,11 @@ export default function AppShell() {
                 )}
               >
                 <Icon size={20} className={cn("transition-transform duration-300", active ? "scale-105" : "opacity-75")} />
+                {s.id === 'uncategorized' && uncategorizedCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-sm ring-2 ring-ink-950">
+                    {uncategorizedCount}
+                  </span>
+                )}
                 {active && (
                   <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[4px] h-6 bg-brand-500 rounded-r-full" />
                 )}
@@ -497,6 +520,7 @@ export default function AppShell() {
             {route === 'consolidation' && <ConsolidationPage />}
             {route === 'team' && <TeamPage />}
             {route === 'tds' && <TDSPage />}
+            {route === 'uncategorized' && <UncategorizedPage />}
           </div>
         </main>
       </div>
@@ -522,9 +546,14 @@ export default function AppShell() {
                   const active = route === s.direct;
                   return (
                     <button key={s.id} onClick={() => go(s.direct!)}
-                      className={cn('flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-left transition-all',
+                      className={cn('relative flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-left transition-all',
                         active ? 'bg-brand-50 text-brand-600 font-bold' : 'text-ink-600 hover:bg-slate-100 hover:text-ink-900')}>
                       <Icon size={15} /> {s.label}
+                      {s.id === 'uncategorized' && uncategorizedCount > 0 && (
+                        <span className="ml-auto rounded-full bg-red-500 px-1.5 py-0.5 text-[9px] font-bold text-white">
+                          {uncategorizedCount}
+                        </span>
+                      )}
                     </button>
                   );
                 }

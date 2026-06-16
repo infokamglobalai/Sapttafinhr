@@ -20,10 +20,54 @@ class JournalEntryViewSet(viewsets.ReadOnlyModelViewSet):
 
     queryset = JournalEntry.objects.prefetch_related("lines", "lines__account").all()
     serializer_class = JournalEntrySerializer
-    filterset_fields = ("company", "fiscal_year", "status", "date")
+    filterset_fields = ("company", "fiscal_year", "status", "date", "category")
     search_fields = ("voucher_no", "narration")
     ordering_fields = ("date", "voucher_no")
     ordering = ("-date", "-id")
+
+    @action(detail=True, methods=["post"])
+    def reclassify(self, request, pk=None):
+        from decimal import Decimal
+        from django.db import transaction
+        from .serializers import ManualLineInputSerializer
+        from .models import JournalLine
+
+        je = self.get_object()
+        lines_data = request.data.get("lines")
+        if not lines_data:
+            raise ValidationError({"lines": "This field is required."})
+
+        serializer = ManualLineInputSerializer(data=lines_data, many=True)
+        serializer.is_valid(raise_exception=True)
+        validated_lines = serializer.validated_data
+
+        total_d = sum((ln["debit"] for ln in validated_lines), Decimal("0"))
+        total_c = sum((ln["credit"] for ln in validated_lines), Decimal("0"))
+        if total_d != total_c:
+            raise ValidationError({"non_field_errors": f"Unbalanced: debits={total_d} credits={total_c}"})
+        if total_d == 0:
+            raise ValidationError({"non_field_errors": "Total amount cannot be zero."})
+
+        with transaction.atomic():
+            je._assert_period_open()
+
+            je.status = JournalEntry.Status.DRAFT
+            je.save(update_fields=["status"])
+
+            je.lines.all().delete()
+
+            for line in validated_lines:
+                JournalLine.objects.create(
+                    journal_entry=je,
+                    account=line["account"],
+                    debit=line["debit"],
+                    credit=line["credit"],
+                    description=line.get("description", ""),
+                )
+
+            je.post(user=request.user)
+
+        return Response(JournalEntrySerializer(je).data)
 
 
 class ManualJournalEntryCreateView(APIView):
