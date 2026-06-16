@@ -108,8 +108,19 @@ class SignupView(APIView):
             name=data["company_name"],
             billing_email=data["email"],
         )
+        
+        request_host = request.get_host().split(":")[0].lower()
+        if request_host in ("localhost", "127.0.0.1") or request_host.startswith("192.168."):
+            base_domain = "localhost"
+        else:
+            parts = request_host.split(".")
+            if len(parts) >= 3 and parts[0] in ("app", "www", "platform"):
+                base_domain = ".".join(parts[1:])
+            else:
+                base_domain = request_host
+
         Domain.objects.get_or_create(
-            domain=f"{schema_name}.localhost", tenant=tenant, defaults={"is_primary": True}
+            domain=f"{schema_name}.{base_domain}", tenant=tenant, defaults={"is_primary": True}
         )
 
         # 2) Owner user (public/shared schema).
