@@ -128,6 +128,8 @@ services:
       SSO_SHARED_SECRET: ${SSO_SHARED_SECRET}
       SENTRY_DSN: ${HR_SENTRY_DSN:-}
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
+      HR_PUBLIC_BASE_URL: https://${HR_SUPERADMIN_DOMAIN:-hr.saptta.com}
+      PLATFORM_BASE_URL: ${FRONTEND_BASE_URL:-https://app.saptta.com}
     depends_on:
       db: { condition: service_healthy }
       redis: { condition: service_healthy }
