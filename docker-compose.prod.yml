@@ -161,7 +161,8 @@ services:
       - "443:443"
     volumes:
       # Mount your TLS cert + key here (e.g. from certbot/Let's Encrypt).
-      - ${TLS_CERT_DIR:-./deploy/certs}:/etc/nginx/certs:ro
+      - ${TLS_CERT_DIR:-/etc/letsencrypt/live/saptta.com}/fullchain.pem:/etc/nginx/certs/fullchain.pem:ro
+      - ${TLS_CERT_DIR:-/etc/letsencrypt/live/saptta.com}/privkey.pem:/etc/nginx/certs/privkey.pem:ro
       - certbot-webroot:/var/www/certbot
     depends_on:
       - fin-backend
