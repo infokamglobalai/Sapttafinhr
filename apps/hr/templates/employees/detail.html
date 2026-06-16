@@ -120,9 +120,9 @@
         </div>
         <div class="flex flex-col gap-2 mt-3">
           <form method="post" action="{% url 'employees:create_login' employee.pk %}"
-                onsubmit="return confirm('Generate a new temporary password? You will see it on the next screen.');">
+                onsubmit="return confirm('Issue a new invite link? This locks the current login until the employee accepts the new link.');">
             {% csrf_token %}
-            <button type="submit" class="btn btn-outline btn-sm w-full">Reset login &amp; show password</button>
+            <button type="submit" class="btn btn-outline btn-sm w-full">Reset login &amp; new invite link</button>
           </form>
           {% if access.is_active %}
           <form method="post" action="{% url 'employees:revoke_access' employee.pk %}"

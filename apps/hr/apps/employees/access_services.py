@@ -14,9 +14,35 @@ ROLE_LABELS = {
 }
 
 
+def _public_url(request, path: str) -> str:
+    """Build a shareable absolute URL on HR's real public host.
+
+    Behind the dev front door nginx forwards HR with Host: localhost, so
+    request.build_absolute_uri would produce an unreachable http://localhost/...
+    link. Prefer the configured HR_PUBLIC_BASE_URL (e.g. http://hr.localhost:8080)
+    and only fall back to the request host if it isn't set.
+    """
+    from django.conf import settings
+    base = (getattr(settings, "HR_PUBLIC_BASE_URL", "") or "").rstrip("/")
+    if base:
+        return f"{base}{path}"
+    return request.build_absolute_uri(path)
+
+
 def get_login_url(request) -> str:
+    """Where employees sign in again after setting their password — HR's own
+    employee login (they don't have a Finance platform account)."""
     from django.urls import reverse
-    return request.build_absolute_uri(reverse("accounts:login"))
+    return _public_url(request, reverse("accounts:employee_login"))
+
+
+def build_invite_url(request, user) -> str:
+    """Absolute, signed invite link — the only way the employee first gets in."""
+    from django.urls import reverse
+    from apps.accounts.invites import make_invite_token
+    return _public_url(
+        request, reverse("accounts:employee_invite", kwargs={"token": make_invite_token(user)})
+    )
 
 
 def get_employee_access(employee) -> dict:
@@ -96,13 +122,13 @@ def set_employee_roles(user: User, role_names: list[str], granted_by: User | Non
             )
 
 
-def push_credential_session(request, employee, email: str, password: str) -> None:
-    """Store one-time credential reveal in session (same pattern as bulk import)."""
+def push_credential_session(request, employee, email: str, invite_url: str) -> None:
+    """Store one-time invite-link reveal in session (same pattern as bulk import)."""
     request.session[f"employee_credential_{employee.pk}"] = {
         "name": employee.full_name,
         "code": employee.employee_code,
         "email": email,
-        "password": password,
+        "invite_url": invite_url,
     }
     request.session.modified = True
 

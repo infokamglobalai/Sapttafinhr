@@ -8,10 +8,11 @@ from django.views.decorators.http import require_POST
 
 from .models import Employee, Department, Designation, OfficeLocation, EmployeeDocument, AttritionScore
 from .forms import EmployeeForm, DepartmentForm, DesignationForm, OfficeLocationForm, DocumentUploadForm
-from .services import create_employee, bulk_import_employees, provision_employee_login, email_login_credentials
+from .services import create_employee, bulk_import_employees, provision_employee_login, email_employee_invite
 from .access_services import (
     get_employee_access,
     get_login_url,
+    build_invite_url,
     push_credential_session,
     pop_credential_session,
     revoke_employee_access,
@@ -99,11 +100,13 @@ def employee_create(request):
         if form.is_valid():
             data = form.cleaned_data
             try:
-                emp, temp_password = create_employee(tenant, data, created_by=request.user)
-                if emp.user_id and temp_password:
-                    push_credential_session(
-                        request, emp, emp.user.email, temp_password
-                    )
+                emp, _pw = create_employee(tenant, data, created_by=request.user)
+                # A locked login was created → hand the admin a secure invite link
+                # (the only way the employee first gets in).
+                if emp.user_id and not emp.user.has_usable_password():
+                    invite_url = build_invite_url(request, emp.user)
+                    email_employee_invite(emp, invite_url, get_login_url(request))
+                    push_credential_session(request, emp, emp.user.email, invite_url)
                     if request.htmx:
                         return HttpResponse(
                             headers={"HX-Redirect": f"/employees/{emp.pk}/credentials/"}
@@ -139,22 +142,22 @@ def employee_create_login(request, pk):
     employee = get_object_or_404(Employee, pk=pk, tenant=tenant)
     reset = bool(employee.user_id)
     try:
-        user, password = provision_employee_login(employee, created_by=request.user, reset_password=reset)
-        if password:
+        user, needs_invite = provision_employee_login(employee, created_by=request.user, reset_password=reset)
+        if needs_invite:
             verb = "reset" if reset else "created"
-            login_url = get_login_url(request)
-            emailed = email_login_credentials(employee, password, login_url)
-            push_credential_session(request, employee, user.email, password)
+            invite_url = build_invite_url(request, user)
+            emailed = email_employee_invite(employee, invite_url, get_login_url(request))
+            push_credential_session(request, employee, user.email, invite_url)
             if emailed:
                 messages.success(
                     request,
-                    f"Self-service login {verb} for {employee.full_name} and emailed to {user.email}.",
+                    f"Self-service login {verb} for {employee.full_name} and an invite link emailed to {user.email}.",
                 )
             else:
                 messages.success(
                     request,
                     f"Self-service login {verb} for {employee.full_name}. "
-                    f"Save the temporary password on the next screen.",
+                    f"Share the invite link on the next screen.",
                 )
             return redirect("employees:credentials", pk=pk)
         messages.info(request, f"{employee.full_name} already has a login ({user.email}).")
@@ -172,21 +175,26 @@ def bulk_provision_logins(request):
         messages.error(request, "HR admin access required.")
         return redirect("employees:list")
 
-    no_login = Employee.objects.filter(tenant=tenant, user__isnull=True, is_active=True)
+    # Employees with no login yet, or one still locked (no usable password = the
+    # invite was never accepted). Unusable passwords are stored with a "!" prefix.
+    pending = Employee.objects.filter(tenant=tenant, is_active=True).filter(
+        Q(user__isnull=True) | Q(user__password__startswith="!")
+    )
     created, skipped = [], []
-    login_url = get_login_url(request)
 
-    for emp in no_login:
+    for emp in pending:
         email = (emp.official_email or emp.personal_email or "").strip()
         if not email:
             skipped.append(emp.employee_code)
             continue
         try:
-            user, password = provision_employee_login(emp, created_by=request.user)
-            if password:
-                email_login_credentials(emp, password, login_url)
+            user, _needs_invite = provision_employee_login(emp, created_by=request.user)
+            # Locked account (new or never-accepted) → (re)issue an invite link.
+            if not user.has_usable_password():
+                invite_url = build_invite_url(request, user)
+                email_employee_invite(emp, invite_url, get_login_url(request))
                 created.append({"name": emp.full_name, "code": emp.employee_code,
-                                 "email": email, "password": password})
+                                 "email": email, "invite_url": invite_url})
         except Exception:
             skipped.append(emp.employee_code)
 

@@ -141,6 +141,11 @@ except ImportError:
 # platform login (?redirect=hr); it signs the user in once and hands them back
 # via the SSO token endpoint (apps.accounts.sso).
 PLATFORM_BASE_URL = config("PLATFORM_BASE_URL", default="http://localhost:8080")
+# HR's own public address. Behind the dev front door, nginx forwards HR with
+# Host: localhost (so HR resolves the tenant), which means request.build_absolute_uri
+# can't see the real host/port. Shareable links (employee invite + login) must be
+# built from this instead. Production overrides it with the real HR domain.
+HR_PUBLIC_BASE_URL = config("HR_PUBLIC_BASE_URL", default="http://hr.localhost:8080")
 LOGIN_URL = f"{PLATFORM_BASE_URL.rstrip('/')}/login?redirect=hr"
 LOGIN_REDIRECT_URL = "/dashboard/"
 LOGOUT_REDIRECT_URL = "/auth/login/"

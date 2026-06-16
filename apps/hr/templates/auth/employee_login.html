@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Employee sign in{% endblock %}
+{% block content %}
+<div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; background: linear-gradient(135deg, #FFF7ED 0%, #FED7AA 100%);">
+  <div style="width: 100%; max-width: 420px; background: white; border-radius: 18px; box-shadow: 0 20px 50px -10px rgba(194, 65, 12, 0.18); padding: 36px;">
+    <h2 style="font-size: 24px; font-weight: 700; letter-spacing: -0.025em; margin-bottom: 6px;">Employee sign in</h2>
+    <p style="font-size: 13.5px; color: var(--ink-500); margin-bottom: 24px;">Use the email and password you set up from your invite link.</p>
+
+    {% if messages %}{% for m in messages %}<div class="alert alert-{% if m.tags == 'error' %}error{% else %}success{% endif %}" style="margin-bottom: 14px;"><span>{{ m }}</span></div>{% endfor %}{% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      <div style="margin-bottom: 18px;">
+        <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px;">Work email</label>
+        {{ form.email }}
+      </div>
+      <div style="margin-bottom: 8px;">
+        <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px;">Password</label>
+        {{ form.password }}
+      </div>
+      {% if form.non_field_errors %}<div class="alert alert-error" style="margin: 12px 0;"><span>{{ form.non_field_errors|join:" " }}</span></div>{% endif %}
+      <div style="text-align: right; margin-bottom: 18px;">
+        <a href="{% url 'accounts:password_reset_request' %}" style="font-size: 12.5px; color: #C2410C; text-decoration: none;">Forgot password?</a>
+      </div>
+      <button type="submit" class="btn-base btn-primary" style="width: 100%; justify-content: center; padding: 12px;">Sign in</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

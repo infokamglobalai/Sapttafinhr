@@ -14,9 +14,9 @@ from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.conf import settings
 
-from .forms import SetPasswordForm
+from .forms import SetPasswordForm, LoginForm
 from .platform import platform_login_url, platform_logout_url
-from .ratelimit import is_locked_out, record_failure  # used by password reset
+from .ratelimit import is_locked_out, record_failure, clear_failures
 
 User = get_user_model()
 
@@ -31,6 +31,73 @@ def login_view(request):
     if request.user.is_authenticated:
         return redirect("tenants:dashboard")
     return redirect(platform_login_url("hr"))
+
+
+@require_http_methods(["GET", "POST"])
+def employee_login(request):
+    """HR-native login for self-service employees.
+
+    Company/owner accounts live in the Finance platform and sign in there. HR
+    employees, though, exist only in HR's database — so once they've set a
+    password via their invite link, this is where they sign in again. It checks
+    HR's own user store (TenantAuthBackend) with the same brute-force throttling
+    as the rest of the auth surface.
+    """
+    if request.user.is_authenticated:
+        return redirect("tenants:dashboard")
+
+    if request.method == "POST":
+        email = (request.POST.get("email") or "").strip().lower()
+        if is_locked_out("emplogin", request, email):
+            messages.error(request, "Too many attempts. Please wait a few minutes and try again.")
+            return render(request, "auth/employee_login.html", {"form": LoginForm(request)})
+
+        form = LoginForm(request, data=request.POST)
+        if form.is_valid():
+            user = form.get_user()
+            login(request, user, backend="apps.accounts.backends.TenantAuthBackend")
+            clear_failures("emplogin", request, email)
+            next_url = request.GET.get("next") or reverse("tenants:dashboard")
+            return redirect(next_url)
+        record_failure("emplogin", request, email)
+    else:
+        form = LoginForm(request)
+
+    return render(request, "auth/employee_login.html", {"form": form})
+
+
+@require_http_methods(["GET", "POST"])
+def employee_invite(request, token):
+    """Accept an admin-issued employee invite link: set a password and sign in.
+
+    This is the only way a freshly-provisioned employee gets in. Their account is
+    created locked (inactive, no usable password), so the normal login refuses it
+    until this link is used. The link is signed + self-expiring (see invites.py),
+    so it can't be forged and stops working after a week."""
+    from .invites import read_invite_token
+
+    uid = read_invite_token(token)
+    user = User.objects.filter(pk=uid).first() if uid is not None else None
+    if user is None:
+        messages.error(
+            request,
+            "This invite link is invalid or has expired. Ask your administrator to send a new one.",
+        )
+        return redirect("accounts:employee_login")
+
+    if request.method == "POST":
+        form = SetPasswordForm(data=request.POST)
+        if form.is_valid():
+            user.set_password(form.cleaned_data["password1"])
+            user.is_active = True
+            user.save(update_fields=["password", "is_active"])
+            login(request, user, backend="apps.accounts.backends.TenantAuthBackend")
+            messages.success(request, "Welcome! Your password is set — you're signed in.")
+            return redirect("tenants:dashboard")
+    else:
+        form = SetPasswordForm()
+
+    return render(request, "auth/employee_invite.html", {"form": form, "invited_user": user})
 
 
 @require_http_methods(["POST"])

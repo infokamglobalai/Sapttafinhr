@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Set your password{% endblock %}
+{% block content %}
+<div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; background: linear-gradient(135deg, #FFF7ED 0%, #FED7AA 100%);">
+  <div style="width: 100%; max-width: 420px; background: white; border-radius: 18px; box-shadow: 0 20px 50px -10px rgba(194, 65, 12, 0.18); padding: 36px;">
+    <h2 style="font-size: 24px; font-weight: 700; letter-spacing: -0.025em; margin-bottom: 6px;">Welcome{% if invited_user %}, {{ invited_user.email }}{% endif %}</h2>
+    <p style="font-size: 13.5px; color: var(--ink-500); margin-bottom: 24px;">Set a password to activate your account and sign in.</p>
+
+    {% if messages %}{% for m in messages %}<div class="alert alert-{% if m.tags == 'error' %}error{% else %}success{% endif %}" style="margin-bottom: 14px;"><span>{{ m }}</span></div>{% endfor %}{% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      <div style="margin-bottom: 18px;">
+        <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px;">New password</label>
+        {{ form.password1 }}
+        {% if form.password1.errors %}<p style="color:#dc2626;font-size:12px;margin-top:4px;">{{ form.password1.errors|join:" " }}</p>{% endif %}
+      </div>
+      <div style="margin-bottom: 18px;">
+        <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px;">Confirm password</label>
+        {{ form.password2 }}
+      </div>
+      {% if form.non_field_errors %}<div class="alert alert-error" style="margin-bottom:14px;"><span>{{ form.non_field_errors|join:" " }}</span></div>{% endif %}
+      <button type="submit" class="btn-base btn-primary" style="width: 100%; justify-content: center; padding: 12px;">Set password &amp; sign in</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

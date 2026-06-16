@@ -63,17 +63,24 @@ def create_employee(tenant, data: dict, created_by=None) -> Employee:
 
     employee_code = data.get("employee_code") or generate_employee_code(tenant)
 
-    # Create login user
-    password = data.pop("password", None) or _generate_temp_password()
+    # Create login user. No explicit password → leave it None so the account is
+    # created locked and the employee can only get in via the invite link.
+    password = data.pop("password", None)
     official_email = data.get("official_email") or data.get("personal_email", "")
 
     user = None
     if official_email:
+        # No explicit password → the account is created LOCKED (inactive, no
+        # usable password). The only way in is the signed invite link the admin
+        # shares; accepting it sets the password and activates the account.
         user = User.objects.create_user(
             email=official_email,
             tenant=tenant,
-            password=password,
+            password=password or None,
         )
+        if not password:
+            user.is_active = False
+            user.save(update_fields=["is_active"])
         # Assign default 'employee' role
         employee_role = Role.objects.filter(tenant=tenant, name="employee").first()
         if employee_role:
@@ -114,36 +121,38 @@ def provision_employee_login(employee, created_by=None, reset_password: bool = F
     bridges that: it creates a User from the employee's email, links it via
     ``Employee.user``, and grants the default ``employee`` role.
 
-    Returns ``(user, temp_password)``. ``temp_password`` is ``None`` when an
-    existing login is left untouched (``reset_password=False`` and a user is
-    already linked) — email delivery isn't wired yet, so the caller is expected
-    to surface the returned password to the admin to share manually.
+    Returns ``(user, needs_invite)``. ``needs_invite`` is ``True`` when the caller
+    should hand the employee a fresh invite link (a new or reset account that is
+    locked until the link is accepted). Accounts are created/reset LOCKED —
+    inactive with no usable password — so the normal login refuses them until the
+    admin-issued invite link is used.
     """
     from apps.accounts.models import Role, UserRole
 
     tenant = employee.tenant
 
-    # Already linked: optionally reset the password, otherwise no-op.
+    # Already linked: on reset, re-lock and re-issue an invite; else no-op.
     if employee.user_id:
         if reset_password:
-            password = _generate_temp_password()
             user = employee.user
-            user.set_password(password)
-            user.is_active = True
+            user.set_unusable_password()
+            user.is_active = False
             user.save(update_fields=["password", "is_active"])
-            return user, password
-        return employee.user, None
+            return user, True
+        return employee.user, False
 
     email = (employee.official_email or employee.personal_email or "").strip().lower()
     if not email:
         raise ValueError("This employee has no email address. Add an official or personal email first.")
 
-    # Reuse an existing user with this email in the tenant, else create one.
+    # Reuse an existing user with this email in the tenant, else create a locked one.
     user = User.objects.filter(tenant=tenant, email=email).first()
-    password = None
+    needs_invite = False
     if user is None:
-        password = _generate_temp_password()
-        user = User.objects.create_user(email=email, tenant=tenant, password=password)
+        user = User.objects.create_user(email=email, tenant=tenant, password=None)
+        user.is_active = False
+        user.save(update_fields=["is_active"])
+        needs_invite = True
 
     employee_role = Role.objects.filter(tenant=tenant, name="employee").first()
     if employee_role:
@@ -151,14 +160,15 @@ def provision_employee_login(employee, created_by=None, reset_password: bool = F
 
     employee.user = user
     employee.save(update_fields=["user"])
-    return user, password
+    return user, needs_invite
 
 
-def email_login_credentials(employee, password: str, login_url: str) -> bool:
-    """Email an employee their new self-service credentials. Returns True if sent.
+def email_employee_invite(employee, invite_url: str, login_url: str = "") -> bool:
+    """Email an employee their secure invite link. Returns True if actually sent.
 
     Best-effort: never raises — provisioning a login must not fail because mail is
-    misconfigured. In dev (console email backend) this just prints to the logs.
+    misconfigured. In dev (console/dummy email backend) this just prints to the
+    logs and reports "not sent" so the caller shows the link on screen instead.
     """
     from django.conf import settings
     from django.core.mail import EmailMultiAlternatives
@@ -166,17 +176,17 @@ def email_login_credentials(employee, password: str, login_url: str) -> bool:
     from django.utils.html import strip_tags
 
     user = employee.user
-    if not user or not user.email or not password:
+    if not user or not user.email or not invite_url:
         return False
     # The dev console/dummy backends don't actually reach the employee — report
-    # "not sent" so the caller shows the password on screen instead.
+    # "not sent" so the caller shows the invite link on screen instead.
     backend = getattr(settings, "EMAIL_BACKEND", "")
     if any(b in backend for b in ("console", "dummy")):
         return False
     tenant = employee.tenant
     try:
         html = render_to_string("auth/emails/login_credentials.html", {
-            "user": user, "password": password, "login_url": login_url,
+            "user": user, "invite_url": invite_url, "login_url": login_url,
             "tenant": tenant, "first_name": employee.first_name,
         })
         msg = EmailMultiAlternatives(
