@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
-import { CloseOutlined } from '@ant-design/icons';
+import { Link } from 'react-router-dom';
+import { CloseOutlined, PhoneOutlined, MailOutlined } from '@ant-design/icons';
 import { useChatbot } from './useChatbot';
 import { useChatbotContext } from './useChatbotContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { SAPTTA_PHONES } from '../../data/contact-info';
 import SahayakIcon from './SahayakIcon';
 
 /** Product name for the floating assistant — update here to rebrand */
@@ -25,19 +27,30 @@ const STARTERS = {
     '🆕 Who joined this month?',
   ],
   general: [
+    '💰 What are Saptta pricing plans?',
     '🏢 What can Saptta HR do?',
-    '💼 What features does fin-saptta have?',
-    '🔄 How does payroll work in Saptta?',
-    '📊 What reports can fin-saptta generate?',
-    '🎯 How do I set up GST in fin-saptta?',
+    '💼 What features does fin-saptta include?',
+    '🔄 HRMS + Finance together?',
+    '📞 How do I book a demo?',
   ],
 };
+
+const GUEST_STARTERS = [
+  '💰 Pricing for HRMS & Finance',
+  '🏢 How does Saptta work?',
+  '🆓 Is there a free trial?',
+  '📞 Talk to sales',
+  '📋 HR vs Finance — which plan?',
+];
 
 const WELCOME = {
   finance: 'Ask me about invoices, cash flow, GST, P&L, vendor bills, or get a payment reminder drafted.',
   hr: 'Ask me about headcount, attendance, leave approvals, payroll totals, or new joiners.',
-  general: 'I can explain Saptta features and guide you to the right module. For live data, use the Finance or HR AI.',
+  general: 'I can explain Saptta features, pricing, and how to get started. For live data about your company, sign in and open Finance or HR.',
 };
+
+const GUEST_WELCOME =
+  'Ask about Saptta products, pricing, or how to sign up. For your company\'s live data, sign in — or contact our team below.';
 
 const BADGE_COLORS = {
   finance: { bg: 'rgba(16,185,129,0.15)', text: '#059669', border: 'rgba(16,185,129,0.30)' },
@@ -177,7 +190,9 @@ function MessageBubble({ role, content, context }: { role: 'user' | 'assistant';
 export default function ChatbotWidget() {
   const { isAuthenticated, user } = useAuth();
   const ctx = useChatbotContext();
-  const { messages, isLoading, sendMessage, clearHistory } = useChatbot(ctx.context);
+  const isGuestGeneral = !isAuthenticated && ctx.context === 'general';
+  const canChat = isAuthenticated || isGuestGeneral;
+  const { messages, isLoading, sendMessage, clearHistory } = useChatbot(ctx.context, isGuestGeneral);
 
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
@@ -192,8 +207,7 @@ export default function ChatbotWidget() {
   useEffect(() => { if (open) setTimeout(() => textareaRef.current?.focus(), 120); }, [open]);
 
   function handleSend() {
-    if (!input.trim() || isLoading) return;
-    if (!isAuthenticated) { setInput(''); return; }
+    if (!input.trim() || isLoading || !canChat) return;
     sendMessage(input);
     setInput('');
   }
@@ -207,7 +221,7 @@ export default function ChatbotWidget() {
 
   const greeting = user?.firstName ? `Hi ${user.firstName}! ` : 'Hi there! ';
   const badgeColors = BADGE_COLORS[ctx.context];
-  const starters = STARTERS[ctx.context];
+  const starterPrompts = isGuestGeneral ? GUEST_STARTERS : STARTERS[ctx.context];
   const theme = THEMES[ctx.context];
 
   return (
@@ -369,39 +383,46 @@ export default function ChatbotWidget() {
               display: 'flex', flexDirection: 'column',
             }}
           >
-            {messages.length === 0 && !isAuthenticated && (
-              <div style={{ textAlign: 'center', padding: '24px 16px' }}>
-                <div
-                  style={{
-                    width: 52, height: 52, borderRadius: 12, margin: '0 auto 12px',
-                    background: '#ffffff', border: `2px solid ${FAB_STYLE.accent}`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    boxShadow: '0 4px 14px rgba(30, 42, 120, 0.08)',
-                  }}
-                >
-                  <SahayakIcon size={36} />
+            {messages.length === 0 && isGuestGeneral && (
+              <div style={{ textAlign: 'center', padding: '12px 8px 4px' }}>
+                <div style={{ fontSize: 30, marginBottom: 8 }}>👋</div>
+                <div style={{ fontSize: 14.5, fontWeight: 600, color: '#0A1128', marginBottom: 4 }}>
+                  Ask Sahayak about Saptta
                 </div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: '#0A1128', marginBottom: 8 }}>
-                  {CHATBOT_NAME}
+                <div style={{ fontSize: 12.5, color: '#64748B', lineHeight: 1.55, marginBottom: 14 }}>
+                  {GUEST_WELCOME}
                 </div>
-                <div style={{ fontSize: 13, color: '#64748B', lineHeight: 1.6, marginBottom: 20 }}>
-                  Sign in to chat with our AI — ask about invoices, payroll, GST, employee data, and more.
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center', marginBottom: 14 }}>
+                  {starterPrompts.map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => sendMessage(s)}
+                      style={{
+                        background: theme.bgLight, border: `1px solid ${theme.borderLight}`,
+                        borderRadius: 999, padding: '6px 14px', fontSize: 12,
+                        color: '#1E2A78', cursor: 'pointer', fontWeight: 500,
+                      }}
+                    >
+                      {s}
+                    </button>
+                  ))}
                 </div>
-                <a
-                  href="/login"
-                  style={{
-                    display: 'inline-block', padding: '10px 24px', borderRadius: 10,
-                    background: theme.gradient, color: '#fff', fontWeight: 600, fontSize: 13.5,
-                    textDecoration: 'none', boxShadow: `0 4px 14px ${theme.shadow}`,
-                  }}
-                >
-                  Sign in to chat →
-                </a>
-                <div style={{ marginTop: 16, fontSize: 11.5, color: '#94A3B8' }}>
-                  Don't have an account?{' '}
-                  <a href="/signup" style={{ color: theme.primary, textDecoration: 'none', fontWeight: 600 }}>
-                    Sign up free
-                  </a>
+                <div style={{
+                  display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center',
+                  padding: '12px 10px', borderRadius: 12, background: 'rgba(30,42,120,0.04)',
+                  border: '1px solid rgba(30,42,120,0.08)', fontSize: 12, color: '#64748B',
+                }}>
+                  <span>Need a demo or custom plan?</span>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
+                    <Link to="/contact" style={{ color: theme.primary, fontWeight: 600, textDecoration: 'none' }}>Contact us</Link>
+                    <span aria-hidden>·</span>
+                    <Link to="/signup" style={{ color: theme.primary, fontWeight: 600, textDecoration: 'none' }}>Start free trial</Link>
+                    <span aria-hidden>·</span>
+                    <a href={`tel:${SAPTTA_PHONES[0].tel}`} style={{ color: theme.primary, fontWeight: 600, textDecoration: 'none' }}>
+                      {SAPTTA_PHONES[0].display}
+                    </a>
+                  </div>
                 </div>
               </div>
             )}
@@ -416,7 +437,7 @@ export default function ChatbotWidget() {
                   {WELCOME[ctx.context]}
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center' }}>
-                  {starters.map((s) => (
+                  {starterPrompts.map((s) => (
                     <button
                       key={s}
                       onClick={() => sendMessage(s)}
@@ -515,9 +536,13 @@ export default function ChatbotWidget() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder={isAuthenticated ? ctx.placeholder : 'Sign in to chat…'}
+                placeholder={
+                  canChat
+                    ? (isGuestGeneral ? 'Ask about Saptta, pricing, or demos…' : ctx.placeholder)
+                    : 'Sign in to chat…'
+                }
                 rows={1}
-                disabled={isLoading || !isAuthenticated}
+                disabled={isLoading || !canChat}
                 aria-label="Chat message input"
                 style={{
                   flex: 1, resize: 'none', border: 'none', outline: 'none',
@@ -565,8 +590,26 @@ export default function ChatbotWidget() {
               </button>
             </div>
             <div style={{ marginTop: 7, fontSize: 11, color: 'rgba(10,17,40,0.35)', textAlign: 'center', fontWeight: 500 }}>
-              Press Enter to send · Shift+Enter for new line
+              {isGuestGeneral
+                ? 'Product & pricing only · Live data requires sign-in'
+                : 'Press Enter to send · Shift+Enter for new line'}
             </div>
+            {isGuestGeneral && (
+              <div style={{
+                marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(10,17,40,0.06)',
+                display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center', fontSize: 11,
+              }}>
+                <Link to="/pricing" style={{ color: '#64748B', textDecoration: 'none' }}>Pricing</Link>
+                <Link to="/signup" style={{ color: '#64748B', textDecoration: 'none' }}>Sign up</Link>
+                <Link to="/contact" style={{ color: '#64748B', textDecoration: 'none' }}>Contact</Link>
+                <a href={`tel:${SAPTTA_PHONES[0].tel}`} style={{ color: '#64748B', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                  <PhoneOutlined style={{ fontSize: 10 }} /> {SAPTTA_PHONES[0].display}
+                </a>
+                <a href="mailto:info@saptta.com" style={{ color: '#64748B', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                  <MailOutlined style={{ fontSize: 10 }} /> info@saptta.com
+                </a>
+              </div>
+            )}
           </div>
         </div>
       )}

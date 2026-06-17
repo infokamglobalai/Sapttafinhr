@@ -1,4 +1,4 @@
-/* Dashboard — Soft UI reference layout (HR admin overview) */
+/* Dashboard — clean HR admin overview */
 
 .dash-refresh {
   --dash-violet: #7C3AED;
@@ -6,7 +6,246 @@
   --dash-indigo: #6366F1;
   --dash-pink: #F472B6;
   --dash-mint: #34D399;
+  --dash-border: rgba(15, 23, 42, 0.08);
+  --dash-muted: #64748B;
+  --dash-text: #0F172A;
+  --dash-surface: #FFFFFF;
+  --dash-bg: #F8FAFC;
 }
+
+/* ── Page header ── */
+.dash-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px 24px;
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--dash-border);
+}
+
+.dash-header__eyebrow {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--dash-muted);
+  margin: 0 0 4px;
+}
+
+.dash-header__title {
+  font-size: clamp(1.35rem, 2.2vw, 1.65rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--dash-text);
+  margin: 0 0 6px;
+  line-height: 1.25;
+}
+
+.dash-header__sub {
+  font-size: 14px;
+  color: var(--dash-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.dash-header__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dash-header__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dash-text);
+  background: var(--dash-surface);
+  border: 1px solid var(--dash-border);
+  border-radius: 10px;
+  text-decoration: none;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.dash-header__btn:hover {
+  border-color: rgba(249, 115, 22, 0.35);
+  background: #FFFBF7;
+  color: var(--dash-text);
+}
+
+.dash-header__btn--primary {
+  background: #F97316;
+  border-color: #F97316;
+  color: #fff;
+}
+
+.dash-header__btn--primary:hover {
+  background: #EA580C;
+  border-color: #EA580C;
+  color: #fff;
+}
+
+/* ── Today snapshot row ── */
+.dash-snapshot {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+@media (min-width: 768px) {
+  .dash-snapshot { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (min-width: 1100px) {
+  .dash-snapshot { grid-template-columns: repeat(6, 1fr); }
+}
+
+.dash-snapshot__item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  background: var(--dash-surface);
+  border: 1px solid var(--dash-border);
+  border-radius: 12px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.dash-snapshot__item:hover {
+  border-color: rgba(249, 115, 22, 0.25);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+}
+
+.dash-snapshot__label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--dash-muted);
+}
+
+.dash-snapshot__value {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--dash-text);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-snapshot__hint {
+  font-size: 12px;
+  color: #94A3B8;
+}
+
+.dash-snapshot__item--green .dash-snapshot__value { color: #059669; }
+.dash-snapshot__item--warn .dash-snapshot__value { color: #EA580C; }
+
+/* ── Needs attention (only when items exist) ── */
+.dash-attention {
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-bottom: 24px;
+}
+
+.dash-attention__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.dash-attention__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #92400E;
+  margin: 0;
+}
+
+.dash-attention__badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #FEF3C7;
+  color: #B45309;
+}
+
+.dash-attention__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+@media (min-width: 768px) {
+  .dash-attention__grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+.dash-attention__item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  background: #fff;
+  border: 1px solid #FDE68A;
+  border-radius: 10px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 150ms ease;
+}
+
+.dash-attention__item:hover {
+  border-color: #F59E0B;
+}
+
+.dash-attention__value {
+  font-size: 22px;
+  font-weight: 700;
+  color: #EA580C;
+  line-height: 1.1;
+}
+
+.dash-attention__label {
+  font-size: 12px;
+  color: #78716C;
+}
+
+/* ── Chart card ── */
+.dash-chart-card {
+  background: var(--dash-surface);
+  border: 1px solid var(--dash-border);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.dash-chart-card__head {
+  margin-bottom: 16px;
+}
+
+.dash-chart-card__title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--dash-text);
+  margin: 0 0 4px;
+  letter-spacing: -0.01em;
+}
+
+.dash-chart-card__sub {
+  font-size: 13px;
+  color: var(--dash-muted);
+  margin: 0;
+}
+
+/* ── Legacy soft-ui (manager / employee dashboards) ── */
 
 /* ── Top row: welcome + health ── */
 .dash-top-grid {
@@ -538,11 +777,10 @@
 /* ── Company setup stepper ── */
 .dash-setup-card {
   background: #fff;
-  border-radius: 20px;
-  padding: 22px 24px 20px;
-  border: 1px solid rgba(15, 23, 42, 0.06);
-  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.05);
-  margin-bottom: 24px;
+  border-radius: 12px;
+  padding: 18px 20px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  margin-bottom: 20px;
 }
 
 .dash-setup-card__head {

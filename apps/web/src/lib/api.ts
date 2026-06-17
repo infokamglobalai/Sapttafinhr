@@ -20,13 +20,15 @@
  * here; see the HR embed route in the app shell.
  */
 
-// ─── Configuration ───────────────────────────────────────────────────────
-const PLATFORM_BASE: string =
-  import.meta.env.VITE_PLATFORM_API_BASE_URL || 'http://localhost:8000/api/v1';
+import {
+  resolvePlatformApiBaseUrl,
+  resolveTenantApiBaseTemplate,
+} from './platform';
 
-const TENANT_BASE_TEMPLATE: string =
-  import.meta.env.VITE_TENANT_API_BASE_URL ||
-  'http://{workspace}.localhost:8000/api/v1';
+// ─── Configuration ───────────────────────────────────────────────────────
+const PLATFORM_BASE: string = resolvePlatformApiBaseUrl();
+
+const TENANT_BASE_TEMPLATE: string = resolveTenantApiBaseTemplate();
 
 const DEFAULT_WORKSPACE: string =
   import.meta.env.VITE_DEFAULT_WORKSPACE || 'acme';

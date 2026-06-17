@@ -1,5 +1,7 @@
 from django.conf import settings
 
+from apps.accounts.platform import platform_base_for_request
+
 SETTINGS_URL_NAMES = frozenset({
     "departments", "department_create", "designations", "designation_create",
     "locations", "location_create",
@@ -22,7 +24,7 @@ def tenant_context(request):
         "nav_is_settings": url_name in SETTINGS_URL_NAMES,
         # Base URL of the Saptta platform — templates build product-switch and
         # full-logout links against it (single auth authority).
-        "PLATFORM_BASE_URL": getattr(settings, "PLATFORM_BASE_URL", "http://localhost:8080").rstrip("/"),
+        "PLATFORM_BASE_URL": platform_base_for_request(request),
     }
     user = getattr(request, "user", None)
     if user and user.is_authenticated and getattr(user, "tenant_id", None):

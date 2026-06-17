@@ -13,7 +13,7 @@ export interface UseChatbotReturn {
   clearHistory: () => void;
 }
 
-export function useChatbot(context: ChatbotContext = 'general'): UseChatbotReturn {
+export function useChatbot(context: ChatbotContext = 'general', guestMode = false): UseChatbotReturn {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +31,7 @@ export function useChatbot(context: ChatbotContext = 'general'): UseChatbotRetur
 
     try {
       const history = messagesRef.current.slice(-MAX_HISTORY);
-      const result = await sendChatMessage({ message: trimmed, history }, context);
+      const result = await sendChatMessage({ message: trimmed, history }, context, { guest: guestMode });
 
       setMessages(prev => [
         ...prev,
@@ -44,7 +44,7 @@ export function useChatbot(context: ChatbotContext = 'general'): UseChatbotRetur
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading, context]);
+  }, [isLoading, context, guestMode]);
 
   const clearHistory = useCallback(() => {
     setMessages([]);

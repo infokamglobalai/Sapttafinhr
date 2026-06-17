@@ -4,7 +4,7 @@
 {% block page_sub %}{% now "l, j F Y" %}{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/dashboard-soft-ui.css' %}">
+<link rel="stylesheet" href="{% static 'css/dashboard-soft-ui.css' %}?v=4">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -559,108 +559,14 @@
 
 {% include "dashboard/partials/admin_soft_ui_top.html" %}
 
-{% include "dashboard/partials/setup_checklist.html" %}
 {% include "dashboard/partials/pending_work.html" %}
 
-<!-- KPI Strip -->
-<div class="dash-section-divider">Today's snapshot</div>
-<div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-4 mb-6 stagger">
-  <div class="stat premium-glass-card stat--blue">
-    <div class="flex flex-col justify-between h-full">
-      <div>
-        <div class="stat-label">Employees</div>
-        <div class="stat-value mt-1" data-counter>{{ kpis.total_employees }}</div>
-      </div>
-      <div class="stat-sub">+{{ kpis.new_joiners_this_month }} this month</div>
-    </div>
-    <div class="absolute right-3 top-3 w-8 h-8 rounded-lg flex items-center justify-center stat-icon">
-      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-    </div>
+<div class="premium-glass-card p-5 mb-6 stagger">
+  <div class="mb-4">
+    <h2 class="ch-title mb-1">Attendance trend</h2>
+    <p class="ch-sub mb-0">Daily presence over the last 14 days · {{ insights.avg_daily_present }} avg per day</p>
   </div>
-  <div class="stat premium-glass-card stat--green">
-    <div class="flex flex-col justify-between h-full">
-      <div>
-        <div class="stat-label">Present</div>
-        <div class="stat-value mt-1" data-counter>{{ kpis.present_today }}</div>
-      </div>
-      <div class="stat-sub">{{ kpis.attendance_rate_pct }}% of workforce</div>
-    </div>
-    <div class="absolute right-3 top-3 w-8 h-8 rounded-lg flex items-center justify-center stat-icon">
-      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4"/></svg>
-    </div>
-  </div>
-  <div class="stat premium-glass-card stat--amber">
-    <div class="flex flex-col justify-between h-full">
-      <div>
-        <div class="stat-label">On Leave</div>
-        <div class="stat-value mt-1" data-counter>{{ kpis.on_leave_today }}</div>
-      </div>
-      <div class="stat-sub">Out of office</div>
-    </div>
-    <div class="absolute right-3 top-3 w-8 h-8 rounded-lg flex items-center justify-center stat-icon">
-      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-    </div>
-  </div>
-  <div class="stat premium-glass-card stat--cyan">
-    <div class="flex flex-col justify-between h-full">
-      <div>
-        <div class="stat-label">Absent</div>
-        <div class="stat-value mt-1" data-counter>{{ kpis.absent_today }}</div>
-      </div>
-      <div class="stat-sub">Not marked in</div>
-    </div>
-    <div class="absolute right-3 top-3 w-8 h-8 rounded-lg flex items-center justify-center stat-icon">
-      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
-    </div>
-  </div>
-  <a href="{% url 'leaves:pending' %}" class="stat premium-glass-card stat--orange block" style="text-decoration: none;">
-    <div class="flex flex-col justify-between h-full">
-      <div>
-        <div class="stat-label">Pending Leave</div>
-        <div class="stat-value mt-1" data-counter>{{ kpis.pending_leave_approvals }}</div>
-      </div>
-      <div class="stat-sub font-semibold">Requires review</div>
-    </div>
-    <div class="absolute right-3 top-3 w-8 h-8 rounded-lg flex items-center justify-center stat-icon">
-      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-    </div>
-  </a>
-  <a href="{% url 'attendance:regularizations' %}" class="stat premium-glass-card stat--indigo block" style="text-decoration: none;">
-    <div class="flex flex-col justify-between h-full">
-      <div>
-        <div class="stat-label">Att. Fixes</div>
-        <div class="stat-value mt-1" data-counter>{{ kpis.pending_regularizations }}</div>
-      </div>
-      <div class="stat-sub font-semibold">Waiting approval</div>
-    </div>
-    <div class="absolute right-3 top-3 w-8 h-8 rounded-lg flex items-center justify-center stat-icon">
-      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/></svg>
-    </div>
-  </a>
-  <div class="stat premium-glass-card stat--rose">
-    <div class="flex flex-col justify-between h-full">
-      <div>
-        <div class="stat-label">Exits</div>
-        <div class="stat-value mt-1" data-counter>{{ kpis.exits_this_month }}</div>
-      </div>
-      <div class="stat-sub">This month</div>
-    </div>
-    <div class="absolute right-3 top-3 w-8 h-8 rounded-lg flex items-center justify-center stat-icon">
-      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7"/></svg>
-    </div>
-  </div>
-</div>
-
-<!-- Attendance trend (fixed full width) -->
-<div class="premium-glass-card p-6 mb-6 stagger">
-  <div class="flex justify-between items-center mb-4">
-    <div>
-      <div class="ch-title">Attendance Trend</div>
-      <div class="ch-sub" style="margin-bottom:0;">Live records · Past 14 days</div>
-    </div>
-    <span class="badge badge-success text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1">{{ insights.avg_daily_present }} avg / day</span>
-  </div>
-  <div class="chart-wrap" style="height: 240px; position: relative;">
+  <div class="chart-wrap" style="height: 220px; position: relative;">
     <canvas id="attendanceTrendChart"></canvas>
   </div>
 </div>
@@ -739,6 +645,9 @@
     grad.addColorStop(0.5, 'rgba(37, 99, 235, 0.08)');
     grad.addColorStop(1, 'rgba(255, 255, 255, 0.01)');
 
+    const trendPeak = Math.max(0, ...(attTrend.data || []));
+    const trendEmpty = trendPeak === 0;
+
     new Chart(trendCtx, {
       type: 'line',
       data: {
@@ -777,8 +686,14 @@
         scales: {
           y: {
             beginAtZero: true,
+            suggestedMax: trendEmpty ? 5 : undefined,
+            ticks: {
+              font: { size: 10, weight: '600' },
+              padding: 8,
+              stepSize: trendEmpty ? 1 : undefined,
+              precision: 0,
+            },
             grid: { color: 'rgba(226, 232, 240, 0.6)' },
-            ticks: { font: { size: 10, weight: '600' }, padding: 8 }
           },
           x: {
             grid: { display: false },

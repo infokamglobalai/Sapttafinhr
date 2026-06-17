@@ -2,7 +2,7 @@
 {# Customizable panels: By Department and below — reorder + half/full width #}
 <div x-data="dashboardPanelLayout()" x-init="init()">
   <div class="dash-layout-bar">
-    <div class="section-label" style="margin-bottom:0; flex:1;">Insights &amp; reports</div>
+    <div class="section-label" style="margin-bottom:0; flex:1;">More insights</div>
     <button type="button" class="dash-layout-btn" :class="{ 'is-active': editMode }" @click="editMode = !editMode">
       <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h7"/></svg>
       <span x-text="editMode ? 'Done' : 'Customize layout'"></span>

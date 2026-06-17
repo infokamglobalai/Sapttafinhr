@@ -1,36 +1,36 @@
 /* ============================================================
-   SAPTTA SIDEBAR — premium rail + sub-panel enhancements
+   SAPTTA SIDEBAR — clean rail + sub-panel (brand blue accent)
    Depends on saptta-tokens.css
    ============================================================ */
 
 @media (min-width: 1024px) {
-  /* ── Primary rail surface ── */
+  /* ── Primary rail — flat white surface ── */
   .sidebar-primary {
-    background: var(--saptta-surface-glass) !important;
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border-right: 1px solid var(--saptta-border) !important;
+    background: #FFFFFF !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border-right: 1px solid rgba(15, 23, 42, 0.07) !important;
+    box-shadow: none !important;
   }
 
   .sidebar-desktop-container.is-expanded .sidebar-primary {
-    box-shadow: 4px 0 24px rgba(15, 23, 42, 0.06);
+    box-shadow: 1px 0 0 rgba(15, 23, 42, 0.04);
   }
 
-  /* Logo-only brand — always centered */
-  .sidebar-desktop-container.is-expanded .primary-brand,
-  .primary-brand {
+  .primary-brand,
+  .sidebar-desktop-container.is-expanded .primary-brand {
     justify-content: center !important;
     padding-left: 0 !important;
     padding-right: 0 !important;
+    border-bottom-color: rgba(15, 23, 42, 0.06) !important;
   }
 
-  /* Scrollable nav when many modules */
   .dock-nav {
     overflow-y: auto;
     overflow-x: hidden;
     min-height: 0;
     scrollbar-width: thin;
-    scrollbar-color: rgba(15, 23, 42, 0.12) transparent;
+    scrollbar-color: rgba(15, 23, 42, 0.1) transparent;
   }
 
   .dock-nav::-webkit-scrollbar {
@@ -38,18 +38,19 @@
   }
 
   .dock-nav::-webkit-scrollbar-thumb {
-    background: rgba(15, 23, 42, 0.1);
+    background: rgba(15, 23, 42, 0.08);
     border-radius: 4px;
   }
 
   .dock-section-label {
-    color: var(--saptta-text-tertiary) !important;
+    color: #94A3B8 !important;
+    font-weight: 600 !important;
   }
 
-  /* ── Module-toned active rail items (not always orange) ── */
+  /* Active rail item — brand blue only */
   .dock-item.active {
-    background: var(--module-soft, var(--saptta-primary-soft)) !important;
-    color: var(--saptta-text) !important;
+    background: rgba(37, 99, 235, 0.08) !important;
+    color: #0F172A !important;
   }
 
   .dock-item.active::before {
@@ -59,19 +60,22 @@
     top: 50%;
     transform: translateY(-50%);
     width: 3px;
-    height: 20px;
+    height: 18px;
     border-radius: 0 4px 4px 0;
-    background: var(--module-color, var(--saptta-primary)) !important;
+    background: #2563EB !important;
   }
 
   .dock-item.active .dock-label {
-    color: var(--saptta-text) !important;
+    color: #0F172A !important;
     font-weight: 600;
   }
 
-  /* Collapsed tooltip — brand-aligned */
+  .dock-item:hover {
+    background: rgba(15, 23, 42, 0.04) !important;
+  }
+
   .dock-item::after {
-    background: var(--saptta-text) !important;
+    background: #0F172A !important;
     font-size: 11px;
     font-weight: 600;
     padding: 6px 11px;
@@ -79,7 +83,7 @@
     box-shadow: var(--saptta-shadow-md);
   }
 
-  /* ── Workspace chip (expanded / pinned) ── */
+  /* Workspace chip — minimal */
   .dock-workspace {
     display: none;
     padding: 0 14px 10px;
@@ -94,142 +98,148 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 10px;
-    border-radius: 10px;
-    background: var(--saptta-secondary-soft);
-    border: 1px solid rgba(37, 99, 235, 0.12);
+    padding: 7px 10px;
+    border-radius: 8px;
+    background: #F8FAFC;
+    border: 1px solid rgba(15, 23, 42, 0.06);
   }
 
   .dock-workspace-dot {
-    width: 7px;
-    height: 7px;
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
-    background: var(--saptta-success);
+    background: #2563EB;
     flex-shrink: 0;
-    box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.2);
+    box-shadow: none;
   }
 
   .dock-workspace-name {
     font-size: 11px;
     font-weight: 600;
-    color: var(--saptta-text-secondary);
+    color: #475569;
     line-height: 1.25;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  /* ── Pin control ── */
   .dock-pin-btn:hover {
-    background: var(--saptta-primary-soft) !important;
-    color: var(--saptta-primary) !important;
+    background: rgba(37, 99, 235, 0.08) !important;
+    color: #2563EB !important;
   }
 
   .sidebar-desktop-container.is-pinned .dock-pin-btn {
-    color: var(--saptta-secondary) !important;
-    background: var(--saptta-secondary-soft) !important;
+    color: #2563EB !important;
+    background: rgba(37, 99, 235, 0.1) !important;
   }
 
-  /* ── Secondary sub-panel ── */
+  /* Secondary sub-panel — no rainbow top stripe */
   .sidebar-secondary {
-    background: var(--saptta-surface) !important;
-    border-right: 1px solid var(--saptta-border) !important;
-    border-top: 3px solid var(--panel-accent, var(--saptta-primary));
-    box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.8);
+    background: #FAFBFC !important;
+    border-right: 1px solid rgba(15, 23, 42, 0.07) !important;
+    border-top: none !important;
+    box-shadow: none !important;
   }
 
   .secondary-header {
     display: flex;
     align-items: center;
     gap: 10px;
-    font-size: 14px !important;
+    font-size: 13px !important;
     font-weight: 700 !important;
-    color: var(--saptta-text) !important;
-    border-bottom-color: var(--saptta-border) !important;
+    color: #0F172A !important;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.06) !important;
     padding-bottom: 12px !important;
   }
 
   .secondary-header::before {
     content: '';
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--panel-accent, var(--saptta-primary));
+    width: 3px;
+    height: 14px;
+    border-radius: 2px;
+    background: #2563EB;
     flex-shrink: 0;
-    box-shadow: 0 0 0 3px var(--panel-accent-soft, var(--saptta-primary-soft));
+    box-shadow: none;
   }
 
   .sidebar-secondary .search-input {
-    border-color: var(--saptta-border) !important;
-    background: var(--saptta-bg) !important;
+    border-color: rgba(15, 23, 42, 0.1) !important;
+    background: #fff !important;
     font-size: 12.5px !important;
   }
 
   .sidebar-secondary .search-input:focus {
-    border-color: var(--saptta-secondary) !important;
-    box-shadow: 0 0 0 3px var(--saptta-secondary-soft) !important;
+    border-color: #2563EB !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
   }
 
   .sidebar-secondary .nav-item {
-    border-radius: 10px !important;
+    border-radius: 8px !important;
     font-size: 13px !important;
-    color: var(--saptta-text-secondary) !important;
+    color: #475569 !important;
     transition: background 140ms ease, color 140ms ease;
   }
 
   .sidebar-secondary .nav-item:hover {
     background: rgba(15, 23, 42, 0.04) !important;
-    color: var(--saptta-text) !important;
+    color: #0F172A !important;
   }
 
   .sidebar-secondary .nav-item.active {
-    background: var(--panel-accent-soft, var(--saptta-primary-soft)) !important;
-    color: var(--saptta-text) !important;
+    background: rgba(37, 99, 235, 0.08) !important;
+    color: #0F172A !important;
     font-weight: 600 !important;
   }
 
   .sidebar-secondary .nav-item.active::before {
-    background: var(--panel-accent, var(--saptta-primary)) !important;
+    background: #2563EB !important;
   }
 
   .secondary-footer,
   .sidebar-footer {
-    color: var(--saptta-text-tertiary) !important;
-    border-top-color: var(--saptta-border) !important;
+    color: #94A3B8 !important;
+    border-top-color: rgba(15, 23, 42, 0.06) !important;
     font-size: 10px !important;
   }
 }
 
-/* ── Per-module accent on secondary panel ── */
-.sidebar-secondary--dashboard { --panel-accent: var(--tone-orange); --panel-accent-soft: var(--tone-orange-soft); }
-.sidebar-secondary--mySpace { --panel-accent: var(--tone-blue); --panel-accent-soft: var(--tone-blue-soft); }
-.sidebar-secondary--team { --panel-accent: var(--tone-indigo); --panel-accent-soft: var(--tone-indigo-soft); }
-.sidebar-secondary--people { --panel-accent: var(--tone-blue); --panel-accent-soft: var(--tone-blue-soft); }
-.sidebar-secondary--timeLeave { --panel-accent: var(--tone-cyan); --panel-accent-soft: var(--tone-cyan-soft); }
-.sidebar-secondary--payroll { --panel-accent: var(--tone-green); --panel-accent-soft: var(--tone-green-soft); }
-.sidebar-secondary--performance { --panel-accent: var(--tone-amber); --panel-accent-soft: var(--tone-amber-soft); }
-.sidebar-secondary--reports { --panel-accent: var(--tone-violet); --panel-accent-soft: var(--tone-violet-soft); }
-.sidebar-secondary--hrOps { --panel-accent: var(--tone-rose); --panel-accent-soft: var(--tone-rose-soft); }
-.sidebar-secondary--settings { --panel-accent: var(--tone-slate); --panel-accent-soft: var(--tone-slate-soft); }
+/* All secondary panels share one blue accent */
+.sidebar-secondary--dashboard,
+.sidebar-secondary--mySpace,
+.sidebar-secondary--team,
+.sidebar-secondary--people,
+.sidebar-secondary--timeLeave,
+.sidebar-secondary--payroll,
+.sidebar-secondary--performance,
+.sidebar-secondary--reports,
+.sidebar-secondary--hrOps,
+.sidebar-secondary--settings {
+  --panel-accent: #2563EB;
+  --panel-accent-soft: rgba(37, 99, 235, 0.08);
+}
 
-/* ── Mobile drawer sidebar ── */
+/* Mobile drawer */
 @media (max-width: 1023px) {
   .sidebar {
-    background: var(--saptta-surface) !important;
+    background: #fff !important;
   }
 
   .sidebar-brand--solo {
-    border-bottom: 1px solid var(--saptta-border);
+    border-bottom: 1px solid rgba(15, 23, 42, 0.08);
     padding: 16px !important;
     justify-content: center;
   }
 
   .sidebar .nav-item.active {
-    background: var(--saptta-primary-soft) !important;
-    color: var(--saptta-text) !important;
+    background: rgba(37, 99, 235, 0.08) !important;
+    color: #0F172A !important;
+  }
+
+  .sidebar .nav-item.active::before {
+    background: #2563EB !important;
   }
 
   .sidebar .nav-group-header.active-group {
-    color: var(--saptta-primary) !important;
+    color: #2563EB !important;
   }
 }

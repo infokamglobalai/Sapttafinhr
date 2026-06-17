@@ -95,6 +95,16 @@ def get_setup_checklist(tenant) -> dict:
             status = "pending"
         display_steps.append({"label": label, "status": status, "url": url})
 
+    next_item = next((i for i in items if not i["done"]), None)
+    next_key = next_item["key"] if next_item else None
+    for i in items:
+        if i["done"]:
+            i["dot_status"] = "done"
+        elif i["key"] == next_key:
+            i["dot_status"] = "current"
+        else:
+            i["dot_status"] = "pending"
+
     return {
         "items": items,
         "display_steps": display_steps,
@@ -102,4 +112,7 @@ def get_setup_checklist(tenant) -> dict:
         "total": len(items),
         "percent": int(done_count / len(items) * 100) if items else 100,
         "complete": done_count == len(items),
+        "next_label": next_item["label"] if next_item else "",
+        "next_url": next_item["url"] if next_item else reverse("tenants:setup"),
+        "remaining": len(items) - done_count,
     }

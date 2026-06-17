@@ -25,7 +25,7 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
-from .platform import platform_login_url
+from .platform import platform_login_url, remember_platform_origin
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -56,6 +56,7 @@ def sso_login(request):
         )
 
     token = request.GET.get("token", "")
+    remember_platform_origin(request)
     if not token:
         return _fallback(request, "Missing SSO token.")
 
@@ -88,6 +89,7 @@ def sso_login(request):
         return _fallback(request, "No matching HR account for this workspace.")
 
     login(request, user, backend="apps.accounts.backends.TenantAuthBackend")
+    remember_platform_origin(request)
     logger.info("SSO login: %s", email)
     next_url = request.GET.get("next") or "/"
     return HttpResponseRedirect(next_url)
@@ -97,4 +99,4 @@ def _fallback(request, message: str):
     """SSO couldn't establish a session — send the user back to the single
     platform login (HR has no login of its own) rather than hard-failing."""
     logger.info("SSO fallback to platform login: %s", message)
-    return HttpResponseRedirect(platform_login_url("hr"))
+    return HttpResponseRedirect(platform_login_url("hr", request))

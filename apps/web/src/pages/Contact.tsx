@@ -55,12 +55,6 @@ const contactChannels: ContactChannel[] = [
     href: 'mailto:info@saptta.com',
   },
   {
-    icon: <MailOutlined />,
-    label: 'Alternate email',
-    value: 'saptta26@gmail.com',
-    href: 'mailto:saptta26@gmail.com',
-  },
-  {
     icon: <PhoneOutlined />,
     label: 'Phone / WhatsApp',
     phones: SAPTTA_PHONES,

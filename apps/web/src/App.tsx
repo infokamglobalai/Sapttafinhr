@@ -5,6 +5,8 @@ import { AuthProvider } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
+import AuthFooter from './components/layout/AuthFooter';
+import ScrollToTop from './components/layout/ScrollToTop';
 import ProtectedRoute from './components/shared/ProtectedRoute';
 
 // Public pages
@@ -42,16 +44,29 @@ import AccessDenied from './pages/AccessDenied';
 import Launch from './pages/Launch';
 import Logout from './pages/Logout';
 
-const HIDE_CHROME_ROUTES = ['/setup', '/app', '/signup', '/login', '/logout', '/launch', '/forgot-password', '/reset-password', '/verify-email', '/access-denied'];
+const HIDE_CHROME_ROUTES = ['/setup', '/app', '/logout', '/launch', '/verify-email', '/access-denied'];
+const AUTH_MARKETING_ROUTES = ['/login', '/forgot-password', '/reset-password', '/signup'];
 
 function AppLayout() {
   const location = useLocation();
   const hideChrome = HIDE_CHROME_ROUTES.some(r => location.pathname.startsWith(r));
+  const authMarketingPage = AUTH_MARKETING_ROUTES.some(r => location.pathname.startsWith(r));
+  const isSignupPage = location.pathname.startsWith('/signup');
+  const isLoginPage = location.pathname.startsWith('/login');
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div
+      style={
+        hideChrome
+          ? { height: '100dvh', maxHeight: '100dvh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }
+          : { minHeight: '100vh', display: 'flex', flexDirection: 'column' }
+      }
+    >
       {!hideChrome && <Navbar />}
-      <main className={hideChrome ? "" : "main-content"} style={{ flex: 1 }}>
+      <main
+        className={`main-content${authMarketingPage ? ' main-content--login' : hideChrome ? ' main-content--auth' : ''}`}
+        style={{ flex: 1 }}
+      >
         <Routes>
           {/* Public marketing pages */}
           <Route path="/" element={<Home />} />
@@ -104,9 +119,13 @@ function AppLayout() {
           <Route path="/dashboard/*" element={<Navigate to="/app" replace />} />
         </Routes>
       </main>
-      {!hideChrome && <Footer />}
-      {!hideChrome && <CookieConsent />}
-      <ChatbotWidget />
+      {(isLoginPage || isSignupPage || (!hideChrome && !authMarketingPage))
+        ? <Footer />
+        : authMarketingPage
+          ? <AuthFooter />
+          : null}
+      {!hideChrome && !authMarketingPage && <CookieConsent />}
+      {!hideChrome && !authMarketingPage && <ChatbotWidget />}
     </div>
   );
 }
@@ -117,6 +136,7 @@ export default function App() {
       <AuthProvider>
         <NotificationProvider>
           <BrowserRouter>
+            <ScrollToTop />
             <AppLayout />
           </BrowserRouter>
         </NotificationProvider>

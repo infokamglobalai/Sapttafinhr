@@ -13,9 +13,9 @@
  * minting fails) we fall back to HR's own login page — no hard failure.
  */
 import { request, getWorkspace, ApiError } from './api';
+import { resolveHrBaseUrl, platformSiteUrl } from './platform';
 
-export const HR_BASE_URL: string =
-  import.meta.env.VITE_HR_BASE_URL || 'http://hr.localhost:8080';
+export const HR_BASE_URL: string = resolveHrBaseUrl();
 
 /** Build an absolute URL into the HR app for a given path (default: home). */
 export function hrUrl(path = '/'): string {
@@ -34,10 +34,13 @@ export async function hrSsoEntryUrl(nextPath = '/'): Promise<string> {
     const { token } = await request<{ token: string }>('/auth/hr-sso-token/', {
       surface: 'platform',
       method: 'POST',
-      body: { workspace: getWorkspace() ?? '' },
+      body: {
+        workspace: getWorkspace() ?? import.meta.env.VITE_DEFAULT_WORKSPACE ?? 'acme',
+      },
     });
     const next = encodeURIComponent(nextPath);
-    return `${hrUrl('/auth/sso/')}?token=${encodeURIComponent(token)}&next=${next}`;
+    const platform = encodeURIComponent(platformSiteUrl());
+    return `${hrUrl('/auth/sso/')}?token=${encodeURIComponent(token)}&next=${next}&platform=${platform}`;
   } catch (err) {
     // 503 = SSO not configured; anything else = transient. Either way, fall back.
     if (!(err instanceof ApiError)) throw err;

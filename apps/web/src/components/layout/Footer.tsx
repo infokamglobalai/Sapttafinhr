@@ -327,7 +327,7 @@ export default function Footer() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24, fontSize: 13.5 }}>
               <a href="tel:+919900007072" className="pro-contact-link">
                 <span style={{ display: 'inline-flex', color: '#64748B' }}><PhoneIcon /></span>
-                <span>+91 99 0000 7072</span>
+                <span>+919900007072</span>
               </a>
               <a href="mailto:info@saptta.com" className="pro-contact-link">
                 <span style={{ display: 'inline-flex', color: '#64748B' }}><MailIcon /></span>

@@ -1,3 +1,5 @@
+from decouple import config, Csv
+
 from .base import *  # noqa
 
 # ── SQLite (no PostgreSQL needed locally) ──────────────────────────────────
@@ -38,6 +40,21 @@ INTERNAL_IPS = ["127.0.0.1"]
 STATICFILES_STORAGE = "django.contrib.staticfiles.storage.StaticFilesStorage"
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+# Native Vite dev defaults (platform :5173, HR :8001). Override via env for Docker/nginx.
+PLATFORM_BASE_URL = config("PLATFORM_BASE_URL", default="http://127.0.0.1:5173")
+HR_PUBLIC_BASE_URL = config("HR_PUBLIC_BASE_URL", default="http://127.0.0.1:8001")
+LOGIN_URL = f"{PLATFORM_BASE_URL.rstrip('/')}/login?redirect=hr"
+
+CSRF_TRUSTED_ORIGINS = config(
+    "CSRF_TRUSTED_ORIGINS",
+    default=(
+        "http://127.0.0.1:5173,http://localhost:5173,"
+        "http://127.0.0.1:8001,http://localhost:8001,"
+        "http://hr.localhost:8080,http://localhost:8080"
+    ),
+    cast=Csv(),
+)
 
 # Local subdomain routing: sapttadev.localhost:8001
 HRMS_TENANT_DOMAIN = "localhost"

@@ -9,7 +9,6 @@ import {
   CheckOutlined,
   InfoCircleOutlined
 } from '@ant-design/icons';
-import { SapttaLogo } from '../components/layout/Navbar';
 import ScrollReveal from '../components/shared/ScrollReveal';
 import { useAuth } from '../contexts/AuthContext';
 import { PLANS, planMonthly, extraEmployees, EXTRA_EMPLOYEE_PRICE, GST_RATE } from '../types';
@@ -98,12 +97,12 @@ export default function Signup() {
 
   return (
     <div style={{
-      minHeight: '100vh',
+      minHeight: '100%',
       display: 'flex',
       flexDirection: 'column',
       background: '#FAFAFC',
       position: 'relative',
-      overflow: 'hidden',
+      overflowX: 'clip',
     }} className="signup-container">
       {/* Styles Injection */}
       <style>{`
@@ -220,28 +219,13 @@ export default function Signup() {
       <div className="orb orb-1" />
       <div className="orb orb-2" />
 
-      {/* Header */}
-      <header style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '24px 40px',
-        position: 'relative',
-        zIndex: 10,
-        maxWidth: 1300,
-        width: '100%',
-        margin: '0 auto',
-      }}>
-        <Link to="/" style={{ textDecoration: 'none' }}>
-          <SapttaLogo />
-        </Link>
-        <div style={{ fontSize: 14, color: 'var(--color-text-secondary)', fontWeight: 500 }}>
-          Already signed up?{' '}
-          <Link to="/login" style={{ color: '#FF6D00', fontWeight: 600, textDecoration: 'none', marginLeft: 4 }}>
-            Sign in
-          </Link>
+      {/* Page intro — quick sign-in card for returning users */}
+      <div className="signup-page__intro">
+        <div className="signup-page__intro-card">
+          <span className="signup-page__intro-label">Already have an account?</span>
+          <Link to="/login" className="signup-page__intro-cta">Sign in</Link>
         </div>
-      </header>
+      </div>
 
       {/* Main Layout Area */}
       <div style={{

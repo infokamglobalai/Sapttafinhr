@@ -23,6 +23,9 @@ class TenantMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
+        from apps.accounts.platform import remember_platform_origin
+        remember_platform_origin(request)
+
         # Exempt paths (static, superadmin, SSO entry, internal control-plane)
         # bypass tenant resolution entirely — they either don't need a tenant or
         # establish it themselves, and must not 404 on an unknown Host header

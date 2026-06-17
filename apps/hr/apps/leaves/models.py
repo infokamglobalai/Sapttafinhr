@@ -119,6 +119,10 @@ class LeaveRequest(models.Model):
         ("first_half", "First Half"),
         ("second_half", "Second Half"),
     ]
+    APPROVAL_STAGE_CHOICES = [
+        ("manager", "Manager"),
+        ("hr", "HR"),
+    ]
 
     tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE, related_name="leave_requests")
     employee = models.ForeignKey("employees.Employee", on_delete=models.CASCADE, related_name="leave_requests")
@@ -130,7 +134,12 @@ class LeaveRequest(models.Model):
     reason = models.TextField(blank=True)
     document = models.FileField(upload_to="leave_docs/%Y/", null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+    approval_stage = models.CharField(max_length=20, choices=APPROVAL_STAGE_CHOICES, default="manager")
     applied_at = models.DateTimeField(auto_now_add=True)
+    manager_approved_by = models.ForeignKey(
+        "accounts.User", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    manager_approved_at = models.DateTimeField(null=True, blank=True)
     actioned_by = models.ForeignKey(
         "accounts.User", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
     )

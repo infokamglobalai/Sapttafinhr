@@ -30,7 +30,7 @@ def login_view(request):
     """
     if request.user.is_authenticated:
         return redirect("tenants:dashboard")
-    return redirect(platform_login_url("hr"))
+    return redirect(platform_login_url("hr", request))
 
 
 @require_http_methods(["GET", "POST"])
@@ -106,7 +106,7 @@ def logout_view(request):
     single logout endpoint so the platform session (a different origin, which HR
     can't clear) is ended too — landing the user on the login page."""
     logout(request)
-    return redirect(platform_logout_url())
+    return redirect(platform_logout_url(request))
 
 
 @login_required
@@ -143,7 +143,7 @@ def profile(request):
 @require_http_methods(["GET"])
 def password_reset_request(request):
     """Employer / standard tenant password reset redirects to the platform forgot password page."""
-    return redirect(platform_forgot_password_url())
+    return redirect(platform_forgot_password_url(request))
 
 
 def _send_employee_password_reset_email(user, request):

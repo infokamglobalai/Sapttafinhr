@@ -35,7 +35,7 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, *args, **options):
-        from apps.accounts.models import Permission, User
+        from apps.accounts.models import Permission, Role, User, UserRole
         from apps.tenants.models import Tenant
         from apps.tenants.services import provision_tenant
 
@@ -70,7 +70,7 @@ class Command(BaseCommand):
                 user = User.objects.create_user(
                     email=email, tenant=tenant, password=password
                 )
-                from apps.accounts.models import Role, UserRole
+                from apps.accounts.models import UserRole
                 admin_role = Role.objects.get(tenant=tenant, name="super_admin")
                 UserRole.objects.get_or_create(user=user, role=admin_role)
                 self.stdout.write(self.style.SUCCESS("Created admin user on existing tenant."))
@@ -93,6 +93,21 @@ class Command(BaseCommand):
         self.stdout.write("  Alternate (plain localhost): http://localhost:{0}/auth/login/".format(port))
         self.stdout.write("  (same email/password after dev auth is enabled)")
 
+        # Platform superuser (sp@saptta.com) — FIN SSO handoff for HR redirect demos.
+        platform_super_email = "sp@saptta.com"
+        platform_super = User.objects.filter(
+            email__iexact=platform_super_email, tenant=tenant
+        ).first()
+        if platform_super is None:
+            platform_super = User.objects.create_user(
+                email=platform_super_email,
+                tenant=tenant,
+                password="Saptta@2026",
+            )
+            super_role = Role.objects.get(tenant=tenant, name="super_admin")
+            UserRole.objects.get_or_create(user=platform_super, role=super_role)
+            self.stdout.write(self.style.SUCCESS(f"Created platform superuser {platform_super_email} for HR SSO."))
+
         if options["reset_employee"]:
             emp_email = (options["employee_email"] or "").strip().lower()
             if not emp_email:
@@ -114,7 +129,11 @@ class Command(BaseCommand):
 
         self.stdout.write("")
         self.stdout.write("All workspace logins:")
-        from apps.accounts.models import UserRole
         for u in User.objects.filter(tenant=tenant).order_by("email"):
             roles = list(UserRole.objects.filter(user=u).values_list("role__name", flat=True))
             self.stdout.write(f"  {u.email}  roles={roles}  active={u.is_active}")
+
+        self.stdout.write("")
+        self.stdout.write(self.style.NOTICE(
+            "Tip: run  python manage.py seed_demo_data  for employees, attendance, leaves & dashboard metrics."
+        ))

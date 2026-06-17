@@ -13,9 +13,9 @@
  */
 import { getAccessToken, getRefreshToken, getWorkspace } from './api';
 import { hrSsoEntryUrl, hrUrl } from './hr';
+import { resolveFinanceAppBaseTemplate, platformSiteUrl } from './platform';
 
-const FINANCE_TEMPLATE: string =
-  import.meta.env.VITE_FINANCE_APP_BASE_URL || 'http://{workspace}.localhost:8080';
+const FINANCE_TEMPLATE: string = resolveFinanceAppBaseTemplate();
 
 /** Absolute URL of the real Finance app for a workspace. */
 export function financeAppUrl(workspace?: string): string {
@@ -30,7 +30,10 @@ export function openFinanceApp(workspace?: string, newTab = false): void {
   const base = financeAppUrl(workspace);
   const access = getAccessToken();
   const refresh = getRefreshToken();
-  const url = access && refresh ? `${base}/?handoff=${access}~${refresh}` : base;
+  const platform = encodeURIComponent(platformSiteUrl());
+  const url = access && refresh
+    ? `${base}/?handoff=${encodeURIComponent(access)}~${encodeURIComponent(refresh)}&platform=${platform}`
+    : base;
   if (newTab) window.open(url, '_blank');
   else window.location.assign(url);
 }
@@ -40,7 +43,10 @@ export function installFinanceApp(workspace?: string): void {
   const base = financeAppUrl(workspace);
   const access = getAccessToken();
   const refresh = getRefreshToken();
-  const handoff = access && refresh ? `handoff=${access}~${refresh}&` : '';
+  const platform = encodeURIComponent(platformSiteUrl());
+  const handoff = access && refresh
+    ? `handoff=${encodeURIComponent(access)}~${encodeURIComponent(refresh)}&platform=${platform}&`
+    : '';
   window.open(`${base}/?${handoff}install=1`, '_blank');
 }
 
