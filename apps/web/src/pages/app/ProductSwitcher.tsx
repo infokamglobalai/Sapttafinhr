@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Button, Tag } from 'antd';
+import { Button } from 'antd';
 import {
   TeamOutlined, BankOutlined, LogoutOutlined, DownloadOutlined, AppstoreOutlined,
+  ArrowRightOutlined, LockOutlined, CheckOutlined,
 } from '@ant-design/icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { SapttaLogo } from '../../components/layout/Navbar';
@@ -14,6 +15,20 @@ window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   _deferredInstall = e;
 });
+
+/** Local keyframes / global tweaks scoped to this page. */
+const SWITCHER_STYLES = `
+@keyframes ps-float {
+  0%,100% { transform: translate(0,0) scale(1); }
+  33%     { transform: translate(30px,-24px) scale(1.06); }
+  66%     { transform: translate(-22px,18px) scale(0.96); }
+}
+@keyframes ps-rise {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.ps-rise { animation: ps-rise 0.6s cubic-bezier(.16,1,.3,1) both; }
+`;
 
 export default function ProductSwitcher() {
   const { user, logout } = useAuth();
@@ -48,13 +63,41 @@ export default function ProductSwitcher() {
 
   const handleLogout = () => { logout(); navigate('/'); };
 
+  // Time-aware greeting for a touch of warmth.
+  const greeting = useMemo(() => {
+    const h = new Date().getHours();
+    if (h < 12) return 'Good morning';
+    if (h < 17) return 'Good afternoon';
+    return 'Good evening';
+  }, []);
+
   return (
-    <div style={{ minHeight: '100vh', background: '#FAFAFC', display: 'flex', flexDirection: 'column' }}>
+    <div style={{
+      height: '100vh', display: 'flex', flexDirection: 'column',
+      position: 'relative', overflow: 'hidden', background: '#FAFAFC',
+    }}>
+      <style>{SWITCHER_STYLES}</style>
+
+      {/* Soft drifting brand orbs (subtle, light) */}
+      <div aria-hidden style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+        <div style={{
+          position: 'absolute', top: '-12%', left: '-6%', width: 480, height: 480, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(16,185,129,0.10), transparent 65%)',
+          filter: 'blur(10px)', animation: 'ps-float 16s ease-in-out infinite',
+        }} />
+        <div style={{
+          position: 'absolute', bottom: '-16%', right: '-8%', width: 560, height: 560, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(255,109,0,0.10), transparent 65%)',
+          filter: 'blur(10px)', animation: 'ps-float 20s ease-in-out infinite reverse',
+        }} />
+      </div>
+
       {/* Top bar */}
       <header style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        padding: '16px 40px', background: '#fff', borderBottom: '1px solid rgba(10,17,40,0.06)',
-        position: 'sticky', top: 0, zIndex: 10,
+        padding: '12px 40px', flexShrink: 0, zIndex: 10,
+        background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(10,17,40,0.06)',
       }}>
         <Link to="/" style={{ textDecoration: 'none' }}>
           <SapttaLogo />
@@ -72,22 +115,31 @@ export default function ProductSwitcher() {
       </header>
 
       {/* Body */}
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 24px' }}>
-        <div style={{ textAlign: 'center', marginBottom: 48 }}>
-          <h1 style={{ fontSize: 'clamp(1.6rem,3vw,2.2rem)', fontWeight: 800, color: '#0A1128', marginBottom: 8, letterSpacing: '-0.5px' }}>
-            Welcome back, {user?.firstName || 'there'} 👋
+      <main style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px 24px', position: 'relative', zIndex: 1 }}>
+        <div className="ps-rise" style={{ textAlign: 'center', marginBottom: 28 }}>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8, padding: '5px 13px', marginBottom: 14,
+            borderRadius: 999, background: '#fff', border: '1px solid rgba(10,17,40,0.08)',
+            fontSize: 11.5, fontWeight: 600, color: 'rgba(10,17,40,0.6)', letterSpacing: '0.3px',
+            boxShadow: '0 2px 8px rgba(10,17,40,0.04)',
+          }}>
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#10B981', boxShadow: '0 0 10px #10B981' }} />
+            Your workspace is ready
+          </div>
+          <h1 style={{ fontSize: 'clamp(1.6rem,3vw,2.2rem)', fontWeight: 800, color: '#0A1128', marginBottom: 6, letterSpacing: '-0.8px', lineHeight: 1.1 }}>
+            {greeting}, {user?.firstName || 'there'} 👋
           </h1>
-          <p style={{ color: 'rgba(10,17,40,0.5)', fontSize: 15 }}>
-            Choose a product to open. Your data is ready.
+          <p style={{ color: 'rgba(10,17,40,0.5)', fontSize: 14.5, margin: '0 auto' }}>
+            Pick a product to jump back in.
           </p>
         </div>
 
         {/* Owned products open directly; unsubscribed ones are shown locked with
             an Upgrade CTA (consistent with the in-product top-bar menu). */}
-        <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', justifyContent: 'center', width: '100%', maxWidth: 800 }}>
+        <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap', justifyContent: 'center', width: '100%', maxWidth: 840 }}>
           <ProductCard
+            index={0}
             name="fin-saptta"
-            tag="FINANCE"
             tagColor="#10B981"
             gradient="linear-gradient(135deg,#10B981,#059669)"
             icon={<BankOutlined />}
@@ -100,8 +152,8 @@ export default function ProductSwitcher() {
             onUpgrade={() => navigate('/pricing')}
           />
           <ProductCard
+            index={1}
             name="Saptta HR"
-            tag="HRMS"
             tagColor="#FF6D00"
             gradient="linear-gradient(135deg,#FF6D00,#FFA000)"
             icon={<TeamOutlined />}
@@ -114,81 +166,115 @@ export default function ProductSwitcher() {
             onUpgrade={() => navigate('/pricing')}
           />
         </div>
+
+        <p className="ps-rise" style={{ marginTop: 24, fontSize: 12.5, color: 'rgba(10,17,40,0.4)' }}>
+          One login · One workspace · Switch anytime from inside either product
+        </p>
       </main>
     </div>
   );
 }
 
 interface CardProps {
-  name: string; tag: string; tagColor: string; gradient: string;
+  index: number;
+  name: string; tagColor: string; gradient: string;
   icon: React.ReactNode; headline: string; description: string;
   features: string[]; locked?: boolean;
   onOpen: () => void; onUpgrade?: () => void; onInstall?: () => void;
 }
 
-function ProductCard({ name, tag, tagColor, gradient, icon, headline, description, features, locked = false, onOpen, onUpgrade, onInstall }: CardProps) {
+function ProductCard({ index, name, tagColor, gradient, icon, headline, description, features, locked = false, onOpen, onUpgrade, onInstall }: CardProps) {
   const [hover, setHover] = useState(false);
+  const [spot, setSpot] = useState({ x: 188, y: 120 });
+  const ref = useRef<HTMLDivElement>(null);
+
+  const onMove = (e: React.MouseEvent) => {
+    const r = ref.current?.getBoundingClientRect();
+    if (r) setSpot({ x: e.clientX - r.left, y: e.clientY - r.top });
+  };
+
+  const active = hover && !locked;
 
   return (
     <div
+      ref={ref}
+      className="ps-rise"
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
+      onMouseMove={onMove}
       style={{
-        width: 360, background: locked ? '#F9FAFB' : '#fff', borderRadius: 20,
-        padding: '28px 24px',
-        border: hover && !locked ? `1.5px solid ${tagColor}` : locked ? '1.5px dashed #e2e8f0' : '1.5px solid #e2e8f0',
-        boxShadow: hover && !locked ? '0 20px 40px rgba(10,17,40,0.08)' : 'none',
-        transform: hover && !locked ? 'translateY(-4px)' : 'none',
-        transition: 'all 0.2s ease',
+        width: 360, borderRadius: 22, padding: '22px 24px',
         position: 'relative', overflow: 'hidden',
+        animationDelay: `${0.12 + index * 0.1}s`,
+        background: locked ? '#F9FAFB' : '#fff',
+        border: active ? `1.5px solid ${tagColor}` : locked ? '1.5px dashed #e2e8f0' : '1.5px solid #e2e8f0',
+        boxShadow: active ? `0 24px 50px rgba(10,17,40,0.12), 0 0 30px ${tagColor}18` : '0 6px 18px rgba(10,17,40,0.05)',
+        transform: active ? 'translateY(-6px)' : 'none',
+        transition: 'transform 0.25s cubic-bezier(.16,1,.3,1), box-shadow 0.25s, border-color 0.25s',
       }}
     >
-      {/* Background glow */}
-      {!locked && <div style={{ position: 'absolute', top: -60, right: -60, width: 160, height: 160, background: `${tagColor}12`, borderRadius: '50%' }} />}
+      {/* Cursor-following spotlight */}
+      {active && (
+        <div aria-hidden style={{
+          position: 'absolute', left: spot.x, top: spot.y, width: 320, height: 320,
+          transform: 'translate(-50%,-50%)', pointerEvents: 'none',
+          background: `radial-gradient(circle, ${tagColor}14, transparent 60%)`,
+        }} />
+      )}
+      {/* Corner glow */}
+      {!locked && <div aria-hidden style={{ position: 'absolute', top: -70, right: -70, width: 180, height: 180, background: `${tagColor}12`, borderRadius: '50%' }} />}
 
       <div style={{ position: 'relative' }}>
-        {/* Icon */}
-        <div style={{
-          width: 52, height: 52, borderRadius: 14, background: locked ? '#e2e8f0' : gradient,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: 'white', fontSize: 22, marginBottom: 16,
-          boxShadow: locked ? 'none' : `0 8px 20px ${tagColor}30`,
-          opacity: locked ? 0.5 : 1,
-        }}>
-          {icon}
+        {/* Header row: icon + title */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14 }}>
+          <div style={{
+            width: 48, height: 48, borderRadius: 14, background: locked ? '#e2e8f0' : gradient,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            color: 'white', fontSize: 22,
+            boxShadow: locked ? 'none' : `0 8px 20px ${tagColor}30`,
+            opacity: locked ? 0.5 : 1,
+            transition: 'transform 0.25s', transform: active ? 'scale(1.06) rotate(-3deg)' : 'none',
+          }}>
+            {locked ? <LockOutlined /> : icon}
+          </div>
+          <div>
+            <h3 style={{ fontSize: 20, fontWeight: 800, color: locked ? '#94a3b8' : '#0A1128', marginBottom: 1, letterSpacing: '-0.4px', lineHeight: 1.1 }}>{name}</h3>
+            <p style={{ fontSize: 12, fontWeight: 600, color: locked ? '#cbd5e1' : tagColor, margin: 0 }}>{headline}</p>
+          </div>
         </div>
 
-        <Tag style={{ background: locked ? '#f1f5f9' : `${tagColor}18`, color: locked ? '#94a3b8' : tagColor, border: 'none', fontWeight: 700, fontSize: 10, borderRadius: 6, marginBottom: 10 }}>
-          {tag}
-        </Tag>
+        <p style={{ fontSize: 13, color: locked ? '#cbd5e1' : 'rgba(10,17,40,0.55)', lineHeight: 1.55, marginBottom: 16 }}>{description}</p>
 
-        <h3 style={{ fontSize: 20, fontWeight: 800, color: locked ? '#94a3b8' : '#0A1128', marginBottom: 2, letterSpacing: '-0.3px' }}>{name}</h3>
-        <p style={{ fontSize: 12, fontWeight: 600, color: locked ? '#cbd5e1' : tagColor, marginBottom: 10 }}>{headline}</p>
-        <p style={{ fontSize: 13, color: locked ? '#cbd5e1' : 'rgba(10,17,40,0.55)', lineHeight: 1.6, marginBottom: 18 }}>{description}</p>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 18 }}>
           {features.map(f => (
-            <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12 }}>
-              <div style={{ width: 5, height: 5, borderRadius: '50%', background: locked ? '#cbd5e1' : tagColor, flexShrink: 0 }} />
-              <span style={{ color: locked ? '#cbd5e1' : 'rgba(10,17,40,0.55)' }}>{f}</span>
+            <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 12.5 }}>
+              <span style={{
+                width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: locked ? '#f1f5f9' : `${tagColor}18`,
+                color: locked ? '#cbd5e1' : tagColor, fontSize: 9,
+              }}>
+                <CheckOutlined />
+              </span>
+              <span style={{ color: locked ? '#cbd5e1' : 'rgba(10,17,40,0.6)' }}>{f}</span>
             </div>
           ))}
         </div>
 
         {locked ? (
-          <Button block size="large" onClick={onUpgrade}
-            style={{ borderRadius: 10, fontWeight: 700, height: 46, borderColor: tagColor, color: tagColor, fontSize: 14 }}>
-            Activate {name} →
+          <Button block onClick={onUpgrade}
+            style={{ borderRadius: 11, fontWeight: 700, height: 44, borderColor: tagColor, color: tagColor, fontSize: 14 }}>
+            Activate {name} <ArrowRightOutlined />
           </Button>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <Button type="primary" block size="large" onClick={onOpen}
-              style={{ background: gradient, border: 'none', fontWeight: 700, height: 46, borderRadius: 10, fontSize: 14, boxShadow: `0 6px 14px ${tagColor}30` }}>
-              Open {name}
+            <Button type="primary" block onClick={onOpen}
+              style={{ background: gradient, border: 'none', fontWeight: 700, height: 44, borderRadius: 11, fontSize: 14, boxShadow: `0 8px 16px ${tagColor}30` }}>
+              Open {name} <ArrowRightOutlined />
             </Button>
             {onInstall && (
               <Button block onClick={onInstall} icon={<AppstoreOutlined />}
-                style={{ borderRadius: 10, fontWeight: 600, height: 38, fontSize: 13, borderColor: '#e2e8f0', color: 'rgba(10,17,40,0.6)' }}>
+                style={{ borderRadius: 11, fontWeight: 600, height: 36, fontSize: 12.5, borderColor: '#e2e8f0', color: 'rgba(10,17,40,0.6)' }}>
                 Use as Desktop App
               </Button>
             )}
