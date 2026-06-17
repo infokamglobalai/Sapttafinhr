@@ -1,5 +1,5 @@
 import type { SimpleIcon } from 'simple-icons';
-import { siGmail, siRazorpay, siZoho } from 'simple-icons';
+import { siGmail, siRazorpay, siWhatsapp } from 'simple-icons';
 
 type BrandIcon = Pick<SimpleIcon, 'title' | 'path' | 'hex'>;
 
@@ -67,7 +67,7 @@ export type IntegrationLogoId =
   | 'slack'
   | 'razorpay'
   | 'tally'
-  | 'zoho-books';
+  | 'whatsapp';
 
 const LOGO_MAP: Record<Exclude<IntegrationLogoId, 'tally'>, BrandIcon> = {
   gmail: siGmail,
@@ -75,7 +75,7 @@ const LOGO_MAP: Record<Exclude<IntegrationLogoId, 'tally'>, BrandIcon> = {
   teams: ARCHIVED_SIMPLE_ICONS.teams,
   slack: ARCHIVED_SIMPLE_ICONS.slack,
   razorpay: siRazorpay,
-  'zoho-books': siZoho,
+  whatsapp: siWhatsapp,
 };
 
 export function IntegrationBrandLogo({ id, className }: { id: IntegrationLogoId; className?: string }) {

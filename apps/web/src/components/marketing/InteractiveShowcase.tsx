@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Row, Col, Tag, Button } from 'antd';
 import ScrollReveal from '../shared/ScrollReveal';
 import HomeSectionHeader from '../shared/HomeSectionHeader';
+import useBreakpoint from '../../hooks/useBreakpoint';
 import type { HomeSectionTheme } from '../shared/HomeSectionHeader';
 import type { ShowcaseVariant } from '../../data/product-pages-data';
 import { HrmsFloatingDashboard, FinanceFloatingDashboard } from './FloatingDashboard';
@@ -23,7 +24,8 @@ export default function InteractiveShowcase({
   variant,
   theme = 'navy',
 }: InteractiveShowcaseProps) {
-  const [isMobile] = useState(() => window.innerWidth < 992);
+  const { isMobile, isTablet } = useBreakpoint();
+  const isCompact = isMobile || isTablet;
   const showcase = useShowcaseState(variant);
 
   return (
@@ -40,7 +42,7 @@ export default function InteractiveShowcase({
                 subtitle={subtitle}
                 align="left"
                 theme={theme}
-                isMobile={isMobile}
+                isMobile={isCompact}
                 maxWidth={560}
               />
               <ShowcaseControls variant={variant} showcase={showcase} />

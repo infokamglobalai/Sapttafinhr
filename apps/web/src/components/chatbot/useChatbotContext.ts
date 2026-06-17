@@ -26,7 +26,7 @@ const CONTEXT_MAP: Record<ChatbotContext, ChatbotContextInfo> = {
   },
   general: {
     context: 'general',
-    label: 'Saptta Assistant',
+    label: 'Sahayak',
     badge: 'General',
     placeholder: 'Ask about Saptta features… (Enter to send)',
   },

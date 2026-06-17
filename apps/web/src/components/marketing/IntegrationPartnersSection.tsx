@@ -18,7 +18,7 @@ const PARTNER_ORDER: Omit<Partner, 'x' | 'y'>[] = [
   { id: 'slack', name: 'Slack', category: 'Communication' },
   { id: 'razorpay', name: 'Razorpay', category: 'Payments' },
   { id: 'tally', name: 'Tally', category: 'Accounting' },
-  { id: 'zoho-books', name: 'Zoho Books', category: 'Accounting' },
+  { id: 'whatsapp', name: 'WhatsApp Business', category: 'Notifications' },
 ];
 
 const ORBIT_CENTER = 50;

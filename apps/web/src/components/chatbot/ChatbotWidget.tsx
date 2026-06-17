@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { CloseOutlined } from '@ant-design/icons';
 import { useChatbot } from './useChatbot';
 import { useChatbotContext } from './useChatbotContext';
 import { useAuth } from '../../contexts/AuthContext';
+import SahayakIcon from './SahayakIcon';
+
+/** Product name for the floating assistant — update here to rebrand */
+export const CHATBOT_NAME = 'Sahayak';
 
 /* ─── Per-context starter prompts ───────────────────────────────────────── */
 const STARTERS = {
@@ -37,7 +42,7 @@ const WELCOME = {
 const BADGE_COLORS = {
   finance: { bg: 'rgba(16,185,129,0.15)', text: '#059669', border: 'rgba(16,185,129,0.30)' },
   hr: { bg: 'rgba(99,102,241,0.15)', text: '#4F46E5', border: 'rgba(99,102,241,0.30)' },
-  general: { bg: 'rgba(255,109,0,0.12)', text: '#FF6D00', border: 'rgba(255,109,0,0.25)' },
+  general: { bg: 'rgba(255,109,0,0.12)', text: '#FF6D00', border: 'rgba(255,109,0,0.28)' },
 };
 
 /* ─── Per-context premium themes ────────────────────────────────────────── */
@@ -65,17 +70,26 @@ const THEMES = {
     shadow: 'rgba(99,102,241,0.30)',
   },
   general: {
-    primary: '#FF6D00',
-    primaryLight: '#FF9800',
-    rgb: '255, 109, 0',
-    gradient: 'linear-gradient(135deg, #E65100 0%, #FF6D00 100%)',
-    bgLight: 'rgba(255,109,0,0.07)',
-    borderLight: 'rgba(255,109,0,0.20)',
-    hoverBg: 'rgba(255,109,0,0.14)',
-    hoverBorder: 'rgba(255,109,0,0.40)',
-    shadow: 'rgba(255,109,0,0.30)',
+    primary: '#1E2A78',
+    primaryLight: '#3D4DB7',
+    rgb: '30, 42, 120',
+    gradient: 'linear-gradient(135deg, #1E2A78 0%, #2D3A9E 100%)',
+    bgLight: 'rgba(30,42,120,0.06)',
+    borderLight: 'rgba(30,42,120,0.14)',
+    hoverBg: 'rgba(30,42,120,0.10)',
+    hoverBorder: 'rgba(30,42,120,0.28)',
+    shadow: 'rgba(30, 42, 120, 0.28)',
   },
 };
+
+const FAB_STYLE = {
+  navy: 'linear-gradient(145deg, #1E2A78 0%, #24318f 100%)',
+  accent: '#FF6D00',
+};
+
+function ChatAvatarIcon({ size = 20 }: { size?: number }) {
+  return <SahayakIcon size={size} />;
+}
 
 /* ─── Typing dots animation ──────────────────────────────────────────────── */
 function TypingDots({ context }: { context: 'finance' | 'hr' | 'general' }) {
@@ -119,18 +133,18 @@ function MessageBubble({ role, content, context }: { role: 'user' | 'assistant';
             width: 28,
             height: 28,
             borderRadius: '50%',
-            background: theme.gradient,
+            background: '#ffffff',
+            border: '1px solid #e8ecf4',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: 13,
             flexShrink: 0,
             marginRight: 8,
             marginTop: 2,
-            boxShadow: `0 2px 8px ${theme.shadow}`,
+            boxShadow: '0 2px 8px rgba(15, 23, 42, 0.06)',
           }}
         >
-          ✨
+          <ChatAvatarIcon size={20} />
         </div>
       )}
       <div
@@ -213,8 +227,8 @@ export default function ChatbotWidget() {
           to   { opacity: 1; transform: translateY(0) scale(1); }
         }
         @keyframes saptta-fab-pulse {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(var(--saptta-primary-rgb), 0.5), 0 8px 24px rgba(var(--saptta-primary-rgb), 0.35); }
-          70%       { box-shadow: 0 0 0 14px rgba(var(--saptta-primary-rgb), 0), 0 8px 24px rgba(var(--saptta-primary-rgb), 0.35); }
+          0%, 100% { box-shadow: 0 0 0 0 rgba(255, 109, 0, 0.35), 0 8px 22px rgba(30, 42, 120, 0.28); }
+          70%       { box-shadow: 0 0 0 12px rgba(255, 109, 0, 0), 0 8px 22px rgba(30, 42, 120, 0.28); }
         }
         @keyframes saptta-panel-in {
           from { opacity: 0; transform: translateY(16px) scale(0.96); }
@@ -231,39 +245,40 @@ export default function ChatbotWidget() {
       {/* ── FAB ─────────────────────────────────────────────────────── */}
       <button
         id="saptta-chat-fab"
-        aria-label={open ? 'Close Saptta AI Chat' : 'Open Saptta AI Chat'}
+        className="saptta-chat-fab"
+        aria-label={open ? `Close ${CHATBOT_NAME}` : `Open ${CHATBOT_NAME}`}
         onClick={() => setOpen((o) => !o)}
         style={{
           position: 'fixed', bottom: 28, right: 28, zIndex: 9999,
-          width: 58, height: 58, borderRadius: '50%', border: 'none', cursor: 'pointer',
-          background: open
-            ? 'linear-gradient(135deg, #1E2A78 0%, #0A1128 100%)'
-            : theme.gradient,
-          color: '#fff', fontSize: open ? 22 : 26,
+          width: 56, height: 56, borderRadius: '50%',
+          border: `2px solid ${FAB_STYLE.accent}`,
+          cursor: 'pointer',
+          background: open ? FAB_STYLE.navy : '#ffffff',
+          color: open ? '#fff' : FAB_STYLE.navy,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          transition: 'background 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease',
-          animation: !open && pulse ? 'saptta-fab-pulse 2.2s ease-in-out infinite' : 'none',
-          boxShadow: `0 8px 24px ${theme.shadow}`,
-          transform: open ? 'rotate(90deg)' : 'none',
+          transition: 'transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.28s ease, background 0.25s ease',
+          animation: !open && pulse ? 'saptta-fab-pulse 2.4s ease-in-out infinite' : 'none',
+          boxShadow: '0 8px 22px rgba(30, 42, 120, 0.18)',
         }}
-        onMouseEnter={(e) => { 
+        onMouseEnter={(e) => {
           const btn = e.currentTarget as HTMLButtonElement;
-          btn.style.transform = open ? 'rotate(90deg) scale(1.08)' : 'scale(1.08)'; 
+          btn.style.transform = 'scale(1.06)';
         }}
-        onMouseLeave={(e) => { 
+        onMouseLeave={(e) => {
           const btn = e.currentTarget as HTMLButtonElement;
-          btn.style.transform = open ? 'rotate(90deg) scale(1)' : 'scale(1)'; 
+          btn.style.transform = 'scale(1)';
         }}
       >
-        {open ? '✕' : '✨'}
+        {open ? <CloseOutlined style={{ fontSize: 20 }} /> : <SahayakIcon size={32} />}
       </button>
 
       {/* ── Panel ───────────────────────────────────────────────────── */}
       {open && (
         <div
           ref={panelRef}
+          className="saptta-chat-panel"
           role="dialog"
-          aria-label={`Saptta ${ctx.label}`}
+          aria-label={`${CHATBOT_NAME} — ${ctx.label}`}
           style={{
             position: 'fixed', bottom: 100, right: 28, zIndex: 9998,
             width: 370, height: 560, borderRadius: 20,
@@ -288,18 +303,19 @@ export default function ChatbotWidget() {
             <div
               style={{
                 width: 36, height: 36, borderRadius: 10,
-                background: theme.gradient,
+                background: '#ffffff',
+                border: `1.5px solid ${FAB_STYLE.accent}`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 17, boxShadow: `0 4px 12px ${theme.shadow}`, flexShrink: 0,
+                boxShadow: '0 4px 12px rgba(30, 42, 120, 0.12)', flexShrink: 0,
                 animation: 'saptta-msg-in 0.3s ease',
               }}
             >
-              ✨
+              <ChatAvatarIcon size={24} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ fontSize: 15, fontWeight: 700, color: '#fff', letterSpacing: '-0.01em' }}>
-                  Saptta AI
+                  {CHATBOT_NAME}
                 </span>
                 {/* Context badge */}
                 <span
@@ -315,7 +331,7 @@ export default function ChatbotWidget() {
                 </span>
               </div>
               <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.55)', marginTop: 2 }}>
-                {ctx.label} · AI Assistant
+                {ctx.context === 'general' ? 'Your Saptta assistant' : `${ctx.label} · by Sahayak`}
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -355,9 +371,18 @@ export default function ChatbotWidget() {
           >
             {messages.length === 0 && !isAuthenticated && (
               <div style={{ textAlign: 'center', padding: '24px 16px' }}>
-                <div style={{ fontSize: 36, marginBottom: 12 }}>🤖</div>
+                <div
+                  style={{
+                    width: 52, height: 52, borderRadius: 12, margin: '0 auto 12px',
+                    background: '#ffffff', border: `2px solid ${FAB_STYLE.accent}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: '0 4px 14px rgba(30, 42, 120, 0.08)',
+                  }}
+                >
+                  <SahayakIcon size={36} />
+                </div>
                 <div style={{ fontSize: 15, fontWeight: 700, color: '#0A1128', marginBottom: 8 }}>
-                  Saptta AI Assistant
+                  {CHATBOT_NAME}
                 </div>
                 <div style={{ fontSize: 13, color: '#64748B', lineHeight: 1.6, marginBottom: 20 }}>
                   Sign in to chat with our AI — ask about invoices, payroll, GST, employee data, and more.
@@ -433,12 +458,13 @@ export default function ChatbotWidget() {
                 <div
                   style={{
                     width: 28, height: 28, borderRadius: '50%',
-                    background: theme.gradient,
+                    background: '#ffffff',
+                    border: '1px solid #e8ecf4',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 13, flexShrink: 0, boxShadow: `0 2px 8px ${theme.shadow}`,
+                    flexShrink: 0, boxShadow: '0 2px 8px rgba(15, 23, 42, 0.06)',
                   }}
                 >
-                  ✨
+                  <ChatAvatarIcon size={20} />
                 </div>
                 <div
                   style={{

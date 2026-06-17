@@ -34,6 +34,7 @@ export type MarketingImageKey =
   | 'industryHealthcare'
   | 'industryLogistics'
   | 'industryFinance'
+  | 'industryConstruction'
   | 'productHrms'
   | 'productAccounts'
   | 'productMobile'
@@ -47,7 +48,8 @@ export type MarketingImageKey =
   | 'automationAttendance'
   | 'automationPayroll'
   | 'automationAccounting'
-  | 'automationGst';
+  | 'automationGst'
+  | 'homeScreenshotAttendance';
 
 export interface MarketingImageAsset {
   alt: string;
@@ -62,18 +64,18 @@ const u = (id: string, w = 1400) =>
 
 export const marketingImages: Record<MarketingImageKey, MarketingImageAsset> = {
   hrmsDashboard: {
-    alt: 'HR team reviewing workforce analytics on a dashboard',
-    local: '/images/hrms-dashboard.png',
+    alt: 'Saptta HR dashboard with workforce overview and headcount metrics',
+    local: '/images/home-screenshots/hrms.png',
     remote: u('photo-1551288049-bebda4e38f71'),
   },
   payrollDashboard: {
-    alt: 'Payroll and compensation planning on laptop',
-    local: '/images/payroll-dashboard.png',
+    alt: 'Saptta payroll dashboard with PF, ESI, TDS and payslip summary',
+    local: '/images/home-screenshots/payroll.png',
     remote: u('photo-1554224155-6726b3ff858f'),
   },
   gstDashboard: {
-    alt: 'Finance professional working on GST and accounting',
-    local: '/images/gst-dashboard.png',
+    alt: 'Saptta GST and invoicing dashboard with CGST, SGST and GSTR export',
+    local: '/images/home-screenshots/gst.png',
     remote: u('photo-1554224154-26032ffe0d88'),
   },
   complianceDashboard: {
@@ -97,28 +99,28 @@ export const marketingImages: Record<MarketingImageKey, MarketingImageAsset> = {
     remote: u('photo-1497366216548-37526070297c'),
   },
   beforeLegacy: {
-    alt: 'Spreadsheets and disconnected legacy tools',
+    alt: 'Cluttered desk with spreadsheets, sticky notes and disconnected legacy tools',
     local: '/images/before-legacy.jpg',
-    remote: u('photo-1450101499163-c8848c66ca85'),
+    remote: u('photo-1586953208448-b95a79798f07'),
   },
   afterSaptta: {
-    alt: 'Unified Saptta platform on desktop and mobile',
+    alt: 'Modern Indian business team reviewing unified HR and finance dashboard together',
     local: '/images/after-saptta.jpg',
-    remote: u('photo-1460925895917-afdab827c52f'),
+    remote: u('photo-1600880292203-757bb62b4baf'),
   },
   modularHrms: {
     alt: 'HR manager onboarding employees',
-    local: '/images/modular-hrms.jpg',
+    local: '/images/modular-hrms.png',
     remote: u('photo-1573496359142-b8d87734a5a2'),
   },
   modularAccounts: {
     alt: 'Accountant reviewing invoices and ledger',
-    local: '/images/modular-accounts.jpg',
+    local: '/images/modular-accounts.png',
     remote: u('photo-1454165804606-c3d57bc86b40'),
   },
   modularComplete: {
     alt: 'Leadership reviewing unified HR and finance metrics',
-    local: '/images/modular-complete.jpg',
+    local: '/images/modular-complete.png',
     remote: u('photo-1600880292203-757bb62b4baf'),
   },
   testimonial1: {
@@ -196,34 +198,38 @@ export const marketingImages: Record<MarketingImageKey, MarketingImageAsset> = {
     remote: u('photo-1512941937669-90a1b58f7d9b'),
   },
   industryIt: {
-    alt: 'Technology company office and developers',
-    local: '/images/industry-it.jpg',
-    remote: u('photo-1498050108023-c5249f4df085'),
+    alt: 'Software developers collaborating in a modern tech office',
+    local: '/images/industries/it.png',
+    remote: u('photo-1522071820081-009f0129c71c'),
   },
   industryManufacturing: {
-    alt: 'Manufacturing plant and production floor',
-    local: '/images/industry-manufacturing.jpg',
-    remote: u('photo-1581091226825-a6a2a5aee158'),
+    alt: 'Factory floor supervisor reviewing production data on tablet',
+    local: '/images/industries/manufacturing.png',
+    remote: u('photo-1565793298595-6a879b1d9492'),
   },
   industryRetail: {
-    alt: 'Retail store operations and staff',
-    local: '/images/industry-retail.jpg',
+    alt: 'Retail store manager reviewing staff schedules on tablet',
+    local: '/images/industries/retail.png',
     remote: u('photo-1441986300917-64674bd600d8'),
   },
   industryHealthcare: {
-    alt: 'Healthcare facility staff coordination',
-    local: '/images/industry-healthcare.jpg',
-    remote: u('photo-1576091160399-112ba8d25d1f'),
+    alt: 'Healthcare administrator reviewing shift rosters on tablet in clinic',
+    local: '/images/industries/healthcare.png',
+    remote: u('photo-1516841273335-e39b37888115'),
   },
   industryLogistics: {
-    alt: 'Logistics warehouse and fleet operations',
-    local: '/images/industry-logistics.jpg',
-    remote: u('photo-1586528116311-ad8dd90c4dad'),
+    alt: 'Logistics fleet manager reviewing operations at warehouse loading dock',
+    local: '/images/industries/logistics.png',
+    remote: u('photo-1553413077-190dd305871c'),
   },
   industryFinance: {
-    alt: 'Financial services team and compliance',
-    local: '/images/industry-finance.jpg',
-    remote: u('photo-1550567871-822ecf27301d'),
+    alt: 'Financial services team reviewing compliance reports at modern office',
+    remote: u('photo-1454165804606-c3d57bc86b40'),
+  },
+  industryConstruction: {
+    alt: 'Construction site manager reviewing workforce attendance on tablet at job site',
+    local: '/images/industries/construction.png',
+    remote: u('photo-1504307651254-35680f356dfd'),
   },
   productHrms: {
     alt: 'SAPTTA HRMS dashboard — employees, attendance, and payroll',
@@ -256,9 +262,9 @@ export const marketingImages: Record<MarketingImageKey, MarketingImageAsset> = {
     remote: u('photo-1552664730-d307ca884978'),
   },
   ctaBanner: {
-    alt: 'Business growth with Saptta platform',
-    local: '/images/cta-banner.jpg',
-    remote: u('photo-1460925895917-afdab827c52f'),
+    alt: 'Indian business team celebrating growth and reviewing metrics on Saptta platform',
+    local: '/images/cta-banner.png',
+    remote: u('photo-1600880292203-757bb62b4baf'),
   },
   homeHeroPerson: {
     alt: 'HR professional using Saptta on laptop',
@@ -295,6 +301,11 @@ export const marketingImages: Record<MarketingImageKey, MarketingImageAsset> = {
     local: '/images/automation/automation-step-5-gst.png',
     remote: u('photo-1454165804606-c3d57bc86b40'),
   },
+  homeScreenshotAttendance: {
+    alt: 'Saptta attendance dashboard with punches, shifts and leave calendar',
+    local: '/images/home-screenshots/attendance.png',
+    remote: u('photo-1512941937669-90a1b58f7d9b'),
+  },
 };
 
 export const industryImageKey: Record<string, MarketingImageKey> = {
@@ -304,6 +315,7 @@ export const industryImageKey: Record<string, MarketingImageKey> = {
   healthcare: 'industryHealthcare',
   logistics: 'industryLogistics',
   finance: 'industryFinance',
+  construction: 'industryConstruction',
 };
 
 /** Prefer local assets in `public/images/` when available */

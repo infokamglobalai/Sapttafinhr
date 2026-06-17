@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   getMarketingImageAlt,
   getMarketingImageSrc,
@@ -60,8 +60,13 @@ export default function MarketingImageFrame({
 
   const [src, setSrc] = useState(primary);
 
+  // Reset src whenever imageKey or srcProp changes (e.g. switching industry tabs)
+  useEffect(() => {
+    setSrc(primary);
+  }, [primary]);
+
   const handleError = () => {
-    if (src !== fallback) setSrc(fallback);
+    if (src !== fallback && fallback) setSrc(fallback);
   };
 
   const aspectClass = aspect !== 'auto' ? ` mkt-img--aspect-${aspect.replace('/', '-')}` : '';
