@@ -49,28 +49,30 @@ import { PLANS } from '../types';
 const formatInr = (amount: number) => `₹${new Intl.NumberFormat('en-IN').format(amount)}`;
 
 const HOME_PRICING_PLANS = (() => {
-  const hrms = PLANS.find((p) => p.id === 'hrms-starter')!;
-  const finance = PLANS.find((p) => p.id === 'finance-starter')!;
+  const hrms = PLANS.find((p) => p.id === 'hrms')!;
+  const finance = PLANS.find((p) => p.id === 'finance')!;
   const complete = PLANS.find((p) => p.id === 'saptta-complete')!;
   return [
     {
       title: 'HRMS',
       tagline: 'People ops & payroll',
       amount: formatInr(hrms.monthlyPrice),
-      note: 'Up to 50 employees',
-      annualNote: `${formatInr(hrms.annualPrice)}/yr on annual billing`,
-      features: ['Attendance & leave', 'Payroll, PF, ESI & TDS', 'Payslips & employee records'],
+      period: '/mo + GST',
+      note: 'Up to 30 employees · +₹111 each after',
+      annualNote: 'Attendance, payroll & compliance',
+      features: ['Attendance & leave', 'Payroll, PF, ESI & TDS', 'Recruitment & performance'],
       path: '/hrms',
       featured: false,
-      cta: 'View HRMS plans',
+      cta: 'View HRMS pricing',
     },
     {
       title: 'Saptta Complete',
       tagline: 'HR + Finance unified',
       amount: formatInr(complete.monthlyPrice),
-      note: 'Full HRMS & Finance Pro',
-      annualNote: 'Save 17% vs monthly',
-      features: ['Unlimited employees', 'Payroll-to-ledger sync', 'Unified reports & compliance'],
+      period: '/mo + GST',
+      note: 'Both products · save ₹1,999/mo',
+      annualNote: 'HRMS + Finance in one bundle',
+      features: ['Everything in HRMS & Finance', 'Payroll-to-ledger sync', 'Unified reports & portal'],
       path: '/pricing',
       featured: true,
       cta: 'Start free trial',
@@ -79,12 +81,13 @@ const HOME_PRICING_PLANS = (() => {
       title: 'Finance',
       tagline: 'Books & GST',
       amount: formatInr(finance.monthlyPrice),
-      note: 'Per organisation',
-      annualNote: `${formatInr(finance.annualPrice)}/yr on annual billing`,
+      period: '/mo + GST',
+      note: 'Per company · unlimited users',
+      annualNote: 'Flat — like Zoho Books / Tally',
       features: ['GST invoicing & GSTR export', 'Ledger & reconciliation', 'Trial balance & P&L'],
       path: '/accounts',
       featured: false,
-      cta: 'View Finance plans',
+      cta: 'View Finance pricing',
     },
   ] as const;
 })();
@@ -1027,7 +1030,7 @@ export default function Home() {
               title="Transparent plans."
               titleHighlight="Scale as you grow."
               titleHighlightSameLine
-              subtitle="Starter tiers aligned with Indian SMB benchmarks — upgrade to Pro anytime on the full pricing page."
+              subtitle="Simple flat pricing — ₹4,999 for HRMS, ₹4,999 for Finance, or both on Saptta Complete for ₹7,999 and save ₹1,999/mo."
               theme="navy"
               isMobile={isMobile}
               maxWidth={720}
@@ -1060,10 +1063,9 @@ export default function Home() {
                     <p className="home-pricing-card__tagline">{plan.tagline}</p>
                   </div>
                   <div className="home-pricing-card__price">
-                    <span className="home-pricing-card__price-label">From</span>
                     <div className="home-pricing-card__price-row">
                       <span className="home-pricing-card__amount">{plan.amount}</span>
-                      <span className="home-pricing-card__period">/month</span>
+                      <span className="home-pricing-card__period">{plan.period}</span>
                     </div>
                     <span className="home-pricing-card__note">{plan.note}</span>
                     <span className="home-pricing-card__annual">{plan.annualNote}</span>
@@ -1092,10 +1094,9 @@ export default function Home() {
           </div>
 
           <p className="home-pricing__footnote">
-            Pro tiers from {formatInr(PLANS.find((p) => p.id === 'hrms-pro')!.monthlyPrice)}/mo (HRMS) and{' '}
-            {formatInr(PLANS.find((p) => p.id === 'finance-pro')!.monthlyPrice)}/mo (Finance) for larger teams.{' '}
+            All prices exclude 18% GST. HRMS &amp; Complete include 30 employees; add more at just ₹111 each.{' '}
             <button type="button" className="home-pricing__link" onClick={() => navigate('/pricing')}>
-              Compare all plans
+              See full pricing
             </button>
           </p>
         </div>

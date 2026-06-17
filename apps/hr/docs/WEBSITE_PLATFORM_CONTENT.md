@@ -146,7 +146,9 @@ Until real logos exist, use:
 - Trust banner: `trustTimelineIndia`
 
 ### `/pricing`
-- Three plans: HRMS Starter, Finance Starter, Saptta Complete
+- Three plans (ex-GST): HRMS ₹4,999, Finance ₹4,999, Saptta Complete ₹7,999 (save ₹1,999/mo)
+- HRMS & Complete include 30 employees; +₹111 per extra employee. Finance = unlimited users.
+- Show "All prices exclude 18% GST" + a simple headcount calculator
 - Complete plan CTA: "Payroll-to-ledger sync included"
 
 ### `/features`

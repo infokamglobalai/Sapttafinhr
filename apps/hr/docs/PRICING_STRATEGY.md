@@ -1,4 +1,10 @@
-# Saptta Pricing Strategy — Business Guide
+> ⚠️ **SUPERSEDED.** Historical strategy notes only — do not use these numbers.
+> **Current, live pricing (ex-GST): HRMS ₹4,999/mo (up to 30 employees, +₹111 each
+> after) · Finance ₹4,999/mo (unlimited users) · Complete ₹7,999/mo (save ₹1,999/mo).
+> 18% GST added at checkout.** Source of truth: the app + repository
+> [README](../../../README.md#subscription-plans).
+
+# Saptta Pricing Strategy — Business Guide (SUPERSEDED)
 
 ## Recommendation: **Band pricing + show per-employee** ✅
 

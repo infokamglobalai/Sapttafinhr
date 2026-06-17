@@ -1,91 +1,80 @@
 # Saptta Pricing — Executive Brief (Jun 2026)
 
-**Model:** Per-seat HRMS · Flat Finance · Complete bundle discount · Prepay on all products
+**Model:** Flat base price per product · 30 employees included · +₹111 per extra employee · Complete bundle saves ₹1,999/mo · **all prices ex-GST**
 
 ---
 
 ## One-line summary
 
-**HRMS ₹111/employee — fixed, never drops. Finance ₹4,999 flat. Complete bundle = list − 24% (50 emp = ₹7,999). Prepay 3/6/12 months on HRMS, Finance, and Complete — deepest on Complete.**
+**HRMS ₹4,999/mo and Finance ₹4,999/mo (each includes up to 30 employees). Get both on Saptta Complete for ₹7,999/mo and save ₹1,999/month. Above 30 employees, add seats at ₹111 each. All prices exclude 18% GST.**
 
 ---
 
-## Pricing rules
+## Pricing rules (ex-GST)
 
-| Product | Formula | Monthly | Prepay discount |
-|---------|---------|---------|-----------------|
-| **HRMS** | employees × **₹111** | Full price | 3% / 5% / 9% (3 / 6 / 12 mo) |
-| **Finance** | **₹4,999** / company | Full price | 3% / 5% / 9% (3 / 6 / 12 mo) |
-| **Saptta Complete** | (HRMS + Finance) − **24%** | Bundle price | **4% / 6% / 11%** (3 / 6 / 12 mo) |
+| Product | Price / month | Includes | Beyond included |
+|---------|---------------|----------|-----------------|
+| **HRMS** | **₹4,999** | Up to 30 employees | +₹111 / extra employee |
+| **Finance** | **₹4,999** | Unlimited finance users | — (flat, no employee limit) |
+| **Saptta Complete** | **₹7,999** | Both products · 30 employees | +₹111 / extra employee |
 
-**No volume discount on per-seat.** 10 employees and 500 employees both pay **₹111/person**.
+18% GST is added at checkout (e.g. HRMS ₹4,999 → ₹5,899 incl. GST; Complete ₹7,999 → ₹9,439 incl. GST).
 
 ---
 
-## Complete bundle anchor (50 employees)
+## Complete bundle anchor (30 employees, ex-GST)
 
 | | Amount |
 |---|--------|
-| HRMS (50 × ₹111) | ₹5,550 |
-| Finance | ₹4,999 |
-| **List total** | **₹10,549** |
+| HRMS (up to 30 employees) | ₹4,999 |
+| Finance (unlimited users) | ₹4,999 |
+| **List total (separate)** | **₹9,998** |
 | **Saptta Complete** | **₹7,999** |
-| Customer saves | ₹2,550/mo (24%) |
+| Customer saves | ₹1,999/mo (20%) |
 
-**Complete + 1-year prepay (11% off bundle):**
-- Effective: **₹7,119/mo**
-- Prepay total: **₹85,428**
+**The ₹1,999 saving holds at every headcount** — the ₹111/extra-employee charge is identical on HRMS-standalone and on Complete, so only the base is discounted.
 
 ---
 
-## Employee bands
+## How price scales with headcount
 
-| Band | Max employees | HRMS at capacity | Complete bundle |
-|------|---------------|------------------|-----------------|
-| 1–50 | 50 | ₹5,550 | ₹7,999 |
-| 51–150 | 150 | ₹16,650 | ₹16,435 |
-| 151–300 | 300 | ₹33,300 | ₹29,039 |
-| 301–500 | 500 | ₹55,500 | ₹45,979 |
-| 501+ | — | Reach out | Reach out |
+`HRMS / Complete = base + (employees − 30) × ₹111`. Finance is flat.
 
-Bands set **max employees**, not discounted price. Per person always **₹111**.
+| Employees | HRMS / mo | Finance / mo | Separate | Complete | Bundle saves |
+|-----------|-----------|--------------|----------|----------|--------------|
+| 30 (incl) | ₹4,999 | ₹4,999 | ₹9,998 | ₹7,999 | ₹1,999 |
+| 50 | ₹7,219 | ₹4,999 | ₹12,218 | ₹10,219 | ₹1,999 |
+| 100 | ₹12,769 | ₹4,999 | ₹17,768 | ₹15,769 | ₹1,999 |
+| 200 | ₹23,869 | ₹4,999 | ₹28,868 | ₹26,869 | ₹1,999 |
+| 500 | ₹57,169 | ₹4,999 | ₹62,168 | ₹60,169 | ₹1,999 |
+
+500+ employees → custom / sales-led.
 
 ---
 
-## Profit logic (CEO view)
+## Profit logic (CEO view, ex-GST)
 
-- **Bundle still profitable:** Finance marginal cost ~₹950/mo; we discount ₹2,550 but capture both products.
-- **Target gross margin:** ≥ 60% on Complete bundle at 50 employees.
-- **Prepay trade-off:** 11% annual on Complete locks 12-month cash; margin stays ~62%.
-- **Year-1 scenario:** 85 customers · ~₹6.8L MRR run-rate · 70% Complete mix.
+- **Margins (30-emp anchor):** HRMS 74% · Finance 73% · Complete 72%. Assumptions: ₹30/employee infra+support, ₹950 finance module, ₹400 platform overhead.
+- **Bundle still profitable:** discount ₹1,999 on base; Finance marginal cost ~₹950 — Complete earns ~₹2,100 more than HRMS-only at the same headcount, plus dual-product lock-in.
+- **Extra seats are high-margin:** each ₹111 seat costs ~₹30 → ~73% margin, pure expansion MRR with no sales touch.
+- **Year-1 scenario:** 85 customers · ~₹6.4L MRR run-rate (~₹77L ARR) · 70% Complete mix.
 
 ---
 
 ## CEO approval checklist
 
-- [ ] HRMS **₹111/employee** fixed — no volume drop
-- [ ] Finance **₹4,999** monthly flat
-- [ ] Complete bundle = list − **24%** (50 emp = **₹7,999**)
-- [ ] Prepay: HRMS/Finance **3·5·9%** · Complete **4·6·11%**
-- [ ] 501+ → Reach out (sales-led)
+- [ ] HRMS **₹4,999/mo** — up to 30 employees, **+₹111** each after
+- [ ] Finance **₹4,999/mo** flat — unlimited users
+- [ ] Complete **₹7,999/mo** — both products, saves **₹1,999/mo**
+- [ ] **All prices exclude 18% GST** (added at checkout)
+- [ ] 500+ employees → sales-led
 
 ---
 
 ## Share with team (PDF / WhatsApp / Teams)
 
-**Ready-to-share files:**
-
 | File | Use for |
 |------|---------|
-| [saptta-pricing-executive.pdf](saptta-pricing-executive.pdf) | Attach on WhatsApp, Teams, email |
-| [saptta-pricing-executive.html](saptta-pricing-executive.html) | Open in browser → Print → Save as PDF |
+| [saptta-pricing-executive.html](saptta-pricing-executive.html) | Open in browser → Print → Save as PDF, then attach on WhatsApp / Teams / email |
 
-**Full path:** `apps/hr/docs/saptta-pricing-executive.pdf`
-
----
-
-## Visual deck (Cursor)
-
-[saptta-pricing-executive.canvas.tsx](C:\Users\ADMIN\.cursor\projects\c-Users-ADMIN-Desktop-projects-sapttafinhr\canvases\saptta-pricing-executive.canvas.tsx)
-
-*Open beside chat for charts, margin analysis, growth roadmap, and revenue levers.*
+*Regenerate the PDF from the HTML after this update so the shared copy reflects the flat model.*

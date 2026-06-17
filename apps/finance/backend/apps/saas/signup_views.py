@@ -37,11 +37,15 @@ RESERVED = {"public", "www", "admin", "api", "app", "static", "media", "hr"}
 
 # Plan id (from the website) → products granted.
 PLAN_PRODUCTS = {
+    # Current per-seat pricing model (Jun 2026)
+    "hrms": [ProductCode.HR],
+    "finance": [ProductCode.FIN],
+    "saptta-complete": [ProductCode.FIN, ProductCode.HR],
+    # Legacy tier ids — kept so older signup links still provision correctly.
     "hrms-starter": [ProductCode.HR],
     "hrms-pro": [ProductCode.HR],
     "finance-starter": [ProductCode.FIN],
     "finance-pro": [ProductCode.FIN],
-    "saptta-complete": [ProductCode.FIN, ProductCode.HR],
 }
 SLUG_TO_PRODUCT = {"finance": ProductCode.FIN, "hrms": ProductCode.HR}
 PRODUCT_TO_SLUG = {ProductCode.FIN: "finance", ProductCode.HR: "hrms"}

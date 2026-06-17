@@ -114,178 +114,92 @@ export default function Login() {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: 'Inter, sans-serif' }}>
+    <div className="login-root">
+      {/* Soft ambient background orbs */}
+      <div className="login-orb login-orb--a" />
+      <div className="login-orb login-orb--b" />
 
-      {/* ── Left brand panel ─────────────────────────────────────── */}
-      <div style={{
-        display: 'none',
-        width: '45%',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        padding: '48px 56px',
-        background: 'linear-gradient(145deg, #FF6D00 0%, #c2410c 40%, #7c3aed 100%)',
-        color: '#fff',
-        position: 'relative',
-        overflow: 'hidden',
-      }}
-        className="login-left-panel"
-      >
-        {/* Glow circles */}
-        <div style={{ position:'absolute', top:-120, right:-120, width:340, height:340, background:'rgba(255,255,255,0.07)', borderRadius:'50%' }} />
-        <div style={{ position:'absolute', bottom:-80, left:-80, width:260, height:260, background:'rgba(255,255,255,0.05)', borderRadius:'50%' }} />
+      <main className="login-card-wrap">
+        <div style={{ width:'100%', maxWidth:430, position:'relative' }}>
 
-        {/* Logo */}
-        <div style={{ display:'flex', alignItems:'center', gap:12, position:'relative' }}>
-          <div style={{
-            width:44, height:44, borderRadius:12,
-            background:'rgba(255,255,255,0.2)',
-            display:'flex', alignItems:'center', justifyContent:'center',
-            fontWeight:900, fontSize:16, letterSpacing:'-0.5px',
-          }}>
-            ST
-          </div>
-          <div>
-            <div style={{ fontWeight:800, fontSize:17, letterSpacing:'-0.3px' }}>SAPTTA</div>
-            <div style={{ fontSize:11, opacity:0.7, letterSpacing:'0.5px', textTransform:'uppercase' }}>Tech Solutions</div>
-          </div>
-        </div>
-
-        {/* Headline */}
-        <div style={{ position:'relative' }}>
-          <h2 style={{ fontSize:'clamp(1.8rem,2.5vw,2.4rem)', fontWeight:900, lineHeight:1.2, marginBottom:16, letterSpacing:'-1px' }}>
-            Smart HR.<br />Smarter Accounts.<br />Better Business.
-          </h2>
-          <p style={{ opacity:0.8, fontSize:15, lineHeight:1.6, maxWidth:320 }}>
-            One platform for your entire business — payroll, attendance, GST invoicing, and financial reports.
-          </p>
-
-          <div style={{ marginTop:40, display:'flex', flexDirection:'column', gap:14 }}>
-            {[
-              { icon:'👥', text:'HRMS — Employees, Attendance & Payroll' },
-              { icon:'📊', text:'Finance — GST Invoicing & Ledger' },
-              { icon:'📱', text:'Mobile app for on-the-go access' },
-              { icon:'🔒', text:'India-compliant, secure by design' },
-            ].map(f => (
-              <div key={f.text} style={{ display:'flex', alignItems:'center', gap:12, fontSize:14 }}>
-                <span style={{ fontSize:18 }}>{f.icon}</span>
-                <span style={{ opacity:0.9 }}>{f.text}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <p style={{ fontSize:12, opacity:0.5, position:'relative' }}>
-          © {new Date().getFullYear()} Saptta Tech Solutions Pvt. Ltd.
-        </p>
-      </div>
-
-      {/* ── Right form panel ─────────────────────────────────────── */}
-      <div style={{
-        flex:1,
-        display:'flex',
-        flexDirection:'column',
-        alignItems:'center',
-        justifyContent:'center',
-        padding:'40px 24px',
-        background:'#FAFAFC',
-        position:'relative',
-        overflow:'hidden',
-      }}>
-        {/* Soft background orbs */}
-        <div style={{ position:'absolute', top:-80, left:-80, width:360, height:360, background:'radial-gradient(circle, rgba(255,109,0,0.07) 0%, transparent 70%)', pointerEvents:'none' }} />
-        <div style={{ position:'absolute', bottom:-60, right:-60, width:300, height:300, background:'radial-gradient(circle, rgba(124,58,237,0.06) 0%, transparent 70%)', pointerEvents:'none' }} />
-
-        <div style={{ width:'100%', maxWidth:420, position:'relative' }}>
-
-          {/* Mobile-only logo */}
-          <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:32 }} className="login-mobile-logo">
-            <div style={{
-              width:40, height:40, borderRadius:10,
-              background:'linear-gradient(135deg,#FF6D00,#7c3aed)',
-              display:'flex', alignItems:'center', justifyContent:'center',
-              color:'#fff', fontWeight:900, fontSize:14,
-            }}>ST</div>
-            <div>
-              <div style={{ fontWeight:800, color:'#0A1128', fontSize:15 }}>SAPTTA</div>
-              <div style={{ fontSize:11, color:'rgba(10,17,40,0.4)', letterSpacing:'0.4px', textTransform:'uppercase' }}>Tech Solutions</div>
-            </div>
+          {/* Logo */}
+          <div style={{ display:'flex', justifyContent:'center', marginBottom:24 }}>
+            <Link to="/" aria-label="Saptta home">
+              <img src="/logo.jpeg" alt="Saptta" style={{ height:50, width:'auto', objectFit:'contain' }} />
+            </Link>
           </div>
 
           {/* Heading */}
-          <div style={{ marginBottom:32 }}>
-            <h1 style={{ fontSize:28, fontWeight:900, color:'#0A1128', marginBottom:6, letterSpacing:'-0.5px' }}>
+          <div style={{ marginBottom:24, textAlign:'center' }}>
+            <h1 style={{ fontSize:28, fontWeight:900, color:'#0A1128', marginBottom:6, letterSpacing:'-0.8px' }}>
               Welcome back
             </h1>
-            <p style={{ color:'rgba(10,17,40,0.5)', fontSize:14 }}>
-              Sign in to your HRMS & Accounts workspace.
+            <p style={{ color:'rgba(10,17,40,0.5)', fontSize:14.5 }}>
+              Sign in to your HRMS &amp; Accounts workspace.
             </p>
           </div>
 
           {/* Form card */}
           <div style={{
             background:'#fff',
-            borderRadius:20,
-            padding:'32px 28px',
-            border:'1px solid rgba(10,17,40,0.07)',
-            boxShadow:'0 4px 32px rgba(10,17,40,0.05)',
+            borderRadius:22,
+            padding:'30px 28px',
+            border:'1px solid rgba(10,17,40,0.06)',
+            boxShadow:'0 18px 50px rgba(10,17,40,0.08)',
           }}>
-            <form onSubmit={handleSubmit} style={{ display:'flex', flexDirection:'column', gap:20 }}>
+            <form onSubmit={handleSubmit} style={{ display:'flex', flexDirection:'column', gap:18 }}>
 
               {/* Email */}
               <div>
-                <label style={{ display:'block', marginBottom:6, fontSize:13, fontWeight:600, color:'#0A1128' }}>
+                <label style={{ display:'block', marginBottom:7, fontSize:13, fontWeight:600, color:'#0A1128' }}>
                   Email address
                 </label>
-                <input
-                  type="email"
-                  required
-                  autoComplete="email"
-                  placeholder="you@company.com"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  style={{
-                    width:'100%', boxSizing:'border-box',
-                    padding:'11px 14px', borderRadius:10,
-                    border:'1.5px solid rgba(10,17,40,0.12)',
-                    fontSize:14, color:'#0A1128',
-                    outline:'none', transition:'border-color 0.2s',
-                    background:'#fff',
-                  }}
-                  onFocus={e => e.target.style.borderColor='#FF6D00'}
-                  onBlur={e => e.target.style.borderColor='rgba(10,17,40,0.12)'}
-                />
+                <div style={{ position:'relative' }}>
+                  <span className="login-input-icon">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" />
+                    </svg>
+                  </span>
+                  <input
+                    className="login-input"
+                    type="email"
+                    required
+                    autoComplete="email"
+                    placeholder="you@company.com"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                  />
+                </div>
               </div>
 
               {/* Password */}
               <div>
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:7 }}>
                   <label style={{ fontSize:13, fontWeight:600, color:'#0A1128' }}>Password</label>
-                  <Link to="/forgot-password" style={{ fontSize:12, color:'#FF6D00', fontWeight:500, textDecoration:'none' }}>
+                  <Link to="/forgot-password" style={{ fontSize:12.5, color:'#FF6D00', fontWeight:600, textDecoration:'none' }}>
                     Forgot password?
                   </Link>
                 </div>
                 <div style={{ position:'relative' }}>
+                  <span className="login-input-icon">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                  </span>
                   <input
+                    className="login-input"
                     type={showPw ? 'text' : 'password'}
                     required
                     autoComplete="current-password"
                     placeholder="••••••••"
                     value={password}
                     onChange={e => setPassword(e.target.value)}
-                    style={{
-                      width:'100%', boxSizing:'border-box',
-                      padding:'11px 44px 11px 14px', borderRadius:10,
-                      border:'1.5px solid rgba(10,17,40,0.12)',
-                      fontSize:14, color:'#0A1128',
-                      outline:'none', transition:'border-color 0.2s',
-                      background:'#fff',
-                    }}
-                    onFocus={e => e.target.style.borderColor='#FF6D00'}
-                    onBlur={e => e.target.style.borderColor='rgba(10,17,40,0.12)'}
+                    style={{ paddingRight:44 }}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPw(v => !v)}
+                    aria-label={showPw ? 'Hide password' : 'Show password'}
                     style={{
                       position:'absolute', right:12, top:'50%', transform:'translateY(-50%)',
                       background:'none', border:'none', cursor:'pointer',
@@ -293,11 +207,11 @@ export default function Login() {
                     }}
                   >
                     {showPw ? (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>
                       </svg>
                     ) : (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
                       </svg>
                     )}
@@ -309,7 +223,7 @@ export default function Login() {
               {error && (
                 <div style={{
                   display:'flex', alignItems:'center', gap:8,
-                  padding:'10px 14px', borderRadius:10,
+                  padding:'10px 14px', borderRadius:12,
                   background:'rgba(239,68,68,0.06)', border:'1px solid rgba(239,68,68,0.2)',
                   color:'#dc2626', fontSize:13,
                 }}>
@@ -324,12 +238,13 @@ export default function Login() {
               <button
                 type="submit"
                 disabled={isLoading}
+                className="login-submit-btn"
                 style={{
-                  width:'100%', padding:'13px',
-                  borderRadius:10, border:'none', cursor:'pointer',
+                  width:'100%', padding:'14px',
+                  borderRadius:12, border:'none', cursor: isLoading ? 'default' : 'pointer',
                   background: isLoading ? 'rgba(255,109,0,0.5)' : 'linear-gradient(135deg, #FF9800, #FF6D00)',
                   color:'#fff', fontSize:15, fontWeight:700,
-                  boxShadow: isLoading ? 'none' : '0 6px 20px rgba(255,109,0,0.25)',
+                  boxShadow: isLoading ? 'none' : '0 8px 22px rgba(255,109,0,0.28)',
                   transition:'all 0.2s',
                   display:'flex', alignItems:'center', justifyContent:'center', gap:8,
                 }}
@@ -346,42 +261,36 @@ export default function Login() {
               </button>
 
               {/* Demo Logins */}
-              <div style={{
-                display: 'flex', flexDirection: 'column', gap: 10,
-                marginTop: 8, paddingTop: 20, borderTop: '1px solid rgba(10,17,40,0.07)'
-              }}>
+              <div style={{ display:'flex', alignItems:'center', gap:12, margin:'2px 0' }}>
+                <div style={{ flex:1, height:1, background:'rgba(10,17,40,0.08)' }} />
+                <span style={{ fontSize:11, fontWeight:600, color:'rgba(10,17,40,0.35)', textTransform:'uppercase', letterSpacing:'0.6px' }}>
+                  Quick demo access
+                </span>
+                <div style={{ flex:1, height:1, background:'rgba(10,17,40,0.08)' }} />
+              </div>
+
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
                 <button
                   type="button"
                   onClick={(e) => handleDemoLogin(e, 'saas')}
                   disabled={isLoading}
-                  style={{
-                    width:'100%', padding:'10px',
-                    borderRadius:8, border:'1.5px solid rgba(124,58,237,0.3)', cursor:'pointer',
-                    background: 'rgba(124,58,237,0.05)',
-                    color:'#7c3aed', fontSize:14, fontWeight:600,
-                    transition:'all 0.2s',
-                  }}
-                  onMouseOver={(e) => (e.currentTarget.style.background = 'rgba(124,58,237,0.1)')}
-                  onMouseOut={(e) => (e.currentTarget.style.background = 'rgba(124,58,237,0.05)')}
+                  className="demo-btn demo-btn--saas"
                 >
-                  Demo SAAS Superadmin Login
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2l2.4 7.4H22l-6 4.6 2.3 7.4-6.3-4.6L5.7 21.4 8 14 2 9.4h7.6z" />
+                  </svg>
+                  Superadmin
                 </button>
-
                 <button
                   type="button"
                   onClick={(e) => handleDemoLogin(e, 'admin')}
                   disabled={isLoading}
-                  style={{
-                    width:'100%', padding:'10px',
-                    borderRadius:8, border:'1.5px solid rgba(10,17,40,0.15)', cursor:'pointer',
-                    background: '#fff',
-                    color:'#0A1128', fontSize:14, fontWeight:600,
-                    transition:'all 0.2s',
-                  }}
-                  onMouseOver={(e) => (e.currentTarget.style.background = '#f1f5f9')}
-                  onMouseOut={(e) => (e.currentTarget.style.background = '#fff')}
+                  className="demo-btn demo-btn--admin"
                 >
-                  Demo Company Admin Login
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4" />
+                  </svg>
+                  Company Admin
                 </button>
               </div>
             </form>
@@ -389,38 +298,86 @@ export default function Login() {
 
           {/* Sign up CTA */}
           <div style={{
-            marginTop:24, padding:'16px 20px', borderRadius:14,
-            background:'rgba(124,58,237,0.05)', border:'1px solid rgba(124,58,237,0.1)',
-            textAlign:'center',
+            marginTop:22, padding:'16px 20px', borderRadius:16,
+            background:'linear-gradient(135deg, rgba(124,58,237,0.06), rgba(255,109,0,0.04))',
+            border:'1px solid rgba(124,58,237,0.12)',
+            display:'flex', alignItems:'center', justifyContent:'space-between', gap:14, flexWrap:'wrap',
           }}>
-            <p style={{ fontSize:13, color:'rgba(10,17,40,0.55)', marginBottom:10 }}>
+            <span style={{ fontSize:13.5, color:'rgba(10,17,40,0.6)', fontWeight:500 }}>
               New to Saptta? Get started free.
-            </p>
-            <Link to="/pricing" style={{
-              display:'inline-block', padding:'9px 24px', borderRadius:8,
-              border:'1.5px solid rgba(124,58,237,0.35)', color:'#7c3aed',
-              fontWeight:700, fontSize:13, textDecoration:'none',
-              transition:'all 0.2s',
-            }}>
-              View Plans & Sign Up →
+            </span>
+            <Link to="/pricing" className="login-cta-link">
+              View Plans &amp; Sign Up →
             </Link>
           </div>
 
-          <p style={{ textAlign:'center', color:'rgba(10,17,40,0.3)', fontSize:11, marginTop:20 }}>
+          <p style={{ textAlign:'center', color:'rgba(10,17,40,0.3)', fontSize:11.5, marginTop:18 }}>
             By signing in you agree to our{' '}
-            <Link to="/terms" style={{ color:'rgba(10,17,40,0.4)' }}>Terms</Link>
+            <Link to="/terms" style={{ color:'rgba(10,17,40,0.45)' }}>Terms</Link>
             {' '}and{' '}
-            <Link to="/privacy" style={{ color:'rgba(10,17,40,0.4)' }}>Privacy Policy</Link>
+            <Link to="/privacy" style={{ color:'rgba(10,17,40,0.45)' }}>Privacy Policy</Link>
           </p>
         </div>
-      </div>
+      </main>
 
       <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        @media (min-width: 900px) {
-          .login-left-panel { display: flex !important; }
-          .login-mobile-logo { display: none !important; }
+        .login-root {
+          position:relative; min-height:100vh; overflow:hidden;
+          font-family:Inter, sans-serif;
+          background:#FAFAFC;
         }
+        .login-card-wrap {
+          position:relative; z-index:1;
+          min-height:100vh;
+          display:flex; flex-direction:column;
+          align-items:center; justify-content:center;
+          padding:48px 24px;
+        }
+        .login-orb {
+          position:absolute; border-radius:50%; pointer-events:none; z-index:0;
+        }
+        .login-orb--a {
+          top:-120px; left:-100px; width:420px; height:420px;
+          background:radial-gradient(circle, rgba(255,109,0,0.12) 0%, transparent 70%);
+        }
+        .login-orb--b {
+          bottom:-100px; right:-90px; width:380px; height:380px;
+          background:radial-gradient(circle, rgba(124,58,237,0.10) 0%, transparent 70%);
+        }
+        .login-input {
+          width:100%; box-sizing:border-box;
+          padding:12px 14px 12px 42px; border-radius:12px;
+          border:1.5px solid rgba(10,17,40,0.1);
+          font-size:14px; color:#0A1128;
+          outline:none; background:#F7F8FA;
+          transition:border-color 0.2s, box-shadow 0.2s, background 0.2s;
+        }
+        .login-input::placeholder { color:rgba(10,17,40,0.3); }
+        .login-input:focus { border-color:#FF6D00; background:#fff; box-shadow:0 0 0 4px rgba(255,109,0,0.1); }
+        .login-input-icon {
+          position:absolute; left:14px; top:50%; transform:translateY(-50%);
+          color:rgba(10,17,40,0.32); display:flex; pointer-events:none;
+        }
+        .login-input:focus + .login-input-icon { color:#FF6D00; }
+        .login-submit-btn:not(:disabled):hover { transform:translateY(-1px); box-shadow:0 12px 28px rgba(255,109,0,0.34) !important; }
+        .demo-btn {
+          display:flex; align-items:center; justify-content:center; gap:7px;
+          padding:11px 8px; border-radius:11px; cursor:pointer;
+          font-size:13px; font-weight:700; transition:all 0.18s;
+        }
+        .demo-btn:disabled { opacity:0.6; cursor:default; }
+        .demo-btn--saas { background:rgba(124,58,237,0.06); border:1.5px solid rgba(124,58,237,0.25); color:#7c3aed; }
+        .demo-btn--saas:not(:disabled):hover { background:rgba(124,58,237,0.12); border-color:rgba(124,58,237,0.45); }
+        .demo-btn--admin { background:#fff; border:1.5px solid rgba(10,17,40,0.14); color:#0A1128; }
+        .demo-btn--admin:not(:disabled):hover { background:#F1F5F9; border-color:rgba(10,17,40,0.28); }
+        .login-cta-link {
+          display:inline-block; padding:9px 20px; border-radius:10px;
+          background:#fff; border:1.5px solid rgba(124,58,237,0.3); color:#7c3aed;
+          font-weight:700; font-size:13px; text-decoration:none; white-space:nowrap;
+          transition:all 0.18s;
+        }
+        .login-cta-link:hover { background:#7c3aed; color:#fff; border-color:#7c3aed; }
       `}</style>
     </div>
   );

@@ -148,15 +148,15 @@ Remaining gaps for full production SaaS:
 
 ## Subscription plans
 
-| Plan | Products | Price |
-|------|----------|-------|
-| HRMS Starter | Saptta HR (up to 50 emp) | ₹2,999/mo |
-| HRMS Pro | Saptta HR (unlimited) | ₹7,999/mo |
-| Finance Starter | fin-saptta basic | ₹3,499/mo |
-| Finance Pro | fin-saptta full | ₹8,999/mo |
-| **Saptta Complete** | Both products + Portal + AI | ₹14,999/mo |
+| Plan | Products | Price (ex-GST) |
+|------|----------|----------------|
+| Saptta HRMS | Saptta HR (up to 30 employees) | ₹4,999 / mo · +₹111 per extra employee |
+| Saptta Finance | fin-saptta (unlimited users) | ₹4,999 / mo |
+| **Saptta Complete** | Both products + Portal + AI | ₹7,999 / mo (up to 30 employees · save ₹1,999/mo) |
 
-All plans include a 14-day free trial. Annual billing saves 17%.
+HRMS and Complete include up to 30 employees in the base price; each additional employee
+is ₹111/month. Finance is flat with unlimited users. **All prices are exclusive of 18%
+GST**, which is added at checkout. All plans include a 14-day free trial.
 
 ## License
 

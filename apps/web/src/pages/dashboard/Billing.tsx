@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Tag, message, Card, Table, Alert, Spin, Modal, Form, Input, Divider } from 'antd';
+import { Button, Tag, message, Card, Table, Alert, Spin, Modal, Form, Input, Divider, InputNumber } from 'antd';
 import {
   ArrowLeftOutlined,
   CheckCircleFilled,
@@ -12,7 +12,7 @@ import {
   CheckOutlined
 } from '@ant-design/icons';
 import { useAuth } from '../../contexts/AuthContext';
-import { PLANS } from '../../types';
+import { PLANS, planMonthly, INCLUDED_EMPLOYEES, EXTRA_EMPLOYEE_PRICE } from '../../types';
 import { startCheckout } from '../../lib/billing';
 import { useApiResource } from '../../hooks/useApiResource';
 import { devActivateSubscription } from '../../lib/api';
@@ -33,6 +33,7 @@ export default function Billing() {
   const [devPaying, setDevPaying] = useState(false);
   const [devStep, setDevStep] = useState<'form' | 'processing' | 'done'>('form');
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
+  const [employees, setEmployees] = useState(INCLUDED_EMPLOYEES);
 
   // Live subscription for the current workspace (tenant-scoped endpoint).
   const subRes = useApiResource<MySubscription>('/saas/my-subscription/');
@@ -207,8 +208,17 @@ export default function Billing() {
                 <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px' }}>Selected Plan</div>
                 <div style={{ fontWeight: 800, fontSize: 16, marginTop: 2, color: 'var(--color-text-primary)' }}>{selectedPlan.name}</div>
                 <div style={{ fontSize: 24, fontWeight: 900, color: '#FF6D00', marginTop: 6 }}>
-                  ₹{new Intl.NumberFormat('en-IN').format(billingCycle === 'monthly' ? selectedPlan.monthlyPrice : selectedPlan.annualPrice)}
-                  <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text-muted)' }}>/{billingCycle === 'monthly' ? 'mo' : 'yr'}</span>
+                  ₹{new Intl.NumberFormat('en-IN').format(
+                    billingCycle === 'monthly'
+                      ? planMonthly(selectedPlan, employees)
+                      : planMonthly(selectedPlan, employees) * 12,
+                  )}
+                  <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text-muted)' }}> + GST /{billingCycle === 'monthly' ? 'mo' : 'yr'}</span>
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 2 }}>
+                  {selectedPlan.includedEmployees != null
+                    ? `Up to ${selectedPlan.includedEmployees} employees · +₹${EXTRA_EMPLOYEE_PRICE} each after`
+                    : 'Flat per company · unlimited users'}
                 </div>
               </div>
             )}
@@ -437,9 +447,24 @@ export default function Billing() {
               borderRadius: '10px',
               marginLeft: '6px',
               fontWeight: 800
-            }}>Save 20%</span>
+            }}>Billed yearly</span>
           </Button>
         </div>
+      </div>
+
+      {/* Headcount selector — HRMS & Complete include 30 employees, +₹111 each after */}
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, marginBottom: 40, flexWrap: 'wrap' }} className="anim-fadeInUp delay-2">
+        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)' }}>Number of employees</span>
+        <InputNumber
+          min={1}
+          max={5000}
+          value={employees}
+          onChange={(v) => setEmployees(Number(v) || 1)}
+          style={{ width: 110 }}
+        />
+        <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
+          HRMS &amp; Complete include {INCLUDED_EMPLOYEES} employees · +₹{EXTRA_EMPLOYEE_PRICE} each after · all prices + GST
+        </span>
       </div>
 
       {/* Pricing Grid */}
@@ -472,7 +497,12 @@ export default function Billing() {
             bgGradient = 'linear-gradient(135deg, #ffffff 0%, rgba(0, 200, 83, 0.01) 100%)';
           }
 
-          const displayPrice = billingCycle === 'monthly' ? plan.monthlyPrice : plan.annualPrice / 12;
+          const displayPrice = planMonthly(plan, employees);
+          const annualTotal = displayPrice * 12;
+          const unitLabel =
+            plan.includedEmployees != null
+              ? `Up to ${plan.includedEmployees} employees · +₹${EXTRA_EMPLOYEE_PRICE} each`
+              : 'Flat · unlimited users';
 
           return (
             <div
@@ -530,10 +560,13 @@ export default function Billing() {
                 <span style={{ fontSize: 32, fontWeight: 900, color: themeColor, letterSpacing: '-0.02em' }}>
                   ₹{formatPrice(displayPrice)}
                 </span>
-                <span style={{ color: 'var(--color-text-muted)', fontSize: 13, fontWeight: 600 }}>/mo</span>
+                <span style={{ color: 'var(--color-text-muted)', fontSize: 13, fontWeight: 600 }}>/mo + GST</span>
+                <div style={{ fontSize: 11, color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 4 }}>
+                  {unitLabel}
+                </div>
                 {billingCycle === 'annual' && (
-                  <div style={{ fontSize: 11, color: '#FF6D00', fontWeight: 700, marginTop: 4 }}>
-                    Billed annually (₹{formatPrice(plan.annualPrice)}/yr)
+                  <div style={{ fontSize: 11, color: '#FF6D00', fontWeight: 700, marginTop: 2 }}>
+                    Billed annually (₹{formatPrice(annualTotal)}/yr + GST)
                   </div>
                 )}
               </div>

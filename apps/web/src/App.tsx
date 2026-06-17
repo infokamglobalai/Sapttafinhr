@@ -51,7 +51,7 @@ function AppLayout() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       {!hideChrome && <Navbar />}
-      <main className="main-content" style={{ flex: 1 }}>
+      <main className={hideChrome ? "" : "main-content"} style={{ flex: 1 }}>
         <Routes>
           {/* Public marketing pages */}
           <Route path="/" element={<Home />} />
