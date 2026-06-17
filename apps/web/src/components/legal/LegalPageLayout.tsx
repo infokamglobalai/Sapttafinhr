@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
 import ScrollReveal from '../shared/ScrollReveal';
-import { SAPTTA_PHONES } from '../../data/contact-info';
 import HomeSectionHeader from '../shared/HomeSectionHeader';
 import useBreakpoint from '../../hooks/useBreakpoint';
 
@@ -122,14 +121,8 @@ export default function LegalPageLayout({
               <p>
                 Questions? Contact{' '}
                 <a href="mailto:legal@saptta.com">legal@saptta.com</a> or{' '}
-                <a href="mailto:info@saptta.com">info@saptta.com</a>
-                {' · WhatsApp '}
-                {SAPTTA_PHONES.map((phone, i) => (
-                  <span key={phone.tel}>
-                    {i > 0 ? ' · ' : ''}
-                    <a href={`https://wa.me/${phone.wa}`}>{phone.display}</a>
-                  </span>
-                ))}
+                <a href="mailto:info@saptta.com">info@saptta.com</a> · WhatsApp{' '}
+                <a href="https://wa.me/919900007072">+91 9900007072</a>
               </p>
             </div>
           </article>
