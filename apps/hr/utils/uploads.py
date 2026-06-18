@@ -18,7 +18,7 @@ from django.core.exceptions import ValidationError
 DEFAULT_MAX_MB = 10
 
 DOCUMENT_EXTS = {".pdf", ".jpg", ".jpeg", ".png", ".webp", ".doc", ".docx", ".xls", ".xlsx"}
-RESUME_EXTS = {".pdf", ".doc", ".docx"}
+RESUME_EXTS = {".pdf", ".doc", ".docx", ".txt"}
 IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp"}
 STATEMENT_EXTS = {".csv", ".xls", ".xlsx", ".pdf", ".ofx", ".txt"}
 

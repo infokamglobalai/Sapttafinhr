@@ -42,8 +42,11 @@ class JDGeneratorView(View):
 
         try:
             import anthropic
+
+            from django.conf import settings as _settings
+            from .ai_utils import parse_llm_json
             client = anthropic.Anthropic(api_key=api_key)
-            prompt = f"""Write a professional job description for the following role. Format: Role Overview, Key Responsibilities (6-8 bullets), Requirements (5-6 bullets), Nice to Have (3 bullets), What We Offer.
+            prompt = f"""Write a professional job description AND extract its structured components.
 
 Role: {role}
 Company: {company_name}
@@ -52,14 +55,30 @@ Experience: {experience} years
 Key skills: {', '.join(skills) if skills else 'to be determined by hiring team'}
 Salary range: {salary_range or 'Competitive, based on experience'}
 
-Keep it engaging, specific to the role, and 350-450 words. Do not use placeholder brackets."""
+Return ONLY valid JSON with this exact structure:
+{{
+  "jd_text": "<full JD, 350-450 words, sections: Role Overview, Key Responsibilities (6-8 bullets), Requirements (5-6 bullets), Nice to Have (3 bullets), What We Offer. No placeholder brackets.>",
+  "mandatory_skills": ["<must-have skill>", "..."],
+  "preferred_skills": ["<nice-to-have skill>", "..."],
+  "qualifications": ["<education / qualification>", "..."],
+  "certifications": ["<relevant certification>", "..."],
+  "keywords": ["<searchable keyword>", "..."],
+  "competencies": ["<behavioural competency>", "..."]
+}}"""
 
             response = client.messages.create(
-                model="claude-sonnet-4-6",
-                max_tokens=1024,
+                model=getattr(_settings, "ANTHROPIC_MODEL", "claude-sonnet-4-6"),
+                max_tokens=1536,
                 messages=[{"role": "user", "content": prompt}]
             )
-            jd_text = response.content[0].text
+            parsed = parse_llm_json(response.content[0].text)
+            jd_text = parsed.get("jd_text") or response.content[0].text
+            structured = {
+                k: parsed.get(k, [])
+                for k in ("mandatory_skills", "preferred_skills", "qualifications",
+                          "certifications", "keywords", "competencies")
+            }
+            return JsonResponse({"jd_text": jd_text, "role": role, "company": company_name, **structured})
         except Exception:
             logger.exception("JD generation failed")
             jd_text = self._template_jd(role, company_name, department, experience, skills, salary_range)
@@ -228,7 +247,8 @@ class ResumeRankView(View):
         if not job_opening_id:
             return JsonResponse({"error": "job_opening_id required"}, status=400)
 
-        from .models import JobOpening, JobApplication, Candidate
+        from .models import JobOpening, JobApplication
+        from . import scoring
         try:
             job = JobOpening.objects.get(pk=job_opening_id, tenant=request.tenant)
         except JobOpening.DoesNotExist:
@@ -237,7 +257,7 @@ class ResumeRankView(View):
         app_ids = data.get("application_ids") or []
         qs = JobApplication.objects.filter(
             job_opening=job
-        ).select_related("candidate")
+        ).select_related("candidate", "candidate__profile")
         if app_ids:
             qs = qs.filter(pk__in=app_ids)
 
@@ -250,99 +270,23 @@ class ResumeRankView(View):
         if not api_key:
             return JsonResponse({"error": "ANTHROPIC_API_KEY not configured"}, status=503)
 
-        jd_text = self._build_jd_text(job)
-        from django.utils import timezone
+        jd_text = scoring.build_jd_text(job)
+        weights = scoring.weights_for(job)
 
         results = []
         for app in applications:
-            score_data = self._score_candidate(app.candidate, jd_text, job, api_key)
-            app.ai_score = score_data.get("score")
-            app.ai_band = score_data.get("band", "")
-            app.ai_recommendation = score_data.get("recommendation", "")
-            app.ai_ranked_at = timezone.now()
-            app.save(update_fields=["ai_score", "ai_band", "ai_recommendation", "ai_ranked_at", "updated_at"])
+            score_data = scoring.score_candidate(app.candidate, jd_text, weights, api_key)
+            scoring.persist_score(app, score_data)
             results.append({
                 "application_id": app.id,
                 "candidate_id": app.candidate.id,
-                "candidate_name": f"{app.candidate.first_name} {app.candidate.last_name}".strip(),
+                "candidate_name": app.candidate.display_name,
                 "current_role": app.candidate.current_designation,
                 "experience_years": float(app.candidate.total_experience or 0),
+                "recommendation_label": app.recommendation_label,
                 **score_data,
             })
 
         results.sort(key=lambda x: x.get("score", 0), reverse=True)
-        return JsonResponse({"job_title": job.title, "ranked": results, "total": len(results)})
-
-    def _build_jd_text(self, job) -> str:
-        parts = [f"Job Title: {job.title}"]
-        if job.department:
-            parts.append(f"Department: {job.department.name}")
-        parts.append(f"Experience Required: {job.experience_min}–{job.experience_max or '+'} years")
-        if job.description:
-            parts.append(f"Description:\n{job.description}")
-        if job.requirements:
-            parts.append(f"Requirements:\n{job.requirements}")
-        return "\n\n".join(parts)
-
-    def _score_candidate(self, candidate, jd_text: str, job, api_key: str) -> dict:
-        # Build candidate summary from DB fields + resume text
-        resume_text = ""
-        if candidate.resume:
-            try:
-                from .resume_parser import _extract_text
-                resume_text = _extract_text(candidate.resume.read(), candidate.resume.name)[:3000]
-            except Exception:
-                pass
-
-        candidate_summary = (
-            f"Name: {candidate.first_name} {candidate.last_name}\n"
-            f"Current Role: {candidate.current_designation or 'N/A'}\n"
-            f"Current Company: {candidate.current_company or 'N/A'}\n"
-            f"Total Experience: {candidate.total_experience or 0} years\n"
-        )
-        if resume_text:
-            candidate_summary += f"\nResume:\n{resume_text}"
-
-        prompt = f"""You are an expert recruiter. Score this candidate against the job description.
-
-JOB DESCRIPTION:
-{jd_text}
-
-CANDIDATE PROFILE:
-{candidate_summary}
-
-Return ONLY valid JSON with this exact structure:
-{{
-  "score": <integer 0-100>,
-  "band": "<Excellent|Good|Average|Poor>",
-  "strengths": ["<strength 1>", "<strength 2>", "<strength 3>"],
-  "gaps": ["<gap 1>", "<gap 2>"],
-  "recommendation": "<one sentence hiring recommendation>"
-}}
-
-Scoring guide: 80-100=Excellent match, 60-79=Good, 40-59=Average, 0-39=Poor.
-Be objective. Only use information present in the candidate profile."""
-
-        try:
-            import anthropic
-            client = anthropic.Anthropic(api_key=api_key)
-            response = client.messages.create(
-                model="claude-sonnet-4-6",
-                max_tokens=512,
-                messages=[{"role": "user", "content": prompt}]
-            )
-            raw = response.content[0].text.strip()
-            if "```" in raw:
-                raw = raw.split("```")[1]
-                if raw.startswith("json"):
-                    raw = raw[4:]
-            return json.loads(raw)
-        except Exception as e:
-            logger.exception("Resume scoring failed for candidate %s", candidate.id)
-            return {
-                "score": 0,
-                "band": "Error",
-                "strengths": [],
-                "gaps": [],
-                "recommendation": f"Scoring failed: {e}",
-            }
+        return JsonResponse({"job_title": job.title, "ranked": results, "total": len(results),
+                             "weights": weights})

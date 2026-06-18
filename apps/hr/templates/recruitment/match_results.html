@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<a href="{{ back_url }}" class="text-sm link mb-3 inline-block">← Back</a>
+<h2 class="text-xl font-bold mb-1">{{ title }}</h2>
+<p class="text-sm text-base-content/60 mb-4">{{ subtitle }}</p>
+
+{% if not results %}
+<div class="alert">{{ empty_hint|default:"No matches found." }}</div>
+{% else %}
+<div class="space-y-2 max-w-2xl">
+  {% for r in results %}
+  <div class="card bg-base-100 shadow-sm border border-base-200">
+    <div class="card-body p-3 flex-row items-center justify-between gap-3">
+      <div>
+        <span class="text-xs font-mono text-base-content/40 mr-2">#{{ forloop.counter }}</span>
+        <span class="font-semibold">{{ r.name }}</span>
+        <div class="text-xs text-base-content/60 ml-6">{{ r.subtitle }}</div>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <progress class="progress progress-primary w-24" value="{{ r.similarity }}" max="100"></progress>
+        <span class="badge {% if r.similarity >= 70 %}badge-success{% elif r.similarity >= 45 %}badge-info{% else %}badge-ghost{% endif %} tabular-nums">{{ r.similarity }}%</span>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

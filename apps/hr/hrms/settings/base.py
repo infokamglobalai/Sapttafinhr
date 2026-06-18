@@ -277,6 +277,12 @@ ANTHROPIC_API_KEY = config("ANTHROPIC_API_KEY", default="")
 ANTHROPIC_MODEL = config("ANTHROPIC_MODEL", default="claude-sonnet-4-6")
 AI_FEATURES_ENABLED = bool(ANTHROPIC_API_KEY)
 
+# Recruitment embeddings (hybrid resume matching — local ONNX via fastembed).
+EMBEDDING_MODEL = config("EMBEDDING_MODEL", default="sentence-transformers/all-MiniLM-L6-v2")
+EMBEDDING_DIM = config("EMBEDDING_DIM", default=384, cast=int)
+# How many top vector-ranked candidates get a full LLM deep-score in pool ranking.
+RANK_DEEP_TOP_N = config("RANK_DEEP_TOP_N", default=20, cast=int)
+
 # ---------------------------------------------------------------------------
 # SSO handoff from the FIN platform (shared secret with apps/finance backend).
 # When set, /auth/sso/?token=... exchanges a FIN-minted token for an HR session

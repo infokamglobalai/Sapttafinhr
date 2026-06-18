@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block page_title %}Hiring Analytics{% endblock %}
+
+{% block content %}
+<a href="{% url 'recruitment:job_list' %}" class="text-sm link mb-3 inline-block">← Recruitment</a>
+<h2 class="text-xl font-bold mb-4">Hiring Analytics</h2>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+  <div class="stat bg-base-100 rounded-box border border-base-200"><div class="stat-title">Openings</div><div class="stat-value text-2xl">{{ a.totals.openings }}</div></div>
+  <div class="stat bg-base-100 rounded-box border border-base-200"><div class="stat-title">Candidates</div><div class="stat-value text-2xl">{{ a.totals.candidates }}</div></div>
+  <div class="stat bg-base-100 rounded-box border border-base-200"><div class="stat-title">Applications</div><div class="stat-value text-2xl">{{ a.totals.applications }}</div></div>
+  <div class="stat bg-base-100 rounded-box border border-base-200"><div class="stat-title">Hired</div><div class="stat-value text-2xl text-success">{{ a.totals.hired }}</div></div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+  <div class="card bg-base-100 shadow border border-base-200">
+    <div class="card-body p-4">
+      <h3 class="font-semibold mb-3">Pipeline funnel</h3>
+      {% for f in a.funnel %}
+      <div class="mb-2">
+        <div class="flex justify-between text-xs mb-0.5"><span class="capitalize">{{ f.status }}</span><span class="tabular-nums">{{ f.count }}</span></div>
+        <div class="w-full bg-base-200 rounded h-2"><div class="bg-primary h-2 rounded" style="width: {% widthratio f.count a.totals.applications 100 %}%"></div></div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card bg-base-100 shadow border border-base-200">
+    <div class="card-body p-4">
+      <h3 class="font-semibold mb-3">AI score distribution</h3>
+      {% for band, n in a.score_bands.items %}
+      <div class="flex justify-between text-sm mb-1"><span>{{ band }}</span><span class="badge badge-ghost">{{ n }}</span></div>
+      {% endfor %}
+      <div class="divider my-2"></div>
+      <div class="text-sm">Avg. time to hire:
+        <span class="font-bold">{% if a.avg_days_to_hire is not None %}{{ a.avg_days_to_hire }} days{% else %}—{% endif %}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card bg-base-100 shadow border border-base-200 md:col-span-2">
+    <div class="card-body p-4">
+      <h3 class="font-semibold mb-3">Source effectiveness</h3>
+      <div class="overflow-x-auto">
+        <table class="table table-sm">
+          <thead><tr><th>Source</th><th class="text-right">Applications</th><th class="text-right">Hired</th><th class="text-right">Hire rate</th></tr></thead>
+          <tbody>
+            {% for src, v in a.sources.items %}
+            <tr>
+              <td class="capitalize">{{ src }}</td>
+              <td class="text-right tabular-nums">{{ v.total }}</td>
+              <td class="text-right tabular-nums">{{ v.hired }}</td>
+              <td class="text-right tabular-nums">{% widthratio v.hired v.total 100 %}%</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-center text-base-content/40">No applications yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

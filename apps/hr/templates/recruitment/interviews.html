@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block page_title %}Interviews — {{ job.title }}{% endblock %}
+
+{% block content %}
+<a href="{% url 'recruitment:job_detail' job.pk %}" class="text-sm link mb-3 inline-block">← Back to pipeline</a>
+<h2 class="text-xl font-bold mb-4">Interviews — {{ job.title }}</h2>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+  <div class="md:col-span-2">
+    <h3 class="font-semibold mb-2">Scheduled ({{ interviews|length }})</h3>
+    {% if not interviews %}
+    <div class="alert">No interviews scheduled yet.</div>
+    {% else %}
+    <div class="space-y-2">
+      {% for iv in interviews %}
+      <div class="card bg-base-100 shadow-sm border border-base-200">
+        <div class="card-body p-3">
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <div class="font-semibold">{{ iv.application.candidate.display_name }}
+                <span class="badge badge-sm badge-ghost ml-1">{{ iv.round_name|default:"Interview" }}</span>
+                {% if iv.invite_sent %}<span class="badge badge-xs badge-success">invited</span>{% endif %}
+              </div>
+              <div class="text-xs text-base-content/60 mt-0.5">
+                {{ iv.scheduled_at|date:"D, d M Y H:i" }} · {{ iv.duration_minutes }}m · {{ iv.get_mode_display }}
+                {% if iv.location_or_link %} · {{ iv.location_or_link }}{% endif %}
+                {% if iv.interviewer %} · with {{ iv.interviewer }}{% endif %}
+              </div>
+            </div>
+            <form method="post" action="{% url 'recruitment:set_interview_status' iv.pk %}">
+              {% csrf_token %}
+              <select name="status" onchange="this.form.submit()" class="select select-bordered select-xs">
+                {% for key, label in iv.STATUS_CHOICES %}<option value="{{ key }}" {% if iv.status == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+              </select>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="card bg-base-100 shadow border border-base-200 h-fit">
+    <div class="card-body p-4">
+      <h3 class="font-semibold mb-2">Schedule interview</h3>
+      <form method="post" action="{% url 'recruitment:schedule_interview' job.pk %}" class="space-y-2">
+        {% csrf_token %}
+        <select name="application" required class="select select-bordered select-sm w-full">
+          <option value="">Candidate…</option>
+          {% for a in applicants %}<option value="{{ a.id }}">{{ a.candidate.display_name }} ({{ a.status }})</option>{% endfor %}
+        </select>
+        <input name="round_name" placeholder="Round (e.g. Technical 1)" class="input input-bordered input-sm w-full">
+        <input name="scheduled_at" type="datetime-local" required class="input input-bordered input-sm w-full">
+        <div class="flex gap-2">
+          <input name="duration_minutes" type="number" value="45" min="5" class="input input-bordered input-sm w-1/2" title="Minutes">
+          <select name="mode" class="select select-bordered select-sm w-1/2">
+            {% for key, label in modes %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
+          </select>
+        </div>
+        <input name="location_or_link" placeholder="Meeting link or address" class="input input-bordered input-sm w-full">
+        <input name="interviewer" placeholder="Interviewer name" class="input input-bordered input-sm w-full">
+        <label class="label cursor-pointer justify-start gap-2 py-1">
+          <input type="checkbox" name="send_invite" value="1" class="checkbox checkbox-sm" checked>
+          <span class="label-text text-sm">Email invite to candidate</span>
+        </label>
+        <button class="btn btn-primary btn-sm w-full">Schedule</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

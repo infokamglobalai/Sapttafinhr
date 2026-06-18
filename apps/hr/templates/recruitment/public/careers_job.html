@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ job.title }} — {{ tenant.name }}</title>
+  <style>
+    :root { --fg:#1f2937; --muted:#6b7280; --bd:#e5e7eb; --accent:#2563eb; }
+    body { font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+           color: var(--fg); margin: 0; background: #f9fafb; }
+    .wrap { max-width: 760px; margin: 0 auto; padding: 40px 20px; }
+    a.back { color: var(--accent); text-decoration: none; font-size: 14px; }
+    h1 { margin: 12px 0 4px; font-size: 26px; }
+    .meta { color: var(--muted); margin-bottom: 20px; }
+    .chip { display:inline-block; background:#eef2ff; color:#3730a3; border-radius:999px;
+            padding:2px 10px; font-size:12px; margin:4px 6px 0 0; }
+    .card { background:#fff; border:1px solid var(--bd); border-radius:10px; padding:20px; margin-bottom:16px; }
+    h3 { font-size: 15px; margin: 0 0 8px; }
+    .desc { white-space: pre-line; line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="back" href="/careers/{{ slug }}/">← All openings</a>
+    <h1>{{ job.title }}</h1>
+    <div class="meta">
+      {{ job.department.name|default:"" }}{% if job.location %} · {{ job.location.name }}{% endif %}
+      · {{ job.get_employment_type_display|default:job.employment_type }}
+      {% if job.experience_max %} · {{ job.experience_min }}–{{ job.experience_max }} yrs experience{% endif %}
+    </div>
+
+    {% if job.mandatory_skills or job.preferred_skills %}
+    <div class="card">
+      <h3>Skills</h3>
+      {% for s in job.mandatory_skills %}<span class="chip">{{ s }}</span>{% endfor %}
+      {% for s in job.preferred_skills %}<span class="chip" style="background:#f3f4f6;color:#374151">{{ s }}</span>{% endfor %}
+    </div>
+    {% endif %}
+
+    {% if job.description %}<div class="card"><h3>About the role</h3><div class="desc">{{ job.description }}</div></div>{% endif %}
+    {% if job.requirements %}<div class="card"><h3>Requirements</h3><div class="desc">{{ job.requirements }}</div></div>{% endif %}
+  </div>
+</body>
+</html>

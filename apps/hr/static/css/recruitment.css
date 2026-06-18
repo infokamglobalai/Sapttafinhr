@@ -1,0 +1,100 @@
+/* ============================================================
+   SAPTTA RECRUITMENT UI OVERRIDES & SPECIFIC STYLES
+   ============================================================ */
+
+/* Sleek Scrollbar for horizontal Kanban pipeline */
+.pipeline-board-scroll::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+.pipeline-board-scroll::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.02);
+  border-radius: 999px;
+}
+.pipeline-board-scroll::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.1);
+  border-radius: 999px;
+}
+.pipeline-board-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--saptta-primary);
+}
+
+/* Custom Premium Glass Card styling */
+.recruitment-card-glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.01), 0 2px 4px -1px rgba(0, 0, 0, 0.01);
+}
+[data-theme="dark"] .recruitment-card-glass {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Hover lift transition effect for grids/cards */
+.hover-lift-effect {
+  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.22s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.22s;
+}
+.hover-lift-effect:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px -5px rgba(15, 23, 42, 0.08);
+}
+
+/* Dragover Active State */
+.pipeline-dropzone-glow {
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+  border: 2px dashed transparent;
+}
+.pipeline-dropzone-glow.dragover-active {
+  background-color: var(--saptta-primary-soft) !important;
+  border-color: var(--saptta-primary) !important;
+  border-style: dashed;
+}
+
+/* Modern Gradient KPI metric cards */
+.metric-kpi-card {
+  border-radius: 14px;
+  border: 1px solid var(--saptta-border);
+  background: #ffffff;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s;
+}
+.metric-kpi-card:hover {
+  transform: translateY(-2px);
+}
+.metric-kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+}
+.metric-kpi-orange::before { background: var(--saptta-primary); }
+.metric-kpi-blue::before { background: var(--saptta-secondary); }
+.metric-kpi-green::before { background: var(--saptta-success); }
+.metric-kpi-violet::before { background: var(--tone-violet); }
+
+/* SVG progress ring alignment and styling */
+.progress-ring {
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+}
+.progress-ring-circle {
+  stroke-dasharray: 251.2;
+  stroke-dashoffset: 251.2;
+  transition: stroke-dashoffset 0.35s ease;
+}
+
+/* Status dots */
+.status-dot-active {
+  width: 8px;
+  height: 8px;
+  background-color: var(--saptta-success);
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 0 3px var(--saptta-success-soft);
+}
