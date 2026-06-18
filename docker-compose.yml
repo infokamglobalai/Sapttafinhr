@@ -123,6 +123,10 @@ services:
       # HR resolves the tenant from the logged-in user when host is localhost.
       SUPERADMIN_DOMAIN: localhost
       TENANT_DOMAIN: localhost
+      # Front door for cross-product links (Back to products / logout / login).
+      # Without this, dev settings default to native Vite (:5173), which isn't up
+      # in the Docker-only flow, breaking those links.
+      PLATFORM_BASE_URL: http://localhost:8080
       FIELD_ENCRYPTION_KEY: ${HR_FIELD_ENCRYPTION_KEY:?set HR_FIELD_ENCRYPTION_KEY in .env (Fernet key)}
       # Same value as fin-backend so HR can verify FIN-minted SSO tokens.
       SSO_SHARED_SECRET: ${SSO_SHARED_SECRET:-dev-sso-shared-secret-change-me}

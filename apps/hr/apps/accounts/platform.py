@@ -21,19 +21,26 @@ NATIVE_PLATFORM_PORTS = frozenset({"5173", "5175"})
 
 
 def remember_platform_origin(request: HttpRequest, origin: str | None = None) -> None:
-    """Persist the marketing-site origin for later cross-product links."""
-    candidate = (origin or request.GET.get("platform") or "").strip()
+    """Persist the marketing-site origin for later cross-product links.
+
+    An explicit ``?platform=`` (passed on the SSO hand-off) is trusted outright.
+    Otherwise we only accept a Referer that is plausibly the platform *front
+    door* — the bare ``localhost``/``127.0.0.1`` host (Docker :8080, native :5173)
+    — and never HR's or Finance's own subdomain origin (``hr.localhost:8080``,
+    ``acme.localhost:8080``). Capturing those would point "Back to products" and
+    logout at HR itself, looping the user. See the previous regression.
+    """
+    explicit = (origin or request.GET.get("platform") or "").strip()
+    candidate = explicit
     if not candidate:
         referer = request.META.get("HTTP_REFERER", "")
         if referer:
             parsed = urlparse(referer)
-            if parsed.scheme and parsed.netloc:
-                port = parsed.port or (443 if parsed.scheme == "https" else 80)
-                if (
-                    parsed.hostname in ("localhost", "127.0.0.1")
-                    or str(port) in NATIVE_PLATFORM_PORTS
-                    or str(port) == "8080"
-                ):
+            if parsed.scheme and parsed.netloc and parsed.netloc != request.get_host():
+                port = str(parsed.port or (443 if parsed.scheme == "https" else 80))
+                # Front door only: bare localhost/127.0.0.1, or a native platform
+                # Vite port. A subdomain host (hr./<workspace>.) is never the platform.
+                if parsed.hostname in ("localhost", "127.0.0.1") or port in NATIVE_PLATFORM_PORTS:
                     candidate = f"{parsed.scheme}://{parsed.netloc}"
     if candidate.startswith("http"):
         request.session[SESSION_KEY] = candidate.rstrip("/")
@@ -45,10 +52,10 @@ def platform_base_for_request(request: HttpRequest | None = None) -> str:
         if stored:
             return str(stored).rstrip("/")
 
-    configured = getattr(settings, "PLATFORM_BASE_URL", "http://localhost:8080").rstrip("/")
-    if getattr(settings, "DEBUG", False) and configured.rstrip("/") == "http://localhost:8080":
-        return "http://127.0.0.1:5173"
-    return configured
+    # Explicit config wins (development.py defaults to native Vite :5173; Docker
+    # and prod set it via env). No magic DEBUG rewrite — that would override a
+    # correct Docker value (localhost:8080) and break the front-door links.
+    return getattr(settings, "PLATFORM_BASE_URL", "http://localhost:8080").rstrip("/")
 
 
 def platform_login_url(redirect_to: str = "hr", request: HttpRequest | None = None) -> str:

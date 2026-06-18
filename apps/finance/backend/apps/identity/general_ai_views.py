@@ -9,9 +9,10 @@ import json
 import logging
 
 from django.conf import settings
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.throttling import AnonRateThrottle
 from rest_framework.views import APIView
 
 logger = logging.getLogger(__name__)
@@ -39,41 +40,66 @@ You help users understand what Saptta's products can do and how to use them:
 Keep answers concise, practical, and friendly. If a user needs live data, always name the specific AI tool they should switch to."""
 
 
+def _product_chat(request: Request) -> Response:
+    """Shared product Q&A handler — no tools, no live data."""
+    message = (request.data.get("message") or "").strip()
+    if not message:
+        return Response({"error": "message is required"}, status=400)
+
+    history = request.data.get("history") or []
+
+    api_key = getattr(settings, "ANTHROPIC_API_KEY", "")
+    if not api_key:
+        return Response({"reply": "Saptta AI is not configured.", "actions_taken": []})
+
+    try:
+        import anthropic
+        client = anthropic.Anthropic(api_key=api_key)
+    except Exception:
+        return Response({"reply": "AI service unavailable.", "actions_taken": []})
+
+    messages = list(history)
+    messages.append({"role": "user", "content": message})
+
+    try:
+        response = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=768,
+            system=SYSTEM_PROMPT,
+            messages=messages,
+        )
+        reply = " ".join(b.text for b in response.content if hasattr(b, "text"))
+    except Exception as e:
+        logger.exception("General AI chat failed")
+        return Response({"reply": f"Sorry, I couldn't respond right now. ({e})", "actions_taken": []})
+
+    return Response({"reply": reply, "actions_taken": []})
+
+
 class GeneralAIChatView(APIView):
-    """POST /api/v1/auth/general-chat/ — product Q&A, no tools."""
+    """POST /api/v1/auth/general-chat/ — product Q&A, no tools (signed-in)."""
 
     permission_classes = [IsAuthenticated]
 
     def post(self, request: Request) -> Response:
-        message = (request.data.get("message") or "").strip()
-        if not message:
-            return Response({"error": "message is required"}, status=400)
+        return _product_chat(request)
 
-        history = request.data.get("history") or []
 
-        api_key = getattr(settings, "ANTHROPIC_API_KEY", "")
-        if not api_key:
-            return Response({"reply": "Saptta AI is not configured.", "actions_taken": []})
+class GuestChatThrottle(AnonRateThrottle):
+    """Per-IP cap for the public marketing chatbot; emits HTTP 429 when exceeded."""
 
-        try:
-            import anthropic
-            client = anthropic.Anthropic(api_key=api_key)
-        except Exception:
-            return Response({"reply": "AI service unavailable.", "actions_taken": []})
+    scope = "guest_chat"
 
-        messages = list(history)
-        messages.append({"role": "user", "content": message})
+    def get_rate(self):  # not config-dependent — fixed guardrail
+        return "20/hour"
 
-        try:
-            response = client.messages.create(
-                model="claude-sonnet-4-6",
-                max_tokens=768,
-                system=SYSTEM_PROMPT,
-                messages=messages,
-            )
-            reply = " ".join(b.text for b in response.content if hasattr(b, "text"))
-        except Exception as e:
-            logger.exception("General AI chat failed")
-            return Response({"reply": f"Sorry, I couldn't respond right now. ({e})", "actions_taken": []})
 
-        return Response({"reply": reply, "actions_taken": []})
+class GuestAIChatView(APIView):
+    """POST /api/v1/auth/guest-chat/ — public product Q&A for marketing visitors."""
+
+    permission_classes = [AllowAny]
+    authentication_classes: list = []
+    throttle_classes = [GuestChatThrottle]
+
+    def post(self, request: Request) -> Response:
+        return _product_chat(request)

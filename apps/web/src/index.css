@@ -13610,10 +13610,24 @@ section.home-hero.home-hero--reference.home-hero--v2.responsive-padding {
 
 .product-switcher__card-head {
   display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-bottom: 14px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  margin-bottom: 10px;
   position: relative;
+}
+
+.product-switcher__card-logo {
+  height: 36px;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.product-switcher__card-logo--locked {
+  filter: grayscale(1);
+  opacity: 0.4;
 }
 
 .product-switcher__card-icon {

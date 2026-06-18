@@ -6,7 +6,7 @@
 {% block branding %}
 <h1 id="site-name">
   <a href="{% url 'admin:index' %}" style="display:inline-flex;align-items:center;gap:10px;">
-    <img src="{% static 'images/logo.jpeg' %}" alt="Saptta" style="height:28px;width:auto;object-fit:contain;">
+    <img src="{% static 'images/logo.png' %}" alt="Saptta" style="height:28px;width:auto;object-fit:contain;">
     <span>HRMS · Platform Admin</span>
   </a>
 </h1>
@@ -14,6 +14,8 @@
 
 {% block extrastyle %}
 {{ block.super }}
+<link rel="icon" href="{% static 'images/saptta-s.png' %}" type="image/png">
+<link rel="apple-touch-icon" href="{% static 'images/saptta-s.png' %}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">

@@ -2,13 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from 'antd';
 import {
-  TeamOutlined,
-  BankOutlined,
   LogoutOutlined,
   DownloadOutlined,
   AppstoreOutlined,
   ArrowRightOutlined,
-  LockOutlined,
   CheckOutlined,
   SafetyOutlined,
   SwapOutlined,
@@ -123,7 +120,7 @@ export default function ProductSwitcher() {
               'Bank Reconciliation',
               'P&L, Balance Sheet, GSTR',
             ]}
-            icon={<BankOutlined />}
+            logo="/saptta-fin.png"
             locked={!products.includes('finance')}
             onOpen={() => openFinanceApp(user?.tenantId, true)}
             onInstall={() => installFinanceApp(user?.tenantId)}
@@ -141,7 +138,7 @@ export default function ProductSwitcher() {
               'Payroll & Compliance',
               'Recruitment & ATS',
             ]}
-            icon={<TeamOutlined />}
+            logo="/saptta-hr.png"
             locked={!products.includes('hrms')}
             onOpen={() => openHrApp(true)}
             onInstall={() => installHrApp()}
@@ -192,7 +189,7 @@ interface CardProps {
   headline: string;
   description: string;
   features: string[];
-  icon: React.ReactNode;
+  logo: string;
   locked?: boolean;
   onOpen: () => void;
   onUpgrade?: () => void;
@@ -206,7 +203,7 @@ function ProductCard({
   headline,
   description,
   features,
-  icon,
+  logo,
   locked = false,
   onOpen,
   onUpgrade,
@@ -230,29 +227,20 @@ function ProductCard({
       )}
 
       <div className="product-switcher__card-head">
-        <div
+        <img
+          src={logo}
+          alt={name}
+          className={['product-switcher__card-logo', locked ? 'product-switcher__card-logo--locked' : ''].filter(Boolean).join(' ')}
+        />
+        <p
           className={[
-            'product-switcher__card-icon',
-            `product-switcher__card-icon--${variant}`,
-            locked ? 'product-switcher__card-icon--locked' : '',
+            'product-switcher__card-tag',
+            `product-switcher__card-tag--${variant}`,
+            locked ? 'product-switcher__card-tag--locked' : '',
           ].filter(Boolean).join(' ')}
         >
-          {locked ? <LockOutlined /> : icon}
-        </div>
-        <div>
-          <h3 className={['product-switcher__card-name', locked ? 'product-switcher__card-name--locked' : ''].filter(Boolean).join(' ')}>
-            {name}
-          </h3>
-          <p
-            className={[
-              'product-switcher__card-tag',
-              `product-switcher__card-tag--${variant}`,
-              locked ? 'product-switcher__card-tag--locked' : '',
-            ].filter(Boolean).join(' ')}
-          >
-            {headline}
-          </p>
-        </div>
+          {headline}
+        </p>
       </div>
 
       <p className={['product-switcher__card-desc', locked ? 'product-switcher__card-desc--locked' : ''].filter(Boolean).join(' ')}>
