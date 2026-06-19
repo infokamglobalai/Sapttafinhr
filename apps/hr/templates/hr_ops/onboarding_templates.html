@@ -7,8 +7,8 @@
     <p style="font-size: 13.5px; color: var(--ink-500);">Reusable checklists you apply to every new hire.</p>
   </div>
   <div style="display: flex; gap: 10px;">
-    <a href="{% url 'hr_ops:onboarding' %}" class="btn-base btn-outline btn-sm">Active Onboardings</a>
-    <a href="{% url 'hr_ops:onboarding_template_create' %}" class="btn-base btn-primary btn-sm">+ New Template</a>
+    <a href="{% url 'hr_ops:onboarding' %}" class="btn btn-outline btn-sm">Active Onboardings</a>
+    <a href="{% url 'hr_ops:onboarding_template_create' %}" class="btn btn-primary btn-sm">+ New Template</a>
   </div>
 </div>
 
@@ -23,7 +23,7 @@
       {% if t.is_default %}<span class="badge badge-primary">Default</span>{% endif %}
     </div>
     <div style="margin-top: 16px; display: flex; gap: 8px;">
-      <a href="{% url 'hr_ops:onboarding_template_edit' t.pk %}" class="btn-base btn-outline btn-sm">Edit</a>
+      <a href="{% url 'hr_ops:onboarding_template_edit' t.pk %}" class="btn btn-outline btn-sm">Edit</a>
     </div>
   </div>
   {% empty %}
@@ -31,7 +31,7 @@
     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.4" style="width: 56px; height: 56px; margin: 0 auto 14px; opacity: 0.35;"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
     <h3 style="font-size: 17px; font-weight: 700; margin-bottom: 4px;">No templates yet</h3>
     <p style="font-size: 13.5px; color: var(--ink-500); margin-bottom: 18px;">Create a checklist of tasks new hires go through — document collection, equipment setup, orientation, training.</p>
-    <a href="{% url 'hr_ops:onboarding_template_create' %}" class="btn-base btn-primary">Create your first template</a>
+    <a href="{% url 'hr_ops:onboarding_template_create' %}" class="btn btn-primary">Create your first template</a>
   </div>
   {% endfor %}
 </div>

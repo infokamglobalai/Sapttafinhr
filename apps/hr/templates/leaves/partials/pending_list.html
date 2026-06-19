@@ -1,6 +1,6 @@
 <div class="space-y-3">
   {% for req in page_obj %}
-  <div class="card bg-base-100 shadow" x-data="{showAction: false}">
+  <div class="card" x-data="{showAction: false}">
     <div class="card-body p-4">
       <div class="flex items-start justify-between">
         <div>
@@ -43,7 +43,7 @@
     </div>
   </div>
   {% empty %}
-  <div class="card bg-base-100 shadow">
+  <div class="card">
     <div class="card-body text-center py-12">
       <p class="text-base-content/40">No pending leave requests. All caught up!</p>
     </div>

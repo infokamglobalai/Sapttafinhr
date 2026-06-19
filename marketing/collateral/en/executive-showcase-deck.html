@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Saptta — Executive Showcase · Jun 2026</title>
+  <style>
+    :root {
+      --blue: #2563EB; --blue-dark: #1D4ED8; --blue-soft: #EFF6FF;
+      --green: #059669; --green-soft: #ECFDF5;
+      --orange: #EA580C; --orange-soft: #FFF7ED;
+      --text: #0F172A; --muted: #64748B; --border: #E2E8F0; --bg: #F8FAFC; --white: #fff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Segoe UI", system-ui, sans-serif; color: var(--text); background: #fff; line-height: 1.45; font-size: 11pt; }
+    @page { size: A4 landscape; margin: 12mm; }
+    @media print {
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .slide { page-break-after: always; box-shadow: none !important; }
+      .slide:last-child { page-break-after: avoid; }
+      .no-print { display: none !important; }
+    }
+    @media screen {
+      body { background: #CBD5E1; padding: 24px 16px 48px; }
+      .slide { max-width: 297mm; margin: 0 auto 24px; box-shadow: 0 12px 48px rgba(15,23,42,.14); border-radius: 14px; overflow: hidden; }
+    }
+    .slide { background: var(--white); padding: 14mm 16mm; min-height: 185mm; position: relative; }
+    .slide-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .logo { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 13pt; letter-spacing: -.02em; }
+    .logo-icon { width: 34px; height: 34px; border-radius: 9px; background: linear-gradient(135deg, var(--blue), var(--blue-dark)); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13pt; }
+    .slide-num { font-size: 8pt; color: var(--muted); font-weight: 600; }
+    h1 { font-size: 26pt; font-weight: 800; letter-spacing: -.03em; line-height: 1.12; margin-bottom: 8px; }
+    h1 .accent { color: var(--blue); }
+    h2 { font-size: 15pt; font-weight: 700; margin-bottom: 12px; }
+    .subtitle { color: var(--muted); font-size: 11.5pt; max-width: 720px; margin-bottom: 16px; }
+    .tag { display: inline-block; background: var(--blue-soft); color: var(--blue); font-size: 8pt; font-weight: 700; padding: 4px 12px; border-radius: 999px; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 10px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .card { border: 1px solid var(--border); border-radius: 12px; padding: 16px; background: #fff; }
+    .card h3 { font-size: 10.5pt; font-weight: 700; margin-bottom: 6px; }
+    .card p, .card li { font-size: 9.5pt; color: var(--muted); }
+    .card ul { margin: 8px 0 0 16px; }
+    .card li { margin: 4px 0; }
+    .card.blue { background: var(--blue-soft); border-color: rgba(37,99,235,.2); }
+    .card.green { background: var(--green-soft); border-color: rgba(5,150,105,.2); }
+    .card.orange { background: var(--orange-soft); border-color: rgba(234,88,12,.2); }
+    .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 18px 0; }
+    .stat { text-align: center; padding: 16px 10px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg); }
+    .stat .val { font-size: 22pt; font-weight: 800; color: var(--blue); letter-spacing: -.02em; }
+    .stat .lbl { font-size: 8pt; color: var(--muted); font-weight: 600; text-transform: uppercase; margin-top: 4px; }
+    .flow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 16px 0; }
+    .flow-step { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; font-size: 9pt; font-weight: 600; }
+    .flow-arrow { color: var(--blue); font-weight: 700; }
+    .callout { background: var(--blue-soft); border-left: 4px solid var(--blue); padding: 14px 18px; border-radius: 0 12px 12px 0; font-size: 10.5pt; margin: 14px 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 9pt; margin-top: 10px; }
+    th, td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
+    th { background: var(--bg); font-weight: 700; font-size: 8pt; text-transform: uppercase; color: var(--muted); }
+    .footer { position: absolute; bottom: 12mm; left: 16mm; right: 16mm; font-size: 8pt; color: var(--muted); display: flex; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 8px; }
+    .slide.title-slide { background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 55%, #2563EB 100%); color: #fff; }
+    .title-slide h1 { color: #fff; font-size: 32pt; }
+    .title-slide .subtitle { color: rgba(255,255,255,.85); font-size: 13pt; }
+    .title-slide .tag { background: rgba(255,255,255,.15); color: #fff; }
+    .title-slide .footer { color: rgba(255,255,255,.6); border-color: rgba(255,255,255,.2); }
+    .pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+    .pill { background: var(--bg); border: 1px solid var(--border); padding: 6px 12px; border-radius: 999px; font-size: 8.5pt; font-weight: 600; }
+    .cta-box { background: var(--text); color: #fff; border-radius: 14px; padding: 20px 24px; margin-top: 16px; }
+    .cta-box h2 { color: #fff; margin-bottom: 8px; }
+    .cta-box p { color: #94A3B8; font-size: 10pt; }
+    .cta-box .steps { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-top: 16px; }
+    .cta-box .step { background: rgba(255,255,255,.08); border-radius: 10px; padding: 14px; }
+    .cta-box .step strong { display: block; color: #60A5FA; font-size: 9pt; margin-bottom: 4px; }
+    .no-print { text-align: center; padding: 16px; background: #1E293B; color: #fff; font-size: 10pt; }
+  </style>
+</head>
+<body>
+  <p class="no-print">Open in Chrome → Print → Save as PDF (A4 Landscape, background graphics ON) · Speaker notes: SPEAKER_NOTES.md</p>
+
+  <!-- SLIDE 1 -->
+  <section class="slide title-slide">
+    <span class="tag">Executive showcase · Jun 2026</span>
+    <h1>One platform for<br><span style="color:#93C5FD">people</span> and <span style="color:#93C5FD">money</span></h1>
+    <p class="subtitle">Saptta HRMS + Saptta Accounts — hire-to-retire workforce management and GST-ready finance on a single login. Built for India SMBs. Expanding GCC.</p>
+    <div class="stat-row" style="margin-top: 32px;">
+      <div class="stat" style="background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2)"><div class="val" style="color:#fff">2-in-1</div><div class="lbl" style="color:rgba(255,255,255,.7)">HR + Finance</div></div>
+      <div class="stat" style="background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2)"><div class="val" style="color:#fff">30</div><div class="lbl" style="color:rgba(255,255,255,.7)">Employees included</div></div>
+      <div class="stat" style="background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2)"><div class="val" style="color:#fff">$95</div><div class="lbl" style="color:rgba(255,255,255,.7)">Complete / mo</div></div>
+      <div class="stat" style="background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2)"><div class="val" style="color:#fff">14 days</div><div class="lbl" style="color:rgba(255,255,255,.7)">Free trial</div></div>
+    </div>
+    <div class="footer"><span>Saptta · Confidential</span><span>saptta.com · hello@saptta.com</span></div>
+  </section>
+
+  <!-- SLIDE 2 -->
+  <section class="slide">
+    <div class="slide-header"><div class="logo"><div class="logo-icon">S</div> Saptta</div><span class="slide-num">02 / 12</span></div>
+    <span class="tag">The challenge</span>
+    <h2>Growing companies lose weeks to disconnected HR &amp; Finance</h2>
+    <div class="grid-2">
+      <div class="card orange">
+        <h3>❌ Without Saptta</h3>
+        <ul>
+          <li>HR runs payroll in one tool; CA gets another export</li>
+          <li>Leave balances don't match attendance registers</li>
+          <li>Managers email HR for approvals; no audit trail</li>
+          <li>Finance re-keys headcount cost every month-end</li>
+          <li>Employees chase HR for payslips and Form 16</li>
+        </ul>
+      </div>
+      <div class="card green">
+        <h3>✓ With Saptta</h3>
+        <ul>
+          <li>Single employee record — HR &amp; Finance stay aligned</li>
+          <li>Attendance → payroll → payslip → ledger in one flow</li>
+          <li>Manager &amp; employee self-service on web &amp; mobile</li>
+          <li>Statutory exports (PF, ESI, GST, Tally) built-in</li>
+          <li>Encrypted PII, role-based access, full audit log</li>
+        </ul>
+      </div>
+    </div>
+    <div class="callout"><strong>CEO insight:</strong> The cost isn't the software subscription — it's the leadership time lost reconciling two truths about your own company.</div>
+    <div class="footer"><span>Saptta Executive Showcase</span><span>Jun 2026</span></div>
+  </section>
+
+  <!-- SLIDE 3 -->
+  <section class="slide">
+    <div class="slide-header"><div class="logo"><div class="logo-icon">S</div> Saptta</div><span class="slide-num">03 / 12</span></div>
+    <span class="tag">Platform</span>
+    <h2>Saptta at a glance</h2>
+    <div class="grid-3">
+      <div class="card">
+        <h3>Saptta HRMS</h3>
+        <p>Workforce platform — people, time, leave, payroll, performance, recruitment, exits.</p>
+        <p style="margin-top:8px;font-weight:700;color:var(--blue)">From $59 / mo</p>
+      </div>
+      <div class="card">
+        <h3>Saptta Accounts</h3>
+        <p>Finance — invoicing, purchases, inventory, bank rec, GST, ledger, Tally export.</p>
+        <p style="margin-top:8px;font-weight:700;color:var(--blue)">From $59 / mo</p>
+      </div>
+      <div class="card blue" style="border-width:2px;border-color:var(--blue)">
+        <h3>Saptta Complete ★</h3>
+        <p>Both products, one login, one workspace. <strong>20% savings</strong> vs buying separately.</p>
+        <p style="margin-top:8px;font-weight:800;color:var(--blue);font-size:12pt">$95 / mo · 30 employees</p>
+      </div>
+    </div>
+    <div class="flow">
+      <span class="flow-step">Sign up</span><span class="flow-arrow">→</span>
+      <span class="flow-step">Product switcher</span><span class="flow-arrow">→</span>
+      <span class="flow-step">HR workspace</span><span class="flow-arrow">↔</span>
+      <span class="flow-step">Finance workspace</span><span class="flow-arrow">→</span>
+      <span class="flow-step">Unified SSO</span>
+    </div>
+    <div class="footer"><span>Saptta Executive Showcase</span><span>Jun 2026</span></div>
+  </section>
+
+  <!-- SLIDE 4 -->
+  <section class="slide">
+    <div class="slide-header"><div class="logo"><div class="logo-icon">S</div> Saptta</div><span class="slide-num">04 / 12</span></div>
+    <span class="tag">Markets</span>
+    <h2>Who we serve</h2>
+    <div class="grid-2">
+      <div class="card blue">
+        <h3>🇮🇳 India SMB (primary)</h3>
+        <ul>
+          <li>30–500 employees — IT, manufacturing, retail, services</li>
+          <li>Full statutory payroll: PF, ESI, PT, TDS, Form 16, gratuity</li>
+          <li>GST-ready finance + Tally XML export</li>
+          <li>Billing in INR (₹7,999 Complete) + GST at checkout</li>
+        </ul>
+      </div>
+      <div class="card green">
+        <h3>🌍 GCC &amp; Kuwait (expansion)</h3>
+        <ul>
+          <li>Core HRMS live — attendance, leave, performance, ATS</li>
+          <li>GCC payroll MVP — PIFSS, indemnity, WPS-style exports</li>
+          <li>KWD / AED / SAR currency &amp; jurisdiction from signup</li>
+          <li>Arabic RTL layout · bilingual payslip roadmap</li>
+        </ul>
+      </div>
+    </div>
+    <p class="subtitle" style="margin-top:14px">Industries: technology · professional services · healthcare · logistics · retail · family-owned groups expanding internationally.</p>
+    <div class="footer"><span>Saptta Executive Showcase</span><span>Jun 2026</span></div>
+  </section>
+
+  <!-- SLIDE 5 -->
+  <section class="slide">
+    <div class="slide-header"><div class="logo"><div class="logo-icon">S</div> Saptta</div><span class="slide-num">05 / 12</span></div>
+    <span class="tag">HRMS</span>
+    <h2>Hire to retire — one workforce lifecycle</h2>
+    <div class="grid-4">
+      <div class="card"><h3>Recruit</h3><p>ATS, careers pages, AI JD &amp; resume rank, hire → employee</p></div>
+      <div class="card"><h3>Onboard</h3><p>Checklists, document collection, login provisioning</p></div>
+      <div class="card"><h3>Operate</h3><p>Attendance, shifts, leave, manager approvals</p></div>
+      <div class="card"><h3>Pay</h3><p>Payroll run, payslip PDF, bank advice, statutory</p></div>
+      <div class="card"><h3>Grow</h3><p>Performance cycles, reviews, goals</p></div>
+      <div class="card"><h3>Comply</h3><p>Letters, policies, asset register, audit trail</p></div>
+      <div class="card"><h3>Engage</h3><p>ESS portal, notifications, mobile-ready UI</p></div>
+      <div class="card"><h3>Exit</h3><p>Settlement, gratuity/indemnity estimate, access revoke</p></div>
+    </div>
+    <div class="callout">Dashboard built for <strong>company heads</strong>: today's headcount, who's present/absent, priorities, payroll status — not empty charts on day one.</div>
+    <div class="footer"><span>Saptta Executive Showcase</span><span>Jun 2026</span></div>
+  </section>
+
+  <!-- SLIDE 6 -->
+  <section class="slide">
+    <div class="slide-header"><div class="logo"><div class="logo-icon">S</div> Saptta</div><span class="slide-num">06 / 12</span></div>
+    <span class="tag">Finance</span>
+    <h2>Saptta Accounts — books your CA will actually use</h2>
+    <div class="grid-3">
+      <div class="card"><h3>Sales &amp; billing</h3><ul><li>Quotes → invoices → payment links</li><li>Multi-currency (INR + FX)</li><li>Customer portal</li></ul></div>
+      <div class="card"><h3>Purchases &amp; inventory</h3><ul><li>Vendor bills, PO workflow</li><li>Stock movements</li><li>Expense capture</li></ul></div>
+      <div class="card"><h3>Compliance</h3><ul><li>GST returns &amp; reconciliation</li><li>Ledger &amp; trial balance</li><li>Tally XML export</li></ul></div>
+    </div>
+    <div class="grid-2" style="margin-top:14px">
+      <div class="card blue"><h3>With Saptta Complete</h3><p>Payroll journals export to finance. One owner login sees HR headcount cost and P&amp;L — no duplicate master data.</p></div>
+      <div class="card"><h3>Unlimited finance users</h3><p>Flat pricing for Accounts — your CA, bookkeeper, and founder all get access without per-seat tax.</p></div>
+    </div>
+    <div class="footer"><span>Saptta Executive Showcase</span><span>Jun 2026</span></div>
+  </section>
+
+  <!-- SLIDE 7 -->
+  <section class="slide">
+    <div class="slide-header"><div class="logo"><div class="logo-icon">S</div> Saptta</div><span class="slide-num">07 / 12</span></div>
+    <span class="tag">Why unified</span>
+    <h2>Three decisions every company head cares about</h2>
+    <table>
+      <tr><th>Decision</th><th>Fragmented stack</th><th>Saptta Complete</th></tr>
+      <tr><td><strong>Can I trust the headcount number?</strong></td><td>HR vs Finance disagree</td><td>One employee master, synced</td></tr>
+      <tr><td><strong>How fast is month-end?</strong></td><td>Manual payroll → accounting bridge</td><td>Exports &amp; journal hooks built-in</td></tr>
+      <tr><td><strong>Will managers self-serve?</strong></td><td>Email / WhatsApp to HR</td><td>Leave, attendance, reviews in-app</td></tr>
+      <tr><td><strong>Is my data safe?</strong></td><td>Spreadsheets, shared passwords</td><td>Encryption, RBAC, audit log</td></tr>
+      <tr><td><strong>Total cost at 50 people?</strong></td><td>HR + accounting + integrations</td><td><strong>$125/mo</strong> all-in (Complete)</td></tr>
+    </table>
+    <div class="footer"><span>Saptta Executive Showcase</span><span>Jun 2026</span></div>
+  </section>
+
+  <!-- SLIDE 8 -->
+  <section class="slide">
+    <div class="slide-header"><div class="logo"><div class="logo-icon">S</div> Saptta</div><span class="slide-num">08 / 12</span></div>
+    <span class="tag">India depth</span>
+    <h2>Payroll &amp; statutory — built for Indian SMB reality</h2>
+    <div class="pill-row">
+      <span class="pill">PF &amp; ECR</span><span class="pill">ESI return</span><span class="pill">Professional Tax</span>
+      <span class="pill">TDS &amp; declarations</span><span class="pill">Form 16</span><span class="pill">Gratuity accrual</span>
+      <span class="pill">Bank advice</span><span class="pill">Salary register</span><span class="pill">Tally XML</span>
+    </div>
+    <div class="grid-2" style="margin-top:12px">
+      <div class="card"><h3>Workflow</h3><p>Pre-payroll review → run from attendance (LOP) → HR adjustments → approve → publish payslips → employee PDF + email.</p></div>
+      <div class="card orange"><h3>Honest disclaimer</h3><p>TDS uses simplified slabs — your CA validates before Form 24Q filing. We never claim to replace professional tax advice.</p></div>
+    </div>
+    <div class="footer"><span>Saptta Executive Showcase</span><span>Jun 2026</span></div>
+  </section>
+
+  <!-- SLIDE 9 -->
+  <section class="slide">
+    <div class="slide-header"><div class="logo"><div class="logo-icon">S</div> Saptta</div><span class="slide-num">09 / 12</span></div>
+    <span class="tag">GCC</span>
+    <h2>Kuwait &amp; GCC — core HR today, payroll MVP live</h2>
+    <div class="grid-3">
+      <div class="card green"><h3>Live now</h3><ul><li>Jurisdiction signup (KW, AE, SA…)</li><li>Leave &amp; holiday packs</li><li>Civil ID, IBAN fields</li><li>PIFSS / GOSI rates</li><li>Indemnity accrual</li></ul></div>
+      <div class="card"><h3>Exports</h3><ul><li>Salary register (KWD/AED)</li><li>Bank transfer CSV</li><li>WPS SIF stub (UAE)</li><li>PIFSS summary</li><li>EOS settlement PDF</li></ul></div>
+      <div class="card"><h3>Roadmap</h3><ul><li>Arabic UI strings</li><li>Islamic calendar events</li><li>Bank-validated WPS files</li><li>Finance ledger sync</li></ul></div>
+    </div>
+    <div class="callout">Validate all GCC statutory rates and file formats with your local payroll consultant before regulatory filing.</div>
+    <div class="footer"><span>Saptta Executive Showcase</span><span>Jun 2026</span></div>
+  </section>
+
+  <!-- SLIDE 10 -->
+  <section class="slide">
+    <div class="slide-header"><div class="logo"><div class="logo-icon">S</div> Saptta</div><span class="slide-num">10 / 12</span></div>
+    <span class="tag">Outcomes</span>
+    <h2>What company heads achieve in 90 days</h2>
+    <div class="stat-row">
+      <div class="stat"><div class="val">60%</div><div class="lbl">Less payroll prep time</div></div>
+      <div class="stat"><div class="val">Same day</div><div class="lbl">Payslip publish</div></div>
+      <div class="stat"><div class="val">Zero</div><div class="lbl">Spreadsheet re-keying</div></div>
+      <div class="stat"><div class="val">100%</div><div class="lbl">Audit trail on changes</div></div>
+    </div>
+    <div class="grid-2">
+      <div class="card"><h3>CHRO wins</h3><ul><li>Manager self-service for leave &amp; attendance</li><li>Recruitment pipeline visible to leadership</li><li>Compliance documents &amp; expiry alerts</li></ul></div>
+      <div class="card"><h3>CFO wins</h3><ul><li>Payroll cost visible in finance workspace</li><li>GST &amp; ledger in same platform</li><li>Export-ready for CA review</li></ul></div>
+    </div>
+    <div class="footer"><span>Saptta Executive Showcase</span><span>Jun 2026</span></div>
+  </section>
+
+  <!-- SLIDE 11 -->
+  <section class="slide">
+    <div class="slide-header"><div class="logo"><div class="logo-icon">S</div> Saptta</div><span class="slide-num">11 / 12</span></div>
+    <span class="tag">Pricing</span>
+    <h2>Simple pricing — under legacy HR-only tools</h2>
+    <table>
+      <tr><th>Plan</th><th>USD / month</th><th>India INR (ex-GST)</th><th>Includes</th></tr>
+      <tr><td>Saptta HRMS</td><td>$59</td><td>₹4,999</td><td>30 employees · full HRMS</td></tr>
+      <tr><td>Saptta Accounts</td><td>$59</td><td>₹4,999</td><td>Unlimited finance users</td></tr>
+      <tr style="background:var(--blue-soft)"><td><strong>Saptta Complete ★</strong></td><td><strong>$95</strong></td><td><strong>₹7,999</strong></td><td><strong>HR + Finance · save 20%</strong></td></tr>
+    </table>
+    <p style="font-size:9pt;color:var(--muted);margin-top:10px">After 30 employees: +$1.50 / +₹111 per employee · 14-day trial · annual prepay discount · free Complete setup (launch offer)</p>
+    <div class="grid-2" style="margin-top:12px">
+      <div class="card"><h3>vs India</h3><p>Keka ~₹9,999 HR only · Saptta Complete HR + Accounts at ₹7,999</p></div>
+      <div class="card"><h3>vs GCC</h3><p>ZenHR ~$150 HR only · Saptta Complete at $95</p></div>
+    </div>
+    <div class="footer"><span>Saptta Executive Showcase</span><span>Jun 2026</span></div>
+  </section>
+
+  <!-- SLIDE 12 -->
+  <section class="slide">
+    <div class="slide-header"><div class="logo"><div class="logo-icon">S</div> Saptta</div><span class="slide-num">12 / 12</span></div>
+    <span class="tag">Next steps</span>
+    <h2>Let's show you your company on Saptta</h2>
+    <div class="cta-box">
+      <h2>45-minute executive demo</h2>
+      <p>Live walkthrough with your scenarios — payroll, manager approvals, employee payslips, finance dashboard.</p>
+      <div class="steps">
+        <div class="step"><strong>Step 1</strong>Discovery call — headcount, current tools, pain points</div>
+        <div class="step"><strong>Step 2</strong>Live demo — HR + Finance on one login</div>
+        <div class="step"><strong>Step 3</strong>Trial workspace — your team tests in 24 hours</div>
+      </div>
+    </div>
+    <div class="grid-3" style="margin-top:16px">
+      <div class="card blue"><h3>Contact</h3><p>hello@saptta.com<br>saptta.com/contact</p></div>
+      <div class="card"><h3>Trial</h3><p>14-day free · no card required<br>Free setup on Complete</p></div>
+      <div class="card green"><h3>Partner</h3><p>CA &amp; HR consultant referral program<br>1 month credit per referral</p></div>
+    </div>
+    <div class="footer"><span>Saptta · Thank you</span><span>hello@saptta.com</span></div>
+  </section>
+</body>
+</html>

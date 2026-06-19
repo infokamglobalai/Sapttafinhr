@@ -7,7 +7,7 @@
 
   <div class="card" style="padding: 0; overflow: hidden;">
     <table style="width: 100%; border-collapse: collapse;">
-      <thead style="background: #FFF7ED;">
+      <thead style="background: #EFF6FF;">
         <tr>
           <th style="padding: 10px 14px; text-align: left; font-size: 12px; color: #7C2D12;">Financial Year</th>
           <th style="padding: 10px 14px; text-align: right; font-size: 12px; color: #7C2D12;">Tax (₹)</th>
@@ -22,7 +22,7 @@
           <td style="padding: 12px 14px; text-align: right;">{{ f.tax_payable|floatformat:0 }}</td>
           <td style="padding: 12px 14px; text-align: right;">{{ f.tds_deducted|floatformat:0 }}</td>
           <td style="padding: 12px 14px; text-align: center;">
-            {% if f.part_b_pdf %}<a href="{{ f.part_b_pdf.url }}" target="_blank" style="color:#C2410C; font-weight:600;">Download</a>{% else %}—{% endif %}
+            {% if f.part_b_pdf %}<a href="{{ f.part_b_pdf.url }}" target="_blank" style="color:#2563EB; font-weight:600;">Download</a>{% else %}—{% endif %}
           </td>
         </tr>
         {% empty %}

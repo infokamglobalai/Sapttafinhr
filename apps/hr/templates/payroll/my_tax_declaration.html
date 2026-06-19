@@ -77,8 +77,8 @@
 
       {% if not locked %}
       <div style="display:flex; gap: 10px; margin-top: 18px;">
-        <button name="action" value="save_draft" class="btn-base" style="background:#E5E7EB;">Save draft</button>
-        <button name="action" value="submit" class="btn-base btn-primary">Submit &amp; lock</button>
+        <button name="action" value="save_draft" class="btn btn-ghost">Save draft</button>
+        <button name="action" value="submit" class="btn btn-primary">Submit &amp; lock</button>
       </div>
       {% else %}
       <div class="alert alert-info" style="margin-top: 14px; font-size: 13px;">
@@ -134,9 +134,9 @@
             <span style="color:var(--ink-500);">Cess (4%)</span>
             <strong>₹{{ estimate.cess|floatformat:0 }}</strong>
           </div>
-          <div style="display:flex; justify-content:space-between; padding: 10px; background: #FFF7ED; border-radius: 8px; margin-top: 10px;">
+          <div style="display:flex; justify-content:space-between; padding: 10px; background: #EFF6FF; border-radius: 8px; margin-top: 10px;">
             <span style="font-weight: 700; color: #7C2D12;">Annual tax</span>
-            <strong style="font-size: 16px; color: #C2410C;">₹{{ estimate.total_tax|floatformat:0 }}</strong>
+            <strong style="font-size: 16px; color: #2563EB;">₹{{ estimate.total_tax|floatformat:0 }}</strong>
           </div>
           <div style="display:flex; justify-content:space-between; margin-top:8px;">
             <span style="color:var(--ink-500);">Monthly TDS (approx)</span>

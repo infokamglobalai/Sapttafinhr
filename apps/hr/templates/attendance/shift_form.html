@@ -2,7 +2,7 @@
 {% block page_title %}{% if shift %}Edit Shift{% else %}New Shift{% endif %}{% endblock %}
 {% block content %}
 <div style="max-width: 720px; margin: 0 auto;">
-  <a href="{% url 'attendance:shifts' %}" class="btn-base btn-ghost btn-sm" style="margin-bottom: 14px;">← Back to Shifts</a>
+  <a href="{% url 'attendance:shifts' %}" class="btn btn-ghost btn-sm" style="margin-bottom: 14px;">← Back to Shifts</a>
   <h2 style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 4px;">{% if shift %}Edit Shift{% else %}New Shift{% endif %}</h2>
   <p style="font-size: 13.5px; color: var(--ink-500); margin-bottom: 22px;">Configure work hours, grace periods, and overtime rules.</p>
 
@@ -89,8 +89,8 @@
     </div>
 
     <div style="display: flex; justify-content: flex-end; gap: 12px;">
-      <a href="{% url 'attendance:shifts' %}" class="btn-base btn-ghost">Cancel</a>
-      <button type="submit" class="btn-base btn-primary">{% if shift %}Save Changes{% else %}Create Shift{% endif %}</button>
+      <a href="{% url 'attendance:shifts' %}" class="btn btn-ghost">Cancel</a>
+      <button type="submit" class="btn btn-primary">{% if shift %}Save Changes{% else %}Create Shift{% endif %}</button>
     </div>
   </form>
 </div>

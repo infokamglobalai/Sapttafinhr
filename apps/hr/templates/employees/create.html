@@ -17,7 +17,7 @@
     {% endif %}
 
     <!-- Personal Info section -->
-    <div class="card bg-base-100 shadow mb-4">
+    <div class="card hr-filter-bar">
       <div class="card-body">
         <h3 class="card-title text-base mb-4">Personal Information</h3>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -62,7 +62,7 @@
     </div>
 
     <!-- Employment section -->
-    <div class="card bg-base-100 shadow mb-4">
+    <div class="card hr-filter-bar">
       <div class="card-body">
         <h3 class="card-title text-base mb-4">Employment Details</h3>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -91,7 +91,11 @@
             {{ form.date_of_joining }}
           </div>
           <div class="form-control">
+            {% if tenant_is_india_payroll %}
             <label class="label"><span class="label-text">Work State (for PT)</span></label>
+            {% else %}
+            <label class="label"><span class="label-text">Work location code</span></label>
+            {% endif %}
             {{ form.work_state_code }}
           </div>
           <div class="form-control">
@@ -101,6 +105,8 @@
         </div>
       </div>
     </div>
+
+    {% include "employees/partials/compliance_fields.html" %}
 
     <div class="flex justify-end gap-3">
       <a href="{% url 'employees:list' %}" class="btn btn-ghost">Cancel</a>

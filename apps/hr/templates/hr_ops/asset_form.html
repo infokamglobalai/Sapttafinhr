@@ -2,7 +2,7 @@
 {% block page_title %}{% if asset %}Edit Asset{% else %}New Asset{% endif %}{% endblock %}
 {% block content %}
 <div style="max-width: 760px; margin: 0 auto;">
-  <a href="{% url 'hr_ops:assets' %}" class="btn-base btn-ghost btn-sm" style="margin-bottom: 14px;">← Back to Assets</a>
+  <a href="{% url 'hr_ops:assets' %}" class="btn btn-ghost btn-sm" style="margin-bottom: 14px;">← Back to Assets</a>
   <h2 style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 4px;">{% if asset %}Edit Asset{% else %}New Asset{% endif %}</h2>
   <p style="font-size: 13.5px; color: var(--ink-500); margin-bottom: 22px;">Track company assets — laptops, phones, access cards, vehicles.</p>
 
@@ -68,8 +68,8 @@
     </div>
 
     <div style="display: flex; justify-content: flex-end; gap: 12px;">
-      <a href="{% url 'hr_ops:assets' %}" class="btn-base btn-ghost">Cancel</a>
-      <button type="submit" class="btn-base btn-primary">{% if asset %}Save Changes{% else %}Create Asset{% endif %}</button>
+      <a href="{% url 'hr_ops:assets' %}" class="btn btn-ghost">Cancel</a>
+      <button type="submit" class="btn btn-primary">{% if asset %}Save Changes{% else %}Create Asset{% endif %}</button>
     </div>
   </form>
 </div>

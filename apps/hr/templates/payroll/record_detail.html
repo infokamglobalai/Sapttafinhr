@@ -4,7 +4,7 @@
 <a href="{% url 'payroll:run_detail' run.pk %}" class="btn btn-ghost btn-sm mb-4">← Back to run</a>
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-  <div class="card bg-base-100 shadow lg:col-span-2">
+  <div class="card lg:col-span-2">
     <div class="card-body">
       <h2 class="text-lg font-bold">{{ employee.full_name }}</h2>
       <p class="text-sm text-base-content/60">{{ employee.employee_code }} · {{ employee.department.name|default:"—" }} · {{ run.year }}-{{ run.month|stringformat:"02d" }}</p>
@@ -31,7 +31,7 @@
   </div>
 
   {% if run.status == 'review' and not record.is_locked %}
-  <div class="card bg-base-100 shadow">
+  <div class="card">
     <div class="card-body">
       <h3 class="font-semibold mb-3">HR adjustments</h3>
       <form method="post" action="{% url 'payroll:record_edit' run.pk record.pk %}">
@@ -52,7 +52,7 @@
 </div>
 
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-  <div class="card bg-base-100 shadow">
+  <div class="card">
     <div class="card-body">
       <h3 class="font-semibold mb-2">Attendance summary</h3>
       {% if summary %}
@@ -67,7 +67,7 @@
       {% endif %}
     </div>
   </div>
-  <div class="card bg-base-100 shadow">
+  <div class="card">
     <div class="card-body">
       <h3 class="font-semibold mb-2">Leave requests (this month)</h3>
       <ul class="text-sm space-y-1 max-h-40 overflow-y-auto">

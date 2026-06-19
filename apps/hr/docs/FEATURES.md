@@ -3,7 +3,7 @@
 ## Platform
 
 - Multi-tenant workspaces (subdomain per company)
-- Branded UI (Saptta orange theme, PWA manifest)
+- Branded UI (Saptta blue theme, PWA manifest)
 - Role-based navigation (HR / Manager / Employee)
 - In-app notifications + email delivery
 - Audit trail for sensitive actions
@@ -52,6 +52,7 @@
 - Payslip PDF + branded email to employees
 - Employee self-service payslips
 - **Exports:** salary register, bank advice, PF statement/ECR, ESI return, Tally XML, statutory ZIP bundle
+- **Gratuity:** monthly employer accrual on payslip + exit settlement estimate (Payment of Gratuity Act)
 - Employee loans with EMI auto-deduction
 - Expense claims + reimbursement in payroll
 - Investment declaration (80C etc.) + HR verification
@@ -68,6 +69,8 @@
 ## Recruitment (ATS)
 
 - Job openings pipeline
+- **Public careers pages with online apply** (resume upload)
+- **Hired → employee conversion** with onboarding auto-start
 - Candidate applications (applied → hired/rejected)
 - Add applicants manually
 - AI job description generator
@@ -77,6 +80,7 @@
 ## Performance
 
 - Review cycles (annual / half-yearly)
+- **Launch reviews** — bulk-create manager reviews for all active employees
 - Manager reviews for direct reports
 - AI-assisted review drafting from bullet notes
 - Employee acknowledgement

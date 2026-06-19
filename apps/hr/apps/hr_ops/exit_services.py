@@ -39,6 +39,18 @@ def finalize_exit(exit_request: ExitRequest, actor=None, *, disable_login: bool 
             exit_request.status = "accepted"
             exit_request.save(update_fields=["status"])
 
+    from apps.payroll.settlement import settlement_estimate
+    from decimal import Decimal
+
+    est = settlement_estimate(employee, exit_date, tenant=tenant)
+    exit_request.settlement_amount = Decimal(str(est.get("amount") or 0))
+    exit_request.settlement_label = est.get("label") or "Settlement"
+    exit_request.settlement_note = est.get("note") or ""
+    exit_request.settlement_computed_at = timezone.now()
+    exit_request.save(update_fields=[
+        "settlement_amount", "settlement_label", "settlement_note", "settlement_computed_at",
+    ])
+
     login_disabled = False
     if disable_login:
         from apps.employees.access_services import revoke_employee_access

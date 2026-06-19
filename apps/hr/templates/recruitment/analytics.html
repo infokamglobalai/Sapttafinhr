@@ -13,7 +13,7 @@
 </div>
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-  <div class="card bg-base-100 shadow border border-base-200">
+  <div class="card border border-base-200">
     <div class="card-body p-4">
       <h3 class="font-semibold mb-3">Pipeline funnel</h3>
       {% for f in a.funnel %}
@@ -25,7 +25,7 @@
     </div>
   </div>
 
-  <div class="card bg-base-100 shadow border border-base-200">
+  <div class="card border border-base-200">
     <div class="card-body p-4">
       <h3 class="font-semibold mb-3">AI score distribution</h3>
       {% for band, n in a.score_bands.items %}
@@ -38,7 +38,7 @@
     </div>
   </div>
 
-  <div class="card bg-base-100 shadow border border-base-200 md:col-span-2">
+  <div class="card border border-base-200 md:col-span-2">
     <div class="card-body p-4">
       <h3 class="font-semibold mb-3">Source effectiveness</h3>
       <div class="overflow-x-auto">

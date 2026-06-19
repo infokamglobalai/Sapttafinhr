@@ -171,7 +171,7 @@ export const PLANS: Plan[] = [
     features: [
       'Everything in HRMS & Finance',
       'Up to 30 employees included',
-      'Payroll → ledger auto-posting',
+      'Export payroll to Tally XML today · payroll→ledger auto-sync on Complete roadmap',
       'Employee expense → finance flow',
       'Unified dashboard & reports',
       'Customer / vendor portal',

@@ -6,7 +6,7 @@
   <h2 class="text-xl font-bold mb-1">Company letterhead settings</h2>
   <p class="text-sm text-base-content/60 mb-4">Set once — used on every offer, relieving, experience letter. Employee name and role are filled automatically when you generate.</p>
 
-  <form method="post" class="card bg-base-100 shadow">
+  <form method="post" class="card">
     <div class="card-body gap-4">
       {% csrf_token %}
       {% for field in form %}

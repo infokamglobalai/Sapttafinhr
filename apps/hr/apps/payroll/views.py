@@ -16,6 +16,7 @@ from .models import (
 from utils.pdf import render_pdf_response
 from utils.excel import make_workbook, apply_header_row, auto_fit_columns, workbook_response
 from utils.access import hr_admin_required, manager_or_hr_required, employee_profile_required, can_manage_employee
+from apps.tenants.jurisdiction import require_india_payroll, require_gcc_payroll, is_gcc_payroll, normalise_jurisdiction
 
 
 # ---------------------------------------------------------------------------
@@ -43,10 +44,12 @@ def payroll_run_create(request):
             tenant=tenant, year=year, month=month,
             status="draft", run_by=request.user
         )
-        # Start async processing
-        from .tasks import run_payroll_for_tenant
-        run_payroll_for_tenant.delay(str(tenant.id), run.id)
-        messages.success(request, f"Payroll run initiated for {year}-{month:02d}. Processing in background.")
+        from .dispatch import dispatch_payroll_run
+        mode = dispatch_payroll_run(tenant, run)
+        if mode == "sync":
+            messages.success(request, f"Payroll computed for {year}-{month:02d}. Review the run.")
+        else:
+            messages.success(request, f"Payroll run initiated for {year}-{month:02d}. Processing in background.")
         return redirect("payroll:run_detail", pk=run.pk)
 
     today = timezone.localdate()
@@ -85,8 +88,8 @@ def payroll_run_approve(request, pk):
 
     # Lock all records and generate payslips
     run.records.all().update(is_locked=True, locked_at=timezone.now())
-    from .tasks import generate_payslips_for_run
-    generate_payslips_for_run.delay(run.id)
+    from .dispatch import dispatch_payslip_generation
+    dispatch_payslip_generation(run)
 
     messages.success(request, "Payroll approved and payslips are being generated.")
     return redirect("payroll:run_detail", pk=pk)
@@ -187,8 +190,12 @@ def payroll_monthly_review(request):
                     tenant=tenant, year=year, month=month,
                     status="draft", run_by=request.user,
                 )
-                from .tasks import run_payroll_for_tenant
-                run_payroll_for_tenant.delay(str(tenant.id), run.id)
+                from .dispatch import dispatch_payroll_run
+                mode = dispatch_payroll_run(tenant, run)
+                if mode == "sync":
+                    messages.success(request, "Payroll computed. Review the run.")
+                else:
+                    messages.info(request, "Payroll run started in background.")
                 messages.success(request, f"Payroll run started for {year}-{month:02d}.")
                 return redirect("payroll:run_detail", pk=run.pk)
         return redirect(f"{request.path}?year={year}&month={month}")
@@ -289,13 +296,82 @@ def payroll_run_recompute(request, pk):
 # ---------------------------------------------------------------------------
 # Exports
 # ---------------------------------------------------------------------------
+def _earning_amount(record, code: str, fallback_field: str = "") -> float:
+    """Read a component amount from denormalized field or earnings_detail JSON."""
+    if fallback_field:
+        val = getattr(record, fallback_field, None)
+        if val and float(val) > 0:
+            return float(val)
+    detail = (record.earnings_detail or {}).get(code) or {}
+    return float(detail.get("amount") or 0)
+
+
+def _salary_register_gcc_excel(tenant, run, records):
+    """GCC salary register — IBAN/SWIFT bank columns, no India statutory fields."""
+    currency = tenant.currency or "AED"
+    wb = make_workbook()
+    ws = wb.active
+    ws.title = f"Salary Register {run.year}-{run.month:02d}"
+
+    headers = [
+        "Emp Code", "Name", "Department", "Designation",
+        "Bank Name", "Account Holder", "IBAN", "SWIFT/BIC", "Branch", "A/C Type",
+        "Working Days", "LOP Days", "Paid Days",
+        "Basic", "Housing", "Transport", "Other Earnings", f"Gross ({currency})",
+        "Statutory (Emp)", "Loan", "Other Deductions", f"Total Deductions ({currency})",
+        f"Net Payable ({currency})", "Statutory (Employer)", "EOS/Indemnity Accrual",
+        f"Total Employer Cost ({currency})",
+    ]
+    apply_header_row(ws, headers)
+
+    for rec in records:
+        emp = rec.employee
+        bank = emp.bank_accounts.filter(is_primary=True).first()
+        statutory_emp = float(rec.pf_employee or 0)
+        statutory_er = float(rec.pf_employer or 0)
+        eos_accrual = _earning_amount(rec, "INDEM_ACCR") or _earning_amount(rec, "GRAT_ACCR")
+        employer_cost = float(rec.gross_earnings or 0) + statutory_er + eos_accrual
+        ws.append([
+            emp.employee_code,
+            emp.full_name,
+            emp.department.name if emp.department else "",
+            emp.designation.name if emp.designation else "",
+            bank.bank_name if bank else "",
+            bank.account_holder_name if bank else "",
+            getattr(bank, "iban", "") or (bank.account_number if bank else ""),
+            getattr(bank, "swift_code", "") or getattr(bank, "ifsc_code", "") or "",
+            bank.branch_name if bank else "",
+            bank.account_type if bank else "",
+            rec.working_days,
+            float(rec.lop_days),
+            float(rec.paid_days),
+            _earning_amount(rec, "BASIC", "basic"),
+            _earning_amount(rec, "HOUSING", "hra"),
+            _earning_amount(rec, "TRANSPORT", "conveyance"),
+            _earning_amount(rec, "SPECIAL", "special_allowance") + float(rec.other_earnings or 0),
+            float(rec.gross_earnings),
+            statutory_emp,
+            float(rec.loan_deduction),
+            float(rec.other_deductions),
+            float(rec.total_deductions),
+            float(rec.net_payable),
+            statutory_er,
+            eos_accrual,
+            employer_cost,
+        ])
+
+    auto_fit_columns(ws)
+    return workbook_response(wb, f"salary_register_{run.year}_{run.month:02d}.xlsx")
+
+
 @hr_admin_required
 def salary_register_excel(request, pk):
     """
-    Salary register Excel — the primary document HR sends to the bank
-    for salary disbursement and to the CA for compliance verification.
-    Includes full bank details (account number unmasked).
+    Salary register Excel — primary document for bank disbursement and CA/compliance.
+    India: IFSC + PF/ESI/PT/TDS columns. GCC: IBAN/SWIFT + statutory/EOS columns.
     """
+    from apps.tenants.jurisdiction import is_gcc_payroll
+
     tenant = request.tenant
     run = get_object_or_404(PayrollRun, pk=pk, tenant=tenant)
     records = (
@@ -304,6 +380,8 @@ def salary_register_excel(request, pk):
         .prefetch_related("employee__bank_accounts")
         .order_by("employee__employee_code")
     )
+    if is_gcc_payroll(tenant.payroll_jurisdiction):
+        return _salary_register_gcc_excel(tenant, run, records)
 
     wb = make_workbook()
     ws = wb.active
@@ -393,9 +471,10 @@ def salary_register_excel(request, pk):
 @hr_admin_required
 def bank_advice_excel(request, pk):
     """
-    Bank advice / disbursement file — minimal format that most banks accept
-    for bulk salary credit. Just employee, account, IFSC, amount.
+    Bank advice / disbursement file — India (IFSC) or GCC (IBAN/SWIFT).
     """
+    from apps.tenants.jurisdiction import is_gcc_payroll
+
     tenant = request.tenant
     run = get_object_or_404(PayrollRun, pk=pk, tenant=tenant)
     records = (
@@ -405,12 +484,23 @@ def bank_advice_excel(request, pk):
         .filter(net_payable__gt=0)
         .order_by("employee__employee_code")
     )
+    gcc = is_gcc_payroll(tenant.payroll_jurisdiction)
+    currency = tenant.currency or ("INR" if not gcc else "AED")
 
     wb = make_workbook()
     ws = wb.active
     ws.title = f"Bank Advice {run.year}-{run.month:02d}"
 
-    headers = ["Employee Code", "Beneficiary Name", "Account Number", "IFSC", "Bank Name", "Amount (INR)", "Narration"]
+    if gcc:
+        headers = [
+            "Employee Code", "Beneficiary Name", "IBAN", "SWIFT/BIC", "Bank Name",
+            f"Amount ({currency})", "Narration",
+        ]
+    else:
+        headers = [
+            "Employee Code", "Beneficiary Name", "Account Number", "IFSC", "Bank Name",
+            f"Amount ({currency})", "Narration",
+        ]
     apply_header_row(ws, headers)
 
     skipped = []
@@ -441,6 +531,7 @@ def bank_advice_excel(request, pk):
 
 
 @hr_admin_required
+@require_india_payroll
 def pf_statement_excel(request, pk):
     """PF ECR format export for EPFO portal upload."""
     tenant = request.tenant
@@ -513,6 +604,7 @@ def salary_structure_list(request):
 
 
 @hr_admin_required
+@require_india_payroll
 def statutory_settings_view(request):
     tenant = request.tenant
     settings = StatutorySetting.objects.filter(tenant=tenant, is_active=True).order_by("statutory_type", "state_code")
@@ -520,6 +612,7 @@ def statutory_settings_view(request):
 
 
 @hr_admin_required
+@require_india_payroll
 def statutory_create_or_edit(request, pk=None):
     from .forms import StatutorySettingForm
     tenant = request.tenant
@@ -785,6 +878,7 @@ def expense_action(request, pk):
 # Tax declarations (Employee self-service + HR review)
 # ---------------------------------------------------------------------------
 @login_required
+@require_india_payroll
 def my_tax_declaration(request):
     """Employee submits/updates their tax declaration for current FY."""
     from .forms import TaxDeclarationForm
@@ -865,6 +959,7 @@ def my_tax_declaration(request):
 
 
 @hr_admin_required
+@require_india_payroll
 def tax_declaration_admin_list(request):
     """HR view: all employee declarations for an FY."""
     from .tax import current_financial_year
@@ -881,6 +976,7 @@ def tax_declaration_admin_list(request):
 
 @hr_admin_required
 @require_POST
+@require_india_payroll
 def tax_declaration_verify(request, pk):
     """HR marks a declaration as verified."""
     tenant = request.tenant
@@ -908,6 +1004,7 @@ def tax_declaration_verify(request, pk):
 # Form 16 generation (annual TDS certificate)
 # ---------------------------------------------------------------------------
 @hr_admin_required
+@require_india_payroll
 def form16_admin_list(request):
     """HR view to bulk-generate Form 16 Part B PDFs for an FY."""
     from .tax import current_financial_year
@@ -921,6 +1018,7 @@ def form16_admin_list(request):
 
 @hr_admin_required
 @require_POST
+@require_india_payroll
 def form16_generate_all(request):
     """Trigger Form 16 generation for all employees who had payroll in the given FY."""
     from .form16 import generate_form16_for_fy
@@ -937,6 +1035,7 @@ def form16_generate_all(request):
 
 @hr_admin_required
 @require_POST
+@require_india_payroll
 def form16_issue(request, pk):
     tenant = request.tenant
     form16 = get_object_or_404(Form16, pk=pk, tenant=tenant)
@@ -950,6 +1049,7 @@ def form16_issue(request, pk):
 
 @hr_admin_required
 @require_POST
+@require_india_payroll
 def form16_issue_all(request):
     tenant = request.tenant
     fy = request.POST.get("fy")
@@ -963,6 +1063,7 @@ def form16_issue_all(request):
 
 
 @login_required
+@require_india_payroll
 def my_form16s(request):
     """Employee view of their own Form 16s."""
     tenant = request.tenant
@@ -977,6 +1078,7 @@ def my_form16s(request):
 # Tally / PF ECR / ESI exports
 # ---------------------------------------------------------------------------
 @hr_admin_required
+@require_india_payroll
 def tally_xml_export(request, pk):
     """Export payroll run as Tally XML voucher batch."""
     from .exports import build_tally_xml
@@ -991,6 +1093,7 @@ def tally_xml_export(request, pk):
 
 
 @hr_admin_required
+@require_india_payroll
 def pf_ecr_export(request, pk):
     """PF ECR file (pipe-delimited TXT per EPFO format)."""
     from .exports import build_pf_ecr
@@ -1005,6 +1108,7 @@ def pf_ecr_export(request, pk):
 
 
 @hr_admin_required
+@require_india_payroll
 def esi_return_export(request, pk):
     """ESI monthly contribution return (CSV per ESIC format)."""
     from .exports import build_esi_return
@@ -1019,6 +1123,7 @@ def esi_return_export(request, pk):
 
 
 @hr_admin_required
+@require_india_payroll
 def statutory_bundle_export(request, pk):
     """ZIP bundle of PF ECR + ESI return for statutory filing."""
     from .exports import build_statutory_zip
@@ -1030,3 +1135,64 @@ def statutory_bundle_export(request, pk):
         f'attachment; filename="statutory_{run.year}-{run.month:02d}.zip"'
     )
     return resp
+
+
+# ---------------------------------------------------------------------------
+# GCC exports (WPS, bank transfer, PIFSS, indemnity liability)
+# ---------------------------------------------------------------------------
+@hr_admin_required
+@require_gcc_payroll
+def wps_sif_export(request, pk):
+    from .exports_gcc import build_wps_sif_csv
+    tenant = request.tenant
+    run = get_object_or_404(PayrollRun, pk=pk, tenant=tenant)
+    csv_text = build_wps_sif_csv(tenant, run)
+    resp = HttpResponse(csv_text, content_type="text/csv; charset=utf-8")
+    resp["Content-Disposition"] = f'attachment; filename="wps_sif_{run.year}-{run.month:02d}.csv"'
+    return resp
+
+
+@hr_admin_required
+@require_gcc_payroll
+def gcc_bank_transfer_export(request, pk):
+    from .exports_gcc import build_gcc_bank_transfer_csv
+    tenant = request.tenant
+    run = get_object_or_404(PayrollRun, pk=pk, tenant=tenant)
+    csv_text = build_gcc_bank_transfer_csv(tenant, run)
+    resp = HttpResponse(csv_text, content_type="text/csv; charset=utf-8")
+    resp["Content-Disposition"] = f'attachment; filename="bank_transfer_{run.year}-{run.month:02d}.csv"'
+    return resp
+
+
+@hr_admin_required
+@require_gcc_payroll
+def pifss_statement_export(request, pk):
+    """PIFSS contribution report (Kuwait) — Excel."""
+    from .exports_gcc import pifss_rows
+    tenant = request.tenant
+    if normalise_jurisdiction(tenant.payroll_jurisdiction) != "KW":
+        messages.info(request, "PIFSS export is for Kuwait workspaces.")
+        return redirect("payroll:run_detail", pk=pk)
+    run = get_object_or_404(PayrollRun, pk=pk, tenant=tenant)
+    wb = make_workbook()
+    ws = wb.active
+    ws.title = "PIFSS"
+    for row in pifss_rows(tenant, run):
+        ws.append(row)
+    auto_fit_columns(ws)
+    return workbook_response(wb, f"pifss_{run.year}_{run.month:02d}.xlsx")
+
+
+@hr_admin_required
+@require_gcc_payroll
+def indemnity_liability_export(request):
+    """Active headcount — EOS / indemnity liability snapshot."""
+    from .exports_gcc import indemnity_liability_rows
+    tenant = request.tenant
+    wb = make_workbook()
+    ws = wb.active
+    ws.title = "EOS Liability"
+    for row in indemnity_liability_rows(tenant):
+        ws.append(row)
+    auto_fit_columns(ws)
+    return workbook_response(wb, f"eos_liability_{tenant.subdomain}.xlsx")

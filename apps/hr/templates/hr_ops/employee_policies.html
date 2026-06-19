@@ -8,7 +8,7 @@
 <div class="grid gap-3 max-w-2xl">
   {% for row in policy_rows %}
   {% with p=row.policy %}
-  <a href="{% url 'hr_ops:employee_policy_view' p.pk %}" class="card bg-base-100 shadow border border-base-200 hover:border-primary/30 transition-colors no-underline text-inherit">
+  <a href="{% url 'hr_ops:employee_policy_view' p.pk %}" class="card border border-base-200 hover:border-primary/30 transition-colors no-underline text-inherit">
     <div class="card-body p-4 flex-row items-center justify-between gap-3">
       <div>
         <h3 class="font-semibold">{{ p.title }}</h3>
@@ -30,7 +30,7 @@
   {% endfor %}
 </div>
 {% else %}
-<div class="card bg-base-100 shadow max-w-lg">
+<div class="card max-w-lg">
   {% include "partials/empty_state.html" with title="No policies shared yet" message="When HR publishes a policy for your team, it will appear here." %}
 </div>
 {% endif %}

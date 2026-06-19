@@ -96,7 +96,7 @@ export const productsOverview = {
     title: 'HRMS & Finance SaaS',
     titleHighlight: 'for Indian SMBs',
     subtitle:
-      'Subscribe to HRMS, Finance, or both on one platform — single sign-on, flexible module-by-module adoption, and native Indian compliance.',
+      'Subscribe to HRMS, Finance, or both — single sign-on and flexible adoption. India workspaces get PF, ESI & Form 16; GCC workspaces get core HR today with local payroll on roadmap.',
   },
   productCards: [
     {
@@ -124,7 +124,7 @@ export const productsOverview = {
     {
       title: 'Complete',
       highlight: 'HRMS + Finance',
-      desc: 'Both products on one subscription — unified reporting, payroll-to-ledger sync, and a single login.',
+      desc: 'Both products on one subscription — unified login, Tally payroll export today, payroll→ledger auto-sync on roadmap.',
       path: '/pricing',
       theme: 'amber' as HomeSectionTheme,
       accent: '#FF6D00',
@@ -277,10 +277,10 @@ export const hrmsPage: ProductPageConfig = {
     ],
   },
   compliance: {
-    eyebrow: 'India-ready',
+    eyebrow: 'India & GCC',
     title: 'Statutory compliance',
     titleHighlight: 'built in',
-    subtitle: 'Saptta is designed for Indian labour and tax rules — not retrofitted later.',
+    subtitle: 'India: PF, ESI, TDS & Form 16 today. Kuwait & GCC: core HR live — PIFSS, indemnity & WPS on roadmap.',
     badges: ['EPF', 'ESI', 'TDS', 'Professional Tax', 'Form 16', 'POSH', 'LWF', 'Bonus Act'],
   },
   featuredModuleCode: 'PY',
@@ -351,7 +351,7 @@ export const accountsPage: ProductPageConfig = {
     title: 'Books that balance',
     titleHighlight: 'themselves',
     subtitle:
-      'Every payroll run, invoice payment, and expense claim posts to your general ledger with correct debit/credit journals and tax splits.',
+      'Export payroll to Tally XML today. Payroll→ledger auto-posting for Complete is on the product roadmap — one login and unified reports are live now.',
     variant: 'finance-ledger',
   },
   modules: {

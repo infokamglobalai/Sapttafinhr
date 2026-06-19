@@ -49,30 +49,37 @@ export default function Billing() {
   const subscribe = async (planId: string) => {
     setLoadingPlan(planId);
     try {
-      // Try free activation first (works when Razorpay isn't configured).
-      await devActivateSubscription();
-      await refreshProducts();
-      message.success('Subscription activated! Opening your workspace…');
-      navigate('/app', { replace: true });
-    } catch {
-      // No workspace yet or server error — fall back to Razorpay checkout.
-      try {
-        const res = await startCheckout(planId, {
-          cycle: billingCycle,
-          email: user?.email,
-          name: [user?.firstName, user?.lastName].filter(Boolean).join(' '),
-          onPaid: () => { message.success('Payment received!'); navigate('/app', { replace: true }); },
-        });
-        if (res.status === 'unavailable') {
-          // Open simulated dev payment modal
-          setDevModalPlan(planId);
-          setDevModalOpen(true);
-        } else if (res.status === 'error') {
-          message.error(res.message);
+      if (import.meta.env.DEV) {
+        try {
+          await devActivateSubscription();
+          await refreshProducts();
+          message.success('Subscription activated! Opening your workspace…');
+          navigate('/app', { replace: true });
+          return;
+        } catch {
+          // Fall through to Razorpay or dev modal.
         }
-      } catch (e: unknown) {
-        message.error(e instanceof Error ? e.message : 'Could not activate. Please try again.');
       }
+
+      const res = await startCheckout(planId, {
+        cycle: billingCycle,
+        employees,
+        email: user?.email,
+        name: [user?.firstName, user?.lastName].filter(Boolean).join(' '),
+        onPaid: async () => {
+          message.success('Payment received! Activating your subscription…');
+          await refreshProducts();
+          navigate('/app', { replace: true });
+        },
+      });
+      if (res.status === 'unavailable') {
+        setDevModalPlan(planId);
+        setDevModalOpen(true);
+      } else if (res.status === 'error') {
+        message.error(res.message);
+      }
+    } catch (e: unknown) {
+      message.error(e instanceof Error ? e.message : 'Could not activate. Please try again.');
     } finally {
       setLoadingPlan(null);
     }

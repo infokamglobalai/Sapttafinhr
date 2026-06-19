@@ -36,6 +36,7 @@ interface SignupData {
   lastName: string;
   planId: string;
   companyName: string;
+  country?: string;
 }
 
 interface AuthContextValue extends AuthState {
@@ -132,6 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         company_name: data.companyName,
         plan_id: data.planId,
         products: productsForPlan(data.planId),
+        country: data.country || 'IN',
       });
       setUser(
         toAppUser(

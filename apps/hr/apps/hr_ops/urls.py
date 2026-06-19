@@ -3,6 +3,7 @@ from . import views
 from . import policy_views
 from . import letter_views
 from . import request_views
+from . import calendar_views
 from .ai_views import AIChatView
 
 app_name = "hr_ops"
@@ -31,6 +32,7 @@ urlpatterns = [
     path("exits/create/<int:employee_pk>/", views.exit_request_create, name="exit_create"),
     path("exits/<int:pk>/update/", views.exit_update, name="exit_update"),
     path("exits/<int:pk>/finalize/", views.exit_finalize, name="exit_finalize"),
+    path("exits/<int:pk>/settlement-pdf/", views.exit_settlement_pdf, name="exit_settlement_pdf"),
     path("exits/<int:pk>/revoke-login/", views.exit_revoke_login, name="exit_revoke_login"),
     path("announcements/", views.announcement_list, name="announcements"),
     path("letters/new/", views.letter_template_create_or_edit, name="letter_template_create"),
@@ -68,4 +70,7 @@ urlpatterns = [
     path("requests/team/<int:pk>/", request_views.team_request_detail, name="team_service_request_detail"),
     path("requests/queue/", request_views.admin_queue, name="service_request_queue"),
     path("requests/queue/<int:pk>/", request_views.admin_request_detail, name="service_request_admin_detail"),
+    # Company calendar (dashboard widget)
+    path("calendar/events/", calendar_views.calendar_event_create, name="calendar_event_create"),
+    path("calendar/events/<int:pk>/delete/", calendar_views.calendar_event_delete, name="calendar_event_delete"),
 ]

@@ -1,4 +1,4 @@
-<div class="card bg-base-100 shadow overflow-x-auto">
+<div class="card hr-table-wrap">
   <table class="table table-zebra table-sm">
     <thead>
       <tr>
@@ -53,7 +53,7 @@
 
 <!-- Pagination -->
 {% if page_obj.has_other_pages %}
-<div class="flex justify-center mt-4 gap-1">
+<div class="hr-pagination">
   {% if page_obj.has_previous %}
   <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-sm btn-ghost">«</a>
   {% endif %}

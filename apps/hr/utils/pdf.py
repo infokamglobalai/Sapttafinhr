@@ -36,11 +36,11 @@ def render_html_to_pdf(html_string: str, base_url: str = None) -> bytes:
     base = base_url or f"file://{settings.BASE_DIR}/static/"
     try:
         return _render_with_weasyprint(html_string, base)
-    except (OSError, ImportError) as exc:
+    except (OSError, ImportError, AttributeError) as exc:
         msg = str(exc).lower()
         if any(lib in msg for lib in ("gobject", "pango", "cairo", "harfbuzz",
-                                       "fontconfig", "weasyprint")):
-            logger.warning("WeasyPrint native libs unavailable; falling back to xhtml2pdf.")
+                                       "fontconfig", "weasyprint", "transform")):
+            logger.warning("WeasyPrint unavailable (%s); falling back to xhtml2pdf.", exc)
             try:
                 return _render_with_xhtml2pdf(html_string)
             except ModuleNotFoundError:

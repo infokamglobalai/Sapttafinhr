@@ -1,19 +1,14 @@
 """Mint an HR single-sign-on handoff token for the authenticated FIN user.
 
-The SPA holds a FIN JWT. To open the embedded HR app without a second login, it
-calls this endpoint; we return a short-lived token signed with the secret shared
-with the HR backend (SSO_SHARED_SECRET). The SPA points the HR iframe at
-  {HR_BASE_URL}/auth/sso/?token=...&next=/
-and HR exchanges it for a Django session (see apps/hr/apps/accounts/sso.py).
-
-Returns 503 when SSO isn't configured so the SPA falls back to HR's own login.
+Also proxies HR staff login so employees/managers can sign in at the unified
+platform login page (localhost:8080/login) without a separate Finance account.
 """
 from __future__ import annotations
 
 from django.conf import settings
 from django.core.signing import TimestampSigner
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -77,3 +72,71 @@ class HrStatsView(APIView):
         if resp.status_code != 200:
             return Response({"detail": "HR stats unavailable."}, status=resp.status_code)
         return Response(resp.json())
+
+
+class HrStaffLoginView(APIView):
+    """POST /api/v1/auth/hr-staff-login/  → verify HR credentials, return SSO redirect.
+
+    Used by the platform SPA when FIN login fails — employees and team leads sign
+    in with the same page as company owners, then redirect into HR via SSO.
+    """
+
+    permission_classes = [AllowAny]
+    throttle_scope = "login"
+
+    def post(self, request):
+        secret = getattr(settings, "SSO_SHARED_SECRET", "")
+        base = getattr(settings, "HR_INTERNAL_BASE_URL", "")
+        if not (secret and base):
+            return Response(
+                {"detail": "HR staff login is not configured."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        email = (request.data.get("email") or "").strip().lower()
+        password = request.data.get("password") or ""
+        workspace = (request.data.get("workspace") or "").strip().lower()
+        platform_url = (request.data.get("platform_url") or request.build_absolute_uri("/")).rstrip("/")
+        next_path = (request.data.get("next") or "/").strip() or "/"
+
+        if not email or not password:
+            return Response({"detail": "email and password are required."}, status=400)
+
+        try:
+            import requests
+
+            resp = requests.post(
+                f"{base.rstrip('/')}/internal/staff-login/",
+                json={
+                    "email": email,
+                    "password": password,
+                    "workspace": workspace,
+                    "platform_url": platform_url,
+                    "next": next_path,
+                },
+                headers={
+                    "Authorization": f"Bearer {secret}",
+                    "Content-Type": "application/json",
+                    "Host": "localhost",
+                },
+                timeout=15,
+            )
+        except Exception:
+            return Response({"detail": "HR is unavailable."}, status=status.HTTP_502_BAD_GATEWAY)
+
+        if resp.status_code != 200:
+            try:
+                detail = resp.json().get("detail", "Invalid credentials.")
+            except Exception:
+                detail = "Invalid credentials."
+            code = status.HTTP_401_UNAUTHORIZED if resp.status_code in (401, 403) else resp.status_code
+            return Response({"detail": detail}, status=code)
+
+        data = resp.json()
+        return Response(
+            {
+                "redirect_url": data.get("redirect_url"),
+                "workspace": data.get("workspace"),
+                "auth_type": "hr_staff",
+            }
+        )

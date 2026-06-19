@@ -48,7 +48,7 @@ const pricingFaqs = [
     key: '3',
     label: 'Why bundle HRMS and Finance on Complete?',
     children:
-      'Bought separately, HRMS (₹4,999) + Finance (₹4,999) = ₹9,998 / month. Saptta Complete gives you both for ₹7,999 — you save ₹1,999 every month, plus payroll-to-ledger sync and one unified login.',
+      'Bought separately, HRMS (₹4,999) + Finance (₹4,999) = ₹9,998 / month. Saptta Complete gives you both for ₹7,999 — you save ₹1,999 every month, plus Tally XML export today and payroll→ledger auto-sync on the Complete roadmap.',
   },
   {
     key: '4',
@@ -62,11 +62,17 @@ const pricingFaqs = [
     children:
       'Yes. Upgrade, add employees, switch to Complete, or cancel at any time. Any difference is prorated on your next statement.',
   },
+  {
+    key: '6',
+    label: 'Is Saptta available in Kuwait and the GCC?',
+    children:
+      'Yes — core HRMS (people, attendance, leave, performance, recruitment) is live for Kuwait and GCC workspaces, billed in USD. India statutory payroll (PF, ESI, TDS, Form 16, Tally) applies to India workspaces. GCC statutory payroll (PIFSS, indemnity, WPS) is on our product roadmap.',
+  },
 ];
 
 const planIncludes = [
   { title: 'Multi-tenant isolation', desc: 'Schema-per-tenant PostgreSQL. Your data stays fully isolated.' },
-  { title: 'Indian compliance', desc: 'GST, TDS, PF, ESI, and professional tax built in.' },
+  { title: 'Region-aware HR', desc: 'India: PF, ESI, TDS & Form 16. GCC: core HR today — local payroll on roadmap.' },
   { title: 'Data encryption', desc: 'AES-256 at rest and TLS 1.3 in transit.' },
   { title: 'Automatic backups', desc: 'Daily backups with 30-day retention.' },
   { title: '99.9% uptime SLA', desc: 'Hosted on AWS Mumbai with auto-scaling.' },

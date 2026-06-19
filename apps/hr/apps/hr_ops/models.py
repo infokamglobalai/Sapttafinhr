@@ -196,6 +196,10 @@ class ExitRequest(models.Model):
     interview_scheduled = models.BooleanField(default=False)
     fnf_cleared = models.BooleanField(default=False)
     assets_returned = models.BooleanField(default=False)
+    settlement_amount = models.DecimalField(max_digits=14, decimal_places=3, null=True, blank=True)
+    settlement_label = models.CharField(max_length=64, blank=True)
+    settlement_note = models.TextField(blank=True)
+    settlement_computed_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -351,6 +355,7 @@ class Notification(models.Model):
         ("work_anniversary", "Work Anniversary"),
         ("document_expiring", "Document Expiring"),
         ("probation_ending", "Probation Ending"),
+        ("calendar_reminder", "Calendar Reminder"),
         ("general", "General"),
     ]
 
@@ -382,6 +387,40 @@ class Notification(models.Model):
             self.is_read = True
             self.read_at = timezone.now()
             self.save(update_fields=["is_read", "read_at"])
+
+
+# ---------------------------------------------------------------------------
+# Company calendar — meetings, reminders, notes on specific dates
+# ---------------------------------------------------------------------------
+class CompanyCalendarEvent(models.Model):
+    EVENT_TYPE_CHOICES = [
+        ("meeting", "Meeting"),
+        ("reminder", "Reminder"),
+        ("task", "Task"),
+        ("other", "Other"),
+    ]
+
+    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE, related_name="calendar_events")
+    title = models.CharField(max_length=255)
+    event_date = models.DateField()
+    description = models.TextField(blank=True)
+    event_type = models.CharField(max_length=20, choices=EVENT_TYPE_CHOICES, default="reminder")
+    notify_on_day = models.BooleanField(default=True)
+    created_by = models.ForeignKey(
+        "accounts.User", on_delete=models.SET_NULL, null=True, blank=True, related_name="calendar_events_created"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "company_calendar_events"
+        ordering = ["event_date", "title"]
+        indexes = [
+            models.Index(fields=["tenant", "event_date"], name="company_cal_tenant__a1b2c3_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.title} ({self.event_date})"
 
 
 # ---------------------------------------------------------------------------
@@ -484,8 +523,8 @@ class ServiceRequest(models.Model):
         unique_together = ("tenant", "request_no")
         ordering = ["-created_at"]
         indexes = [
-            models.Index(fields=["tenant", "status", "created_at"]),
-            models.Index(fields=["employee", "created_at"]),
+            models.Index(fields=["tenant", "status", "created_at"], name="service_req_tenant__a1b2c3_idx"),
+            models.Index(fields=["employee", "created_at"], name="service_req_employe_d4e5f6_idx"),
         ]
 
     def __str__(self):

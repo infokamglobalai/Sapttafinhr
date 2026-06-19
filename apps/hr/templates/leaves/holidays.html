@@ -1,20 +1,20 @@
 {% extends "base.html" %}
 {% block page_title %}Holiday Calendar {{ year }}{% endblock %}
 {% block content %}
-<div class="flex items-center justify-between mb-4">
-  <div class="flex items-center gap-3">
-    <h2 class="text-xl font-bold">Holiday Calendar</h2>
-    <div class="flex gap-1">
-      <a href="?year={{ year|add:'-1' }}" class="btn btn-ghost btn-xs">{{ year|add:'-1' }}</a>
-      <span class="btn btn-primary btn-xs cursor-default">{{ year }}</span>
-      <a href="?year={{ year|add:'1' }}" class="btn btn-ghost btn-xs">{{ year|add:'1' }}</a>
+<div class="hr-page-header">
+  <div class="hr-page-header__main" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+    <h1 class="hr-page-header__title">Holiday Calendar</h1>
+    <div class="hr-tabs" style="margin:0;padding:2px;">
+      <a href="?year={{ year|add:'-1' }}" class="hr-tab">{{ year|add:'-1' }}</a>
+      <span class="hr-tab is-active">{{ year }}</span>
+      <a href="?year={{ year|add:'1' }}" class="hr-tab">{{ year|add:'1' }}</a>
     </div>
   </div>
 </div>
 
 <!-- Add holiday form -->
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-  <div class="card bg-base-100 shadow">
+  <div class="card">
     <div class="card-body">
       <h3 class="card-title text-base">Add Holiday</h3>
       <form method="post" action="{% url 'leaves:holiday_create' %}">
@@ -44,13 +44,13 @@
   <!-- Holiday list -->
   <div class="col-span-2">
     {% if not calendar %}
-    <div class="card bg-base-100 shadow">
+    <div class="card">
       <div class="card-body text-center py-8">
         <p class="text-base-content/40">No holiday calendar for {{ year }}. Add a holiday above to create one.</p>
       </div>
     </div>
     {% else %}
-    <div class="card bg-base-100 shadow overflow-x-auto">
+    <div class="card hr-table-wrap">
       <table class="table table-sm">
         <thead><tr><th>Date</th><th>Day</th><th>Holiday</th><th>Type</th></tr></thead>
         <tbody>

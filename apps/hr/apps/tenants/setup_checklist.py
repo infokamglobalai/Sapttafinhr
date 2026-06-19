@@ -9,9 +9,12 @@ def get_setup_checklist(tenant) -> dict:
     from apps.employees.models import Department, Designation, Employee
     from apps.leaves.models import LeaveType, HolidayCalendar
     from apps.attendance.models import Shift
-    from apps.payroll.models import SalaryStructure, StatutorySetting
+    from apps.payroll.models import SalaryStructure, StatutorySetting, EmployeeSalary
+    from apps.employees.models import OfficeLocation
     from apps.hr_ops.models import OnboardingTemplate
+    from .jurisdiction import is_india_payroll
 
+    india_payroll = is_india_payroll(tenant.payroll_jurisdiction)
     year = timezone.localdate().year
     items = [
         {
@@ -52,9 +55,26 @@ def get_setup_checklist(tenant) -> dict:
         },
         {
             "key": "statutory",
-            "label": "Statutory settings (PF/ESI/PT)",
-            "done": StatutorySetting.objects.filter(tenant=tenant, is_active=True).exists(),
+            "label": "Statutory settings (PF/ESI/PT)" if india_payroll else "Statutory settings",
+            "done": (
+                StatutorySetting.objects.filter(tenant=tenant, is_active=True).exists()
+                if india_payroll
+                else True
+            ),
             "url": reverse("payroll:statutory"),
+            "india_only": True,
+        },
+        {
+            "key": "employee_salaries",
+            "label": "Employee salaries assigned",
+            "done": EmployeeSalary.objects.filter(tenant=tenant, is_active=True).exists(),
+            "url": reverse("payroll:structures"),
+        },
+        {
+            "key": "locations",
+            "label": "Office locations",
+            "done": OfficeLocation.objects.filter(tenant=tenant, is_active=True).exists(),
+            "url": reverse("employees:locations"),
         },
         {
             "key": "employees",
@@ -69,6 +89,8 @@ def get_setup_checklist(tenant) -> dict:
             "url": reverse("hr_ops:onboarding_templates"),
         },
     ]
+    if not india_payroll:
+        items = [i for i in items if not i.get("india_only")]
     done_count = sum(1 for i in items if i["done"])
     by_key = {i["key"]: i for i in items}
 
@@ -76,12 +98,11 @@ def get_setup_checklist(tenant) -> dict:
         return all(by_key[k]["done"] for k in keys)
 
     display_groups = [
-        ("Company details", ["departments", "designations"], reverse("employees:departments")),
-        ("Work locations", ["shifts"], reverse("attendance:shifts")),
-        ("Departments", ["departments"], reverse("employees:departments")),
-        ("Policies", ["leave_types", "holidays"], reverse("leaves:leave_types")),
-        ("Payroll setup", ["salary_structures", "statutory"], reverse("payroll:structures")),
-        ("More steps", ["employees", "onboarding"], reverse("employees:create")),
+        ("Company details", ["departments", "designations", "locations"], reverse("employees:departments")),
+        ("Time & attendance", ["shifts", "holidays"], reverse("attendance:shifts")),
+        ("Leave policies", ["leave_types"], reverse("leaves:leave_types")),
+        ("Payroll setup", ["salary_structures"] + (["statutory"] if india_payroll else []) + ["employee_salaries"], reverse("payroll:structures")),
+        ("People", ["employees", "onboarding"], reverse("employees:create")),
     ]
     display_steps = []
     current_marked = False

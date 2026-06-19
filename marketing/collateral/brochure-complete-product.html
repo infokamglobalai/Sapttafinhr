@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Saptta Complete — Product Brochure</title>
+  <style>
+    :root { --blue:#2563EB; --text:#0F172A; --muted:#64748B; --border:#E2E8F0; --green:#059669; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:"Segoe UI",system-ui,sans-serif; color:var(--text); font-size:9.5pt; line-height:1.45; }
+    @page { size:A4 portrait; margin:10mm; }
+    @media print {
+      .page { page-break-after:always; }
+      .page:last-child { page-break-after:avoid; }
+      body { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+      .no-print { display:none; }
+    }
+    .page { max-width:210mm; margin:0 auto; padding:11mm; min-height:275mm; }
+    .head { display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid var(--border); padding-bottom:10px; margin-bottom:14px; }
+    .logo { display:flex; align-items:center; gap:8px; font-weight:800; font-size:12pt; }
+    .logo-i { width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--blue),#1D4ED8);color:#fff;display:flex;align-items:center;justify-content:center; }
+    h1 { font-size:18pt; font-weight:800; letter-spacing:-.02em; margin-bottom:4px; }
+    h2 { font-size:12pt; font-weight:700; margin:14px 0 8px; color:var(--blue); }
+    .lead { color:var(--muted); font-size:10pt; margin-bottom:12px; }
+    .cols { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    .col { border:1px solid var(--border); border-radius:12px; padding:14px; }
+    .col hr { border:none; border-top:1px solid var(--border); margin:10px 0; }
+    .col h3 { font-size:10pt; margin-bottom:6px; }
+    .col ul { margin-left:14px; color:var(--muted); font-size:8.5pt; }
+    .col li { margin:3px 0; }
+    .banner { background:linear-gradient(90deg,#EFF6FF,#ECFDF5); border:1px solid var(--border); border-radius:12px; padding:14px 18px; margin:12px 0; }
+    .banner strong { color:var(--blue); }
+    .check { color:var(--green); font-weight:700; }
+    table { width:100%; border-collapse:collapse; font-size:8.5pt; }
+    th,td { border:1px solid var(--border); padding:6px 8px; }
+    th { background:#F8FAFC; }
+    .foot { margin-top:14px; font-size:8pt; color:var(--muted); text-align:center; border-top:1px solid var(--border); padding-top:8px; }
+    .no-print { text-align:center; padding:12px; background:#1E293B; color:#fff; font-size:9pt; }
+  </style>
+</head>
+<body>
+  <p class="no-print">2-page brochure · Print A4 Portrait · Both pages</p>
+
+  <!-- PAGE 1 -->
+  <div class="page">
+    <div class="head">
+      <div class="logo"><div class="logo-i">S</div> Saptta Complete</div>
+      <span style="font-size:8pt;color:var(--muted)">Product brochure · Jun 2026</span>
+    </div>
+    <h1>Your company on one platform</h1>
+    <p class="lead">Saptta Complete unifies workforce management and finance so owners, CHROs, and CFOs stop reconciling spreadsheets and start running the business.</p>
+
+    <div class="banner">
+      <strong>Saptta Complete — $95/month</strong> for 30 employees (₹7,999 + GST in India)<br>
+      HRMS + Accounts · 20% savings vs buying separately · 14-day free trial
+    </div>
+
+    <div class="cols">
+      <div class="col">
+        <h3>👥 Saptta HRMS</h3>
+        <p style="font-size:8.5pt;color:var(--muted);margin-bottom:8px">Hire → onboard → operate → pay → grow → exit</p>
+        <ul>
+          <li><span class="check">✓</span> Employee master &amp; org chart</li>
+          <li><span class="check">✓</span> Web punch &amp; attendance register</li>
+          <li><span class="check">✓</span> Leave policies &amp; approvals</li>
+          <li><span class="check">✓</span> Full payroll run &amp; payslip PDF</li>
+          <li><span class="check">✓</span> PF, ESI, PT, TDS, Form 16 (India)</li>
+          <li><span class="check">✓</span> Recruitment ATS + careers pages</li>
+          <li><span class="check">✓</span> Performance review cycles</li>
+          <li><span class="check">✓</span> Letters, assets, exit settlement</li>
+          <li><span class="check">✓</span> Manager &amp; employee self-service</li>
+        </ul>
+      </div>
+      <div class="col">
+        <h3>📊 Saptta Accounts</h3>
+        <p style="font-size:8.5pt;color:var(--muted);margin-bottom:8px">Invoicing, compliance, books — unlimited users</p>
+        <ul>
+          <li><span class="check">✓</span> Quotes, invoices, payment links</li>
+          <li><span class="check">✓</span> Purchase bills &amp; vendors</li>
+          <li><span class="check">✓</span> Inventory &amp; stock movements</li>
+          <li><span class="check">✓</span> Bank reconciliation</li>
+          <li><span class="check">✓</span> GST returns &amp; compliance</li>
+          <li><span class="check">✓</span> Chart of accounts &amp; journal</li>
+          <li><span class="check">✓</span> P&amp;L, balance sheet, trial balance</li>
+          <li><span class="check">✓</span> Tally XML export</li>
+          <li><span class="check">✓</span> Multi-workspace for groups</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2>Built for company heads</h2>
+    <div class="cols">
+      <div class="col" style="background:#F8FAFC">
+        <h3>Dashboard that answers today's questions</h3>
+        <ul>
+          <li>Who is present / absent / on leave right now?</li>
+          <li>What needs my approval today?</li>
+          <li>Is payroll ready for this month?</li>
+          <li>How many seats are we using on our plan?</li>
+        </ul>
+      </div>
+      <div class="col" style="background:#F8FAFC">
+        <h3>Security &amp; governance</h3>
+        <ul>
+          <li>Role-based access (admin, manager, employee)</li>
+          <li>Encrypted Aadhaar, PAN, bank accounts</li>
+          <li>Audit log on sensitive HR actions</li>
+          <li>Tenant isolation — your data stays yours</li>
+        </ul>
+      </div>
+    </div>
+    <div class="foot">Saptta · Page 1 of 2 · saptta.com</div>
+  </div>
+
+  <!-- PAGE 2 -->
+  <div class="page">
+    <div class="head">
+      <div class="logo"><div class="logo-i">S</div> Saptta Complete</div>
+      <span style="font-size:8pt;color:var(--muted)">Implementation &amp; pricing</span>
+    </div>
+
+    <h2>From signup to first payroll in days</h2>
+    <table style="margin-bottom:14px">
+      <tr><th>Day</th><th>Milestone</th></tr>
+      <tr><td>1</td><td>Sign up · choose India or GCC jurisdiction · invite HR admin</td></tr>
+      <tr><td>2–3</td><td>Import employees · assign salaries · configure leave &amp; shifts</td></tr>
+      <tr><td>4–5</td><td>Manager logins · employee ESS · first attendance week</td></tr>
+      <tr><td>7–10</td><td>First payroll run · approve · publish payslips</td></tr>
+      <tr><td>14</td><td>Finance workspace live · invoicing &amp; GST (Complete plan)</td></tr>
+    </table>
+
+    <h2>Pricing (30 employees included)</h2>
+    <table>
+      <tr><th>Plan</th><th>USD/mo</th><th>India INR</th><th>Best for</th></tr>
+      <tr><td>HRMS only</td><td>$59</td><td>₹4,999</td><td>HR team replacing legacy HR tool</td></tr>
+      <tr><td>Accounts only</td><td>$59</td><td>₹4,999</td><td>Finance replacing Tally + spreadsheets</td></tr>
+      <tr style="background:#EFF6FF"><td><strong>Complete</strong></td><td><strong>$95</strong></td><td><strong>₹7,999</strong></td><td><strong>Owners who want one platform</strong></td></tr>
+    </table>
+    <p style="font-size:8pt;color:var(--muted);margin:8px 0">Extra employees: +$1.50 / +₹111 each · Accounts flat (no per-seat) · GST at checkout (India only)</p>
+
+    <h2>Compare at 30 employees</h2>
+    <table>
+      <tr><th>Vendor</th><th>What you get</th><th>Typical price</th></tr>
+      <tr style="background:#ECFDF5"><td><strong>Saptta Complete</strong></td><td>HRMS + Accounts</td><td><strong>$95 / ₹7,999</strong></td></tr>
+      <tr><td>Keka (India)</td><td>HRMS only</td><td>~₹9,999</td></tr>
+      <tr><td>ZenHR (GCC)</td><td>HRMS only</td><td>~$150</td></tr>
+      <tr><td>HR + Tally separately</td><td>Two vendors + integration</td><td>$150+ equivalent</td></tr>
+    </table>
+
+    <div class="banner" style="margin-top:16px;text-align:center">
+      <strong style="font-size:11pt">Ready to see your company on Saptta?</strong><br>
+      <span style="font-size:9.5pt;color:var(--muted)">45-min executive demo · 14-day trial · hello@saptta.com · saptta.com</span>
+    </div>
+    <div class="foot">Saptta · Page 2 of 2 · Confidential · © 2026 Saptta</div>
+  </div>
+</body>
+</html>

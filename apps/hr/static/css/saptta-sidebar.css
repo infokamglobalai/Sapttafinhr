@@ -1,209 +1,558 @@
 /* ============================================================
-   SAPTTA SIDEBAR — clean rail + sub-panel (brand blue accent)
-   Depends on saptta-tokens.css
+   SAPTTA SIDEBAR v3 — refined rail + sub-panel
+   Plus Jakarta Sans · soft icon chips · logical grouping
    ============================================================ */
 
-@media (min-width: 1024px) {
-  /* ── Primary rail — flat white surface ── */
-  .sidebar-primary {
-    background: #FFFFFF !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    border-right: 1px solid rgba(15, 23, 42, 0.07) !important;
-    box-shadow: none !important;
-  }
+/* ── Icon tone chips (module colors on icon wrap only) ── */
+.dock-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  background: rgba(15, 23, 42, 0.05);
+  color: #64748B;
+  transition: background 150ms ease, color 150ms ease;
+}
 
-  .sidebar-desktop-container.is-expanded .sidebar-primary {
-    box-shadow: 1px 0 0 rgba(15, 23, 42, 0.04);
+.dock-icon-wrap svg {
+  width: 18px !important;
+  height: 18px !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  box-sizing: border-box !important;
+  opacity: 1 !important;
+}
+
+.dock-item[data-tone="violet"] .dock-icon-wrap { background: rgba(124, 58, 237, 0.1); color: #7C3AED; }
+.dock-item[data-tone="blue"] .dock-icon-wrap { background: rgba(37, 99, 235, 0.1); color: #2563EB; }
+.dock-item[data-tone="indigo"] .dock-icon-wrap { background: rgba(99, 102, 241, 0.1); color: #6366F1; }
+.dock-item[data-tone="cyan"] .dock-icon-wrap { background: rgba(8, 145, 178, 0.1); color: #0891B2; }
+.dock-item[data-tone="green"] .dock-icon-wrap { background: rgba(5, 150, 105, 0.1); color: #059669; }
+.dock-item[data-tone="amber"] .dock-icon-wrap { background: rgba(217, 119, 6, 0.1); color: #D97706; }
+.dock-item[data-tone="rose"] .dock-icon-wrap { background: rgba(225, 29, 72, 0.08); color: #E11D48; }
+.dock-item[data-tone="slate"] .dock-icon-wrap,
+.dock-icon-wrap--muted { background: rgba(100, 116, 139, 0.1); color: #64748B; }
+
+.dock-item.active .dock-icon-wrap {
+  background: rgba(37, 99, 235, 0.14) !important;
+  color: #2563EB !important;
+}
+
+.brand-logo-fallback {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+  color: #fff;
+  font-size: 17px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  letter-spacing: -0.02em;
+}
+
+@media (min-width: 1024px) {
+  .sidebar-primary {
+    background: linear-gradient(180deg, #FFFFFF 0%, #FAFBFC 100%) !important;
+    border-right: 1px solid rgba(15, 23, 42, 0.06) !important;
   }
 
   .primary-brand,
   .sidebar-desktop-container.is-expanded .primary-brand {
     justify-content: center !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-    border-bottom-color: rgba(15, 23, 42, 0.06) !important;
+    padding: 16px 14px 14px !important;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.06) !important;
+    min-height: 64px;
+    background: #FFFFFF;
   }
 
-  .dock-nav {
-    overflow-y: auto;
-    overflow-x: hidden;
-    min-height: 0;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(15, 23, 42, 0.1) transparent;
+  .primary-brand--saptta {
+    background: linear-gradient(180deg, #FFFFFF 0%, #FAFBFC 100%);
   }
 
-  .dock-nav::-webkit-scrollbar {
-    width: 4px;
+  .primary-brand-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    width: 100%;
+    padding: 4px 6px;
+    border-radius: 10px;
+    transition: background 150ms ease;
   }
 
-  .dock-nav::-webkit-scrollbar-thumb {
-    background: rgba(15, 23, 42, 0.08);
-    border-radius: 4px;
+  .primary-brand-link:hover {
+    background: rgba(37, 99, 235, 0.06);
   }
 
-  .dock-section-label {
-    color: #94A3B8 !important;
-    font-weight: 600 !important;
+  .sidebar-desktop-container.is-expanded .primary-brand-link {
+    justify-content: flex-start;
+    padding: 6px 8px;
   }
 
-  /* Active rail item — brand blue only */
-  .dock-item.active {
-    background: rgba(37, 99, 235, 0.08) !important;
-    color: #0F172A !important;
-  }
-
-  .dock-item.active::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 3px;
-    height: 18px;
-    border-radius: 0 4px 4px 0;
-    background: #2563EB !important;
-  }
-
-  .dock-item.active .dock-label {
-    color: #0F172A !important;
-    font-weight: 600;
-  }
-
-  .dock-item:hover {
-    background: rgba(15, 23, 42, 0.04) !important;
-  }
-
-  .dock-item::after {
-    background: #0F172A !important;
-    font-size: 11px;
-    font-weight: 600;
-    padding: 6px 11px;
-    border-radius: 8px;
-    box-shadow: var(--saptta-shadow-md);
-  }
-
-  /* Workspace chip — minimal */
-  .dock-workspace {
-    display: none;
-    padding: 0 14px 10px;
-    margin-top: 4px;
-  }
-
-  .sidebar-desktop-container.is-expanded .dock-workspace {
+  .brand-logo-wordmark {
+    object-fit: contain;
+    object-position: left center;
+    image-rendering: -webkit-optimize-contrast;
     display: block;
   }
 
-  .dock-workspace-inner {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 7px 10px;
-    border-radius: 8px;
-    background: #F8FAFC;
-    border: 1px solid rgba(15, 23, 42, 0.06);
+  .brand-logo-wordmark--full {
+    display: none;
+    height: 38px;
+    width: auto;
+    max-width: 152px;
+    min-width: 120px;
   }
 
-  .dock-workspace-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #2563EB;
-    flex-shrink: 0;
-    box-shadow: none;
+  .brand-logo-wordmark--mark {
+    display: block;
+    height: 34px;
+    width: auto;
+    max-width: 34px;
   }
 
-  .dock-workspace-name {
-    font-size: 11px;
-    font-weight: 600;
-    color: #475569;
-    line-height: 1.25;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  .sidebar-desktop-container.is-expanded .brand-logo-wordmark--full {
+    display: block;
   }
 
-  .dock-pin-btn:hover {
-    background: rgba(37, 99, 235, 0.08) !important;
-    color: #2563EB !important;
+  .sidebar-desktop-container.is-expanded .brand-logo-wordmark--mark {
+    display: none;
   }
 
-  .sidebar-desktop-container.is-pinned .dock-pin-btn {
-    color: #2563EB !important;
-    background: rgba(37, 99, 235, 0.1) !important;
+  .sidebar-brand--wordmark {
+    padding: 16px 14px !important;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.06);
   }
 
-  /* Secondary sub-panel — no rainbow top stripe */
-  .sidebar-secondary {
-    background: #FAFBFC !important;
-    border-right: 1px solid rgba(15, 23, 42, 0.07) !important;
-    border-top: none !important;
-    box-shadow: none !important;
+  .sidebar-brand--wordmark .brand-logo-wordmark--full {
+    display: block;
+    height: 36px;
+    max-width: 152px;
+    min-width: 120px;
   }
 
-  .secondary-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 13px !important;
+  .primary-brand-text .brand-name {
+    font-size: 14px !important;
     font-weight: 700 !important;
-    color: #0F172A !important;
-    border-bottom: 1px solid rgba(15, 23, 42, 0.06) !important;
-    padding-bottom: 12px !important;
-  }
-
-  .secondary-header::before {
-    content: '';
-    width: 3px;
-    height: 14px;
-    border-radius: 2px;
-    background: #2563EB;
-    flex-shrink: 0;
-    box-shadow: none;
-  }
-
-  .sidebar-secondary .search-input {
-    border-color: rgba(15, 23, 42, 0.1) !important;
-    background: #fff !important;
-    font-size: 12.5px !important;
-  }
-
-  .sidebar-secondary .search-input:focus {
-    border-color: #2563EB !important;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
-  }
-
-  .sidebar-secondary .nav-item {
-    border-radius: 8px !important;
-    font-size: 13px !important;
-    color: #475569 !important;
-    transition: background 140ms ease, color 140ms ease;
-  }
-
-  .sidebar-secondary .nav-item:hover {
-    background: rgba(15, 23, 42, 0.04) !important;
+    letter-spacing: -0.03em !important;
     color: #0F172A !important;
   }
 
-  .sidebar-secondary .nav-item.active {
-    background: rgba(37, 99, 235, 0.08) !important;
-    color: #0F172A !important;
+  .primary-brand-text .brand-tag {
+    font-size: 10px !important;
+    font-weight: 500 !important;
+    color: #94A3B8 !important;
+    text-transform: none !important;
+    letter-spacing: 0 !important;
+  }
+
+  .dock-section-label {
+    font-size: 10px !important;
     font-weight: 600 !important;
+    letter-spacing: 0.04em !important;
+    text-transform: uppercase !important;
+    color: #CBD5E1 !important;
+    padding: 16px 10px 5px !important;
+    margin: 0 !important;
+    position: relative;
   }
 
-  .sidebar-secondary .nav-item.active::before {
+  .dock-section-label:first-of-type {
+    padding-top: 6px !important;
+  }
+
+  .dock-item--lead {
+    margin-top: 2px;
+  }
+
+  .sidebar-desktop-container.is-expanded .dock-section-label::after {
+    content: '';
+    display: block;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(15, 23, 42, 0.06) 0%, transparent 100%);
+    margin-top: 6px;
+  }
+
+  .dock-item {
+    margin-bottom: 2px;
+  }
+
+  .sidebar-desktop-container.is-expanded .dock-item {
+    height: 40px !important;
+    padding: 0 8px !important;
+    border-radius: 11px !important;
+  }
+
+  .dock-item .dock-label {
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    letter-spacing: -0.01em !important;
+    text-transform: none !important;
+  }
+
+  .dock-item.active .dock-label {
+    font-weight: 600 !important;
+    color: #0F172A !important;
+  }
+
+  .dock-item.active {
+    background: #EFF6FF !important;
+  }
+
+  .dock-item.active::before {
+    height: 24px !important;
+    border-radius: 0 3px 3px 0 !important;
     background: #2563EB !important;
   }
 
-  .secondary-footer,
-  .sidebar-footer {
-    color: #94A3B8 !important;
-    border-top-color: rgba(15, 23, 42, 0.06) !important;
+  .dock-item:hover {
+    background: rgba(15, 23, 42, 0.035) !important;
+  }
+
+  .dock-item--footer {
+    margin-bottom: 0;
+  }
+
+  .dock-footer {
+    border-top: 1px solid rgba(15, 23, 42, 0.06);
+    padding: 8px 0 6px;
+    margin-top: 4px;
+  }
+
+  /* ── Unified workspace hub (company + account + pin in one control) ── */
+  .dock-hub {
+    position: relative;
+    width: 100%;
+    padding: 0 10px 4px;
+  }
+
+  .dock-hub-trigger {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 7px 9px;
+    border-radius: 10px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    background: #F8FAFC;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+    color: inherit;
+    transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
+  }
+
+  .dock-hub-trigger:hover,
+  .dock-hub-trigger[aria-expanded="true"] {
+    border-color: rgba(37, 99, 235, 0.22);
+    background: rgba(37, 99, 235, 0.04);
+    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+  }
+
+  .dock-hub-logo {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    object-fit: contain;
+    background: #fff;
+    flex-shrink: 0;
+    border: 1px solid rgba(15, 23, 42, 0.06);
+  }
+
+  .dock-hub-initial {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .dock-hub-initial--saptta {
+    background: linear-gradient(135deg, #F97316 0%, #EA580C 100%);
+  }
+
+  .dock-hub-initial--lg {
+    width: 32px;
+    height: 32px;
+    font-size: 13px;
+    border-radius: 8px;
+  }
+
+  .dock-hub-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+    gap: 1px;
+  }
+
+  .dock-hub-kicker {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #94A3B8;
+    line-height: 1.2;
+  }
+
+  .dock-hub-name {
+    font-size: 11px;
+    font-weight: 600;
+    color: #334155;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.25;
+  }
+
+  .dock-hub-chevron {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    color: #94A3B8;
+    transition: transform 150ms ease, color 150ms ease;
+  }
+
+  .dock-hub-chevron.is-open {
+    transform: rotate(180deg);
+    color: #2563EB;
+  }
+
+  .dock-hub-menu {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 10px;
+    right: 10px;
+    z-index: 320;
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12), 0 2px 8px rgba(15, 23, 42, 0.06);
+    padding: 6px;
+    overflow: hidden;
+  }
+
+  .dock-hub-menu-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 10px 8px;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+    margin-bottom: 4px;
+  }
+
+  .dock-hub-menu-logo {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    object-fit: contain;
+    background: #fff;
+    border: 1px solid rgba(15, 23, 42, 0.06);
+    flex-shrink: 0;
+  }
+
+  .dock-hub-menu-meta {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 2px;
+  }
+
+  .dock-hub-menu-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0F172A;
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .dock-hub-menu-sub {
+    font-size: 10px;
+    color: #94A3B8;
+    font-weight: 500;
+  }
+
+  .dock-hub-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 9px 10px;
+    border: none;
+    border-radius: 9px;
+    background: transparent;
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+    transition: background 120ms ease;
+  }
+
+  .dock-hub-item:hover {
+    background: rgba(15, 23, 42, 0.04);
+  }
+
+  .dock-hub-item-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: rgba(15, 23, 42, 0.05);
+    color: #64748B;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .dock-hub-item-icon svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .dock-hub-item-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+  }
+
+  .dock-hub-item-text strong {
+    font-size: 12px;
+    font-weight: 600;
+    color: #0F172A;
+    letter-spacing: -0.01em;
+  }
+
+  .dock-hub-item-text span {
+    font-size: 10px;
+    color: #94A3B8;
+    font-weight: 500;
+  }
+
+  .sidebar-desktop-container:not(.is-expanded) .dock-hub {
+    padding: 0 0 6px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .sidebar-desktop-container:not(.is-expanded) .dock-hub-trigger {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    justify-content: center;
+    gap: 0;
+  }
+
+  .sidebar-desktop-container:not(.is-expanded) .dock-hub-text,
+  .sidebar-desktop-container:not(.is-expanded) .dock-hub-chevron {
+    display: none;
+  }
+
+  .sidebar-desktop-container:not(.is-expanded) .dock-hub-menu {
+    left: calc(100% + 10px);
+    right: auto;
+    bottom: 0;
+    width: 232px;
+  }
+
+  .dock-hub-trigger--mobile {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    background: #F8FAFC;
+    text-decoration: none;
+    color: inherit;
+    margin-bottom: 10px;
+  }
+
+  .dock-hub-mobile-cta {
+    margin-left: auto;
+    font-size: 11px;
+    font-weight: 600;
+    color: #2563EB;
+    white-space: nowrap;
+  }
+
+  /* Secondary sub-panel */
+  .sidebar-secondary {
+    background: #FFFFFF !important;
+    border-right: 1px solid rgba(15, 23, 42, 0.06) !important;
+  }
+
+  .secondary-header {
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.02em !important;
+    color: #0F172A !important;
+    padding-bottom: 14px !important;
+  }
+
+  .sidebar-secondary .nav-item {
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    letter-spacing: -0.01em !important;
+    padding: 8px 10px !important;
+    border-radius: 9px !important;
+  }
+
+  .sidebar-secondary .nav-section-title {
     font-size: 10px !important;
+    font-weight: 600 !important;
+    color: #CBD5E1 !important;
+    letter-spacing: 0.05em !important;
+    padding-left: 8px !important;
+  }
+
+  .sidebar-secondary .search-input {
+    border-radius: 10px !important;
+    font-family: var(--font-sans) !important;
+  }
+
+  .secondary-footer {
+    font-size: 10px !important;
+    color: #CBD5E1 !important;
   }
 }
 
-/* All secondary panels share one blue accent */
+/* Collapsed rail: center icon chips */
+@media (min-width: 1024px) {
+  .sidebar-desktop-container:not(.is-expanded) .dock-item {
+    width: 48px !important;
+    height: 48px !important;
+  }
+
+  .sidebar-desktop-container:not(.is-expanded) .dock-icon-wrap {
+    width: 36px;
+    height: 36px;
+  }
+
+  .sidebar-desktop-container:not(.is-expanded) .primary-brand {
+    justify-content: center !important;
+    padding: 12px 0 14px !important;
+  }
+}
+
+/* Tone accents for secondary panels */
 .sidebar-secondary--dashboard,
 .sidebar-secondary--mySpace,
 .sidebar-secondary--team,
@@ -218,28 +567,10 @@
   --panel-accent-soft: rgba(37, 99, 235, 0.08);
 }
 
-/* Mobile drawer */
 @media (max-width: 1023px) {
-  .sidebar {
-    background: #fff !important;
-  }
-
-  .sidebar-brand--solo {
-    border-bottom: 1px solid rgba(15, 23, 42, 0.08);
-    padding: 16px !important;
-    justify-content: center;
-  }
-
-  .sidebar .nav-item.active {
-    background: rgba(37, 99, 235, 0.08) !important;
-    color: #0F172A !important;
-  }
-
-  .sidebar .nav-item.active::before {
-    background: #2563EB !important;
-  }
-
-  .sidebar .nav-group-header.active-group {
-    color: #2563EB !important;
+  .sidebar .nav-item {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    letter-spacing: -0.01em;
   }
 }

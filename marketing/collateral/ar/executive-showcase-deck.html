@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>صبّتا — عرض تنفيذي · يونيو 2026</title>
+  <style>
+    :root {
+      --blue: #2563EB; --blue-dark: #1D4ED8; --blue-soft: #EFF6FF;
+      --green: #059669; --green-soft: #ECFDF5;
+      --orange: #EA580C; --orange-soft: #FFF7ED;
+      --text: #0F172A; --muted: #64748B; --border: #E2E8F0; --bg: #F8FAFC; --white: #fff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { direction: rtl; }
+    body {
+      font-family: "Segoe UI", "Traditional Arabic", "Arial", sans-serif;
+      color: var(--text); background: #fff; line-height: 1.65; font-size: 11pt; text-align: right;
+    }
+    @page { size: A4 landscape; margin: 12mm; }
+    @media print {
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .slide { page-break-after: always; box-shadow: none !important; }
+      .slide:last-child { page-break-after: avoid; }
+      .no-print { display: none !important; }
+    }
+    @media screen {
+      body { background: #CBD5E1; padding: 24px 16px 48px; }
+      .slide { max-width: 297mm; margin: 0 auto 24px; box-shadow: 0 12px 48px rgba(15,23,42,.14); border-radius: 14px; overflow: hidden; }
+    }
+    .slide { background: var(--white); padding: 14mm 16mm; min-height: 185mm; position: relative; }
+    .slide-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 2px solid var(--border); flex-direction: row-reverse; }
+    .logo { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 13pt; }
+    .logo-icon { width: 34px; height: 34px; border-radius: 9px; background: linear-gradient(135deg, var(--blue), var(--blue-dark)); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13pt; }
+    .slide-num { font-size: 8pt; color: var(--muted); font-weight: 600; direction: ltr; }
+    h1 { font-size: 24pt; font-weight: 800; line-height: 1.25; margin-bottom: 8px; }
+    h2 { font-size: 15pt; font-weight: 700; margin-bottom: 12px; }
+    .subtitle { color: var(--muted); font-size: 11.5pt; max-width: 720px; margin-bottom: 16px; }
+    .tag { display: inline-block; background: var(--blue-soft); color: var(--blue); font-size: 8pt; font-weight: 700; padding: 4px 12px; border-radius: 999px; margin-bottom: 10px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .card { border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+    .card h3 { font-size: 10.5pt; font-weight: 700; margin-bottom: 6px; }
+    .card p, .card li { font-size: 9.5pt; color: var(--muted); }
+    .card ul { margin: 8px 16px 0 0; }
+    .card li { margin: 4px 0; }
+    .card.blue { background: var(--blue-soft); border-color: rgba(37,99,235,.2); }
+    .card.green { background: var(--green-soft); border-color: rgba(5,150,105,.2); }
+    .card.orange { background: var(--orange-soft); border-color: rgba(234,88,12,.2); }
+    .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 18px 0; }
+    .stat { text-align: center; padding: 16px 10px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg); }
+    .stat .val { font-size: 20pt; font-weight: 800; color: var(--blue); }
+    .stat .lbl { font-size: 8pt; color: var(--muted); font-weight: 600; margin-top: 4px; }
+    .callout { background: var(--blue-soft); border-right: 4px solid var(--blue); border-left: none; padding: 14px 18px; border-radius: 12px 0 0 12px; font-size: 10.5pt; margin: 14px 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 9pt; margin-top: 10px; }
+    th, td { border: 1px solid var(--border); padding: 8px 10px; text-align: right; }
+    th { background: var(--bg); font-weight: 700; font-size: 8pt; color: var(--muted); }
+    .footer { position: absolute; bottom: 12mm; left: 16mm; right: 16mm; font-size: 8pt; color: var(--muted); display: flex; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 8px; flex-direction: row-reverse; }
+    .slide.title-slide { background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 55%, #2563EB 100%); color: #fff; }
+    .title-slide h1 { color: #fff; font-size: 28pt; }
+    .title-slide .subtitle { color: rgba(255,255,255,.85); font-size: 12pt; }
+    .title-slide .tag { background: rgba(255,255,255,.15); color: #fff; }
+    .title-slide .footer { color: rgba(255,255,255,.6); border-color: rgba(255,255,255,.2); }
+    .pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+    .pill { background: var(--bg); border: 1px solid var(--border); padding: 6px 12px; border-radius: 999px; font-size: 8.5pt; font-weight: 600; }
+    .cta-box { background: var(--text); color: #fff; border-radius: 14px; padding: 20px 24px; margin-top: 16px; }
+    .cta-box h2 { color: #fff; margin-bottom: 8px; }
+    .cta-box p { color: #94A3B8; font-size: 10pt; }
+    .cta-box .steps { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-top: 16px; }
+    .cta-box .step { background: rgba(255,255,255,.08); border-radius: 10px; padding: 14px; text-align: right; }
+    .cta-box .step strong { display: block; color: #60A5FA; font-size: 9pt; margin-bottom: 4px; }
+    .en-ref { font-size: 8pt; color: var(--muted); direction: ltr; text-align: left; margin-top: 6px; }
+    .no-print { text-align: center; padding: 16px; background: #1E293B; color: #fff; font-size: 10pt; direction: ltr; }
+  </style>
+</head>
+<body>
+  <p class="no-print">Arabic RTL · Chrome → Print → PDF (A4 Landscape) · English version: ../en/executive-showcase-deck.html</p>
+
+  <section class="slide title-slide">
+    <span class="tag">عرض تنفيذي · يونيو 2026</span>
+    <h1>منصة واحدة<br>لل<strong style="color:#93C5FD">أفراد</strong> و<strong style="color:#93C5FD">المال</strong></h1>
+    <p class="subtitle">صبّتا HRMS + صبّتا Accounts — إدارة workforce من التوظيف حتى المغادرة، ومحاسبة جاهزة للامتثال، بتسجيل دخول واحد. للهند — وتوسع في الخليج.</p>
+    <div class="stat-row" style="margin-top: 28px;">
+      <div class="stat" style="background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2)"><div class="val" style="color:#fff">2 في 1</div><div class="lbl" style="color:rgba(255,255,255,.7)">HR + مالية</div></div>
+      <div class="stat" style="background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2)"><div class="val" style="color:#fff">30</div><div class="lbl" style="color:rgba(255,255,255,.7)">موظف مشمول</div></div>
+      <div class="stat" style="background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2)"><div class="val" style="color:#fff">$95</div><div class="lbl" style="color:rgba(255,255,255,.7)">Complete / شهر</div></div>
+      <div class="stat" style="background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2)"><div class="val" style="color:#fff">14 يوم</div><div class="lbl" style="color:rgba(255,255,255,.7)">تجربة مجانية</div></div>
+    </div>
+    <div class="footer"><span>saptta.com · hello@saptta.com</span><span>صبّتا · سري</span></div>
+  </section>
+
+  <section class="slide">
+    <div class="slide-header"><span class="slide-num">02 / 12</span><div class="logo"><div class="logo-icon">S</div> صبّتا</div></div>
+    <span class="tag">التحدي</span>
+    <h2>الشركات النامية تضيع أسابيع بسبب انفصال HR والمالية</h2>
+    <div class="grid-2">
+      <div class="card orange">
+        <h3>❌ بدون صبّتا</h3>
+        <ul>
+          <li>HR يشغّل الرواتب في أداة؛ المحاسب يستلم تصديراً آخر</li>
+          <li>أرصدة الإجازات لا تطابق سجل الحضور</li>
+          <li>المديرون يراسلون HR للموافقات — بلا سجل تدقيق</li>
+          <li>المالية تعيد إدخال تكلفة الموظفين كل نهاية شهر</li>
+        </ul>
+      </div>
+      <div class="card green">
+        <h3>✓ مع صبّتا</h3>
+        <ul>
+          <li>سجل موظف واحد — HR والمالية متوافقان</li>
+          <li>حضور → رواتب → قسيمة → دفاتر في مسار واحد</li>
+          <li>خدمة ذاتية للمدير والموظف على الويب والجوال</li>
+          <li>تصدير امتثال (PF، GST، Tally) مدمج</li>
+        </ul>
+      </div>
+    </div>
+    <div class="callout"><strong>للرئيس التنفيذي:</strong> التكلفة الحقيقية ليست الاشتراك — بل وقت القيادة في مطابقة نسختين من حقيقة شركتكم.</div>
+    <div class="footer"><span>يونيو 2026</span><span>عرض صبّتا التنفيذي</span></div>
+  </section>
+
+  <section class="slide">
+    <div class="slide-header"><span class="slide-num">03 / 12</span><div class="logo"><div class="logo-icon">S</div> صبّتا</div></div>
+    <span class="tag">المنصة</span>
+    <h2>صبّتا في لمحة</h2>
+    <div class="grid-3">
+      <div class="card"><h3>صبّتا HRMS</h3><p>الموارد، الوقت، الإجازات، الرواتب، الأداء، التوظيف.</p><p style="margin-top:8px;font-weight:700;color:var(--blue)">من $59 / شهر</p></div>
+      <div class="card"><h3>صبّتا Accounts</h3><p>فواتير، مشتريات، مخزون، بنك، GST، دفاتر، Tally.</p><p style="margin-top:8px;font-weight:700;color:var(--blue)">من $59 / شهر</p></div>
+      <div class="card blue" style="border-width:2px"><h3>صبّتا Complete ★</h3><p>المنتجان، دخول واحد. <strong>توفير 20%</strong> عن الشراء منفصلاً.</p><p style="margin-top:8px;font-weight:800;color:var(--blue);font-size:12pt">$95 / شهر · 30 موظف</p></div>
+    </div>
+    <div class="footer"><span>يونيو 2026</span><span>عرض صبّتا التنفيذي</span></div>
+  </section>
+
+  <section class="slide">
+    <div class="slide-header"><span class="slide-num">04 / 12</span><div class="logo"><div class="logo-icon">S</div> صبّتا</div></div>
+    <span class="tag">الأسواق</span>
+    <h2>من نخدم</h2>
+    <div class="grid-2">
+      <div class="card blue">
+        <h3>🇮🇳 الهند (الأساس)</h3>
+        <ul>
+          <li>30–500 موظف — تقنية، تصنيع، تجزئة، خدمات</li>
+          <li>رواتب PF، ESI، PT، TDS، Form 16</li>
+          <li>فوترة INR (₹7,999 Complete) + GST</li>
+        </ul>
+      </div>
+      <div class="card green">
+        <h3>🌍 الخليج والكويت</h3>
+        <ul>
+          <li>HRMS كامل — حضور، إجازات، أداء، ATS</li>
+          <li>رواتب GCC — PIFSS، indemnity، تصدير WPS</li>
+          <li>KWD / AED / SAR · واجهة RTL</li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer"><span>يونيو 2026</span><span>عرض صبّتا التنفيذي</span></div>
+  </section>
+
+  <section class="slide">
+    <div class="slide-header"><span class="slide-num">05 / 12</span><div class="logo"><div class="logo-icon">S</div> صبّتا</div></div>
+    <span class="tag">HRMS</span>
+    <h2>من التوظيف حتى نهاية الخدمة</h2>
+    <div class="grid-4">
+      <div class="card"><h3>توظيف</h3><p>ATS، صفحات careers، AI، hire → employee</p></div>
+      <div class="card"><h3>انضمام</h3><p>قوائم مهام، مستندات، حسابات</p></div>
+      <div class="card"><h3>تشغيل</h3><p>حضور، ورديات، إجازات</p></div>
+      <div class="card"><h3>رواتب</h3><p>تشغيل، قسيمة PDF، بنك</p></div>
+      <div class="card"><h3>نمو</h3><p>دورات أداء، تقييمات</p></div>
+      <div class="card"><h3>امتثال</h3><p>خطابات، سياسات، أصول</p></div>
+      <div class="card"><h3>مشاركة</h3><p>بوابة ESS، إشعارات</p></div>
+      <div class="card"><h3>مغادرة</h3><p>تسوية، indemnity، إلغاء وصول</p></div>
+    </div>
+    <div class="footer"><span>يونيو 2026</span><span>عرض صبّتا التنفيذي</span></div>
+  </section>
+
+  <section class="slide">
+    <div class="slide-header"><span class="slide-num">06 / 12</span><div class="logo"><div class="logo-icon">S</div> صبّتا</div></div>
+    <span class="tag">المالية</span>
+    <h2>صبّتا Accounts — دفاتر يستخدمها محاسبكم</h2>
+    <div class="grid-3">
+      <div class="card"><h3>مبيعات</h3><ul><li>عروض → فواتير → دفع</li><li>عملات متعددة</li></ul></div>
+      <div class="card"><h3>مشتريات</h3><ul><li>فواتير موردين</li><li>مخزون</li></ul></div>
+      <div class="card"><h3>امتثال</h3><ul><li>GST</li><li>دفتر أستاذ</li><li>Tally XML</li></ul></div>
+    </div>
+    <div class="footer"><span>يونيو 2026</span><span>عرض صبّتا التنفيذي</span></div>
+  </section>
+
+  <section class="slide">
+    <div class="slide-header"><span class="slide-num">07 / 12</span><div class="logo"><div class="logo-icon">S</div> صبّتا</div></div>
+    <span class="tag">لماذا منصة موحدة</span>
+    <h2>قرارات يهمّها كل رئيس شركة</h2>
+    <table>
+      <tr><th>القرار</th><th>أدوات منفصلة</th><th>صبّتا Complete</th></tr>
+      <tr><td><strong>هل أثق برقم headcount؟</strong></td><td>HR ≠ Finance</td><td>سجل واحد</td></tr>
+      <tr><td><strong>سرعة نهاية الشهر؟</strong></td><td>جسر يدوي</td><td>تصدير مدمج</td></tr>
+      <tr><td><strong>هل المديرون يخدمون أنفسهم؟</strong></td><td>بريد / واتساب</td><td>موافقات داخل التطبيق</td></tr>
+      <tr><td><strong>50 موظف — التكلفة؟</strong></td><td>HR + محاسبة + تكامل</td><td><strong>$125/شهر</strong></td></tr>
+    </table>
+    <div class="footer"><span>يونيو 2026</span><span>عرض صبّتا التنفيذي</span></div>
+  </section>
+
+  <section class="slide">
+    <div class="slide-header"><span class="slide-num">08 / 12</span><div class="logo"><div class="logo-icon">S</div> صبّتا</div></div>
+    <span class="tag">الهند</span>
+    <h2>رواتب وامتثال — للشركات الهندية</h2>
+    <div class="pill-row">
+      <span class="pill">PF ECR</span><span class="pill">ESI</span><span class="pill">PT</span>
+      <span class="pill">TDS</span><span class="pill">Form 16</span><span class="pill">Gratuity</span>
+    </div>
+    <div class="callout">TDS مبسّط — محاسبكم يتحقق قبل Form 24Q. لا ندّعي استبدال المستشار الضريبي.</div>
+    <div class="footer"><span>يونيو 2026</span><span>عرض صبّتا التنفيذي</span></div>
+  </section>
+
+  <section class="slide">
+    <div class="slide-header"><span class="slide-num">09 / 12</span><div class="logo"><div class="logo-icon">S</div> صبّتا</div></div>
+    <span class="tag">الخليج</span>
+    <h2>الكويت والخليج — HR اليوم، رواتب GCC جاهزة للعرض</h2>
+    <div class="grid-3">
+      <div class="card green"><h3>متاح الآن</h3><ul><li>تسجيل KW/AE/SA</li><li>PIFSS / GOSI</li><li>استحقاق indemnity</li><li>IBAN</li></ul></div>
+      <div class="card"><h3>تصدير</h3><ul><li>سجل رواتب</li><li>تحويل بنكي</li><li>WPS (UAE)</li><li>تسوية مغادرة PDF</li></ul></div>
+      <div class="card"><h3>خارطة طريق</h3><ul><li>نصوص عربية كاملة</li><li>تقويم هجري</li><li>ملفات بنك معتمدة</li></ul></div>
+    </div>
+    <div class="callout">تحققوا من الم rates والملفات مع مستشار رواتب محلي قبل التقديم الرسمي.</div>
+    <div class="footer"><span>يونيو 2026</span><span>عرض صبّتا التنفيذي</span></div>
+  </section>
+
+  <section class="slide">
+    <div class="slide-header"><span class="slide-num">10 / 12</span><div class="logo"><div class="logo-icon">S</div> صبّتا</div></div>
+    <span class="tag">النتائج</span>
+    <h2>ما يحققه القادة خلال 90 يوماً</h2>
+    <div class="stat-row">
+      <div class="stat"><div class="val">60%</div><div class="lbl">وقت أقل للرواتب</div></div>
+      <div class="stat"><div class="val">نفس اليوم</div><div class="lbl">نشر القسائم</div></div>
+      <div class="stat"><div class="val">صفر</div><div class="lbl">إعادة إدخال</div></div>
+      <div class="stat"><div class="val">100%</div><div class="lbl">سجل تدقيق</div></div>
+    </div>
+    <div class="footer"><span>يونيو 2026</span><span>عرض صبّتا التنفيذي</span></div>
+  </section>
+
+  <section class="slide">
+    <div class="slide-header"><span class="slide-num">11 / 12</span><div class="logo"><div class="logo-icon">S</div> صبّتا</div></div>
+    <span class="tag">التسعير</span>
+    <h2>تسعير بسيط — أقل من HR-only</h2>
+    <table>
+      <tr><th>الخطة</th><th>USD / شهر</th><th>يشمل</th></tr>
+      <tr><td>HRMS</td><td>$59</td><td>30 موظف · HRMS كامل</td></tr>
+      <tr><td>Accounts</td><td>$59</td><td>مستخدمون ماليون غير محدود</td></tr>
+      <tr style="background:var(--blue-soft)"><td><strong>Complete ★</strong></td><td><strong>$95</strong></td><td><strong>HR + Finance · 20% توفير</strong></td></tr>
+    </table>
+    <p class="en-ref">India: ₹7,999 + GST · vs ZenHR ~$150 HR only</p>
+    <div class="footer"><span>يونيو 2026</span><span>عرض صبّتا التنفيذي</span></div>
+  </section>
+
+  <section class="slide">
+    <div class="slide-header"><span class="slide-num">12 / 12</span><div class="logo"><div class="logo-icon">S</div> صبّتا</div></div>
+    <span class="tag">الخطوات التالية</span>
+    <h2>لنَعرِض شركتكم على صبّتا</h2>
+    <div class="cta-box">
+      <h2>عرض تنفيذي 45 دقيقة</h2>
+      <p>رواتب، موافقات مدير، قسائم موظف، لوحة مالية — على سينariosكم.</p>
+      <div class="steps">
+        <div class="step"><strong>1</strong>اكتشاف — headcount، الأدوات الحالية</div>
+        <div class="step"><strong>2</strong>عرض حي — HR + Finance</div>
+        <div class="step"><strong>3</strong>تجربة خلال 24 ساعة</div>
+      </div>
+    </div>
+    <p style="margin-top:14px;text-align:center;font-size:10pt;color:var(--muted)">hello@saptta.com · saptta.com · 14 يوم تجربة مجانية</p>
+    <p class="en-ref">English deck: ../en/executive-showcase-deck.html</p>
+    <div class="footer"><span>hello@saptta.com</span><span>شكراً — صبّتا</span></div>
+  </section>
+</body>
+</html>

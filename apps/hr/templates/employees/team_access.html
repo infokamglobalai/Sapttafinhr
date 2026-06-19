@@ -1,15 +1,17 @@
 {% extends "base.html" %}
 {% block page_title %}Team Access{% endblock %}
 {% block content %}
-<div class="flex items-center justify-between mb-4">
-  <div>
-    <h2 class="text-xl font-bold">Team Access</h2>
-    <p class="text-sm text-base-content/60">Assign Manager / HR Admin roles and review login status.</p>
+<div class="hr-page-header">
+  <div class="hr-page-header__main">
+    <h1 class="hr-page-header__title">Team Access</h1>
+    <p class="hr-page-header__sub">Assign Team Lead / Manager or HR Admin roles and review login status</p>
   </div>
-  <a href="{% url 'employees:list' %}" class="btn btn-ghost btn-sm">← Employees</a>
+  <div class="hr-page-header__actions">
+    <a href="{% url 'employees:list' %}" class="btn btn-ghost btn-sm">← Employees</a>
+  </div>
 </div>
 
-<div class="card bg-base-100 shadow overflow-x-auto">
+<div class="card hr-table-wrap">
   <table class="table table-sm">
     <thead>
       <tr>
@@ -51,7 +53,7 @@
             {% csrf_token %}
             <label class="label cursor-pointer gap-1 py-0">
               <input type="checkbox" name="role_manager" class="checkbox checkbox-xs" {% if "manager" in access.roles %}checked{% endif %}>
-              <span class="label-text text-xs">Manager</span>
+              <span class="label-text text-xs">Team Lead / Manager</span>
             </label>
             <label class="label cursor-pointer gap-1 py-0">
               <input type="checkbox" name="role_hr_admin" class="checkbox checkbox-xs" {% if "hr_admin" in access.roles %}checked{% endif %}>

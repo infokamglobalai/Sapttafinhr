@@ -10,7 +10,7 @@
   <a href="{% url 'reports:attendance_export' %}?from={{ start_date|date:'Y-m-d' }}&to={{ end_date|date:'Y-m-d' }}"
      class="btn btn-primary btn-sm">Export Excel</a>
 </div>
-<form method="get" class="card bg-base-100 shadow mb-4">
+<form method="get" class="card hr-filter-bar">
   <div class="card-body p-4 flex flex-wrap gap-3 items-end">
     <div><label class="label-text text-xs">From</label><input type="date" name="from" value="{{ start_date|date:'Y-m-d' }}" class="input input-bordered input-sm"></div>
     <div><label class="label-text text-xs">To</label><input type="date" name="to" value="{{ end_date|date:'Y-m-d' }}" class="input input-bordered input-sm"></div>
@@ -24,7 +24,7 @@
   {% endfor %}
 </div>
 {% endif %}
-<div class="card bg-base-100 shadow overflow-x-auto">
+<div class="card hr-table-wrap">
   <table class="table table-sm">
     <thead><tr><th>Date</th><th>Employee</th><th>Department</th><th>Status</th><th>Mins</th></tr></thead>
     <tbody>

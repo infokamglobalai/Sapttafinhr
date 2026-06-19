@@ -33,7 +33,7 @@
 </div>
 
 <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-  <div class="card bg-base-100 shadow p-4 text-center">
+  <div class="card p-4 text-center">
     <div class="text-2xl font-bold">{{ total }}</div>
     <div class="text-xs text-base-content/60">Employees</div>
   </div>
@@ -45,7 +45,7 @@
     <div class="text-2xl font-bold text-warning">{{ blocked_count }}</div>
     <div class="text-xs text-base-content/60">Need attention</div>
   </div>
-  <div class="card bg-base-100 shadow p-4 text-center">
+  <div class="card p-4 text-center">
     <div class="text-2xl font-bold">{{ pending_regs_total }}</div>
     <div class="text-xs text-base-content/60">Pending corrections</div>
   </div>
@@ -76,7 +76,7 @@
 </div>
 {% endif %}
 
-<div class="card bg-base-100 shadow overflow-x-auto">
+<div class="card hr-table-wrap">
   <table class="table table-sm">
     <thead>
       <tr>

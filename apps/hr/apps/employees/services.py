@@ -60,6 +60,9 @@ def create_employee(tenant, data: dict, created_by=None) -> Employee:
     data keys match Employee model fields plus optional 'password'.
     """
     from apps.accounts.models import Role, UserRole
+    from apps.tenants.limits import check_employee_capacity, sync_employee_count
+
+    check_employee_capacity(tenant, additional=1)
 
     employee_code = data.get("employee_code") or generate_employee_code(tenant)
 
@@ -90,12 +93,10 @@ def create_employee(tenant, data: dict, created_by=None) -> Employee:
         tenant=tenant,
         user=user,
         employee_code=employee_code,
-        **{k: v for k, v in data.items() if k not in ("password",)},
+        **{k: v for k, v in data.items() if k not in ("password", "employee_code")},
     )
 
-    # Update denormalized count
-    tenant.employee_count = Employee.objects.filter(tenant=tenant, is_active=True).count()
-    tenant.save(update_fields=["employee_count"])
+    sync_employee_count(tenant)
 
     # Auto-start onboarding from default template, if one exists
     try:
@@ -163,26 +164,23 @@ def provision_employee_login(employee, created_by=None, reset_password: bool = F
     return user, needs_invite
 
 
-def email_employee_invite(employee, invite_url: str, login_url: str = "") -> bool:
-    """Email an employee their secure invite link. Returns True if actually sent.
+def email_employee_invite(employee, invite_url: str, login_url: str = "") -> dict:
+    """Email an employee their secure invite link.
 
-    Best-effort: never raises — provisioning a login must not fail because mail is
-    misconfigured. In dev (console/dummy email backend) this just prints to the
-    logs and reports "not sent" so the caller shows the link on screen instead.
+    Returns {"sent": bool, "reason": str} — never raises.
     """
     from django.conf import settings
     from django.core.mail import EmailMultiAlternatives
     from django.template.loader import render_to_string
     from django.utils.html import strip_tags
 
+    from utils.mail import smtp_configured
+
     user = employee.user
     if not user or not user.email or not invite_url:
-        return False
-    # The dev console/dummy backends don't actually reach the employee — report
-    # "not sent" so the caller shows the invite link on screen instead.
-    backend = getattr(settings, "EMAIL_BACKEND", "")
-    if any(b in backend for b in ("console", "dummy")):
-        return False
+        return {"sent": False, "reason": "no_email"}
+    if not smtp_configured():
+        return {"sent": False, "reason": "no_smtp"}
     tenant = employee.tenant
     try:
         html = render_to_string("auth/emails/login_credentials.html", {
@@ -197,9 +195,28 @@ def email_employee_invite(employee, invite_url: str, login_url: str = "") -> boo
         )
         msg.attach_alternative(html, "text/html")
         msg.send(fail_silently=False)
-        return True
+        return {"sent": True, "reason": "sent"}
     except Exception:
-        return False
+        return {"sent": False, "reason": "send_failed"}
+
+
+def invite_delivery_message(result: dict, *, email: str, employee_name: str = "") -> str:
+    """Human-readable admin message after provisioning a login."""
+    name = employee_name or email
+    if result.get("sent"):
+        return f"Invite email sent to {email}."
+    reason = result.get("reason", "")
+    if reason == "no_smtp":
+        return (
+            f"SMTP is not configured — copy the invite link on the next screen and "
+            f"send it to {email} manually."
+        )
+    if reason == "send_failed":
+        return (
+            f"Could not send email to {email}. Copy the invite link on the next screen "
+            f"and share it with {name}."
+        )
+    return f"Share the invite link on the next screen with {name}."
 
 
 def bulk_import_employees(tenant, csv_file, created_by=None) -> dict:
@@ -215,12 +232,26 @@ def bulk_import_employees(tenant, csv_file, created_by=None) -> dict:
     from apps.payroll.models import SalaryStructure, EmployeeSalary
     from decimal import Decimal, InvalidOperation
     from .models import EmployeeBankAccount
+    from apps.tenants.limits import check_employee_capacity, EmployeeLimitExceeded
 
     reader = csv.DictReader(io.StringIO(csv_file.read().decode("utf-8-sig")))
     created = 0
     errors = []
 
     required_fields = {"first_name", "last_name", "date_of_joining", "official_email", "ctc_annual"}
+
+    rows = list(reader)
+    pending = sum(
+        1 for row in rows
+        if not (required_fields - set(k for k, v in (
+            {k.strip().lower(): (v.strip() if isinstance(v, str) else v) for k, v in row.items()}
+        ).items() if v))
+    )
+    if pending:
+        try:
+            check_employee_capacity(tenant, additional=pending)
+        except EmployeeLimitExceeded as exc:
+            return {"created": 0, "errors": [{"row": 0, "error": str(exc)}]}
 
     # Fetch (or auto-create) a default salary structure so salary records can be inserted.
     structure = SalaryStructure.objects.filter(tenant=tenant, is_active=True).order_by("id").first()
@@ -232,7 +263,7 @@ def bulk_import_employees(tenant, csv_file, created_by=None) -> dict:
             is_active=True,
         )
 
-    for row_num, row in enumerate(reader, start=2):
+    for row_num, row in enumerate(rows, start=2):
         # Normalize whitespace
         row = {k.strip().lower(): (v.strip() if isinstance(v, str) else v) for k, v in row.items()}
 

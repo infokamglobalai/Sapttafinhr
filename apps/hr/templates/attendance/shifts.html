@@ -1,11 +1,15 @@
 {% extends "base.html" %}
 {% block page_title %}Shift Configuration{% endblock %}
 {% block content %}
-<div class="flex items-center justify-between mb-4">
-  <h2 class="text-xl font-bold">Shifts</h2>
-  <a href="{% url 'attendance:shift_create' %}" class="btn btn-primary btn-sm">+ Add Shift</a>
+<div class="hr-page-header">
+  <div class="hr-page-header__main">
+    <h1 class="hr-page-header__title">Shifts</h1>
+  </div>
+  <div class="hr-page-header__actions">
+    <a href="{% url 'attendance:shift_create' %}" class="btn btn-primary btn-sm">+ Add Shift</a>
+  </div>
 </div>
-<div class="card bg-base-100 shadow overflow-x-auto">
+<div class="card hr-table-wrap">
   <table class="table table-sm">
     <thead><tr><th>Name</th><th>Start</th><th>End</th><th>Grace In</th><th>Break</th><th>Half-day threshold</th><th>Weekly Off</th><th>Status</th></tr></thead>
     <tbody>

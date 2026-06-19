@@ -32,8 +32,24 @@ class Tenant(models.Model):
     country = models.CharField(max_length=2, default="IN")
     currency = models.CharField(max_length=3, default="INR")
     timezone = models.CharField(max_length=50, default="Asia/Kolkata")
+    payroll_jurisdiction = models.CharField(
+        max_length=2,
+        default="IN",
+        choices=[
+            ("IN", "India"),
+            ("KW", "Kuwait"),
+            ("AE", "United Arab Emirates"),
+            ("SA", "Saudi Arabia"),
+            ("BH", "Bahrain"),
+            ("OM", "Oman"),
+            ("QA", "Qatar"),
+        ],
+    )
+    UI_LANGUAGE_CHOICES = [("en", "English"), ("ar", "Arabic")]
+    ui_language = models.CharField(max_length=5, choices=UI_LANGUAGE_CHOICES, default="en")
 
     logo_url = models.TextField(blank=True)
+    company_logo = models.ImageField(upload_to="tenant_logos/%Y/", null=True, blank=True)
     address = models.TextField(blank=True)
     gstin = models.CharField(max_length=15, blank=True)
     pan = models.CharField(max_length=10, blank=True)
@@ -46,7 +62,7 @@ class Tenant(models.Model):
 
     # Denormalized for quick billing/limit checks
     employee_count = models.PositiveIntegerField(default=0)
-    max_employees = models.PositiveIntegerField(default=25)
+    max_employees = models.PositiveIntegerField(default=30)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -61,6 +77,21 @@ class Tenant(models.Model):
     @property
     def is_active(self):
         return self.status in ("active", "trial")
+
+    @property
+    def is_india_payroll(self) -> bool:
+        from .jurisdiction import is_india_payroll
+        return is_india_payroll(self.payroll_jurisdiction)
+
+    @property
+    def is_gcc_payroll(self) -> bool:
+        from .jurisdiction import is_gcc_payroll
+        return is_gcc_payroll(self.payroll_jurisdiction)
+
+    @property
+    def jurisdiction_label(self) -> str:
+        from .jurisdiction import jurisdiction_label
+        return jurisdiction_label(self.payroll_jurisdiction)
 
     def has_product_access(self, product_code: str) -> bool:
         if not self.is_active:

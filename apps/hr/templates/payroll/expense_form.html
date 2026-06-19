@@ -2,7 +2,7 @@
 {% block page_title %}{% if claim %}Edit Claim{% else %}Submit Expense Claim{% endif %}{% endblock %}
 {% block content %}
 <div style="max-width: 640px; margin: 0 auto;">
-  <a href="{% url 'payroll:my_expenses' %}" class="btn-base btn-ghost btn-sm" style="margin-bottom: 14px;">← Back to my expenses</a>
+  <a href="{% url 'payroll:my_expenses' %}" class="btn btn-ghost btn-sm" style="margin-bottom: 14px;">← Back to my expenses</a>
   <h2 style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 4px;">{% if claim %}Edit Expense Claim{% else %}Submit Expense Claim{% endif %}</h2>
   <p style="font-size: 13.5px; color: var(--ink-500); margin-bottom: 22px;">Once approved, the amount adds to your next salary payment.</p>
 
@@ -42,8 +42,8 @@
     </div>
 
     <div style="display: flex; justify-content: flex-end; gap: 12px;">
-      <a href="{% url 'payroll:my_expenses' %}" class="btn-base btn-ghost">Cancel</a>
-      <button type="submit" class="btn-base btn-primary">{% if claim %}Save Changes{% else %}Submit Claim{% endif %}</button>
+      <a href="{% url 'payroll:my_expenses' %}" class="btn btn-ghost">Cancel</a>
+      <button type="submit" class="btn btn-primary">{% if claim %}Save Changes{% else %}Submit Claim{% endif %}</button>
     </div>
   </form>
 </div>

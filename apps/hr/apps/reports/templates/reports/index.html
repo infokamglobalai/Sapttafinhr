@@ -1,34 +1,38 @@
 {% extends "base.html" %}
 {% block page_title %}Reports{% endblock %}
 {% block content %}
-<div class="mb-6">
-  <h2 class="text-xl font-bold">HR Reports</h2>
-  <p class="text-sm text-base-content/60 mt-1">Export-ready summaries for leave, attendance, headcount, and payroll.</p>
-  <a href="{% url 'reports:monthly_pack' %}" class="btn btn-outline btn-sm mt-3">Download monthly report pack (PDF ZIP)</a>
+<div class="hr-page-header">
+  <div class="hr-page-header__main">
+    <h1 class="hr-page-header__title">HR Reports</h1>
+    <p class="hr-page-header__sub">Export-ready summaries for leave, attendance, headcount, and payroll</p>
+  </div>
+  <div class="hr-page-header__actions">
+    <a href="{% url 'reports:monthly_pack' %}" class="btn btn-outline btn-sm">Download monthly pack (ZIP)</a>
+  </div>
 </div>
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-  <a href="{% url 'reports:leave' %}" class="card bg-base-100 shadow hover:shadow-md transition-shadow">
+  <a href="{% url 'reports:leave' %}" class="card hover:shadow-md transition-shadow">
     <div class="card-body">
       <h3 class="font-semibold">Leave Report</h3>
       <p class="text-sm text-base-content/60">All leave requests by date range and status.</p>
     </div>
   </a>
-  <a href="{% url 'reports:attendance' %}" class="card bg-base-100 shadow hover:shadow-md transition-shadow">
+  <a href="{% url 'reports:attendance' %}" class="card hover:shadow-md transition-shadow">
     <div class="card-body">
       <h3 class="font-semibold">Attendance MIS</h3>
       <p class="text-sm text-base-content/60">Daily attendance records and status breakdown.</p>
     </div>
   </a>
-  <a href="{% url 'reports:headcount' %}" class="card bg-base-100 shadow hover:shadow-md transition-shadow">
+  <a href="{% url 'reports:headcount' %}" class="card hover:shadow-md transition-shadow">
     <div class="card-body">
       <h3 class="font-semibold">Headcount</h3>
       <p class="text-sm text-base-content/60">Active employees by department and designation.</p>
     </div>
   </a>
-  <a href="{% url 'reports:payroll' %}" class="card bg-base-100 shadow hover:shadow-md transition-shadow">
+  <a href="{% url 'reports:payroll' %}" class="card hover:shadow-md transition-shadow">
     <div class="card-body">
       <h3 class="font-semibold">Payroll Summary</h3>
-      <p class="text-sm text-base-content/60">Gross, net, PF, ESI, and TDS by payroll run.</p>
+      <p class="text-sm text-base-content/60">{% if tenant_is_india_payroll %}Gross, net, PF, ESI, and TDS by payroll run.{% else %}Gross and net pay by payroll run with GCC statutory and EOS columns.{% endif %}</p>
     </div>
   </a>
 </div>

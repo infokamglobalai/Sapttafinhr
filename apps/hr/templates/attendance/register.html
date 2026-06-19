@@ -2,14 +2,17 @@
 {% block page_title %}Attendance Register{% endblock %}
 
 {% block content %}
-<div class="flex items-center justify-between mb-4">
-  <h2 class="text-xl font-bold">Attendance Register</h2>
-  <div class="flex gap-2">
+<div class="hr-page-header">
+  <div class="hr-page-header__main">
+    <h1 class="hr-page-header__title">Attendance Register</h1>
+    <p class="hr-page-header__sub">Daily attendance log across your organization</p>
+  </div>
+  <div class="hr-page-header__actions">
     <a href="{% url 'attendance:regularizations' %}" class="btn btn-outline btn-sm">Pending Corrections</a>
     <a href="{% url 'attendance:shifts' %}" class="btn btn-outline btn-sm">Shifts</a>
     {% if user.is_hr_admin or user.is_staff %}
-    <button id="anomaly-scan-btn" class="btn btn-warning btn-sm" onclick="runAnomalyScan()">
-      🔍 Scan Anomalies
+    <button id="anomaly-scan-btn" class="btn btn-outline btn-sm" onclick="runAnomalyScan()">
+      Scan Anomalies
     </button>
     {% endif %}
   </div>
@@ -84,7 +87,7 @@ async function runAnomalyScan() {
 </script>
 
 <!-- Date filter -->
-<div class="card bg-base-100 shadow mb-4">
+<div class="card hr-filter-bar">
   <div class="card-body p-4">
     <form hx-get="{% url 'attendance:register' %}"
           hx-target="#attendance-table"

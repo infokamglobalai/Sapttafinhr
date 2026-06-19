@@ -97,7 +97,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         if self.is_hr_admin:
             return "HR Administrator"
         if self.is_manager:
-            return "Manager"
+            return "Team Lead / Manager"
         profile = self._employee_profile_or_none()
         if profile:
             return "Employee"
@@ -151,6 +151,13 @@ class User(AbstractBaseUser, PermissionsMixin):
         if self.is_superuser:
             return True
         return self.user_roles.filter(role__name=role_name).exists()
+
+    @property
+    def is_company_owner(self) -> bool:
+        """Purchaser / workspace owner — billing and company branding."""
+        if self.is_superuser:
+            return True
+        return self.user_roles.filter(role__name="super_admin").exists()
 
     @property
     def is_hr_admin(self) -> bool:

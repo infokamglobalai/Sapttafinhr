@@ -14,7 +14,7 @@
   </div>
 
   <!-- Rating summary -->
-  <div class="card bg-base-100 shadow mb-4">
+  <div class="card hr-filter-bar">
     <div class="card-body">
       <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
         <div>
@@ -42,7 +42,7 @@
   </div>
 
   <!-- Narrative sections -->
-  <div class="card bg-base-100 shadow mb-4">
+  <div class="card hr-filter-bar">
     <div class="card-body space-y-4">
       {% if review.key_achievements %}
       <div>
@@ -97,7 +97,7 @@
 
   <!-- Employee response (if already acknowledged) -->
   {% if review.employee_comments %}
-  <div class="card bg-base-100 shadow">
+  <div class="card">
     <div class="card-body">
       <h3 class="font-semibold mb-1">Employee Response</h3>
       <p class="text-sm whitespace-pre-line">{{ review.employee_comments }}</p>

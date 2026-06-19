@@ -3,7 +3,7 @@
 {% block content %}
 <h2 class="text-xl font-bold mb-2">Attendance anomaly scan</h2>
 <p class="text-sm text-base-content/60 mb-4">Detect missing punches, late check-ins, and irregular patterns across the organisation.</p>
-<form method="post" class="card bg-base-100 shadow mb-4">
+<form method="post" class="card hr-filter-bar">
   <div class="card-body p-4 flex flex-wrap gap-3 items-end">
     {% csrf_token %}
     <div>
@@ -14,7 +14,7 @@
   </div>
 </form>
 {% if result %}
-<div class="card bg-base-100 shadow">
+<div class="card">
   <div class="card-body">
     <h3 class="font-semibold mb-2">Results</h3>
     <pre class="text-xs bg-base-200 p-4 rounded-lg overflow-x-auto">{{ result }}</pre>

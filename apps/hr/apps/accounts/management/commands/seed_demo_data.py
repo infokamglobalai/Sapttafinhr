@@ -83,19 +83,31 @@ class Command(BaseCommand):
 
         with transaction.atomic():
             org = self._ensure_org(tenant)
+            from apps.payroll.bootstrap import bootstrap_payroll_for_tenant
+            from apps.payroll.models import SalaryStructure
+
+            bootstrap_payroll_for_tenant(tenant, assign_salaries=False)
+            org["structure"] = SalaryStructure.objects.filter(tenant=tenant, is_active=True).first()
             manager_emp = self._ensure_persona(tenant, org, DEMO_MANAGER, role_name="manager")
             employee_emp = self._ensure_persona(tenant, org, DEMO_EMPLOYEE, role_name="employee")
             self._ensure_bulk_employees(tenant, org, manager_emp, TARGET_EMPLOYEES)
             self._seed_attendance(tenant)
             self._seed_leaves(tenant, manager_emp)
             self._seed_recruitment(tenant, org)
-            self._seed_payroll_run(tenant)
             tenant.employee_count = tenant.employees.filter(is_active=True).count()
             tenant.setup_complete = True
             tenant.save(update_fields=["employee_count", "setup_complete"])
 
         call_command("seed_payroll", tenant=subdomain)
+        from apps.payroll.models import EmployeeSalary, SalaryStructure
+
+        structure = SalaryStructure.objects.filter(tenant=tenant, is_active=True).first()
+        if structure:
+            EmployeeSalary.objects.filter(tenant=tenant).exclude(structure=structure).update(
+                structure=structure,
+            )
         call_command("seed_onboarding", tenant=subdomain)
+        self._seed_payroll_run(tenant)
 
         self._print_summary(tenant, manager_emp, employee_emp)
 
@@ -115,7 +127,6 @@ class Command(BaseCommand):
     def _ensure_org(self, tenant):
         from apps.employees.models import Department, Designation, OfficeLocation
         from apps.leaves.models import LeaveType
-        from apps.payroll.models import SalaryStructure, StatutorySetting
 
         dept_names = [
             "Engineering", "Product", "Design", "Sales", "Marketing",
@@ -144,20 +155,6 @@ class Command(BaseCommand):
             defaults={
                 "city": "Bengaluru", "state_code": "IN-KA", "pincode": "560001",
                 "latitude": Decimal("12.9716"), "longitude": Decimal("77.5946"),
-            },
-        )
-
-        structure, _ = SalaryStructure.objects.get_or_create(
-            tenant=tenant, name="Standard India",
-            defaults={"description": "Demo salary structure", "is_active": True},
-        )
-
-        today = datetime.date.today()
-        StatutorySetting.objects.update_or_create(
-            tenant=tenant, statutory_type="pf", state_code="", effective_date=today,
-            defaults={
-                "employee_rate": Decimal("0.12"), "employer_rate": Decimal("0.1208"),
-                "wage_ceiling": Decimal("15000"), "is_active": True,
             },
         )
 
@@ -210,7 +207,7 @@ class Command(BaseCommand):
 
         return {
             "depts": depts, "desigs": desigs, "location": loc,
-            "structure": structure, "leave_el": leave_el, "leave_sl": leave_sl,
+            "structure": None, "leave_el": leave_el, "leave_sl": leave_sl,
         }
 
     def _ensure_persona(self, tenant, org, spec, role_name):
@@ -493,29 +490,72 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f"Recruitment: {published} published job(s)."))
 
     def _seed_payroll_run(self, tenant):
-        from apps.payroll.models import PayrollRun
+        """Create last month's payroll with records, payslips, and ESS publish."""
+        import calendar
+
         from apps.accounts.models import User
+        from apps.payroll.models import EmployeeSalary, PayrollRun, Payslip
+        from apps.payroll.review_services import prepare_month_attendance
+        from apps.payroll.tasks import generate_payslips_for_run, run_payroll_for_tenant
 
         today = timezone.localdate()
         prev = today.replace(day=1) - datetime.timedelta(days=1)
-        admin = User.objects.filter(tenant=tenant, email__iexact="demo@saptta.com").first()
-        emp_count = tenant.employees.filter(is_active=True).count()
-        gross = Decimal(emp_count) * Decimal("85000")
-        net = gross * Decimal("0.82")
+        year, month = prev.year, prev.month
+        month_end = datetime.date(year, month, calendar.monthrange(year, month)[1])
+        # Salaries effective after the payroll month cannot be processed
+        EmployeeSalary.objects.filter(
+            tenant=tenant, is_active=True, effective_date__gt=month_end,
+        ).update(effective_date=datetime.date(year, month, 1))
 
-        PayrollRun.objects.update_or_create(
-            tenant=tenant, year=prev.year, month=prev.month,
-            defaults={
-                "status": "paid",
-                "total_employees": emp_count,
-                "total_gross": gross,
-                "total_deductions": gross - net,
-                "total_net": net,
-                "total_employer_cost": gross * Decimal("1.05"),
-                "run_by": admin,
-                "run_at": timezone.now(),
-            },
+        admin = User.objects.filter(tenant=tenant, email__iexact="demo@saptta.com").first()
+
+        run = PayrollRun.objects.filter(tenant=tenant, year=year, month=month).first()
+        published = Payslip.objects.filter(
+            tenant=tenant, year=year, month=month, is_published=True,
+        ).count()
+        if run and run.records.exists() and published > 0:
+            self.stdout.write(self.style.NOTICE(
+                f"Payroll {year}-{month:02d} already has {published} published payslip(s) — skip."
+            ))
+            return
+
+        prepare_month_attendance(tenant, year, month)
+        run, _ = PayrollRun.objects.update_or_create(
+            tenant=tenant, year=year, month=month,
+            defaults={"status": "draft", "run_by": admin},
         )
+
+        if not run.records.exists():
+            run.status = "draft"
+            run.save(update_fields=["status"])
+            run_payroll_for_tenant(str(tenant.id), run.id)
+            run.refresh_from_db()
+
+        if run.status == "review":
+            run.status = "approved"
+            run.approved_by = admin
+            run.approved_at = timezone.now()
+            run.save(update_fields=["status", "approved_by", "approved_at"])
+            run.records.all().update(is_locked=True, locked_at=timezone.now())
+            try:
+                generate_payslips_for_run(run.id)
+            except Exception as exc:
+                self.stdout.write(self.style.WARNING(f"Payslip PDF generation skipped: {exc}"))
+
+        Payslip.objects.filter(
+            tenant=tenant, year=year, month=month, is_published=False,
+        ).update(is_published=True, published_at=timezone.now())
+
+        run.status = "paid"
+        run.paid_at = timezone.now()
+        run.save(update_fields=["status", "paid_at"])
+
+        slip_count = Payslip.objects.filter(tenant=tenant, year=year, month=month).count()
+        record_count = run.records.count()
+        self.stdout.write(self.style.SUCCESS(
+            f"Payroll {year}-{month:02d}: {record_count} records, "
+            f"{slip_count} payslip(s) published for ESS."
+        ))
 
     def _next_employee_code(self, tenant):
         from apps.employees.models import Employee

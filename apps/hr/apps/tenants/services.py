@@ -28,7 +28,14 @@ def validate_subdomain(subdomain: str) -> str | None:
 
 
 @transaction.atomic
-def provision_tenant(*, company_name: str, subdomain: str, admin_email: str, admin_password: str):
+def provision_tenant(
+    *,
+    company_name: str,
+    subdomain: str,
+    admin_email: str,
+    admin_password: str,
+    country: str = "IN",
+):
     """
     Create a new Tenant + system roles + HR admin user in a single transaction.
     Returns the created tenant. Raises ValueError on validation failures.
@@ -55,7 +62,21 @@ def provision_tenant(*, company_name: str, subdomain: str, admin_email: str, adm
     if not admin_password or len(admin_password) < 8:
         raise ValueError("Password must be at least 8 characters.")
 
-    tenant = Tenant.objects.create(name=company_name, subdomain=subdomain, status="trial")
+    from .limits import DEFAULT_INCLUDED_EMPLOYEES
+    from .jurisdiction import locale_defaults_for_country
+
+    locale = locale_defaults_for_country(country)
+
+    tenant = Tenant.objects.create(
+        name=company_name,
+        subdomain=subdomain,
+        status="trial",
+        max_employees=DEFAULT_INCLUDED_EMPLOYEES,
+        country=locale["country"],
+        currency=locale["currency"],
+        timezone=locale["timezone"],
+        payroll_jurisdiction=locale["payroll_jurisdiction"],
+    )
     ProductEntitlement.objects.create(
         tenant=tenant,
         product=ProductCode.HR,
@@ -86,5 +107,8 @@ def provision_tenant(*, company_name: str, subdomain: str, admin_email: str, adm
     user = User.objects.create_user(email=admin_email, tenant=tenant, password=admin_password)
     admin_role = Role.objects.get(tenant=tenant, name="super_admin")
     UserRole.objects.create(user=user, role=admin_role)
+
+    from .regional_packs import seed_regional_defaults
+    seed_regional_defaults(tenant)
 
     return tenant, user

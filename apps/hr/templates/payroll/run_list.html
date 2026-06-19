@@ -2,15 +2,18 @@
 {% block page_title %}Payroll Runs{% endblock %}
 
 {% block content %}
-<div class="flex items-center justify-between mb-4">
-  <h2 class="text-xl font-bold">Payroll Runs</h2>
-  <div class="flex gap-2">
+<div class="hr-page-header">
+  <div class="hr-page-header__main">
+    <h1 class="hr-page-header__title">Payroll Runs</h1>
+    <p class="hr-page-header__sub">Process monthly payroll, export registers, and publish payslips</p>
+  </div>
+  <div class="hr-page-header__actions">
     <a href="{% url 'payroll:monthly_review' %}" class="btn btn-outline btn-sm">Pre-payroll review</a>
     <a href="{% url 'payroll:run_create' %}" class="btn btn-primary btn-sm">+ New Payroll Run</a>
   </div>
 </div>
 
-<div class="card bg-base-100 shadow">
+<div class="card hr-table-wrap">
   <div class="overflow-x-auto">
     <table class="table table-sm">
       <thead>
@@ -41,7 +44,7 @@
           <td>{{ run.total_employees }}</td>
           <td>₹{{ run.total_gross|floatformat:0 }}</td>
           <td class="font-semibold">₹{{ run.total_net|floatformat:0 }}</td>
-          <td class="text-xs">{{ run.run_at|date:"d M Y"|default:"—" }}</td>
+          <td class="text-xs text-base-content/60">{{ run.run_at|date:"d M Y"|default:"—" }}</td>
           <td>
             <a href="{% url 'payroll:run_detail' run.pk %}" class="btn btn-ghost btn-xs">View</a>
             {% if run.status == 'approved' %}
@@ -50,7 +53,12 @@
           </td>
         </tr>
         {% empty %}
-        <tr><td colspan="7" class="text-center py-8 text-base-content/40">No payroll runs yet. Start your first one above.</td></tr>
+        <tr>
+          <td colspan="7">
+            {% url 'payroll:run_create' as run_create_url %}
+            {% include "partials/empty_state.html" with title="No payroll runs yet" message="Start your first payroll run to compute salaries and generate payslips." cta_url=run_create_url cta_label="Create payroll run" %}
+          </td>
+        </tr>
         {% endfor %}
       </tbody>
     </table>

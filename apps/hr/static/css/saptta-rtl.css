@@ -1,0 +1,40 @@
+/* Minimal RTL overrides for Arabic UI (Phase 1 — layout only; copy remains English until i18n) */
+html[dir="rtl"] body {
+  direction: rtl;
+  text-align: right;
+}
+
+html[dir="rtl"] .hr-sidebar,
+html[dir="rtl"] .hr-sidebar-rail,
+html[dir="rtl"] .settings-sidebar-mock {
+  left: auto;
+  right: 0;
+}
+
+html[dir="rtl"] .hr-main-shell {
+  margin-left: 0;
+  margin-right: var(--sidebar-width, 240px);
+}
+
+html[dir="rtl"] .hr-topbar-search input {
+  text-align: right;
+}
+
+html[dir="rtl"] .table th,
+html[dir="rtl"] .table td {
+  text-align: right;
+}
+
+html[dir="rtl"] .flex-row-reverse-rtl {
+  flex-direction: row-reverse;
+}
+
+html[dir="rtl"] .ml-auto {
+  margin-left: 0 !important;
+  margin-right: auto !important;
+}
+
+html[dir="rtl"] .mr-auto {
+  margin-right: 0 !important;
+  margin-left: auto !important;
+}

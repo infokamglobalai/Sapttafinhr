@@ -3,11 +3,11 @@
 {% block page_title %}Onboarding · {{ onboarding.employee.full_name }}{% endblock %}
 {% block content %}
 <div style="max-width: 900px; margin: 0 auto;">
-  <a href="{% url 'hr_ops:onboarding' %}" class="btn-base btn-ghost btn-sm" style="margin-bottom: 14px;">← Back to Onboarding</a>
+  <a href="{% url 'hr_ops:onboarding' %}" class="btn btn-ghost btn-sm" style="margin-bottom: 14px;">← Back to Onboarding</a>
 
   <!-- Header card -->
   <div class="surface" style="padding: 24px; margin-bottom: 14px; display: flex; align-items: center; gap: 18px;">
-    <div style="width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, #FB923C, #EA580C); color: white; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 800; flex-shrink: 0;">
+    <div style="width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, #3B82F6, #1D4ED8); color: white; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 800; flex-shrink: 0;">
       {{ onboarding.employee.first_name|first }}{{ onboarding.employee.last_name|first }}
     </div>
     <div style="flex: 1;">
@@ -23,7 +23,7 @@
 
   <!-- Progress bar -->
   <div style="height: 8px; background: var(--ink-100); border-radius: 99px; overflow: hidden; margin-bottom: 20px;">
-    <div style="height: 100%; width: {{ onboarding.completion_percentage }}%; background: linear-gradient(90deg, #FB923C, #EA580C); transition: width 800ms;"></div>
+    <div style="height: 100%; width: {{ onboarding.completion_percentage }}%; background: linear-gradient(90deg, #3B82F6, #1D4ED8); transition: width 800ms;"></div>
   </div>
 
   <!-- Task checklist -->
@@ -62,11 +62,11 @@
       <div style="display: flex; gap: 6px;">
         <form method="post" action="{% url 'hr_ops:onboarding_item_complete' item.pk %}">
           {% csrf_token %}
-          <button type="submit" class="btn-base btn-primary btn-sm">✓ Mark Done</button>
+          <button type="submit" class="btn btn-primary btn-sm">✓ Mark Done</button>
         </form>
         <form method="post" action="{% url 'hr_ops:onboarding_item_skip' item.pk %}">
           {% csrf_token %}
-          <button type="submit" class="btn-base btn-ghost btn-sm" onclick="return confirm('Skip this task?')">Skip</button>
+          <button type="submit" class="btn btn-ghost btn-sm" onclick="return confirm('Skip this task?')">Skip</button>
         </form>
       </div>
       {% endif %}
@@ -82,7 +82,7 @@
   {% if onboarding.completion_percentage == 100 and not onboarding.completed_at %}
   <form method="post" action="{% url 'hr_ops:onboarding_complete' onboarding.pk %}" style="text-align: center;">
     {% csrf_token %}
-    <button type="submit" class="btn-base btn-primary">🎉 Close onboarding</button>
+    <button type="submit" class="btn btn-primary">🎉 Close onboarding</button>
   </form>
   {% elif onboarding.completed_at %}
   <div class="alert alert-success" style="margin-top: 14px;">

@@ -126,13 +126,23 @@ def compute_payroll_record(
     Compute a complete PayrollRecord for one employee in one payroll run.
     Idempotent — overwrites existing record for the same run+employee.
     """
+    from apps.tenants.jurisdiction import is_gcc_payroll
+
+    if is_gcc_payroll(getattr(tenant, "payroll_jurisdiction", "IN")):
+        from .gcc_engine import compute_gcc_payroll_record
+        return compute_gcc_payroll_record(tenant, employee, payroll_run, year, month)
+
+    currency = getattr(tenant, "currency", "INR") or "INR"
     from apps.attendance.models import MonthlyAttendanceSummary
 
+    import calendar
+
     # ── 1. Get salary details ──────────────────────────────────────────────
+    month_end = datetime.date(year, month, calendar.monthrange(year, month)[1])
     salary = EmployeeSalary.objects.filter(
         tenant=tenant,
         employee=employee,
-        effective_date__lte=datetime.date(year, month, 1),
+        effective_date__lte=month_end,
         is_active=True,
     ).order_by("-effective_date").first()
 
@@ -217,6 +227,29 @@ def compute_payroll_record(
 
     calc_context["gross"] = float(total_gross)
 
+    # Bonus / incentive — include in gross before statutory deductions
+    bonus_amount = round2(bonus_amount or 0)
+    if bonus_amount > 0:
+        total_gross += bonus_amount
+        earnings_detail["BONUS"] = {
+            "name": "Bonus / Incentive",
+            "amount": float(bonus_amount),
+            "is_taxable": True,
+        }
+        calc_context["gross"] = float(total_gross)
+
+    # Gratuity accrual (employer provision — not paid to employee this month)
+    from .gratuity import monthly_gratuity_accrual
+
+    gratuity_accrual = monthly_gratuity_accrual(basic_monthly)
+    if gratuity_accrual > 0:
+        earnings_detail["GRAT_ACCR"] = {
+            "name": "Gratuity accrual (employer)",
+            "amount": float(gratuity_accrual),
+            "is_taxable": False,
+            "employer_only": True,
+        }
+
     # ── 4. Statutory deductions ───────────────────────────────────────────
     state_code = employee.work_state_code or ""
 
@@ -290,16 +323,8 @@ def compute_payroll_record(
         claim.paid_in_run = payroll_run
         claim.save(update_fields=["status", "paid_in_run"])
 
-    # ── 7. Totals (base) ──────────────────────────────────────────────────
-    bonus_amount = round2(bonus_amount or 0)
+    # ── 7. Totals ─────────────────────────────────────────────────────────
     manual_deduction = round2(manual_deduction or 0)
-    if bonus_amount > 0:
-        total_gross += bonus_amount
-        earnings_detail["BONUS"] = {
-            "name": "Bonus / Incentive",
-            "amount": float(bonus_amount),
-            "is_taxable": True,
-        }
 
     deductions_detail = {
         "PF_EMP": {"name": "PF (Employee)", "amount": float(pf_employee)},

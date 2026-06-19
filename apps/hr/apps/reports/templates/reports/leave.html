@@ -10,7 +10,7 @@
   <a href="{% url 'reports:leave_export' %}?from={{ start_date|date:'Y-m-d' }}&to={{ end_date|date:'Y-m-d' }}{% if status %}&status={{ status }}{% endif %}"
      class="btn btn-primary btn-sm">Export Excel</a>
 </div>
-<form method="get" class="card bg-base-100 shadow mb-4">
+<form method="get" class="card hr-filter-bar">
   <div class="card-body p-4 flex flex-wrap gap-3 items-end">
     <div>
       <label class="label-text text-xs">From</label>
@@ -32,7 +32,7 @@
     <button type="submit" class="btn btn-sm btn-outline">Apply</button>
   </div>
 </form>
-<div class="card bg-base-100 shadow overflow-x-auto">
+<div class="card hr-table-wrap">
   <table class="table table-sm">
     <thead><tr><th>Employee</th><th>Type</th><th>From</th><th>To</th><th>Days</th><th>Status</th></tr></thead>
     <tbody>

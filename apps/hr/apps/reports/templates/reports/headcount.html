@@ -10,16 +10,16 @@
   <a href="{% url 'reports:headcount_export' %}" class="btn btn-primary btn-sm">Export Excel</a>
 </div>
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-  <div class="card bg-base-100 shadow"><div class="card-body p-4">
+  <div class="card"><div class="card-body p-4">
     <h3 class="font-semibold text-sm mb-2">By department</h3>
     {% for d in by_dept %}<div class="flex justify-between text-sm py-1"><span>{{ d.department__name|default:"Unassigned" }}</span><span class="font-medium">{{ d.count }}</span></div>{% empty %}<p class="text-base-content/40 text-sm">No data</p>{% endfor %}
   </div></div>
-  <div class="card bg-base-100 shadow"><div class="card-body p-4">
+  <div class="card"><div class="card-body p-4">
     <h3 class="font-semibold text-sm mb-2">By designation</h3>
     {% for d in by_desig %}<div class="flex justify-between text-sm py-1"><span>{{ d.designation__name|default:"—" }}</span><span class="font-medium">{{ d.count }}</span></div>{% empty %}<p class="text-base-content/40 text-sm">No data</p>{% endfor %}
   </div></div>
 </div>
-<div class="card bg-base-100 shadow overflow-x-auto">
+<div class="card hr-table-wrap">
   <table class="table table-sm">
     <thead><tr><th>Code</th><th>Name</th><th>Department</th><th>Designation</th><th>Status</th></tr></thead>
     <tbody>

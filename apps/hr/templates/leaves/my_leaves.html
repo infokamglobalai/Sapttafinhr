@@ -1,15 +1,19 @@
 {% extends "base.html" %}
 {% block page_title %}My Leaves{% endblock %}
 {% block content %}
-<div class="flex items-center justify-between mb-4">
-  <h2 class="text-xl font-bold">My Leave</h2>
-  <a href="{% url 'leaves:apply' %}" class="btn btn-primary btn-sm">+ Apply Leave</a>
+<div class="hr-page-header">
+  <div class="hr-page-header__main">
+    <h1 class="hr-page-header__title">My Leave</h1>
+  </div>
+  <div class="hr-page-header__actions">
+    <a href="{% url 'leaves:apply' %}" class="btn btn-primary btn-sm">+ Apply Leave</a>
+  </div>
 </div>
 
 <!-- Balance cards -->
 <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
   {% for bal in balances %}
-  <div class="card bg-base-100 shadow text-center p-4">
+  <div class="card text-center p-4">
     <div class="text-3xl font-bold {% if bal.available > 0 %}text-primary{% else %}text-base-content/40{% endif %}">{{ bal.available|floatformat:1 }}</div>
     <div class="text-xs text-base-content/60 mt-1">{{ bal.leave_type.name }}</div>
     <div class="text-xs text-base-content/40">{{ bal.taken|floatformat:1 }} taken · {{ bal.credited|floatformat:1 }} credited</div>
@@ -20,7 +24,7 @@
 </div>
 
 <!-- Request history -->
-<div class="card bg-base-100 shadow overflow-x-auto">
+<div class="card hr-table-wrap">
   <table class="table table-sm">
     <thead><tr><th>Type</th><th>From</th><th>To</th><th>Days</th><th>Status</th><th>Applied</th><th></th></tr></thead>
     <tbody>

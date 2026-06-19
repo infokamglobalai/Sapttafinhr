@@ -1,12 +1,14 @@
 {% extends "base.html" %}
 {% block page_title %}HR Policies{% endblock %}
 {% block content %}
-<div class="flex items-center justify-between mb-4">
-  <div>
-    <h2 class="text-xl font-bold">HR Policy Hub</h2>
-    <p class="text-sm text-base-content/60">Upload, version, distribute, and track acknowledgments.</p>
+<div class="hr-page-header">
+  <div class="hr-page-header__main">
+    <h1 class="hr-page-header__title">HR Policy Hub</h1>
+    <p class="hr-page-header__sub">Upload, version, distribute, and track acknowledgments</p>
   </div>
-  <a href="{% url 'hr_ops:policy_create' %}" class="btn btn-primary btn-sm">+ Upload Policy</a>
+  <div class="hr-page-header__actions">
+    <a href="{% url 'hr_ops:policy_create' %}" class="btn btn-primary btn-sm">+ Upload Policy</a>
+  </div>
 </div>
 
 <div class="overflow-x-auto">

@@ -8,7 +8,7 @@
   </div>
 
   <!-- Format guide -->
-  <div class="card bg-base-100 shadow mb-4">
+  <div class="card hr-filter-bar">
     <div class="card-body">
       <h3 class="font-semibold text-base mb-3">CSV Columns</h3>
       <p class="text-sm text-base-content/60 mb-3"><strong>Date format:</strong> <code class="bg-base-200 px-1 rounded">DD-MM-YYYY</code>, <code class="bg-base-200 px-1 rounded">DD/MM/YYYY</code>, or <code class="bg-base-200 px-1 rounded">YYYY-MM-DD</code></p>
@@ -55,7 +55,7 @@
   </div>
 
   <!-- Upload form -->
-  <div class="card bg-base-100 shadow">
+  <div class="card">
     <div class="card-body">
       <form method="post" action="{% url 'employees:bulk_import' %}" enctype="multipart/form-data">
         {% csrf_token %}

@@ -17,7 +17,7 @@
     {% csrf_token %}
     {% if form.non_field_errors %}<div class="alert alert-error mb-4">{{ form.non_field_errors.0 }}</div>{% endif %}
 
-    <div class="card bg-base-100 shadow mb-4">
+    <div class="card hr-filter-bar">
       <div class="card-body gap-4">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <label class="form-control">
@@ -34,13 +34,13 @@
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-      <div class="lg:col-span-2 card bg-base-100 shadow">
+      <div class="lg:col-span-2 card">
         <div class="card-body">
           <h3 class="font-semibold text-sm mb-2">Letter body (HTML + placeholders)</h3>
           {{ form.template_html }}
         </div>
       </div>
-      <div class="card bg-base-100 shadow">
+      <div class="card">
         <div class="card-body text-xs space-y-3">
           <p class="font-semibold">Auto-filled variables — click to copy</p>
           <p class="text-base-content/60"><strong>Employee</strong></p>

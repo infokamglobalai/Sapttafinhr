@@ -9,7 +9,7 @@ ASSIGNABLE_ROLES = ("employee", "manager", "hr_admin")
 ROLE_LABELS = {
     "super_admin": "Super Admin",
     "hr_admin": "HR Admin",
-    "manager": "Manager",
+    "manager": "Team Lead / Manager",
     "employee": "Employee",
 }
 
@@ -120,6 +120,11 @@ def set_employee_roles(user: User, role_names: list[str], granted_by: User | Non
                 role=role,
                 defaults={"granted_by": granted_by},
             )
+
+    if "manager" in names or "hr_admin" in names:
+        from apps.employees.profile_link import ensure_user_employee_profile
+
+        ensure_user_employee_profile(user, tenant=user.tenant)
 
 
 def push_credential_session(request, employee, email: str, invite_url: str) -> None:

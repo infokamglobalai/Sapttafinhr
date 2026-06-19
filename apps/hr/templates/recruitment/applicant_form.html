@@ -4,7 +4,7 @@
 {% block content %}
 <div class="max-w-2xl">
   <a href="{% url 'recruitment:job_detail' job.pk %}" class="text-sm link mb-3 inline-block">← Back to {{ job.title }}</a>
-  <div class="card bg-base-100 shadow">
+  <div class="card">
     <div class="card-body">
       <h2 class="text-lg font-bold mb-2">Add applicant to “{{ job.title }}”</h2>
       <form method="post" enctype="multipart/form-data">

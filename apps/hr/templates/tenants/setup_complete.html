@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Setup complete · {{ company_name }}</title>
   <style>
-    :root { --green:#10B981; --ink:#0A1128; --orange:#FF6D00; }
+    :root { --green:#10B981; --ink:#0A1128; --orange:#2563EB; }
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: Inter, system-ui, sans-serif; background: #F5F6F8; color: var(--ink); }
+    body { margin: 0; font-family: "Plus Jakarta Sans", Inter, system-ui, sans-serif; background: linear-gradient(160deg, #F8FAFC 0%, #EFF6FF 50%, #F1F5F9 100%); color: var(--ink); min-height: 100vh; }
     .wrap { max-width: 760px; margin: 0 auto; padding: 40px 16px; }
 
     .hero { text-align: center; margin-bottom: 32px; }
@@ -55,7 +55,7 @@
     .url-box a { color: var(--orange); font-weight: 600; word-break: break-all; }
 
     .actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 8px; }
-    .btn-primary { background: linear-gradient(135deg,#FF9800,#FF6D00); color: #fff;
+    .btn-primary { background: #2563EB; color: #fff;
                    border: none; padding: 12px 28px; border-radius: 10px;
                    font-weight: 700; font-size: 15px; cursor: pointer; text-decoration: none;
                    display: inline-flex; align-items: center; gap: 6px; }
@@ -80,23 +80,22 @@
   <div class="banner">
     <span class="ico">⚠️</span>
     <div>
-      <strong>Save these passwords now — they won't be shown again.</strong><br>
-      Share each employee's email and temporary password securely.
-      Employees should change their password after first login.
+      <strong>Share these invite links now — they expire in 7 days.</strong><br>
+      Each employee opens their link to set a password and sign in. Links are shown once here; use <strong>Reset login</strong> on an employee profile to issue a new one.
     </div>
   </div>
 
   {% if credentials %}
   <div class="card">
-    <h2>Employee Login Credentials ({{ credentials|length }})</h2>
+    <h2>Employee invite links ({{ credentials|length }})</h2>
     <table>
       <thead>
         <tr>
           <th>Employee</th>
           <th>Code</th>
           <th>Role</th>
-          <th>Email (login)</th>
-          <th>Temp password</th>
+          <th>Email</th>
+          <th>Invite link</th>
         </tr>
       </thead>
       <tbody>
@@ -113,10 +112,10 @@
               <span class="badge badge-admin">{{ c.role }}</span>
             {% endif %}
           </td>
-          <td><code>{{ c.email }}</code></td>
+          <td><code>{{ c.email }}</code>{% if c.emailed %} <span style="color:#10B981;font-size:11px">✓ emailed</span>{% endif %}</td>
           <td>
-            <code id="pw-{{ forloop.counter }}">{{ c.password }}</code>
-            <button class="copy-btn" onclick="copyPw('pw-{{ forloop.counter }}', this)">Copy</button>
+            <code id="inv-{{ forloop.counter }}" style="font-size:11px">{{ c.invite_url }}</code>
+            <button class="copy-btn" onclick="copyPw('inv-{{ forloop.counter }}', this)">Copy</button>
           </td>
         </tr>
         {% endfor %}

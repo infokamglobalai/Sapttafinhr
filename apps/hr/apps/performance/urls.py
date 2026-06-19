@@ -15,6 +15,7 @@ urlpatterns = [
     path("cycles/", views.cycle_list, name="cycles"),
     path("cycles/new/", views.cycle_create_or_edit, name="cycle_create"),
     path("cycles/<int:pk>/edit/", views.cycle_create_or_edit, name="cycle_edit"),
+    path("cycles/<int:pk>/launch/", views.cycle_launch_reviews, name="cycle_launch"),
     path("cycles/<int:pk>/", views.cycle_detail, name="cycle_detail"),
     # AI assistant
     path("ai/draft-review/<int:employee_pk>/<int:cycle_pk>/", views.ai_draft_review, name="ai_draft_review"),

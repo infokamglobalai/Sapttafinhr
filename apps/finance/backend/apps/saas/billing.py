@@ -111,15 +111,21 @@ def generate_gst_invoice(subscription, *, period_start: date, period_end: date,
     )
 
 
-def activate_subscription_for_tenant(schema_name: str, *, period_days: int = 30) -> bool:
+def activate_subscription_for_tenant(
+    schema_name: str,
+    *,
+    period_days: int = 30,
+    notes: dict | None = None,
+) -> bool:
     """Mark a tenant's subscription ACTIVE with a fresh paid period + entitlements.
 
     Idempotent. Returns True if a subscription was found and updated.
     """
     from .models import Subscription, SubscriptionEntitlement
+    from .hr_sync import sync_hr_subscription
 
     sub = (
-        Subscription.objects.select_related("tenant")
+        Subscription.objects.select_related("tenant", "plan")
         .filter(tenant__schema_name=schema_name)
         .first()
     )
@@ -150,6 +156,20 @@ def activate_subscription_for_tenant(schema_name: str, *, period_days: int = 30)
             )
     except Exception:  # noqa: BLE001 — invoicing must not fail activation
         logger.exception("SaaS invoice generation failed for %s", schema_name)
+
+    plan_code = notes.get("plan") or sub.plan.code
+    max_emp = notes.get("max_employees") or notes.get("employees")
+    try:
+        max_emp_int = int(max_emp) if max_emp is not None else None
+    except (TypeError, ValueError):
+        max_emp_int = None
+    sync_hr_subscription(
+        schema_name,
+        plan_code=plan_code,
+        max_employees=max_emp_int,
+        subscription_id=str(sub.id),
+        status="active",
+    )
 
     logger.info("activate_subscription: %s ACTIVE until %s", schema_name, sub.current_period_end)
     return True
@@ -191,13 +211,36 @@ class CreateOrderView(APIView):
 
         plan_code = request.data.get("plan_id")
         billing_cycle = request.data.get("cycle", "monthly")
+        employees_raw = request.data.get("employees")
+        try:
+            employees = int(employees_raw) if employees_raw is not None else None
+        except (TypeError, ValueError):
+            employees = None
+
         from .models import Plan
+        from .pricing import INCLUDED_EMPLOYEES, plan_monthly_inr
 
         plan = Plan.objects.filter(code=plan_code, is_active=True).first()
         if not plan:
             return Response({"detail": "Unknown plan."}, status=status.HTTP_400_BAD_REQUEST)
 
-        amount = plan.annual_price if billing_cycle == "annual" else plan.monthly_price
+        headcount = employees or INCLUDED_EMPLOYEES
+        monthly = plan_monthly_inr(plan.code, headcount)
+        amount = monthly * 12 if billing_cycle == "annual" else monthly
+        from apps.core.models import Tenant
+
+        tenant = (
+            Tenant.objects.exclude(schema_name="public")
+            .filter(billing_email__iexact=request.user.email)
+            .order_by("created_on")
+            .first()
+        )
+        if not tenant:
+            return Response(
+                {"detail": "No workspace found for this account. Complete signup first."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         amount_paise = int(round(float(amount) * 100))
 
         try:
@@ -209,7 +252,14 @@ class CreateOrderView(APIView):
                 json={
                     "amount": amount_paise,
                     "currency": "INR",
-                    "notes": {"plan": plan.code, "cycle": billing_cycle},
+                    "notes": {
+                        "plan": plan.code,
+                        "cycle": billing_cycle,
+                        "schema": tenant.schema_name,
+                        "workspace": tenant.schema_name,
+                        "max_employees": str(headcount),
+                        "employees": str(headcount),
+                    },
                 },
                 timeout=15,
             )
@@ -229,9 +279,112 @@ class CreateOrderView(APIView):
                 "currency": "INR",
                 "key_id": key_id,
                 "plan": plan.code,
+                "workspace": tenant.schema_name,
             },
             status=status.HTTP_201_CREATED,
         )
+
+
+class ConfirmPaymentView(APIView):
+    """POST /api/v1/saas/billing/confirm/ — verify Razorpay payment and activate subscription.
+
+    Called by the SPA immediately after checkout success so the customer does not
+    have to wait for the webhook. Idempotent — safe if the webhook also fires.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        payment_id = (request.data.get("payment_id") or "").strip()
+        order_id = (request.data.get("order_id") or "").strip()
+        if not payment_id:
+            return Response({"detail": "payment_id is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        key_id = getattr(settings, "RAZORPAY_KEY_ID", "")
+        key_secret = getattr(settings, "RAZORPAY_KEY_SECRET", "")
+        if not (key_id and key_secret):
+            return Response(
+                {"detail": "Billing is not configured on this server."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        try:
+            import requests
+
+            pay_resp = requests.get(
+                f"https://api.razorpay.com/v1/payments/{payment_id}",
+                auth=(key_id, key_secret),
+                timeout=15,
+            )
+            pay_resp.raise_for_status()
+            payment = pay_resp.json()
+        except Exception:  # noqa: BLE001
+            logger.exception("Razorpay payment fetch failed for %s", payment_id)
+            return Response({"detail": "Could not verify payment."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if payment.get("status") != "captured":
+            return Response({"detail": "Payment is not captured yet."}, status=status.HTTP_400_BAD_REQUEST)
+
+        razorpay_order_id = payment.get("order_id") or order_id
+        if order_id and razorpay_order_id != order_id:
+            return Response({"detail": "Order mismatch."}, status=status.HTTP_400_BAD_REQUEST)
+
+        notes = {}
+        if razorpay_order_id:
+            try:
+                import requests
+
+                order_resp = requests.get(
+                    f"https://api.razorpay.com/v1/orders/{razorpay_order_id}",
+                    auth=(key_id, key_secret),
+                    timeout=15,
+                )
+                if order_resp.ok:
+                    notes = order_resp.json().get("notes") or {}
+            except Exception:  # noqa: BLE001
+                pass
+
+        schema_name = notes.get("schema") or notes.get("workspace")
+        if not schema_name:
+            from apps.core.models import Tenant
+
+            tenant = (
+                Tenant.objects.exclude(schema_name="public")
+                .filter(billing_email__iexact=request.user.email)
+                .order_by("created_on")
+                .first()
+            )
+            schema_name = tenant.schema_name if tenant else None
+
+        if not schema_name:
+            return Response({"detail": "Could not resolve workspace for this payment."}, status=status.HTTP_400_BAD_REQUEST)
+
+        billing_cycle = notes.get("cycle", "monthly")
+        period_days = 365 if billing_cycle == "annual" else 30
+        plan_code = notes.get("plan")
+        if plan_code:
+            _attach_plan_to_subscription(schema_name, plan_code)
+
+        activated = activate_subscription_for_tenant(
+            schema_name, period_days=period_days, notes=notes,
+        )
+        if not activated:
+            return Response({"detail": "No subscription found for workspace."}, status=status.HTTP_404_NOT_FOUND)
+
+        return Response({"status": "activated", "workspace": schema_name})
+
+
+def _attach_plan_to_subscription(schema_name: str, plan_code: str) -> None:
+    from apps.core.models import Tenant
+    from .models import Plan, Subscription
+
+    plan = Plan.objects.filter(code=plan_code, is_active=True).first()
+    if not plan:
+        return
+    sub = Subscription.objects.filter(tenant__schema_name=schema_name).first()
+    if sub and sub.plan_id != plan.id:
+        sub.plan = plan
+        sub.save(update_fields=["plan", "updated_at"])
 
 
 class DevActivateView(APIView):
@@ -262,7 +415,18 @@ class DevActivateView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        activated = activate_subscription_for_tenant(tenant.schema_name, period_days=30)
+        from .models import Subscription, SubscriptionEntitlement
+
+        sub = Subscription.objects.filter(tenant=tenant).select_related("plan").first()
+        activated = activate_subscription_for_tenant(
+            tenant.schema_name,
+            period_days=30,
+            notes={
+                "plan": sub.plan.code if sub else "saptta-complete",
+                "max_employees": "30",
+                "employees": "30",
+            },
+        )
         if not activated:
             return Response(
                 {"detail": "No subscription found for this workspace."},
@@ -271,8 +435,6 @@ class DevActivateView(APIView):
 
         # In dev mode, always ensure both FIN and HR entitlements are active so
         # the product switcher shows both products without requiring plan upgrade.
-        from .models import Subscription, SubscriptionEntitlement  # noqa: F811
-        sub = Subscription.objects.filter(tenant=tenant).first()
         if sub:
             for product in (ProductCode.FIN, ProductCode.HR):
                 SubscriptionEntitlement.objects.update_or_create(
@@ -327,7 +489,11 @@ class WebhookView(APIView):
 
         if event in ("payment.captured", "order.paid", "subscription.charged"):
             if schema_name:
-                activate_subscription_for_tenant(schema_name)
+                billing_cycle = notes.get("cycle", "monthly")
+                period_days = 365 if billing_cycle == "annual" else 30
+                activate_subscription_for_tenant(
+                    schema_name, period_days=period_days, notes=notes,
+                )
             else:
                 logger.warning("Paid webhook without a workspace note; cannot activate")
 

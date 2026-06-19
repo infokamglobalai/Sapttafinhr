@@ -1,0 +1,63 @@
+{# GCC / Kuwait identity & work authorization fields #}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+  <div class="form-control">
+    <label class="label"><span class="label-text">Nationality (ISO code)</span></label>
+    {{ form.nationality }}
+  </div>
+  <div class="form-control">
+    <label class="label cursor-pointer justify-start gap-3">
+      {{ form.is_kuwaiti_national }}
+      <span class="label-text">Kuwaiti national (PIFSS applies)</span>
+    </label>
+  </div>
+  <div class="form-control">
+    <label class="label"><span class="label-text">Civil ID</span></label>
+    {{ form.civil_id }}
+  </div>
+  <div class="form-control">
+    <label class="label"><span class="label-text">Civil ID expiry</span></label>
+    {{ form.civil_id_expiry }}
+  </div>
+  <div class="form-control">
+    <label class="label"><span class="label-text">Residency number</span></label>
+    {{ form.residency_number }}
+  </div>
+  <div class="form-control">
+    <label class="label"><span class="label-text">Residency expiry</span></label>
+    {{ form.residency_expiry }}
+  </div>
+  <div class="form-control">
+    <label class="label"><span class="label-text">Passport number</span></label>
+    {{ form.passport_number }}
+  </div>
+  <div class="form-control">
+    <label class="label"><span class="label-text">Passport expiry</span></label>
+    {{ form.passport_expiry }}
+  </div>
+  <div class="form-control">
+    <label class="label"><span class="label-text">Work permit number</span></label>
+    {{ form.work_permit_number }}
+  </div>
+  <div class="form-control">
+    <label class="label"><span class="label-text">Work permit expiry</span></label>
+    {{ form.work_permit_expiry }}
+  </div>
+  <div class="form-control">
+    <label class="label"><span class="label-text">Sponsor / file number</span></label>
+    {{ form.sponsor_file_number }}
+  </div>
+  {% if tenant.payroll_jurisdiction == "KW" %}
+  <div class="form-control">
+    <label class="label"><span class="label-text">PIFSS registration</span></label>
+    {{ form.pifss_number }}
+  </div>
+  {% endif %}
+  <div class="form-control">
+    <label class="label"><span class="label-text">Contract type</span></label>
+    {{ form.contract_type }}
+  </div>
+  <div class="form-control">
+    <label class="label"><span class="label-text">Contract end date</span></label>
+    {{ form.contract_end_date }}
+  </div>
+</div>

@@ -14,6 +14,7 @@ urlpatterns = [
     path("<int:pk>/scoring-weights/", views.edit_scoring_weights, name="edit_scoring_weights"),
     path("<int:pk>/applicants/new/", views.add_applicant, name="add_applicant"),
     path("<int:pk>/applicants/bulk/", views.bulk_upload, name="bulk_upload"),
+    path("applications/<int:pk>/convert/", views.convert_to_employee, name="convert_to_employee"),
     path("applications/<int:pk>/move/", views.move_application, name="move_application"),
     path("applications/<int:pk>/move-api/", views.move_application_api, name="move_application_api"),
     # Async pool ranking (Phase 4)

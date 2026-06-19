@@ -6,7 +6,7 @@
     <a href="{% url 'attendance:my_attendance' %}" class="btn btn-ghost btn-sm">← Back</a>
     <h2 class="text-xl font-bold">Request Attendance Correction</h2>
   </div>
-  <div class="card bg-base-100 shadow">
+  <div class="card">
     <div class="card-body">
       <form method="post" action="{% url 'attendance:regularization' %}">
         {% csrf_token %}
