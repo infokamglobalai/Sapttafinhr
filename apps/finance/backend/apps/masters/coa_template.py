@@ -13,6 +13,7 @@ INDIAN_COA = [
     ("1150", "GST Input — CGST", "ASSET", "1100", True),
     ("1151", "GST Input — SGST", "ASSET", "1100", True),
     ("1152", "GST Input — IGST", "ASSET", "1100", True),
+    ("1155", "VAT Input", "ASSET", "1100", True),  # GCC VAT (input/recoverable)
     ("1200", "Fixed Assets", "ASSET", "1000", False),
     ("1210", "Furniture & Fixtures", "ASSET", "1200", True),
     ("1220", "Office Equipment", "ASSET", "1200", True),
@@ -24,6 +25,7 @@ INDIAN_COA = [
     ("2150", "GST Output — CGST", "LIABILITY", "2100", True),
     ("2151", "GST Output — SGST", "LIABILITY", "2100", True),
     ("2152", "GST Output — IGST", "LIABILITY", "2100", True),
+    ("2155", "VAT Output", "LIABILITY", "2100", True),  # GCC VAT (output payable)
     ("2160", "TDS Payable", "LIABILITY", "2100", True),
 
     # EQUITY
@@ -80,6 +82,8 @@ CODE_GST_INPUT_IGST = "1152"
 CODE_GST_OUTPUT_CGST = "2150"
 CODE_GST_OUTPUT_SGST = "2151"
 CODE_GST_OUTPUT_IGST = "2152"
+CODE_VAT_INPUT = "1155"
+CODE_VAT_OUTPUT = "2155"
 CODE_SALES = "4100"
 CODE_RETAINED_EARNINGS = "3200"
 
@@ -88,3 +92,24 @@ def account_by_code(company, code: str):
     """Lookup helper used by posting policies."""
     from .models import Account
     return Account.objects.get(company=company, code=code)
+
+
+def ensure_account(company, code: str, name: str, type_: str, parent_code: str | None = None):
+    """Fetch a postable account by code, creating it if missing.
+
+    Used by VAT posting so companies created before the VAT accounts existed
+    (i.e. before GCC localization) still get them on first VAT posting.
+    """
+    from .models import Account
+
+    existing = Account.objects.filter(company=company, code=code).first()
+    if existing:
+        return existing
+    parent = (
+        Account.objects.filter(company=company, code=parent_code).first()
+        if parent_code else None
+    )
+    return Account.objects.create(
+        company=company, code=code, name=name, type=type_,
+        parent=parent, is_postable=True,
+    )

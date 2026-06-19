@@ -11,29 +11,45 @@ from apps.masters.coa_template import (
     CODE_GST_OUTPUT_IGST,
     CODE_GST_OUTPUT_SGST,
     CODE_SALES,
+    CODE_VAT_OUTPUT,
     account_by_code,
+    ensure_account,
 )
-from apps.masters.tax import compute_gst
+from apps.masters.models import Company
+from apps.masters.tax import compute_gst, compute_vat
 
 from .models import CreditNote, Invoice, InvoiceLine
 
+# VAT Output is created on demand for companies that predate GCC localization.
+_VAT_OUTPUT = (CODE_VAT_OUTPUT, "VAT Output", "LIABILITY", "2100")
 
-def _recompute_line(line: InvoiceLine, seller_state: str, buyer_state: str) -> None:
-    """Compute taxable + GST split for a single line, in-place."""
+
+def _recompute_line(line: InvoiceLine, *, regime: str, seller_state: str,
+                    buyer_state: str, vat_rate) -> None:
+    """Compute taxable + tax (GST split or VAT) for a single line, in-place."""
     qty = to_money(line.quantity)
     price = to_money(line.unit_price)
     gross = qty * price
     discount = (gross * to_money(line.discount_percent) / Decimal("100"))
     taxable = (gross - discount).quantize(Decimal("0.0001"))
-    breakup = compute_gst(
-        taxable, line.tax_rate,
-        seller_state_code=seller_state,
-        buyer_state_code=buyer_state,
-    )
+
+    if regime == Company.TaxRegime.GCC_VAT:
+        rate = line.tax_rate if line.tax_rate else vat_rate
+        breakup = compute_vat(taxable, rate, supply_type=line.supply_type)
+    elif regime == Company.TaxRegime.NONE:
+        breakup = compute_vat(taxable, Decimal("0"))
+    else:  # INDIA_GST
+        breakup = compute_gst(
+            taxable, line.tax_rate,
+            seller_state_code=seller_state,
+            buyer_state_code=buyer_state,
+        )
+
     line.taxable_amount = taxable
     line.cgst = breakup.cgst
     line.sgst = breakup.sgst
     line.igst = breakup.igst
+    line.vat = breakup.vat
     line.line_total = breakup.grand_total
 
 
@@ -44,21 +60,28 @@ def _aggregate_invoice(invoice: Invoice) -> None:
     invoice.cgst = sum((l.cgst for l in lines), Decimal("0"))
     invoice.sgst = sum((l.sgst for l in lines), Decimal("0"))
     invoice.igst = sum((l.igst for l in lines), Decimal("0"))
-    invoice.grand_total = invoice.taxable_amount + invoice.cgst + invoice.sgst + invoice.igst
+    invoice.vat = sum((l.vat for l in lines), Decimal("0"))
+    invoice.grand_total = (
+        invoice.taxable_amount + invoice.cgst + invoice.sgst + invoice.igst + invoice.vat
+    )
 
 
 class InvoiceService:
     @transaction.atomic
     def create_and_post(self, *, invoice: Invoice, lines_data: list[dict], user=None) -> Invoice:
-        """Create invoice + lines, compute GST, post to ledger."""
-        seller_state = invoice.company.state_code
+        """Create invoice + lines, compute tax per the company's regime, post to ledger."""
+        company = invoice.company
+        regime = company.tax_regime
+        seller_state = company.state_code
         buyer_state = invoice.place_of_supply or invoice.customer.state_code
+        vat_rate = company.standard_vat_rate
 
         invoice.save()
 
         for ld in lines_data:
             line = InvoiceLine(invoice=invoice, **ld)
-            _recompute_line(line, seller_state, buyer_state)
+            _recompute_line(line, regime=regime, seller_state=seller_state,
+                            buyer_state=buyer_state, vat_rate=vat_rate)
             line.save()
 
         _aggregate_invoice(invoice)
@@ -74,21 +97,21 @@ class InvoiceService:
         company = invoice.company
         ar = account_by_code(company, CODE_AR)
         sales = account_by_code(company, CODE_SALES)
-        cgst_out = account_by_code(company, CODE_GST_OUTPUT_CGST)
-        sgst_out = account_by_code(company, CODE_GST_OUTPUT_SGST)
-        igst_out = account_by_code(company, CODE_GST_OUTPUT_IGST)
 
         lines = [
             Dr(ar, invoice.grand_total, description=f"Inv {invoice.invoice_no}",
                party_id=invoice.customer_id),
             Cr(sales, invoice.taxable_amount, description=f"Inv {invoice.invoice_no}"),
         ]
+        # GST split (India) and VAT (GCC) are mutually exclusive per regime.
         if invoice.cgst:
-            lines.append(Cr(cgst_out, invoice.cgst, description="CGST output"))
+            lines.append(Cr(account_by_code(company, CODE_GST_OUTPUT_CGST), invoice.cgst, description="CGST output"))
         if invoice.sgst:
-            lines.append(Cr(sgst_out, invoice.sgst, description="SGST output"))
+            lines.append(Cr(account_by_code(company, CODE_GST_OUTPUT_SGST), invoice.sgst, description="SGST output"))
         if invoice.igst:
-            lines.append(Cr(igst_out, invoice.igst, description="IGST output"))
+            lines.append(Cr(account_by_code(company, CODE_GST_OUTPUT_IGST), invoice.igst, description="IGST output"))
+        if invoice.vat:
+            lines.append(Cr(ensure_account(company, *_VAT_OUTPUT), invoice.vat, description="VAT output"))
 
         return LedgerService().post_manual(
             company=company,
@@ -123,7 +146,8 @@ class CreditNoteService:
         cgst = (invoice.cgst * ratio).quantize(Decimal("0.0001"))
         sgst = (invoice.sgst * ratio).quantize(Decimal("0.0001"))
         igst = (invoice.igst * ratio).quantize(Decimal("0.0001"))
-        grand_total = to_money(taxable_amount) + cgst + sgst + igst
+        vat = (invoice.vat * ratio).quantize(Decimal("0.0001"))
+        grand_total = to_money(taxable_amount) + cgst + sgst + igst + vat
 
         cn = CreditNote.objects.create(
             company=company,
@@ -133,16 +157,13 @@ class CreditNoteService:
             invoice=invoice,
             reason=reason,
             taxable_amount=to_money(taxable_amount),
-            cgst=cgst, sgst=sgst, igst=igst,
+            cgst=cgst, sgst=sgst, igst=igst, vat=vat,
             grand_total=grand_total,
         )
 
         # Reversal posting: swap Dr/Cr of the invoice's JE
         ar = account_by_code(company, CODE_AR)
         sales = account_by_code(company, CODE_SALES)
-        cgst_out = account_by_code(company, CODE_GST_OUTPUT_CGST)
-        sgst_out = account_by_code(company, CODE_GST_OUTPUT_SGST)
-        igst_out = account_by_code(company, CODE_GST_OUTPUT_IGST)
 
         lines = [
             Dr(sales, cn.taxable_amount, description=f"CN {note_no}"),
@@ -150,11 +171,13 @@ class CreditNoteService:
                party_id=invoice.customer_id),
         ]
         if cn.cgst:
-            lines.append(Dr(cgst_out, cn.cgst, description="CGST reversal"))
+            lines.append(Dr(account_by_code(company, CODE_GST_OUTPUT_CGST), cn.cgst, description="CGST reversal"))
         if cn.sgst:
-            lines.append(Dr(sgst_out, cn.sgst, description="SGST reversal"))
+            lines.append(Dr(account_by_code(company, CODE_GST_OUTPUT_SGST), cn.sgst, description="SGST reversal"))
         if cn.igst:
-            lines.append(Dr(igst_out, cn.igst, description="IGST reversal"))
+            lines.append(Dr(account_by_code(company, CODE_GST_OUTPUT_IGST), cn.igst, description="IGST reversal"))
+        if cn.vat:
+            lines.append(Dr(ensure_account(company, *_VAT_OUTPUT), cn.vat, description="VAT reversal"))
 
         je = LedgerService().post_manual(
             company=company,

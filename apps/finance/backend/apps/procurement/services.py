@@ -12,9 +12,17 @@ from apps.masters.coa_template import (
     CODE_GST_INPUT_CGST,
     CODE_GST_INPUT_IGST,
     CODE_GST_INPUT_SGST,
+    CODE_VAT_INPUT,
+    CODE_VAT_OUTPUT,
     account_by_code,
+    ensure_account,
 )
-from apps.masters.tax import compute_gst
+from apps.masters.models import Company
+from apps.masters.tax import compute_gst, compute_vat
+
+# VAT accounts are created on demand for companies that predate GCC localization.
+_VAT_INPUT = (CODE_VAT_INPUT, "VAT Input", "ASSET", "1100")
+_VAT_OUTPUT = (CODE_VAT_OUTPUT, "VAT Output", "LIABILITY", "2100")
 
 from .models import (
     GRN,
@@ -100,8 +108,11 @@ class VendorBillService:
 
     @transaction.atomic
     def create_and_post(self, *, bill: VendorBill, lines_data: list[dict], user=None) -> VendorBill:
+        company = bill.company
+        regime = company.tax_regime
         seller_state = bill.vendor.state_code
-        buyer_state = bill.place_of_supply or bill.company.state_code
+        buyer_state = bill.place_of_supply or company.state_code
+        vat_rate = company.standard_vat_rate
 
         bill.save()
 
@@ -110,12 +121,19 @@ class VendorBillService:
             qty = to_money(line.quantity)
             price = to_money(line.unit_price)
             taxable = (qty * price).quantize(Decimal("0.0001"))
-            breakup = compute_gst(taxable, line.tax_rate,
-                                  seller_state_code=seller_state, buyer_state_code=buyer_state)
+            if regime == Company.TaxRegime.GCC_VAT:
+                rate = line.tax_rate if line.tax_rate else vat_rate
+                breakup = compute_vat(taxable, rate, supply_type=line.supply_type)
+            elif regime == Company.TaxRegime.NONE:
+                breakup = compute_vat(taxable, Decimal("0"))
+            else:  # INDIA_GST
+                breakup = compute_gst(taxable, line.tax_rate,
+                                      seller_state_code=seller_state, buyer_state_code=buyer_state)
             line.taxable_amount = taxable
             line.cgst = breakup.cgst
             line.sgst = breakup.sgst
             line.igst = breakup.igst
+            line.vat = breakup.vat
             # TDS computed on taxable (not on tax) per IT Act
             line.tds_amount = (taxable * to_money(line.tds_rate) / Decimal("100")).quantize(Decimal("0.0001"))
             line.line_total = breakup.grand_total
@@ -126,8 +144,15 @@ class VendorBillService:
         bill.cgst = sum((l.cgst for l in all_lines), Decimal("0"))
         bill.sgst = sum((l.sgst for l in all_lines), Decimal("0"))
         bill.igst = sum((l.igst for l in all_lines), Decimal("0"))
+        bill.vat = sum((l.vat for l in all_lines), Decimal("0"))
         bill.tds_amount = sum((l.tds_amount for l in all_lines), Decimal("0"))
-        bill.grand_total = bill.taxable_amount + bill.cgst + bill.sgst + bill.igst
+        # Under GCC reverse charge the vendor does not charge VAT, so it is
+        # excluded from the amount payable (self-assessed in the posting below).
+        rcm = bill.rcm_applicable and regime == Company.TaxRegime.GCC_VAT
+        charged_vat = Decimal("0") if rcm else bill.vat
+        bill.grand_total = (
+            bill.taxable_amount + bill.cgst + bill.sgst + bill.igst + charged_vat
+        )
         bill.save()
 
         je = self._post_je(bill, all_lines, user=user)
@@ -181,10 +206,6 @@ class VendorBillService:
     def _post_je(self, bill: VendorBill, lines: list[VendorBillLine], *, user=None):
         company = bill.company
         ap = account_by_code(company, CODE_AP)
-        cgst_in = account_by_code(company, CODE_GST_INPUT_CGST)
-        sgst_in = account_by_code(company, CODE_GST_INPUT_SGST)
-        igst_in = account_by_code(company, CODE_GST_INPUT_IGST)
-        tds_payable = account_by_code(company, TDS_PAYABLE_CODE)
 
         je_lines = []
         for l in lines:
@@ -193,17 +214,23 @@ class VendorBillService:
                 description=l.description, party_id=bill.vendor_id,
             ))
 
-        # Under RCM: input GST is offset by output GST (buyer self-assesses).
-        # We don't model that here — simple ITC path.
+        # India GST input credit (ITC). RCM not modelled for GST — simple path.
         if bill.cgst:
-            je_lines.append(Dr(cgst_in, bill.cgst, description="CGST input"))
+            je_lines.append(Dr(account_by_code(company, CODE_GST_INPUT_CGST), bill.cgst, description="CGST input"))
         if bill.sgst:
-            je_lines.append(Dr(sgst_in, bill.sgst, description="SGST input"))
+            je_lines.append(Dr(account_by_code(company, CODE_GST_INPUT_SGST), bill.sgst, description="SGST input"))
         if bill.igst:
-            je_lines.append(Dr(igst_in, bill.igst, description="IGST input"))
+            je_lines.append(Dr(account_by_code(company, CODE_GST_INPUT_IGST), bill.igst, description="IGST input"))
+
+        # GCC VAT: input VAT is recoverable. Under reverse charge the buyer also
+        # self-assesses output VAT (Dr input / Cr output nets to zero cash).
+        if bill.vat:
+            je_lines.append(Dr(ensure_account(company, *_VAT_INPUT), bill.vat, description="VAT input"))
+            if bill.rcm_applicable:
+                je_lines.append(Cr(ensure_account(company, *_VAT_OUTPUT), bill.vat, description="VAT output (RCM)"))
 
         if bill.tds_amount:
-            je_lines.append(Cr(tds_payable, bill.tds_amount,
+            je_lines.append(Cr(account_by_code(company, TDS_PAYABLE_CODE), bill.tds_amount,
                                description=f"TDS on bill {bill.bill_no}"))
 
         ap_amount = bill.grand_total - bill.tds_amount

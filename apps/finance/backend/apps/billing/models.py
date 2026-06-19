@@ -6,6 +6,7 @@ from simple_history.models import HistoricalRecords
 
 from apps.core.models import TimeStampedModel
 from apps.masters.models import Company, FiscalYear, Item, Party
+from apps.masters.tax import SUPPLY_STANDARD, SUPPLY_TYPE_CHOICES
 
 
 class Invoice(TimeStampedModel):
@@ -35,6 +36,7 @@ class Invoice(TimeStampedModel):
     cgst = models.DecimalField(max_digits=18, decimal_places=4, default=0)
     sgst = models.DecimalField(max_digits=18, decimal_places=4, default=0)
     igst = models.DecimalField(max_digits=18, decimal_places=4, default=0)
+    vat = models.DecimalField(max_digits=18, decimal_places=4, default=0)  # GCC VAT
     grand_total = models.DecimalField(max_digits=18, decimal_places=4, default=0)
     amount_paid = models.DecimalField(max_digits=18, decimal_places=4, default=0)
 
@@ -75,12 +77,17 @@ class InvoiceLine(TimeStampedModel):
     unit_price = models.DecimalField(max_digits=18, decimal_places=4, default=0)
     discount_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    supply_type = models.CharField(
+        max_length=12, choices=SUPPLY_TYPE_CHOICES, default=SUPPLY_STANDARD,
+        help_text="GCC VAT supply type. Ignored under India GST.",
+    )
 
     # Computed
     taxable_amount = models.DecimalField(max_digits=18, decimal_places=4, default=0)
     cgst = models.DecimalField(max_digits=18, decimal_places=4, default=0)
     sgst = models.DecimalField(max_digits=18, decimal_places=4, default=0)
     igst = models.DecimalField(max_digits=18, decimal_places=4, default=0)
+    vat = models.DecimalField(max_digits=18, decimal_places=4, default=0)  # GCC VAT
     line_total = models.DecimalField(max_digits=18, decimal_places=4, default=0)
 
     class Meta:
@@ -217,11 +224,12 @@ class CreditNote(TimeStampedModel):
     reason = models.CharField(max_length=255, blank=True)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.DRAFT)
 
-    # Amount to credit (taxable). GST is computed using the invoice's rates.
+    # Amount to credit (taxable). Tax is computed using the invoice's rates.
     taxable_amount = models.DecimalField(max_digits=18, decimal_places=4, default=0)
     cgst = models.DecimalField(max_digits=18, decimal_places=4, default=0)
     sgst = models.DecimalField(max_digits=18, decimal_places=4, default=0)
     igst = models.DecimalField(max_digits=18, decimal_places=4, default=0)
+    vat = models.DecimalField(max_digits=18, decimal_places=4, default=0)  # GCC VAT
     grand_total = models.DecimalField(max_digits=18, decimal_places=4, default=0)
 
     journal_entry = models.OneToOneField(

@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from apps.masters.models import Company, FiscalYear, Item, Party
+from apps.masters.tax import SUPPLY_STANDARD, SUPPLY_TYPE_CHOICES
 
 from .models import (
     CreditNote, Invoice, InvoiceLine,
@@ -16,10 +17,10 @@ class InvoiceLineSerializer(serializers.ModelSerializer):
         model = InvoiceLine
         fields = (
             "id", "item", "description", "hsn_code",
-            "quantity", "unit_price", "discount_percent", "tax_rate",
-            "taxable_amount", "cgst", "sgst", "igst", "line_total",
+            "quantity", "unit_price", "discount_percent", "tax_rate", "supply_type",
+            "taxable_amount", "cgst", "sgst", "igst", "vat", "line_total",
         )
-        read_only_fields = ("taxable_amount", "cgst", "sgst", "igst", "line_total")
+        read_only_fields = ("taxable_amount", "cgst", "sgst", "igst", "vat", "line_total")
 
 
 class InvoiceReadSerializer(serializers.ModelSerializer):
@@ -33,7 +34,7 @@ class InvoiceReadSerializer(serializers.ModelSerializer):
         fields = (
             "id", "company", "fiscal_year", "invoice_no", "date", "due_date",
             "customer", "customer_name", "place_of_supply", "notes", "status",
-            "taxable_amount", "cgst", "sgst", "igst", "grand_total",
+            "taxable_amount", "cgst", "sgst", "igst", "vat", "grand_total",
             "amount_paid", "balance_due", "is_paid",
             "journal_entry", "lines",
         )
@@ -47,6 +48,8 @@ class InvoiceLineInput(serializers.Serializer):
     unit_price = serializers.DecimalField(max_digits=18, decimal_places=4)
     discount_percent = serializers.DecimalField(max_digits=5, decimal_places=2, default=0)
     tax_rate = serializers.DecimalField(max_digits=5, decimal_places=2, default=0)
+    supply_type = serializers.ChoiceField(
+        choices=SUPPLY_TYPE_CHOICES, required=False, default=SUPPLY_STANDARD)
 
 
 class InvoiceCreateSerializer(serializers.Serializer):
@@ -56,7 +59,8 @@ class InvoiceCreateSerializer(serializers.Serializer):
     date = serializers.DateField()
     due_date = serializers.DateField(required=False, allow_null=True)
     customer = serializers.PrimaryKeyRelatedField(queryset=Party.objects.all())
-    place_of_supply = serializers.CharField(max_length=2)
+    # Buyer state code — required for India GST place-of-supply; blank for GCC VAT.
+    place_of_supply = serializers.CharField(max_length=2, required=False, allow_blank=True, default="")
     notes = serializers.CharField(required=False, allow_blank=True, default="")
     lines = InvoiceLineInput(many=True)
 
@@ -84,7 +88,7 @@ class CreditNoteReadSerializer(serializers.ModelSerializer):
         fields = (
             "id", "company", "fiscal_year", "note_no", "date",
             "invoice", "invoice_no", "customer_name", "reason", "status",
-            "taxable_amount", "cgst", "sgst", "igst", "grand_total",
+            "taxable_amount", "cgst", "sgst", "igst", "vat", "grand_total",
             "journal_entry",
         )
 

@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from apps.masters.models import Account, Company, FiscalYear, Item, Party
+from apps.masters.tax import SUPPLY_STANDARD, SUPPLY_TYPE_CHOICES
 
 from .models import (
     GRN,
@@ -111,9 +112,9 @@ class VBillLineRead(serializers.ModelSerializer):
         model = VendorBillLine
         fields = ("id", "item", "expense_account", "expense_account_code",
                   "po_line", "description", "hsn_code",
-                  "quantity", "unit_price", "tax_rate", "tds_section", "tds_rate",
-                  "taxable_amount", "cgst", "sgst", "igst", "tds_amount", "line_total")
-        read_only_fields = ("taxable_amount", "cgst", "sgst", "igst",
+                  "quantity", "unit_price", "tax_rate", "supply_type", "tds_section", "tds_rate",
+                  "taxable_amount", "cgst", "sgst", "igst", "vat", "tds_amount", "line_total")
+        read_only_fields = ("taxable_amount", "cgst", "sgst", "igst", "vat",
                             "tds_amount", "line_total")
 
 
@@ -127,7 +128,7 @@ class VBillReadSerializer(serializers.ModelSerializer):
         fields = ("id", "company", "fiscal_year", "bill_no", "date", "due_date",
                   "vendor", "vendor_name", "purchase_order", "place_of_supply",
                   "rcm_applicable", "notes", "status",
-                  "taxable_amount", "cgst", "sgst", "igst", "tds_amount",
+                  "taxable_amount", "cgst", "sgst", "igst", "vat", "tds_amount",
                   "grand_total", "amount_paid", "balance_due",
                   "journal_entry", "lines")
 
@@ -142,6 +143,8 @@ class VBillLineInput(serializers.Serializer):
     quantity = serializers.DecimalField(max_digits=18, decimal_places=4, default=1)
     unit_price = serializers.DecimalField(max_digits=18, decimal_places=4)
     tax_rate = serializers.DecimalField(max_digits=5, decimal_places=2, default=0)
+    supply_type = serializers.ChoiceField(
+        choices=SUPPLY_TYPE_CHOICES, required=False, default=SUPPLY_STANDARD)
     tds_section = serializers.CharField(required=False, allow_blank=True, default="")
     tds_rate = serializers.DecimalField(max_digits=5, decimal_places=2, default=0)
 
