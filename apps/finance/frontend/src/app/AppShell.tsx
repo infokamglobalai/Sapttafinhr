@@ -13,6 +13,7 @@ import { Toaster } from '@/components/Toaster';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useActiveCompany } from '@/hooks/useActiveCompany';
+import type { TaxRegime } from '@/features/masters/api';
 
 import Dashboard from '@/features/reports/Dashboard';
 import TrialBalancePage from '@/features/ledger/TrialBalancePage';
@@ -56,6 +57,7 @@ import AuditLogPage from '@/features/reports/AuditLogPage';
 import BudgetVsActualPage from '@/features/reports/BudgetVsActualPage';
 import CostCenterPnLPage from '@/features/reports/CostCenterPnLPage';
 import ConsolidationPage from '@/features/reports/ConsolidationPage';
+import VatReturnPage from '@/features/reports/VatReturnPage';
 import PortalAccessPage from '@/features/portal/PortalAccessPage';
 import NotificationBell from '@/features/notifications/NotificationBell';
 import NumberSeriesPage from '@/features/settings/NumberSeriesPage';
@@ -74,11 +76,11 @@ type RouteId =
   | 'manual' | 'trial-balance'
   | 'pnl' | 'balance-sheet' | 'cash-flow' | 'day-book' | 'party-ledger'
   | 'ar-aging' | 'sales-register' | 'hsn-summary' | 'gstr-export' | 'audit-log'
-  | 'budget-vs-actual' | 'cost-center-pnl' | 'consolidation'
+  | 'budget-vs-actual' | 'cost-center-pnl' | 'consolidation' | 'vat-return'
   | 'settings' | 'company-profile' | 'tax-jurisdiction' | 'api-keys' | 'webhooks' | 'number-series'
   | 'team' | 'tds' | 'uncategorized';
 
-interface SubItem { id: RouteId; label: string; icon: LucideIcon; description?: string; }
+interface SubItem { id: RouteId; label: string; icon: LucideIcon; description?: string; regimes?: TaxRegime[]; }
 
 interface Section {
   id: string;
@@ -154,13 +156,14 @@ const SECTIONS: Section[] = [
       { id: 'cash-flow', label: 'Cash Flow', icon: Wallet, description: 'Net change in cash + bank' },
       { id: 'party-ledger', label: 'Party Statement', icon: BookText, description: 'Per-customer / vendor ledger' },
       { id: 'ar-aging', label: 'Receivables Aging', icon: Wallet, description: 'Who owes you and for how long' },
-      { id: 'sales-register', label: 'Sales Register', icon: FileText, description: 'GST-style invoice register' },
-      { id: 'hsn-summary', label: 'HSN Summary', icon: BarChart3, description: 'GSTR-1 HSN-wise outward summary' },
+      { id: 'sales-register', label: 'Sales Register', icon: FileText, description: 'Register of all posted invoices' },
+      { id: 'vat-return', label: 'VAT Return', icon: FileText, description: 'GCC output/input VAT and net payable', regimes: ['GCC_VAT'] },
+      { id: 'hsn-summary', label: 'HSN Summary', icon: BarChart3, description: 'GSTR-1 HSN-wise outward summary', regimes: ['INDIA_GST'] },
       { id: 'cost-center-pnl', label: 'P&L by Cost Center', icon: BarChart3, description: 'Income / expense by cost center' },
       { id: 'budget-vs-actual', label: 'Budget vs Actual', icon: TrendingUp, description: 'Variance per account' },
       { id: 'consolidation', label: 'Consolidation', icon: BarChart3, description: 'Multi-company P&L sum' },
       { id: 'audit-log', label: 'Audit Log', icon: BookText, description: 'Edits to financial records' },
-      { id: 'gstr-export', label: 'GSTR-1 / 3B Export', icon: FileText, description: 'Download JSON for offline filing' },
+      { id: 'gstr-export', label: 'GSTR-1 / 3B Export', icon: FileText, description: 'Download JSON for offline filing', regimes: ['INDIA_GST'] },
     ]
   },
 
@@ -210,6 +213,11 @@ function findSubItem(routeId: RouteId): SubItem | undefined {
   return undefined;
 }
 
+/** A nav item shows only if it has no regime restriction or matches the active one. */
+function childVisible(child: SubItem, regime: TaxRegime): boolean {
+  return !child.regimes || child.regimes.includes(regime);
+}
+
 function readRoute(): RouteId {
   const h = window.location.hash.replace('#/', '') as RouteId;
   return (ALL_ROUTES.includes(h) ? h : 'dashboard');
@@ -226,7 +234,9 @@ export default function AppShell() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const { companyId } = useActiveCompany();
+  const { companyId, companies } = useActiveCompany();
+  const activeRegime: TaxRegime =
+    companies?.find((c) => c.id === companyId)?.tax_regime ?? 'INDIA_GST';
   const { data: uncategorizedCount = 0 } = useQuery({
     queryKey: ['uncategorized-count', companyId],
     enabled: companyId != null,
@@ -388,6 +398,7 @@ export default function AppShell() {
 
           <nav className="flex-1 overflow-y-hidden hover:overflow-y-auto px-3 space-y-1 text-xs">
             {activeSection!.children!
+              .filter((child) => childVisible(child, activeRegime))
               .filter((child) => !searchQuery || child.label.toLowerCase().includes(searchQuery.toLowerCase()))
               .map((child) => {
                 const Icon = child.icon;
@@ -521,6 +532,7 @@ export default function AppShell() {
             {route === 'budget-vs-actual' && <BudgetVsActualPage />}
             {route === 'cost-center-pnl' && <CostCenterPnLPage />}
             {route === 'consolidation' && <ConsolidationPage />}
+            {route === 'vat-return' && <VatReturnPage />}
             {route === 'team' && <TeamPage />}
             {route === 'tds' && <TDSPage />}
             {route === 'uncategorized' && <UncategorizedPage />}
@@ -563,7 +575,7 @@ export default function AppShell() {
                 return (
                   <div key={s.id} className="mb-4">
                     <div className="px-3.5 py-1.5 text-[9px] font-bold uppercase tracking-widest text-brand-600">{s.label}</div>
-                    {s.children?.map((child) => {
+                    {s.children?.filter((child) => childVisible(child, activeRegime)).map((child) => {
                       const ChildIcon = child.icon;
                       const cActive = route === child.id;
                       return (

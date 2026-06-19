@@ -118,3 +118,24 @@ export const useSalesRegister = (company?: number, start?: string, end?: string)
     enabled: company != null,
     queryFn: async () => (await api.get<SalesRegister>('/reports/sales-register/', { params: { company, start, end } })).data,
   });
+
+export interface VatReturn {
+  period: { start: string; end: string };
+  output: {
+    standard_taxable: string;
+    zero_rated_taxable: string;
+    exempt_taxable: string;
+    output_vat: string;
+    reverse_charge_vat: string;
+    credit_note_vat: string;
+  };
+  input: { input_vat: string };
+  net_vat_payable: string;
+}
+
+export const useVatReturn = (company?: number, start?: string, end?: string) =>
+  useQuery({
+    queryKey: ['vat-return', company, start, end],
+    enabled: company != null,
+    queryFn: async () => (await api.get<VatReturn>('/reports/vat-return/', { params: { company, start, end } })).data,
+  });

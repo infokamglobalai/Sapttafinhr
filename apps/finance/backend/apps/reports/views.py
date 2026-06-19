@@ -129,3 +129,13 @@ class ReceivablesRiskView(APIView):
     def get(self, request):
         company = _company(request)
         return Response(queries.receivables_risk(company))
+
+
+class VATReturnView(APIView):
+    """GET /api/v1/reports/vat-return/?company=&start=&end= — GCC VAT return summary."""
+    def get(self, request):
+        company = _company(request)
+        today = _date.today()
+        start = _date_or(today.replace(day=1), "start", request)
+        end = _date_or(today, "end", request)
+        return Response(queries.vat_return(company, start, end))

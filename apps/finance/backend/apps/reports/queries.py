@@ -5,9 +5,10 @@ from decimal import Decimal
 
 from django.db.models import Q, Sum
 
-from apps.billing.models import Invoice
+from apps.billing.models import CreditNote, Invoice, InvoiceLine
 from apps.ledger.models import JournalEntry, JournalLine
 from apps.masters.models import Account
+from apps.masters.tax import SUPPLY_EXEMPT, SUPPLY_STANDARD, SUPPLY_ZERO_RATED
 from apps.payments.models import Receipt
 from apps.procurement.models import VendorBill
 
@@ -621,3 +622,59 @@ def receivables_risk(company_id: int) -> list:
         })
 
     return sorted(result, key=lambda x: x["score"], reverse=True)
+
+
+# ---------- GCC VAT return ----------
+
+def vat_return(company_id: int, start: date, end: date) -> dict:
+    """VAT return summary for a GCC company over a filing period.
+
+    Output VAT comes from posted sales invoices (net of credit notes) plus
+    reverse-charge VAT self-assessed on vendor bills; input VAT (recoverable)
+    comes from posted vendor bills. Net payable = output − input.
+    """
+    def _sum(qs, field: str) -> Decimal:
+        return qs.aggregate(s=Sum(field))["s"] or Decimal("0")
+
+    inv_lines = InvoiceLine.objects.filter(
+        invoice__company_id=company_id,
+        invoice__status=Invoice.Status.POSTED,
+        invoice__date__gte=start, invoice__date__lte=end,
+    )
+    standard_taxable = _sum(inv_lines.filter(supply_type=SUPPLY_STANDARD), "taxable_amount")
+    zero_rated_taxable = _sum(inv_lines.filter(supply_type=SUPPLY_ZERO_RATED), "taxable_amount")
+    exempt_taxable = _sum(inv_lines.filter(supply_type=SUPPLY_EXEMPT), "taxable_amount")
+    output_vat = _sum(inv_lines, "vat")
+
+    cn = CreditNote.objects.filter(
+        company_id=company_id, status=CreditNote.Status.POSTED,
+        date__gte=start, date__lte=end,
+    )
+    cn_taxable = _sum(cn, "taxable_amount")
+    cn_vat = _sum(cn, "vat")
+
+    bills = VendorBill.objects.filter(
+        company_id=company_id, status=VendorBill.Status.POSTED,
+        date__gte=start, date__lte=end,
+    )
+    input_vat = _sum(bills, "vat")
+    rcm_vat = _sum(bills.filter(rcm_applicable=True), "vat")
+
+    net_output_vat = output_vat - cn_vat + rcm_vat
+    net_payable = net_output_vat - input_vat
+
+    return {
+        "period": {"start": start.isoformat(), "end": end.isoformat()},
+        "output": {
+            "standard_taxable": standard_taxable - cn_taxable,
+            "zero_rated_taxable": zero_rated_taxable,
+            "exempt_taxable": exempt_taxable,
+            "output_vat": output_vat - cn_vat,
+            "reverse_charge_vat": rcm_vat,
+            "credit_note_vat": cn_vat,
+        },
+        "input": {
+            "input_vat": input_vat,
+        },
+        "net_vat_payable": net_payable,
+    }

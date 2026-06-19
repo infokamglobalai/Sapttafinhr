@@ -4,6 +4,7 @@ from .views import (
     ARAgingView, AuditLogView, BalanceSheetView, BudgetVsActualView,
     CashFlowView, ConsolidationView, CostCenterPnLView, DashboardView,
     DayBookView, PartyLedgerView, PnLView, ReceivablesRiskView, SalesRegisterView,
+    VATReturnView,
 )
 
 urlpatterns = [
@@ -20,4 +21,5 @@ urlpatterns = [
     path("budget-vs-actual/", BudgetVsActualView.as_view(), name="budget-vs-actual"),
     path("audit-log/", AuditLogView.as_view(), name="audit-log"),
     path("receivables-risk/", ReceivablesRiskView.as_view(), name="receivables-risk"),
+    path("vat-return/", VATReturnView.as_view(), name="vat-return"),
 ]
