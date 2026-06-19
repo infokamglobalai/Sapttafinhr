@@ -9,11 +9,19 @@ SUPPORTED_CURRENCIES = [
     ("GBP", "British Pound"), ("AED", "UAE Dirham"), ("SGD", "Singapore Dollar"),
     ("AUD", "Australian Dollar"), ("CAD", "Canadian Dollar"), ("JPY", "Japanese Yen"),
     ("CNY", "Chinese Yuan"),
+    # GCC currencies (tax-jurisdiction localization)
+    ("SAR", "Saudi Riyal"), ("QAR", "Qatari Riyal"), ("KWD", "Kuwaiti Dinar"),
+    ("BHD", "Bahraini Dinar"), ("OMR", "Omani Rial"),
 ]
 
 
 class Company(TimeStampedModel):
     """A legal entity within a tenant. A tenant may have multiple companies."""
+
+    class TaxRegime(models.TextChoices):
+        INDIA_GST = "INDIA_GST", "India — GST"
+        GCC_VAT = "GCC_VAT", "GCC — VAT"
+        NONE = "NONE", "No indirect tax"
 
     name = models.CharField(max_length=200)
     legal_name = models.CharField(max_length=255, blank=True)
@@ -21,6 +29,22 @@ class Company(TimeStampedModel):
     pan = models.CharField(max_length=10, blank=True)
     state_code = models.CharField(max_length=2, blank=True, help_text="Indian state code (GST)")
     base_currency = models.CharField(max_length=3, default="INR")
+
+    # Tax jurisdiction (Region setting). Defaults keep existing companies on the
+    # India/GST path so behaviour is unchanged until a country is chosen.
+    country = models.CharField(max_length=2, default="IN", help_text="ISO country code")
+    tax_regime = models.CharField(
+        max_length=12, choices=TaxRegime.choices, default=TaxRegime.INDIA_GST
+    )
+    tax_id = models.CharField(
+        max_length=20, blank=True,
+        help_text="VAT registration number (TRN) for GCC. GSTIN stays in its own field for India.",
+    )
+    standard_vat_rate = models.DecimalField(
+        max_digits=5, decimal_places=2, default=0,
+        help_text="Standard VAT rate for the jurisdiction (GCC). Unused for India GST.",
+    )
+
     books_closed_until = models.DateField(null=True, blank=True)
     # First-run setup gate: the Finance app shows the setup wizard until the
     # admin marks this complete. Set by the setup endpoint, not by signup.

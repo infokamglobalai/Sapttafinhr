@@ -1,10 +1,32 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 
+export type TaxRegime = 'INDIA_GST' | 'GCC_VAT' | 'NONE';
+
+export interface Jurisdiction {
+  country: string;
+  name: string;
+  tax_regime: TaxRegime;
+  tax_id_label: string;
+  currency: string;
+  standard_vat_rate: string;
+  reg_threshold: string;
+  fiscal_year_start_month: number;
+  einvoice_scheme: string;
+}
+
 export interface Company {
   id: number; name: string; legal_name?: string;
   gstin: string; pan?: string;
   state_code: string; base_currency: string;
+  // Tax jurisdiction (Region setting)
+  country?: string;
+  tax_regime?: TaxRegime;
+  tax_id?: string;
+  standard_vat_rate?: string;
+  tax_regime_display?: string;   // read-only
+  tax_id_label?: string;         // read-only (GSTIN / TRN / …)
+  jurisdiction?: Jurisdiction | null; // read-only rule set for country
   books_closed_until?: string | null;
   setup_complete?: boolean;
 }
@@ -44,6 +66,15 @@ export const useUpdateCompany = () => {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['companies'] }),
   });
 };
+
+/** Per-country tax rule sets (India + GCC) for the Region / Tax Jurisdiction setting. */
+export const useJurisdictions = () =>
+  useQuery({
+    queryKey: ['jurisdictions'],
+    staleTime: Infinity,
+    queryFn: async () =>
+      (await api.get<{ jurisdictions: Jurisdiction[] }>('/masters/jurisdictions/')).data.jurisdictions,
+  });
 
 export const useFiscalYears = (company?: number) =>
   useQuery({

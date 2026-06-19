@@ -6,7 +6,7 @@ from .setup_views import SetupCompleteView, SetupStatusView
 from .views import (
     AccountViewSet, BranchViewSet, CompanyViewSet, CostCenterViewSet,
     ExchangeRateView, FiscalYearViewSet, HSNCodeViewSet, ItemViewSet,
-    NumberSeriesViewSet, PartyViewSet, ProjectViewSet,
+    JurisdictionsView, NumberSeriesViewSet, PartyViewSet, ProjectViewSet,
 )
 
 router = DefaultRouter()
@@ -27,4 +27,5 @@ urlpatterns = [
     path("companies/<int:company_id>/close-books/", BooksClosingView.as_view()),
     path("companies/<int:company_id>/export/", CompanyExportView.as_view()),
     path("exchange-rates/", ExchangeRateView.as_view(), name="exchange-rates"),
+    path("jurisdictions/", JurisdictionsView.as_view(), name="jurisdictions"),
 ] + router.urls

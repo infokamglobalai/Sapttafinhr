@@ -1,13 +1,26 @@
 from rest_framework import serializers
 
+from .jurisdictions import get_jurisdiction
 from .models import Account, Branch, Company, CostCenter, FiscalYear, HSNCode, Item, NumberSeries, Party, Project
 from .numbering import peek_next
 
 
 class CompanySerializer(serializers.ModelSerializer):
+    tax_regime_display = serializers.CharField(source="get_tax_regime_display", read_only=True)
+    tax_id_label = serializers.SerializerMethodField()
+    jurisdiction = serializers.SerializerMethodField()
+
     class Meta:
         model = Company
         fields = "__all__"
+
+    def get_tax_id_label(self, obj) -> str:
+        rules = get_jurisdiction(obj.country)
+        return rules["tax_id_label"] if rules else "Tax ID"
+
+    def get_jurisdiction(self, obj) -> dict | None:
+        """The full rule set for this company's country (read-only reference)."""
+        return get_jurisdiction(obj.country)
 
 
 class BranchSerializer(serializers.ModelSerializer):

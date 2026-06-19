@@ -5,7 +5,7 @@ import {
   ShoppingCart, Truck, FileInput, Landmark, Calendar, Warehouse, Boxes,
   Building2, ReceiptText, CalendarDays, Settings, FileCheck2,
   BarChart3, Briefcase, BookCopy, ChevronRight, Plus, Menu, X as XIcon, Webhook, Share2, Hash, UserCircle2,
-  Search, LayoutGrid, AlertTriangle,
+  Search, LayoutGrid, AlertTriangle, Globe,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { cn } from '@/lib/cn';
@@ -43,6 +43,7 @@ import CashFlowPage from '@/features/reports/CashFlowPage';
 import DayBookPage from '@/features/reports/DayBookPage';
 import SettingsPage from '@/features/settings/SettingsPage';
 import CompanyProfilePage from '@/features/settings/CompanyProfilePage';
+import TaxJurisdictionPage from '@/features/settings/TaxJurisdictionPage';
 import CostCentersPage from '@/features/settings/CostCentersPage';
 import ProjectsPage from '@/features/settings/ProjectsPage';
 import APIKeysPage from '@/features/settings/APIKeysPage';
@@ -74,7 +75,7 @@ type RouteId =
   | 'pnl' | 'balance-sheet' | 'cash-flow' | 'day-book' | 'party-ledger'
   | 'ar-aging' | 'sales-register' | 'hsn-summary' | 'gstr-export' | 'audit-log'
   | 'budget-vs-actual' | 'cost-center-pnl' | 'consolidation'
-  | 'settings' | 'company-profile' | 'api-keys' | 'webhooks' | 'number-series'
+  | 'settings' | 'company-profile' | 'tax-jurisdiction' | 'api-keys' | 'webhooks' | 'number-series'
   | 'team' | 'tds' | 'uncategorized';
 
 interface SubItem { id: RouteId; label: string; icon: LucideIcon; description?: string; }
@@ -170,6 +171,7 @@ const SECTIONS: Section[] = [
   {
     id: 'settings', label: 'Settings', icon: Settings, children: [
       { id: 'company-profile', label: 'Company Profile', icon: Settings, description: 'GSTIN, address, branding' },
+      { id: 'tax-jurisdiction', label: 'Region / Tax Jurisdiction', icon: Globe, description: 'Country tax regime: India GST or GCC VAT' },
       { id: 'number-series', label: 'Number Series', icon: Hash, description: 'Document number prefixes & sequences' },
       { id: 'api-keys', label: 'API Keys', icon: Settings, description: 'Programmatic access tokens' },
       { id: 'webhooks', label: 'Webhooks', icon: Webhook, description: 'Push events to your URL' },
@@ -504,6 +506,7 @@ export default function AppShell() {
             {route === 'sales-register' && <SalesRegisterPage />}
             {route === 'settings' && <SettingsPage />}
             {route === 'company-profile' && <CompanyProfilePage />}
+            {route === 'tax-jurisdiction' && <TaxJurisdictionPage />}
             {route === 'number-series' && <NumberSeriesPage />}
             {route === 'cost-centers' && <CostCentersPage />}
             {route === 'projects' && <ProjectsPage />}

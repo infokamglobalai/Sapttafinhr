@@ -5,8 +5,9 @@ from .models import Account, Branch, Company, FiscalYear, HSNCode, Item, Party
 
 @admin.register(Company)
 class CompanyAdmin(admin.ModelAdmin):
-    list_display = ("name", "gstin", "state_code", "base_currency", "books_closed_until")
-    search_fields = ("name", "gstin")
+    list_display = ("name", "country", "tax_regime", "tax_id", "gstin", "base_currency", "books_closed_until")
+    list_filter = ("country", "tax_regime")
+    search_fields = ("name", "gstin", "tax_id")
 
 
 @admin.register(Branch)

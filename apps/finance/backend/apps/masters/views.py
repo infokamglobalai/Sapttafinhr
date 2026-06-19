@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from datetime import date as _date
 from rest_framework import serializers as _s
 from rest_framework.views import APIView
+from .jurisdictions import JURISDICTIONS
 from .models import Account, Branch, Company, CostCenter, ExchangeRate, FiscalYear, HSNCode, Item, NumberSeries, Party, Project, SUPPORTED_CURRENCIES
 from .numbering import ensure_defaults, peek_next
 from .serializers import (
@@ -159,3 +160,17 @@ class ExchangeRateView(APIView):
             defaults={"rate": rate, "source": request.data.get("source", "manual")},
         )
         return Response(ExchangeRateSerializer(obj).data, status=201 if created else 200)
+
+
+class JurisdictionsView(APIView):
+    """GET /masters/jurisdictions/ → the per-country tax rule sets.
+
+    Drives the Region / Tax Jurisdiction settings dropdown: the client lists
+    countries, shows the selected country's rules, and PATCHes the chosen
+    country/regime/tax_id/standard_vat_rate onto the company.
+    """
+
+    def get(self, request):
+        return Response({
+            "jurisdictions": [{"country": code, **rules} for code, rules in JURISDICTIONS.items()],
+        })
