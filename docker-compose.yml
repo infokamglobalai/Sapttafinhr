@@ -159,11 +159,11 @@ services:
     environment:
       # All API traffic flows through the nginx front door.
       VITE_PLATFORM_API_BASE_URL: ${VITE_PLATFORM_API_BASE_URL:-http://localhost:8080/api/v1}
-      VITE_TENANT_API_BASE_URL: ${VITE_TENANT_API_BASE_URL:-http://{workspace}.localhost:8080/api/v1}
+      VITE_TENANT_API_BASE_URL: ${VITE_TENANT_API_BASE_URL:-http://finance.localhost:8080/api/v1}
       VITE_DEFAULT_WORKSPACE: acme
       VITE_HR_BASE_URL: ${VITE_HR_BASE_URL:-http://hr.localhost:8080}
       # Where to hand off into the REAL products (per workspace).
-      VITE_FINANCE_APP_BASE_URL: ${VITE_FINANCE_APP_BASE_URL:-http://{workspace}.localhost:8080}
+      VITE_FINANCE_APP_BASE_URL: ${VITE_FINANCE_APP_BASE_URL:-http://finance.localhost:8080}
     volumes:
       # Mount at /usr/src/app (not /app) so the SPA's "/app" route doesn't collide
       # with the working dir in Vite's dev server. See apps/web/Dockerfile.

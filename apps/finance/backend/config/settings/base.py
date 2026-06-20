@@ -65,7 +65,7 @@ TENANT_DOMAIN_MODEL = "core.Domain"
 
 # ===== Middleware =====
 MIDDLEWARE = [
-    "django_tenants.middleware.main.TenantMainMiddleware",
+    "apps.core.middleware.HeaderTenantMiddleware",
     "apps.saas.middleware.ProductEntitlementMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
