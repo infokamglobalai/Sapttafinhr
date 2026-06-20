@@ -1,4 +1,4 @@
-# Core
+﻿# Core
 Django==5.1.4
 psycopg[binary]==3.1.19
 redis==5.2.1
@@ -64,7 +64,7 @@ gunicorn==23.0.0
 sentry-sdk[django]==2.19.2
 anthropic>=0.100.0
 
-# Resume parsing (recruitment AI — PDF/DOCX text extraction)
+# Resume parsing (recruitment AI â€” PDF/DOCX text extraction)
 pdfplumber==0.11.4
 pypdf==5.1.0
 python-docx==1.1.2
