@@ -117,8 +117,8 @@ services:
     environment:
       DJANGO_SETTINGS_MODULE: hrms.settings.development
       SECRET_KEY: ${HR_SECRET_KEY:-insecure-dev-hr-key-change-me}
-      DEBUG: "True"
-      ALLOWED_HOSTS: localhost,127.0.0.1,hr-backend
+      DEBUG: ${DJANGO_DEBUG:-True}
+      ALLOWED_HOSTS: ${HR_ALLOWED_HOSTS:-localhost,127.0.0.1,hr-backend,saptta.com,.saptta.com}
       # DB vars expected by python-decouple in HR settings
       DB_NAME: ${POSTGRES_DB:-finsaptta}
       DB_USER: ${POSTGRES_USER:-finsaptta}
@@ -126,12 +126,12 @@ services:
       DB_HOST: db
       DB_PORT: "5432"
       # HR resolves the tenant from the logged-in user when host is localhost.
-      SUPERADMIN_DOMAIN: localhost
-      TENANT_DOMAIN: localhost
+      SUPERADMIN_DOMAIN: ${SUPERADMIN_DOMAIN:-localhost}
+      TENANT_DOMAIN: ${TENANT_DOMAIN:-localhost}
       # Front door for cross-product links (Back to products / logout / login).
       # Without this, dev settings default to native Vite (:5173), which isn't up
       # in the Docker-only flow, breaking those links.
-      PLATFORM_BASE_URL: http://localhost:8080
+      PLATFORM_BASE_URL: ${PLATFORM_BASE_URL:-http://localhost:8080}
       FIELD_ENCRYPTION_KEY: ${HR_FIELD_ENCRYPTION_KEY:?set HR_FIELD_ENCRYPTION_KEY in .env (Fernet key)}
       # Same value as fin-backend so HR can verify FIN-minted SSO tokens.
       SSO_SHARED_SECRET: ${SSO_SHARED_SECRET:-dev-sso-shared-secret-change-me}
@@ -182,7 +182,7 @@ services:
     restart: unless-stopped
     environment:
       VITE_API_BASE_URL: /api/v1   # same-origin on whatever tenant host
-      VITE_PLATFORM_BASE_URL: http://localhost:8080
+      VITE_PLATFORM_BASE_URL: ${VITE_PLATFORM_BASE_URL:-http://localhost:8080}
     volumes:
       - ./apps/finance/frontend:/app
       - /app/node_modules
