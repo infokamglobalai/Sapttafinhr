@@ -39,11 +39,13 @@ class HeaderTenantMiddleware:
         if not workspace:
             hostname = request.get_host().split(":")[0].lower()
             # Shared domains always default to public
-            public_domains = ["saptta.com", "app.saptta.com", "www.saptta.com", "localhost", "127.0.0.1"]
+            public_domains = ["saptta.com", "app.saptta.com", "www.saptta.com", "finance.saptta.com", "localhost", "127.0.0.1"]
             if hostname not in public_domains:
                 parts = hostname.split(".")
                 if len(parts) > 2:
-                    workspace = parts[0]
+                    sub = parts[0]
+                    if sub not in ["finance", "finance-web"]:
+                        workspace = sub
 
         TenantModel = get_tenant_model()
         tenant = None

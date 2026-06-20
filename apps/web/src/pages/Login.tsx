@@ -176,17 +176,10 @@ export default function Login() {
 
 
 
-  const resolveFinanceWorkspace = () =>
-
-    workspaceParam
-
-    ?? getWorkspace()
-
-    ?? user?.tenantId
-
-    ?? import.meta.env.VITE_DEFAULT_WORKSPACE
-
-    ?? 'acme';
+  const resolveFinanceWorkspace = () => {
+    const ws = workspaceParam ?? getWorkspace() ?? user?.tenantId ?? import.meta.env.VITE_DEFAULT_WORKSPACE ?? 'acme';
+    return ws && !['localhost', 'finance', 'finance-web'].includes(ws) ? ws : 'acme';
+  };
 
 
 

@@ -47,7 +47,7 @@ const HANDOFF_DONE = consumeHandoff();
 function redirectToPlatformLogin(): void {
   const platform = import.meta.env.VITE_PLATFORM_BASE_URL || 'http://localhost:8080';
   const sub = window.location.hostname.split('.')[0];
-  const workspace = sub && sub !== 'localhost' ? sub : '';
+  const workspace = sub && !['localhost', 'finance', 'finance-web'].includes(sub) ? sub : '';
   const params = new URLSearchParams({ redirect: 'finance' });
   if (workspace) params.set('workspace', workspace);
   window.location.replace(`${platform.replace(/\/+$/, '')}/login?${params.toString()}`);
