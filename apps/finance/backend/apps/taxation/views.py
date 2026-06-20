@@ -24,6 +24,22 @@ class GenerateEInvoiceView(APIView):
         }, status=status.HTTP_201_CREATED)
 
 
+class GenerateGccEInvoiceView(APIView):
+    """POST /api/v1/taxation/gcc-einvoice/<invoice_id>/ — KSA ZATCA / UAE Peppol."""
+    def post(self, request, invoice_id):
+        invoice = Invoice.objects.get(pk=invoice_id)
+        rec = services.generate_gcc_einvoice(invoice)
+        return Response({
+            "uuid": rec.uuid,
+            "scheme": rec.scheme,
+            "status": rec.status,
+            "invoice_hash": rec.invoice_hash,
+            "qr": rec.qr,
+            "cleared_at": rec.cleared_at,
+            "response": rec.response,
+        }, status=status.HTTP_201_CREATED)
+
+
 class GenerateEWBView(APIView):
     """POST /api/v1/taxation/eway/<invoice_id>/"""
     def post(self, request, invoice_id):

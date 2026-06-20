@@ -1,12 +1,19 @@
 from django.contrib import admin
 
-from .models import EInvoiceIRN, EWayBill, GSTR2BLine
+from .models import EInvoiceIRN, EWayBill, GccEInvoice, GSTR2BLine
 
 
 @admin.register(EInvoiceIRN)
 class EInvoiceAdmin(admin.ModelAdmin):
     list_display = ("irn", "invoice", "ack_no", "status", "created_at")
     search_fields = ("irn", "ack_no")
+
+
+@admin.register(GccEInvoice)
+class GccEInvoiceAdmin(admin.ModelAdmin):
+    list_display = ("uuid", "scheme", "invoice", "status", "cleared_at", "created_at")
+    list_filter = ("scheme", "status")
+    search_fields = ("uuid", "invoice_hash")
 
 
 @admin.register(EWayBill)

@@ -1,14 +1,23 @@
 """High-level GST services that use the adapters + build GSTR exports."""
 from collections import defaultdict
-from datetime import date as _date
+from datetime import date as _date, datetime, timezone
 from decimal import Decimal
+from uuid import uuid4
 
 from django.db.models import Sum
+from rest_framework.exceptions import ValidationError
 
 from apps.billing.models import Invoice
+from apps.masters.jurisdictions import (
+    EINVOICE_PEPPOL_PINT_AE, EINVOICE_ZATCA, get_jurisdiction,
+)
+from apps.masters.models import Company
 
+from .einvoice_gcc import build_pint_ae_xml, build_zatca_qr, build_zatca_xml, compute_hash
 from .integrations.eway import get_ewb_client
 from .integrations.nic_irp import get_irp_client
+from .integrations.peppol import get_peppol_client
+from .integrations.zatca import get_zatca_client
 from .models import EInvoiceIRN, EWayBill, GSTR2BLine
 
 
@@ -27,6 +36,59 @@ def generate_einvoice(invoice: Invoice) -> EInvoiceIRN:
         company=invoice.company, invoice=invoice,
         irn=res.irn, ack_no=res.ack_no, ack_date=res.ack_date,
         signed_qr=res.signed_qr, signed_invoice=res.signed_invoice,
+    )
+
+
+def generate_gcc_einvoice(invoice: Invoice):
+    """Generate a GCC e-invoice (KSA ZATCA or UAE Peppol PINT AE) for a VAT invoice.
+
+    Idempotent per invoice. Builds the UBL XML + invoice hash (chained to the
+    previous invoice's hash), and — for ZATCA — the base64 TLV QR. Submission
+    runs through the feature-flagged stub adapters until real creds are wired.
+    """
+    from .models import GccEInvoice
+
+    if hasattr(invoice, "gcc_einvoice"):
+        return invoice.gcc_einvoice
+
+    company = invoice.company
+    if company.tax_regime != Company.TaxRegime.GCC_VAT:
+        raise ValidationError("E-invoicing applies only to GCC VAT companies.")
+
+    scheme_code = (get_jurisdiction(company.country) or {}).get("einvoice_scheme")
+    if scheme_code == EINVOICE_ZATCA:
+        scheme = GccEInvoice.Scheme.ZATCA
+    elif scheme_code == EINVOICE_PEPPOL_PINT_AE:
+        scheme = GccEInvoice.Scheme.PEPPOL_PINT_AE
+    else:
+        raise ValidationError("This jurisdiction has no e-invoicing scheme yet.")
+
+    doc_uuid = str(uuid4())
+    prev = GccEInvoice.objects.filter(company=company).order_by("-id").first()
+    previous_hash = prev.invoice_hash if prev else ""
+
+    if scheme == GccEInvoice.Scheme.ZATCA:
+        xml = build_zatca_xml(invoice, doc_uuid, previous_hash)
+        invoice_hash = compute_hash(xml)
+        qr = build_zatca_qr(
+            seller_name=company.name, vat_number=company.tax_id or "",
+            timestamp=datetime.now(timezone.utc).isoformat(),
+            total=str(invoice.grand_total), vat_total=str(invoice.vat),
+            invoice_hash=invoice_hash,
+        )
+        res = get_zatca_client().clear(xml=xml, invoice_hash=invoice_hash)
+        status, cleared_at, response = res.status, res.cleared_at, res.response
+    else:
+        xml = build_pint_ae_xml(invoice, doc_uuid, previous_hash)
+        invoice_hash = compute_hash(xml)
+        qr = ""
+        res = get_peppol_client().send(xml=xml)
+        status, cleared_at, response = res.status, res.delivered_at, res.response
+
+    return GccEInvoice.objects.create(
+        company=company, invoice=invoice, scheme=scheme, uuid=doc_uuid,
+        invoice_hash=invoice_hash, previous_hash=previous_hash,
+        xml=xml, qr=qr, status=status, cleared_at=cleared_at, response=response,
     )
 
 

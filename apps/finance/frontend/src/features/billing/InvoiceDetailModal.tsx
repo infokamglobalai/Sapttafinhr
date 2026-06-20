@@ -8,6 +8,7 @@ import { useParties } from '@/features/masters/api';
 import {
   useCreatePaymentLink,
   useGenerateEInvoice,
+  useGenerateGccEInvoice,
   useGenerateEWayBill,
   useInvoice,
 } from './api';
@@ -28,7 +29,9 @@ export default function InvoiceDetailModal({ id, onClose, onRecordPayment }: Pro
   const customer = customers?.find((c) => c.id === inv?.customer);
 
   const eInvoice = useGenerateEInvoice();
+  const gccEInvoice = useGenerateGccEInvoice();
   const payLink = useCreatePaymentLink();
+  const isVat = company?.tax_regime === 'GCC_VAT';
 
   const open = id != null;
   const [eWayOpen, setEWayOpen] = useState(false);
@@ -53,6 +56,16 @@ export default function InvoiceDetailModal({ id, onClose, onRecordPayment }: Pro
       toast.success('E-Invoice generated', `IRN: ${String(res.irn).slice(0, 24)}…`);
     } catch (e: any) {
       toast.error('Could not generate E-Invoice', JSON.stringify(e?.response?.data ?? 'Failed'));
+    }
+  };
+
+  const onGccEInvoice = async () => {
+    if (!inv) return;
+    try {
+      const res = await gccEInvoice.mutateAsync(inv.id);
+      toast.success('E-invoice generated', `${res.scheme} · ${res.status} · ${String(res.uuid).slice(0, 8)}…`);
+    } catch (e: any) {
+      toast.error('Could not generate e-invoice', JSON.stringify(e?.response?.data ?? 'Failed'));
     }
   };
 
@@ -96,12 +109,20 @@ export default function InvoiceDetailModal({ id, onClose, onRecordPayment }: Pro
                 <ReceiptIcon size={14} /> Record Payment
               </button>
             )}
-            <button className="btn-ghost inline-flex items-center gap-1 border border-slate-200" onClick={onEInvoice} disabled={eInvoice.isPending}>
-              <FileSignature size={14} /> {eInvoice.isPending ? 'Generating…' : 'Generate E-Invoice'}
-            </button>
-            <button className="btn-ghost inline-flex items-center gap-1 border border-slate-200" onClick={() => setEWayOpen(true)}>
-              <Truck size={14} /> Generate E-Way Bill
-            </button>
+            {isVat ? (
+              <button className="btn-ghost inline-flex items-center gap-1 border border-slate-200" onClick={onGccEInvoice} disabled={gccEInvoice.isPending}>
+                <FileSignature size={14} /> {gccEInvoice.isPending ? 'Generating…' : 'Generate E-Invoice (ZATCA / Peppol)'}
+              </button>
+            ) : (
+              <>
+                <button className="btn-ghost inline-flex items-center gap-1 border border-slate-200" onClick={onEInvoice} disabled={eInvoice.isPending}>
+                  <FileSignature size={14} /> {eInvoice.isPending ? 'Generating…' : 'Generate E-Invoice'}
+                </button>
+                <button className="btn-ghost inline-flex items-center gap-1 border border-slate-200" onClick={() => setEWayOpen(true)}>
+                  <Truck size={14} /> Generate E-Way Bill
+                </button>
+              </>
+            )}
             <button className="btn-ghost inline-flex items-center gap-1 border border-slate-200" onClick={onPaymentLink} disabled={payLink.isPending}>
               <LinkIcon size={14} /> {payLink.isPending ? 'Creating…' : 'Payment Link'}
             </button>

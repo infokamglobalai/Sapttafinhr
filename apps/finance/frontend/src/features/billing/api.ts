@@ -93,6 +93,15 @@ export function useGenerateEInvoice() {
   });
 }
 
+export function useGenerateGccEInvoice() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (invoiceId: number) =>
+      (await api.post(`/taxation/gcc-einvoice/${invoiceId}/`, {})).data,
+    onSuccess: (_, id) => qc.invalidateQueries({ queryKey: ['invoice', id] }),
+  });
+}
+
 export function useGenerateEWayBill() {
   const qc = useQueryClient();
   return useMutation({

@@ -24,6 +24,42 @@ class EInvoiceIRN(TimeStampedModel):
         return f"IRN {self.irn}"
 
 
+class GccEInvoice(TimeStampedModel):
+    """GCC e-invoice document — KSA ZATCA Fatoora or UAE Peppol PINT AE.
+
+    Stores the generated UBL XML, invoice hash + PIH chain, and (for ZATCA) the
+    base64 TLV QR. Real clearance/delivery needs CSID certificates (ZATCA) or an
+    Accredited Service Provider (Peppol); those run behind feature flags.
+    """
+
+    class Scheme(models.TextChoices):
+        ZATCA = "ZATCA", "KSA ZATCA Fatoora"
+        PEPPOL_PINT_AE = "PEPPOL_PINT_AE", "UAE Peppol PINT AE"
+
+    class Status(models.TextChoices):
+        GENERATED = "GENERATED", "Generated"
+        SIGNED = "SIGNED", "Signed"
+        CLEARED = "CLEARED", "Cleared"
+        REPORTED = "REPORTED", "Reported"
+        FAILED = "FAILED", "Failed"
+
+    company = models.ForeignKey(Company, on_delete=models.PROTECT)
+    invoice = models.OneToOneField("billing.Invoice", on_delete=models.CASCADE, related_name="gcc_einvoice")
+    scheme = models.CharField(max_length=16, choices=Scheme.choices)
+    uuid = models.CharField(max_length=64, db_index=True)
+    invoice_hash = models.CharField(max_length=128, blank=True)
+    previous_hash = models.CharField(max_length=128, blank=True,
+                                     help_text="PIH — previous invoice hash (ZATCA chain)")
+    xml = models.TextField(blank=True)
+    qr = models.TextField(blank=True, help_text="ZATCA base64 TLV QR payload")
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.GENERATED)
+    cleared_at = models.DateTimeField(null=True, blank=True)
+    response = models.TextField(blank=True, help_text="Gateway / ASP response")
+
+    def __str__(self):
+        return f"{self.scheme} {self.uuid}"
+
+
 class EWayBill(TimeStampedModel):
     """E-Way Bill against an invoice."""
     company = models.ForeignKey(Company, on_delete=models.PROTECT)
