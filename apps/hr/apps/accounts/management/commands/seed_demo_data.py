@@ -20,7 +20,7 @@ from django.db import transaction
 from django.utils import timezone
 
 DEFAULT_SUBDOMAIN = "acme"
-TARGET_EMPLOYEES = 22
+TARGET_EMPLOYEES = 100
 
 # Named demo logins (platform SSO uses demo@saptta.com / sp@saptta.com from seed_dummy_login)
 DEMO_MANAGER = ("manager@saptta.com", "Demo@1234", "Rahul", "Mehta", "Engineering Manager", 6)
@@ -68,8 +68,21 @@ class Command(BaseCommand):
         random.seed(42)
         subdomain = options["subdomain"].strip().lower()
 
+        # Handle kuwit vs kuwait subdomain spelling differences
+        if subdomain == "kuwit":
+            subdomain = "kuwait"
+
         if not options["skip_login"]:
-            call_command("seed_dummy_login", subdomain=subdomain)
+            if subdomain == "kuwait":
+                call_command(
+                    "seed_dummy_login",
+                    subdomain=subdomain,
+                    email="kuwit@saptta.com",
+                    password="Kuwit@1234",
+                    name="Kuwait LLC",
+                )
+            else:
+                call_command("seed_dummy_login", subdomain=subdomain)
 
         from apps.tenants.models import Tenant
 
@@ -77,6 +90,14 @@ class Command(BaseCommand):
             tenant = Tenant.objects.get(subdomain=subdomain)
         except Tenant.DoesNotExist as exc:
             raise CommandError(f"Tenant '{subdomain}' not found. Run seed_dummy_login first.") from exc
+
+        # Set Kuwait defaults if it's the kuwait tenant
+        if subdomain == "kuwait":
+            tenant.payroll_jurisdiction = "KW"
+            tenant.country = "KW"
+            tenant.currency = "KWD"
+            tenant.timezone = "Asia/Kuwait"
+            tenant.save()
 
         if options["reset"]:
             self._reset_demo_employees(tenant)
@@ -115,7 +136,7 @@ class Command(BaseCommand):
         from apps.employees.models import Employee
         from apps.accounts.models import User
 
-        protected = {"demo@saptta.com", "sp@saptta.com"}
+        protected = {"demo@saptta.com", "sp@saptta.com", "kuwit@saptta.com"}
         emps = Employee.objects.filter(tenant=tenant)
         user_ids = list(emps.exclude(user__email__in=protected).values_list("user_id", flat=True))
         deleted, _ = emps.exclude(user__email__in=protected).delete()
@@ -151,27 +172,13 @@ class Command(BaseCommand):
             desigs[name] = d
 
         loc, _ = OfficeLocation.objects.get_or_create(
-            tenant=tenant, name="Bengaluru HQ",
+            tenant=tenant, name="Bengaluru HQ" if tenant.payroll_jurisdiction != "KW" else "Kuwait City Office",
             defaults={
-                "city": "Bengaluru", "state_code": "IN-KA", "pincode": "560001",
-                "latitude": Decimal("12.9716"), "longitude": Decimal("77.5946"),
-            },
-        )
-
-        leave_el, _ = LeaveType.objects.get_or_create(
-            tenant=tenant, code="EL",
-            defaults={
-                "name": "Earned Leave", "is_paid": True,
-                "accrual_type": "upfront", "accrual_value": Decimal("18"),
-                "max_annual_balance": Decimal("18"),
-            },
-        )
-        leave_sl, _ = LeaveType.objects.get_or_create(
-            tenant=tenant, code="SL",
-            defaults={
-                "name": "Sick Leave", "is_paid": True,
-                "accrual_type": "upfront", "accrual_value": Decimal("12"),
-                "max_annual_balance": Decimal("12"),
+                "city": "Bengaluru" if tenant.payroll_jurisdiction != "KW" else "Kuwait City",
+                "state_code": "IN-KA" if tenant.payroll_jurisdiction != "KW" else "KW",
+                "pincode": "560001" if tenant.payroll_jurisdiction != "KW" else "13001",
+                "latitude": Decimal("12.9716") if tenant.payroll_jurisdiction != "KW" else Decimal("29.3759"),
+                "longitude": Decimal("77.5946") if tenant.payroll_jurisdiction != "KW" else Decimal("47.9774"),
             },
         )
 
@@ -179,20 +186,44 @@ class Command(BaseCommand):
         from apps.attendance.models import Shift
 
         year = timezone.localdate().year
-        cal, _ = HolidayCalendar.objects.get_or_create(
-            tenant=tenant, year=year, name=f"India {year}",
-            defaults={"is_default": True},
-        )
-        demo_holidays = [
-            (datetime.date(year, 1, 26), "Republic Day"),
-            (datetime.date(year, 8, 15), "Independence Day"),
-            (datetime.date(year, 10, 2), "Gandhi Jayanti"),
-        ]
-        for hdate, hname in demo_holidays:
-            Holiday.objects.get_or_create(
-                tenant=tenant, calendar=cal, holiday_date=hdate,
-                defaults={"name": hname, "holiday_type": "national"},
+
+        if tenant.payroll_jurisdiction == "KW":
+            from apps.tenants.regional_packs import seed_regional_defaults
+            seed_regional_defaults(tenant)
+            leave_el = LeaveType.objects.filter(tenant=tenant, code="AL").first()
+            leave_sl = LeaveType.objects.filter(tenant=tenant, code="SL").first()
+        else:
+            leave_el, _ = LeaveType.objects.get_or_create(
+                tenant=tenant, code="EL",
+                defaults={
+                    "name": "Earned Leave", "is_paid": True,
+                    "accrual_type": "upfront", "accrual_value": Decimal("18"),
+                    "max_annual_balance": Decimal("18"),
+                },
             )
+            leave_sl, _ = LeaveType.objects.get_or_create(
+                tenant=tenant, code="SL",
+                defaults={
+                    "name": "Sick Leave", "is_paid": True,
+                    "accrual_type": "upfront", "accrual_value": Decimal("12"),
+                    "max_annual_balance": Decimal("12"),
+                },
+            )
+
+            cal, _ = HolidayCalendar.objects.get_or_create(
+                tenant=tenant, year=year, name=f"India {year}",
+                defaults={"is_default": True},
+            )
+            demo_holidays = [
+                (datetime.date(year, 1, 26), "Republic Day"),
+                (datetime.date(year, 8, 15), "Independence Day"),
+                (datetime.date(year, 10, 2), "Gandhi Jayanti"),
+            ]
+            for hdate, hname in demo_holidays:
+                Holiday.objects.get_or_create(
+                    tenant=tenant, calendar=cal, holiday_date=hdate,
+                    defaults={"name": hname, "holiday_type": "national"},
+                )
 
         Shift.objects.get_or_create(
             tenant=tenant, name="General (9–6)",
@@ -238,6 +269,7 @@ class Command(BaseCommand):
         UserRole.objects.filter(user=user).delete()
         UserRole.objects.create(user=user, role=role)
 
+        is_kw = (tenant.payroll_jurisdiction == "KW")
         emp = Employee.objects.filter(user=user, tenant=tenant).first()
         if emp is None:
             code = self._next_employee_code(tenant)
@@ -247,17 +279,29 @@ class Command(BaseCommand):
                 gender="male" if first in ("Rahul", "Manjunath", "Aarav") else "female",
                 date_of_birth=datetime.date(1988, 3, 15),
                 official_email=email,
-                phone_primary="+919876543210",
+                phone_primary="+96566666666" if is_kw else "+919876543210",
                 department=dept, designation=desig, location=org["location"],
-                work_state_code="IN-KA",
+                work_state_code="KW" if is_kw else "IN-KA",
                 employment_type="full_time", employment_status="active",
                 date_of_joining=datetime.date.today() - datetime.timedelta(days=400),
-                uan_number="100000000001", is_active=True,
+                is_active=True,
             )
-            emp.pan_number = "ABCDE1234F"
-            emp.aadhaar_number = "123456789012"
+            if is_kw:
+                emp.nationality = "KW"
+                emp.is_kuwaiti_national = True
+                emp.civil_id = "288031500001"
+                emp.pifss_number = "10000001"
+            else:
+                emp.pan_number = "ABCDE1234F"
+                emp.aadhaar_number = "123456789012"
+                emp.uan_number = "100000000001"
             emp.save()
-            ctc = Decimal("1800000") if role_name == "manager" else Decimal("960000")
+
+            if is_kw:
+                ctc = Decimal("24000") if role_name == "manager" else Decimal("12000")
+            else:
+                ctc = Decimal("1800000") if role_name == "manager" else Decimal("960000")
+
             basic = (ctc * Decimal("0.40") / 12).quantize(Decimal("0.01"))
             EmployeeSalary.objects.get_or_create(
                 tenant=tenant, employee=emp, structure=org["structure"],
@@ -269,8 +313,10 @@ class Command(BaseCommand):
             if not emp.bank_accounts.exists():
                 bank = EmployeeBankAccount(
                     employee=emp, account_holder_name=emp.full_name,
-                    bank_name="HDFC Bank", branch_name="Bengaluru Main",
-                    ifsc_code="HDFC0001234", account_type="savings",
+                    bank_name="National Bank of Kuwait" if is_kw else "HDFC Bank",
+                    branch_name="Sharq" if is_kw else "Bengaluru Main",
+                    ifsc_code="NBOK0000001" if is_kw else "HDFC0001234",
+                    account_type="savings",
                     is_primary=True, is_verified=True,
                 )
                 bank.account_number = "50100123456789"
@@ -291,22 +337,105 @@ class Command(BaseCommand):
         employee_role = Role.objects.get(tenant=tenant, name="employee")
         created = 0
 
+        # Build list of candidates
+        bulk_specs = []
+        is_kw = (tenant.payroll_jurisdiction == "KW")
+
+        # Start with static list
         for first, last, gender, desig_name, level, dept_name in BULK_EMPLOYEES:
+            bulk_specs.append((first, last, gender, desig_name, level, dept_name))
+
+        # Fill up to target using dynamic generation
+        needed = target - active
+        if needed > len(bulk_specs):
+            first_names_male = [
+                "Aarav", "Arjun", "Aditya", "Amit", "Anoop", "Bhavesh", "Chirag", "Deepak",
+                "Gaurav", "Hari", "Ishaan", "Jatin", "Karthik", "Manjunath", "Nikhil", "Pranav",
+                "Rahul", "Rohan", "Sanjay", "Suresh", "Vikram", "Vivek", "Yash", "Zain",
+                "Ahmed", "Faisal", "Yousef", "Ali", "Mustafa", "Hamad", "Khaled", "Omar",
+                "Tariq", "Saud", "Abdul", "Nasser", "Habib", "Kareem", "Adnan", "Jamil"
+            ]
+            first_names_female = [
+                "Ananya", "Diya", "Kavya", "Neha", "Pooja", "Priya", "Riya", "Sneha",
+                "Swati", "Aisha", "Fatima", "Mariam", "Noor", "Sara", "Amal", "Dina",
+                "Hessa", "Laila", "Mona", "Reem", "Salma", "Yasmin", "Zahra", "Divya",
+                "Meera", "Nisha", "Shruti", "Aditi", "Tanvi", "Kiran", "Jyoti", "Preeti",
+                "Farida", "Huda", "Fatma", "Noura", "Latifa", "Maha", "Alanoud", "Ghalia"
+            ]
+            last_names = [
+                "Sharma", "Patel", "Iyer", "Singh", "Reddy", "Nair", "Gupta", "Khanna",
+                "Joshi", "Verma", "Menon", "Das", "Kapoor", "Rao", "Bansal", "Chopra",
+                "Malhotra", "Yadav", "Al-Sabah", "Al-Fadli", "Al-Harbi", "Al-Mutairi", "Al-Otaibi",
+                "Al-Shammari", "Al-Enezi", "Al-Salem", "Al-Ghanim", "Al-Mulla", "Kumar", "Pillai",
+                "Al-Kandari", "Al-Shatti", "Al-Baghli", "Al-Saeed", "Al-Haddad", "Al-Rashed"
+            ]
+            depts = list(org["depts"].keys())
+            desigs_by_level = {}
+            for name, desig in org["desigs"].items():
+                level = desig.level or 3
+                desigs_by_level.setdefault(level, []).append((name, level))
+            if not desigs_by_level:
+                desigs_by_level = {3: [("Software Engineer", 3)]}
+
+            # Seed names randomly but reproducibly
+            gen_random = random.Random(1337)
+            for _ in range(needed - len(bulk_specs) + 5):
+                gender = "male" if gen_random.random() < 0.5 else "female"
+                first = gen_random.choice(first_names_male if gender == "male" else first_names_female)
+                last = gen_random.choice(last_names)
+                dept_name = gen_random.choice(depts)
+                level_choices = [1] * 10 + [3] * 65 + [4] * 18 + [5] * 5 + [6] * 2
+                level = gen_random.choice(level_choices)
+                desig_list = desigs_by_level.get(level, desigs_by_level.get(3))
+                desig_name, level = gen_random.choice(desig_list)
+                bulk_specs.append((first, last, gender, desig_name, level, dept_name))
+
+        for first, last, gender, desig_name, level, dept_name in bulk_specs:
             if tenant.employees.filter(is_active=True).count() >= target:
                 break
 
-            email = f"{first.lower()}.{last.lower()}@acme.demo"
+            email = f"{first.lower()}.{last.lower()}@kuwit.demo" if is_kw else f"{first.lower()}.{last.lower()}@acme.demo"
             if User.objects.filter(email__iexact=email, tenant=tenant).exists():
-                continue
+                # Append numbers if there is a collision
+                attempts = 1
+                while attempts < 100:
+                    email = f"{first.lower()}.{last.lower()}{attempts}@kuwit.demo" if is_kw else f"{first.lower()}.{last.lower()}{attempts}@acme.demo"
+                    if not User.objects.filter(email__iexact=email, tenant=tenant).exists():
+                        break
+                    attempts += 1
 
             desig = org["desigs"].get(desig_name)
             dept = org["depts"].get(dept_name, list(org["depts"].values())[0])
             user = User.objects.create_user(email=email, tenant=tenant, password="Demo@1234")
             UserRole.objects.create(user=user, role=employee_role)
 
-            ctc = Decimal(str(random.randint(6, 18) * 100000))
+            if is_kw:
+                # Kuwait salary in KWD (e.g. 400 - 3000 KWD monthly)
+                if level == 1:
+                    ctc = Decimal(str(random.randint(400, 600) * 12))
+                elif level == 3:
+                    ctc = Decimal(str(random.randint(800, 1500) * 12))
+                elif level == 4:
+                    ctc = Decimal(str(random.randint(1600, 2200) * 12))
+                elif level == 5:
+                    ctc = Decimal(str(random.randint(2300, 2800) * 12))
+                else:
+                    ctc = Decimal(str(random.randint(3000, 4500) * 12))
+            else:
+                # India salary in INR
+                if level == 1:
+                    ctc = Decimal(str(random.randint(2, 4) * 100000))
+                elif level == 3:
+                    ctc = Decimal(str(random.randint(5, 10) * 100000))
+                elif level == 4:
+                    ctc = Decimal(str(random.randint(11, 16) * 100000))
+                elif level == 5:
+                    ctc = Decimal(str(random.randint(17, 24) * 100000))
+                else:
+                    ctc = Decimal(str(random.randint(25, 45) * 100000))
+
             basic = (ctc * Decimal("0.40") / 12).quantize(Decimal("0.01"))
-            doj = datetime.date.today() - datetime.timedelta(days=random.randint(60, 900))
+            doj = datetime.date.today() - datetime.timedelta(days=random.randint(90, 900))
 
             emp = Employee(
                 tenant=tenant, user=user,
@@ -314,29 +443,50 @@ class Command(BaseCommand):
                 first_name=first, last_name=last, gender=gender,
                 date_of_birth=datetime.date(1990, 6, 1) - datetime.timedelta(days=random.randint(8000, 12000)),
                 official_email=email,
-                phone_primary=f"+91{random.randint(7000000000, 9999999999)}",
+                phone_primary=f"+965{random.randint(50000000, 99999999)}" if is_kw else f"+91{random.randint(7000000000, 9999999999)}",
                 department=dept, designation=desig, location=org["location"],
                 reporting_manager=manager_emp,
-                work_state_code="IN-KA",
+                work_state_code="KW" if is_kw else "IN-KA",
                 employment_type="full_time", employment_status="active",
-                date_of_joining=doj, uan_number=str(random.randint(100000000000, 999999999999)),
-                is_active=True,
+                date_of_joining=doj, is_active=True,
             )
-            emp.pan_number = f"ABCDE{random.randint(1000, 9999)}F"
-            emp.aadhaar_number = str(random.randint(100000000000, 999999999999))
+
+            if is_kw:
+                emp.nationality = "KW" if random.random() < 0.3 else random.choice(["IN", "EG", "BD", "PK"])
+                emp.is_kuwaiti_national = (emp.nationality == "KW")
+                emp.civil_id = "".join(str(random.randint(0, 9)) for _ in range(12))
+                if emp.is_kuwaiti_national:
+                    emp.pifss_number = "".join(str(random.randint(0, 9)) for _ in range(8))
+                else:
+                    emp.residency_number = "".join(str(random.randint(0, 9)) for _ in range(9))
+                    emp.residency_expiry = datetime.date.today() + datetime.timedelta(days=random.randint(30, 730))
+                emp.passport_number = "K" + "".join(str(random.randint(0, 9)) for _ in range(7))
+                emp.passport_expiry = datetime.date.today() + datetime.timedelta(days=random.randint(180, 1800))
+                emp.contract_type = "unlimited"
+            else:
+                emp.uan_number = str(random.randint(100000000000, 999999999999))
+                emp.pan_number = f"ABCDE{random.randint(1000, 9999)}F"
+                emp.aadhaar_number = str(random.randint(100000000000, 999999999999))
+
             emp.save()
 
             EmployeeSalary.objects.create(
                 tenant=tenant, employee=emp, structure=org["structure"],
                 effective_date=doj, ctc_annual=ctc, basic_monthly=basic, is_active=True,
             )
+
+            bank_name = "National Bank of Kuwait" if is_kw else "ICICI Bank"
+            branch_name = "Sharq Branch" if is_kw else "Bengaluru"
+            ifsc_code = "NBOK0000001" if is_kw else "ICIC0001234"
+            acc_number = str(random.randint(1000000000, 9999999999))
+
             bank = EmployeeBankAccount(
                 employee=emp, account_holder_name=emp.full_name,
-                bank_name="ICICI Bank", branch_name="Bengaluru",
-                ifsc_code="ICIC0001234", account_type="savings",
+                bank_name=bank_name, branch_name=branch_name,
+                ifsc_code=ifsc_code, account_type="savings",
                 is_primary=True, is_verified=True,
             )
-            bank.account_number = str(random.randint(10000000000, 99999999999))
+            bank.account_number = acc_number
             bank.save()
             created += 1
 
@@ -351,33 +501,55 @@ class Command(BaseCommand):
         if not employees:
             return
 
+        existing = set(
+            AttendanceRecord.objects.filter(tenant=tenant).values_list("employee_id", "attendance_date")
+        )
+
+        to_create = []
         created = 0
-        for delta in range(14):
+        for delta in range(90):
             d = today - datetime.timedelta(days=delta)
             if d.weekday() >= 5:
                 continue
             for emp in employees:
+                if (emp.id, d) in existing:
+                    continue
                 if random.random() < 0.12:
                     continue
-                _, was_new = AttendanceRecord.objects.get_or_create(
-                    tenant=tenant, employee=emp, attendance_date=d,
-                    defaults={
-                        "status": "present",
-                        "first_in_time": timezone.now(),
-                        "last_out_time": timezone.now(),
-                        "net_working_minutes": random.randint(420, 540),
-                    },
+
+                first_in_hour = random.randint(8, 10)
+                first_in_minute = random.randint(0, 59)
+                last_out_hour = random.randint(17, 19)
+                last_out_minute = random.randint(0, 59)
+
+                first_in = timezone.make_aware(datetime.datetime.combine(d, datetime.time(first_in_hour, first_in_minute)))
+                last_out = timezone.make_aware(datetime.datetime.combine(d, datetime.time(last_out_hour, last_out_minute)))
+
+                to_create.append(
+                    AttendanceRecord(
+                        tenant=tenant, employee=emp, attendance_date=d,
+                        status="present",
+                        first_in_time=first_in,
+                        last_out_time=last_out,
+                        net_working_minutes=random.randint(420, 540),
+                    )
                 )
-                if was_new:
-                    created += 1
+                created += 1
+
+        if to_create:
+            AttendanceRecord.objects.bulk_create(to_create, batch_size=1000)
 
         # One pending regularization for demo queue
         emp = employees[1] if len(employees) > 1 else employees[0]
+        AttendanceRegularization.objects.filter(
+            tenant=tenant, employee=emp, attendance_date=today - datetime.timedelta(days=2)
+        ).delete()
+        
         AttendanceRegularization.objects.get_or_create(
             tenant=tenant, employee=emp, attendance_date=today - datetime.timedelta(days=2),
             defaults={"reason": "Forgot to punch out", "status": "pending"},
         )
-        self.stdout.write(self.style.SUCCESS(f"Attendance: {created} new day-records (14-day window)."))
+        self.stdout.write(self.style.SUCCESS(f"Attendance: {created} new day-records (90-day window)."))
 
     def _seed_leaves(self, tenant, manager_emp):
         from apps.employees.models import Employee
@@ -387,14 +559,14 @@ class Command(BaseCommand):
         today = timezone.localdate()
         year = today.year
         employees = list(Employee.objects.filter(tenant=tenant, is_active=True))
-        leave_el = tenant.leave_types.filter(code="EL").first()
+        leave_el = tenant.leave_types.filter(code__in=["AL", "EL"]).first()
         if not leave_el or not employees:
             return
 
         for emp in employees:
             bal = get_or_create_balance(tenant, emp, leave_el, year)
             if bal.credited < Decimal("12"):
-                bal.credited = Decimal("18")
+                bal.credited = Decimal("30") if tenant.payroll_jurisdiction == "KW" else Decimal("18")
                 bal.save(update_fields=["credited"])
 
         manager_user = manager_emp.user
@@ -415,6 +587,28 @@ class Command(BaseCommand):
         except Exception:
             pass
 
+        # Seed some historical approved leaves over the last 90 days for variety
+        historical_count = 0
+        for _ in range(5):
+            emp = employees[random.randint(5, min(len(employees) - 1, 30))]
+            days_ago = random.randint(10, 80)
+            from_dt = today - datetime.timedelta(days=days_ago)
+            to_dt = from_dt + datetime.timedelta(days=random.randint(0, 2))
+            
+            if LeaveRequest.objects.filter(tenant=tenant, employee=emp, from_date__lte=to_dt, to_date__gte=from_dt).exists():
+                continue
+                
+            try:
+                req = apply_leave(
+                    tenant=tenant, employee=emp, leave_type_id=leave_el.id,
+                    from_date=from_dt, to_date=to_dt,
+                    half_day_type="", reason="Vacation",
+                )
+                approve_leave(req, actioned_by=manager_user, remarks="Enjoy your time off!")
+                historical_count += 1
+            except Exception:
+                pass
+
         # Pending leave requests for admin/manager queue
         def _next_weekday(start_offset):
             d = today + datetime.timedelta(days=start_offset)
@@ -425,6 +619,7 @@ class Command(BaseCommand):
         pending_specs = [
             (employees[3], _next_weekday(7), _next_weekday(9), "Family function"),
             (employees[4], _next_weekday(14), _next_weekday(14), "Medical appointment"),
+            (employees[5], _next_weekday(21), _next_weekday(25), "Annual holiday"),
         ]
         for emp, start, end, reason in pending_specs:
             if LeaveRequest.objects.filter(
@@ -451,7 +646,7 @@ class Command(BaseCommand):
                     self.stdout.write(self.style.WARNING(f"Skip leave for {emp.full_name}: {exc}"))
 
         pending = LeaveRequest.objects.filter(tenant=tenant, status="pending").count()
-        self.stdout.write(self.style.SUCCESS(f"Leave: balances set, {pending} pending request(s)."))
+        self.stdout.write(self.style.SUCCESS(f"Leave: balances set, {historical_count} historical approved, {pending} pending request(s)."))
 
     def _seed_recruitment(self, tenant, org):
         from apps.recruitment.models import JobOpening, Candidate, JobApplication
@@ -490,7 +685,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f"Recruitment: {published} published job(s)."))
 
     def _seed_payroll_run(self, tenant):
-        """Create last month's payroll with records, payslips, and ESS publish."""
+        """Create last 3 months' payroll with records, payslips, and ESS publish."""
         import calendar
 
         from apps.accounts.models import User
@@ -499,63 +694,71 @@ class Command(BaseCommand):
         from apps.payroll.tasks import generate_payslips_for_run, run_payroll_for_tenant
 
         today = timezone.localdate()
-        prev = today.replace(day=1) - datetime.timedelta(days=1)
-        year, month = prev.year, prev.month
-        month_end = datetime.date(year, month, calendar.monthrange(year, month)[1])
-        # Salaries effective after the payroll month cannot be processed
-        EmployeeSalary.objects.filter(
-            tenant=tenant, is_active=True, effective_date__gt=month_end,
-        ).update(effective_date=datetime.date(year, month, 1))
+        admin_email = "kuwit@saptta.com" if tenant.payroll_jurisdiction == "KW" else "demo@saptta.com"
+        admin = User.objects.filter(tenant=tenant, email__iexact=admin_email).first()
+        if not admin:
+            admin = User.objects.filter(tenant=tenant, is_staff=True).first()
 
-        admin = User.objects.filter(tenant=tenant, email__iexact="demo@saptta.com").first()
+        # Seed payroll for the last 3 completed months
+        for i in range(3, 0, -1):
+            d = today
+            for _ in range(i):
+                d = d.replace(day=1) - datetime.timedelta(days=1)
+            year, month = d.year, d.month
+            month_end = datetime.date(year, month, calendar.monthrange(year, month)[1])
 
-        run = PayrollRun.objects.filter(tenant=tenant, year=year, month=month).first()
-        published = Payslip.objects.filter(
-            tenant=tenant, year=year, month=month, is_published=True,
-        ).count()
-        if run and run.records.exists() and published > 0:
-            self.stdout.write(self.style.NOTICE(
-                f"Payroll {year}-{month:02d} already has {published} published payslip(s) — skip."
+            # Salaries effective after the payroll month cannot be processed
+            EmployeeSalary.objects.filter(
+                tenant=tenant, is_active=True, effective_date__gt=month_end,
+            ).update(effective_date=datetime.date(year, month, 1))
+
+            run = PayrollRun.objects.filter(tenant=tenant, year=year, month=month).first()
+            published = Payslip.objects.filter(
+                tenant=tenant, year=year, month=month, is_published=True,
+            ).count()
+            if run and run.records.exists() and published > 0:
+                self.stdout.write(self.style.NOTICE(
+                    f"Payroll {year}-{month:02d} already has {published} published payslip(s) — skip."
+                ))
+                continue
+
+            prepare_month_attendance(tenant, year, month)
+            run, _ = PayrollRun.objects.update_or_create(
+                tenant=tenant, year=year, month=month,
+                defaults={"status": "draft", "run_by": admin},
+            )
+
+            if not run.records.exists():
+                run.status = "draft"
+                run.save(update_fields=["status"])
+                run_payroll_for_tenant(str(tenant.id), run.id)
+                run.refresh_from_db()
+
+            if run.status == "review":
+                run.status = "approved"
+                run.approved_by = admin
+                run.approved_at = timezone.now()
+                run.save(update_fields=["status", "approved_by", "approved_at"])
+                run.records.all().update(is_locked=True, locked_at=timezone.now())
+                try:
+                    generate_payslips_for_run(run.id)
+                except Exception as exc:
+                    self.stdout.write(self.style.WARNING(f"Payslip PDF generation skipped: {exc}"))
+
+            Payslip.objects.filter(
+                tenant=tenant, year=year, month=month, is_published=False,
+            ).update(is_published=True, published_at=timezone.now())
+
+            run.status = "paid"
+            run.paid_at = timezone.now()
+            run.save(update_fields=["status", "paid_at"])
+
+            slip_count = Payslip.objects.filter(tenant=tenant, year=year, month=month).count()
+            record_count = run.records.count()
+            self.stdout.write(self.style.SUCCESS(
+                f"Payroll {year}-{month:02d}: {record_count} records, "
+                f"{slip_count} payslip(s) published for ESS."
             ))
-            return
-
-        prepare_month_attendance(tenant, year, month)
-        run, _ = PayrollRun.objects.update_or_create(
-            tenant=tenant, year=year, month=month,
-            defaults={"status": "draft", "run_by": admin},
-        )
-
-        if not run.records.exists():
-            run.status = "draft"
-            run.save(update_fields=["status"])
-            run_payroll_for_tenant(str(tenant.id), run.id)
-            run.refresh_from_db()
-
-        if run.status == "review":
-            run.status = "approved"
-            run.approved_by = admin
-            run.approved_at = timezone.now()
-            run.save(update_fields=["status", "approved_by", "approved_at"])
-            run.records.all().update(is_locked=True, locked_at=timezone.now())
-            try:
-                generate_payslips_for_run(run.id)
-            except Exception as exc:
-                self.stdout.write(self.style.WARNING(f"Payslip PDF generation skipped: {exc}"))
-
-        Payslip.objects.filter(
-            tenant=tenant, year=year, month=month, is_published=False,
-        ).update(is_published=True, published_at=timezone.now())
-
-        run.status = "paid"
-        run.paid_at = timezone.now()
-        run.save(update_fields=["status", "paid_at"])
-
-        slip_count = Payslip.objects.filter(tenant=tenant, year=year, month=month).count()
-        record_count = run.records.count()
-        self.stdout.write(self.style.SUCCESS(
-            f"Payroll {year}-{month:02d}: {record_count} records, "
-            f"{slip_count} payslip(s) published for ESS."
-        ))
 
     def _next_employee_code(self, tenant):
         from apps.employees.models import Employee
@@ -580,6 +783,9 @@ class Command(BaseCommand):
         ).count()
         pending = LeaveRequest.objects.filter(tenant=tenant, status="pending").count()
 
+        admin_email = "kuwit@saptta.com" if tenant.payroll_jurisdiction == "KW" else "demo@saptta.com"
+        admin_pass = "Kuwit@1234" if tenant.payroll_jurisdiction == "KW" else "Demo@1234"
+
         self.stdout.write("")
         self.stdout.write(self.style.SUCCESS("=" * 60))
         self.stdout.write(self.style.SUCCESS("  HR demo data ready"))
@@ -587,13 +793,12 @@ class Command(BaseCommand):
         self.stdout.write(f"  Workspace:  {tenant.name} ({tenant.subdomain})")
         self.stdout.write(f"  Employees:  {total} active | {present} present today | {pending} leave pending")
         self.stdout.write("")
-        self.stdout.write("  Log in via platform (http://127.0.0.1:5173/login?redirect=hr):")
-        self.stdout.write("    Admin     demo@saptta.com      / Demo@1234")
+        self.stdout.write("  Log in via platform:")
+        self.stdout.write(f"    Admin     {admin_email}      / {admin_pass}")
         self.stdout.write("    Super     sp@saptta.com        / Saptta@2026")
         self.stdout.write("")
         self.stdout.write("  HR-native logins (employee portal / manager views):")
         self.stdout.write(f"    Manager   {manager_emp.user.email}  / Demo@1234")
         self.stdout.write(f"    Employee  {employee_emp.user.email}   / Employee@1234")
         self.stdout.write("")
-        self.stdout.write("  Open: http://localhost:8001/  (after SSO) or /auth/login/")
         self.stdout.write(self.style.SUCCESS("=" * 60))
