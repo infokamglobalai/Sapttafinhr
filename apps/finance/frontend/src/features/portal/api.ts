@@ -73,3 +73,13 @@ export async function fetchPortalInvoices(token: string): Promise<PortalInvoices
   const r = await axios.get<PortalInvoicesResponse>(`${baseURL}/portal/invoices/`, { params: { token } });
   return r.data;
 }
+
+export async function createRazorpayOrder(token: string, invoice_id: number) {
+  const r = await axios.post(`${baseURL}/portal/razorpay/create-order/`, { token, invoice_id });
+  return r.data;
+}
+
+export async function verifyRazorpaySignature(payload: any) {
+  const r = await axios.post(`${baseURL}/portal/razorpay/verify-signature/`, payload);
+  return r.data;
+}

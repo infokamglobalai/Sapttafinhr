@@ -134,6 +134,15 @@ export const usePostableAccounts = (company?: number) =>
       })).data.results,
   });
 
+export const useSeedAccounts = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (company: number) =>
+      (await api.post('/masters/accounts/seed_defaults/', { company })).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['accounts'] }),
+  });
+};
+
 export const useParties = (company?: number, kind?: 'CUSTOMER' | 'VENDOR') =>
   useQuery({
     queryKey: ['parties', company, kind],

@@ -45,6 +45,7 @@ class Subscription(TimeStampedModel):
     current_period_start = models.DateField(null=True, blank=True)
     current_period_end = models.DateField(null=True, blank=True)
     cancelled_at = models.DateTimeField(null=True, blank=True)
+    razorpay_subscription_id = models.CharField(max_length=100, null=True, blank=True)
 
     @property
     def is_commercially_active(self) -> bool:

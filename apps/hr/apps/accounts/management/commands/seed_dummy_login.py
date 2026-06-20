@@ -151,6 +151,21 @@ class Command(BaseCommand):
             UserRole.objects.get_or_create(user=platform_super, role=super_role)
             self.stdout.write(self.style.SUCCESS(f"Created platform superuser {platform_super_email} for HR SSO."))
 
+        # Kuwit demo user
+        kuwit_email = "kuwit@saptta.com"
+        kuwit_user = User.objects.filter(
+            email__iexact=kuwit_email, tenant=tenant
+        ).first()
+        if kuwit_user is None:
+            kuwit_user = User.objects.create_user(
+                email=kuwit_email,
+                tenant=tenant,
+                password="Kuwit@1234",
+            )
+            super_role = Role.objects.get(tenant=tenant, name="super_admin")
+            UserRole.objects.get_or_create(user=kuwit_user, role=super_role)
+            self.stdout.write(self.style.SUCCESS(f"Created kuwit demo user {kuwit_email}."))
+
         if options["reset_employee"]:
             emp_email = (options["employee_email"] or "").strip().lower()
             if not emp_email:

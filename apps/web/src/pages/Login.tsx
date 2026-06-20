@@ -402,38 +402,32 @@ export default function Login() {
 
 
 
-  const handleDemoLogin = async (type: 'admin' | 'saas') => {
-
+  const handleDemoLogin = async (type: 'admin' | 'saas' | 'kuwit') => {
     setError('');
-
     setHandoffFailed(null);
-
     handoffOnceRef.current = true;
-
-    const dEmail = type === 'admin' ? 'demo@saptta.com' : 'sp@saptta.com';
-
-    const dPass = type === 'admin' ? 'Demo@1234' : 'Saptta@2026';
-
-    setEmail(dEmail);
-
-    setPassword(dPass);
-
-    try {
-
-      await login(dEmail, dPass, workspaceParam);
-
-      if (redirectTarget) await performRedirect();
-
-      else navigate(from, { replace: true });
-
-    } catch {
-
-      handoffOnceRef.current = false;
-
-      setError('Demo login unavailable. Check that the API is running.');
-
+    let dEmail = '';
+    let dPass = '';
+    if (type === 'admin') {
+      dEmail = 'demo@saptta.com';
+      dPass = 'Demo@1234';
+    } else if (type === 'saas') {
+      dEmail = 'sp@saptta.com';
+      dPass = 'Saptta@2026';
+    } else if (type === 'kuwit') {
+      dEmail = 'kuwit@saptta.com';
+      dPass = 'Kuwit@1234';
     }
-
+    setEmail(dEmail);
+    setPassword(dPass);
+    try {
+      await login(dEmail, dPass, workspaceParam);
+      if (redirectTarget) await performRedirect();
+      else navigate(from, { replace: true });
+    } catch {
+      handoffOnceRef.current = false;
+      setError('Demo login unavailable. Check that the API is running.');
+    }
   };
 
 
@@ -579,15 +573,10 @@ export default function Login() {
               <div className="login-page__or-divider"><span>or</span></div>
 
               <p className="login-page__demo-inline">
-
                 <span className="login-page__demo-prefix"><SparkleIcon /> Try demo:</span>
-
-                <button type="button" disabled={isLoading} onClick={() => handleDemoLogin('saas')}>Superadmin</button>
-
-                <span className="login-page__demo-sep" aria-hidden>·</span>
-
                 <button type="button" disabled={isLoading} onClick={() => handleDemoLogin('admin')}>Company Admin</button>
-
+                <span className="login-page__demo-sep" aria-hidden>·</span>
+                <button type="button" disabled={isLoading} onClick={() => handleDemoLogin('kuwit')}>demo kuwit</button>
               </p>
 
               <p className="login-page__signup-inline">

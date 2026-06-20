@@ -28,20 +28,19 @@ class TenantAuthBackend(ModelBackend):
         return None
 
     def _get_user_for_auth(self, email, tenant, request):
-        try:
-            return User.objects.get(email__iexact=email, tenant=tenant)
-        except User.DoesNotExist:
-            pass
+        if tenant is not None:
+            try:
+                return User.objects.get(email__iexact=email, tenant=tenant)
+            except User.DoesNotExist:
+                return None
 
-        # Dev: login on http://localhost:8001 without subdomain when tenant is unresolved
-        if tenant is None and settings.DEBUG:
-            host = request.get_host().split(":")[0].lower() if request else ""
-            if host in ("localhost", "127.0.0.1"):
-                qs = User.objects.filter(
-                    email__iexact=email, is_active=True, tenant__isnull=False
-                )
-                if qs.count() == 1:
-                    return qs.first()
+        # When tenant is unresolved (e.g. logging in on hr.saptta.com or plain localhost),
+        # look up the unique active user with this email scoped to any valid tenant.
+        qs = User.objects.filter(
+            email__iexact=email, is_active=True, tenant__isnull=False
+        )
+        if qs.count() == 1:
+            return qs.first()
         return None
 
     def get_user(self, user_id):

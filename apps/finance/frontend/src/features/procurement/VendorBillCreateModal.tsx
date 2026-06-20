@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import Modal from '@/components/Modal';
 import { useActiveCompany } from '@/hooks/useActiveCompany';
-import { usePostableAccounts, useParties, useItems } from '@/features/masters/api';
+import { usePostableAccounts, useParties, useItems, peekNumber } from '@/features/masters/api';
 import { useCreateVendorBill } from './api';
 import { D, formatINR, sum } from '@/lib/money';
 import { toast } from '@/components/Toaster';
@@ -49,7 +49,7 @@ export default function VendorBillCreateModal({ open, onClose, prefill }: { open
     [accounts],
   );
 
-  const [billNo, setBillNo] = useState('VB-0001');
+  const [billNo, setBillNo] = useState('');
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [dueDate, setDueDate] = useState('');
   const [vendorId, setVendorId] = useState<number | undefined>();
@@ -63,6 +63,12 @@ export default function VendorBillCreateModal({ open, onClose, prefill }: { open
     const v = vendors?.find((x) => x.id === vendorId);
     if (v?.state_code) setPlaceOfSupply(v.state_code);
   }, [vendorId, vendors]);
+
+  useEffect(() => {
+    if (open && companyId && (!prefill || !prefill.billNo)) {
+      peekNumber(companyId, 'vendor_bill').then(setBillNo).catch(console.error);
+    }
+  }, [open, companyId, prefill]);
 
   const appliedPrefill = useRef<BillPrefill | undefined>(undefined);
   useEffect(() => {

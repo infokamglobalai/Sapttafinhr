@@ -3,7 +3,7 @@ import { Plus } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import Modal from '@/components/Modal';
 import { useActiveCompany } from '@/hooks/useActiveCompany';
-import { usePostableAccounts, useParties } from '@/features/masters/api';
+import { usePostableAccounts, useParties, peekNumber } from '@/features/masters/api';
 import { useOpenInvoicesForCustomer } from '@/features/billing/api';
 import { useCreateReceipt, useReceipts, type Receipt } from './api';
 import { D, formatINR, sum } from '@/lib/money';
@@ -102,7 +102,7 @@ function ReceiptCreateModal({ open, onClose }: { open: boolean; onClose: () => v
   const { data: accounts } = usePostableAccounts(companyId);
   const create = useCreateReceipt();
 
-  const [receiptNo, setReceiptNo] = useState('REC-0001');
+  const [receiptNo, setReceiptNo] = useState('');
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [customerId, setCustomerId] = useState<number | undefined>();
   const [mode, setMode] = useState<Receipt['mode']>('BANK');
@@ -120,6 +120,12 @@ function ReceiptCreateModal({ open, onClose }: { open: boolean; onClose: () => v
     const acc = accounts.find((a) => a.code === code);
     if (acc) setDepositAccount(acc.id);
   }, [mode, accounts]);
+
+  useEffect(() => {
+    if (open && companyId) {
+      peekNumber(companyId, 'receipt').then(setReceiptNo).catch(console.error);
+    }
+  }, [open, companyId]);
 
   const { data: openInvoices } = useOpenInvoicesForCustomer(companyId, customerId);
 

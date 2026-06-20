@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import Modal from '@/components/Modal';
 import { useActiveCompany } from '@/hooks/useActiveCompany';
 import { useCreateCreditNote, useCreditNotes, useInvoices, type CreditNote } from './api';
+import { peekNumber } from '@/features/masters/api';
 import { D, formatINR } from '@/lib/money';
 import { toast } from '@/components/Toaster';
 import RecordDetailModal, { f } from '@/components/RecordDetailModal';
@@ -95,12 +96,18 @@ function CreditNoteCreateModal({ open, onClose }: { open: boolean; onClose: () =
   const { data: invoices } = useInvoices(companyId);
   const create = useCreateCreditNote();
 
-  const [noteNo, setNoteNo] = useState('CN-0001');
+  const [noteNo, setNoteNo] = useState('');
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [invoiceId, setInvoiceId] = useState<number | undefined>();
   const [taxable, setTaxable] = useState('0');
   const [reason, setReason] = useState('');
   const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open && companyId) {
+      peekNumber(companyId, 'credit_note').then(setNoteNo).catch(console.error);
+    }
+  }, [open, companyId]);
 
   const selectedInvoice = invoices?.find((i) => i.id === invoiceId);
 

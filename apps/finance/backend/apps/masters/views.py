@@ -48,6 +48,17 @@ class AccountViewSet(viewsets.ModelViewSet):
     ordering_fields = ("code", "name")
     ordering = ("code",)
 
+    @action(detail=False, methods=["post"])
+    def seed_defaults(self, request):
+        company_id = request.data.get("company")
+        try:
+            company = Company.objects.get(pk=company_id)
+        except Company.DoesNotExist:
+            return Response({"detail": "company not found"}, status=404)
+        from .coa_template import seed_coa
+        seed_coa(company)
+        return Response({"status": "seeded"})
+
 
 class PartyViewSet(viewsets.ModelViewSet):
     queryset = Party.objects.all()

@@ -324,11 +324,14 @@ export default function AppShell() {
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-ink-50">
       {/* PRIMARY: labeled icon rail */}
-      <aside className="relative z-20 hidden w-[76px] shrink-0 flex-col items-center border-r border-ink-900 bg-ink-950 py-5 md:flex animate-slide-in-left">
-        <div className="mb-6 flex items-center justify-center border-b border-ink-800 pb-5 w-full">
-          <img src="/logo.png" alt="Saptta" className="h-8 w-auto object-contain brightness-0 invert" />
+      <aside className="group/sidebar relative z-20 hidden w-[84px] hover:w-[220px] shrink-0 flex-col items-center hover:items-stretch border-r border-slate-100 bg-white py-6 md:flex transition-[width] duration-300 ease-in-out overflow-hidden shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
+        <div className="mb-8 flex items-center px-[22px] w-full">
+          <div className="relative flex shrink-0 h-10 w-10 group-hover/sidebar:w-full items-center justify-center group-hover/sidebar:justify-start rounded-xl bg-slate-50 group-hover/sidebar:bg-transparent border border-slate-100 group-hover/sidebar:border-transparent transition-all duration-300">
+            <img src="/logo.png" alt="Saptta Fin" className="h-6 group-hover/sidebar:h-10 w-auto object-contain transition-all duration-300" />
+            <div className="absolute -bottom-1 -right-1 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500 group-hover/sidebar:hidden"></div>
+          </div>
         </div>
-        <nav className="flex-1 w-full flex flex-col items-center gap-1.5 mt-1 overflow-x-hidden overflow-y-hidden hover:overflow-y-auto">
+        <nav className="flex-1 w-full flex flex-col items-center hover:items-stretch px-3 gap-2 mt-2 overflow-x-hidden overflow-y-hidden hover:overflow-y-auto custom-scrollbar">
           {SECTIONS.map((s) => {
             const Icon = s.icon;
             const active = activeSectionId === s.id;
@@ -338,32 +341,46 @@ export default function AppShell() {
                 onClick={() => onSectionClick(s)}
                 title={s.label}
                 className={cn(
-                  'relative flex w-[52px] h-[52px] flex-col items-center justify-center rounded-xl transition-all duration-300 outline-none',
+                  'group relative flex h-[48px] w-[48px] group-hover/sidebar:w-full items-center rounded-2xl transition-all duration-300 outline-none',
                   active 
-                    ? 'bg-brand-600 text-white font-semibold shadow-lg shadow-brand-600/30' 
-                    : 'text-ink-400 hover:bg-ink-900 hover:text-ink-100',
+                    ? 'text-brand-600 bg-brand-50 shadow-inner' 
+                    : 'text-slate-400 hover:text-brand-600 hover:bg-brand-50 hover:-translate-y-1 hover:shadow-md',
                 )}
               >
-                <Icon size={20} className={cn("transition-transform duration-300", active ? "scale-105" : "opacity-75")} />
+                <div className="flex h-full w-[48px] shrink-0 items-center justify-center">
+                  <Icon size={22} className={cn("transition-transform duration-300", active ? "scale-110" : "group-hover:scale-110 group-hover:-translate-y-0.5")} />
+                </div>
+                <span className="font-semibold text-[13px] whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 tracking-wide text-left flex-1 pr-4">
+                  {s.label}
+                </span>
+                
                 {s.id === 'uncategorized' && uncategorizedCount > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-sm ring-2 ring-ink-950">
-                    {uncategorizedCount}
+                  <span className="absolute right-0 top-0 group-hover/sidebar:right-3 group-hover/sidebar:top-1/2 group-hover/sidebar:-translate-y-1/2 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white shadow-sm ring-2 ring-white transition-all duration-300">
+                    {uncategorizedCount > 99 ? '99+' : uncategorizedCount}
                   </span>
                 )}
                 {active && (
-                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[4px] h-6 bg-brand-500 rounded-r-full" />
+                  <span className="absolute -left-3 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-brand-500 rounded-r-full transition-all duration-300 opacity-0 group-hover/sidebar:opacity-100" />
+                )}
+                {active && (
+                  <span className="absolute -right-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-brand-500 rounded-full animate-in fade-in zoom-in group-hover/sidebar:opacity-0 transition-opacity duration-300" />
                 )}
               </button>
             );
           })}
         </nav>
-        <div className="relative">
+        <div className="relative mt-auto pt-4 w-full px-3 flex justify-center group-hover/sidebar:justify-start">
           <button
             onClick={() => setAppMenuOpen((v) => !v)}
             title="Products & account"
-            className="flex w-[52px] h-[52px] items-center justify-center rounded-xl text-ink-400 hover:bg-ink-900 hover:text-ink-100 transition-all duration-200"
+            className="group flex h-[48px] w-[48px] group-hover/sidebar:w-full items-center rounded-2xl text-slate-400 hover:bg-slate-50 hover:text-slate-900 transition-all duration-300"
           >
-            <LayoutGrid size={20} />
+            <div className="flex h-full w-[48px] shrink-0 items-center justify-center">
+              <LayoutGrid size={22} className="transition-transform duration-300 group-hover:rotate-90 group-hover:scale-110" />
+            </div>
+            <span className="font-semibold text-[13px] whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 tracking-wide text-left flex-1">
+              Account & Apps
+            </span>
           </button>
           {appMenuOpen && (
             <>
@@ -378,27 +395,29 @@ export default function AppShell() {
 
       {/* SECONDARY: section panel */}
       {showSecondary && (
-        <aside className="relative z-10 hidden w-[230px] shrink-0 flex-col border-r border-ink-150 bg-ink-50/70 backdrop-blur-md py-6 md:flex animate-slide-in-left">
-          <div className="px-6 pb-4 border-b border-ink-200/50 mb-4">
-            <div className="text-[10px] font-bold uppercase tracking-widest text-brand-600">{activeSection!.label}</div>
+        <aside className="relative z-10 hidden w-[260px] shrink-0 flex-col border-r border-slate-100 bg-slate-50/50 py-8 md:flex animate-slide-in-left">
+          <div className="px-6 pb-5 border-b border-transparent mb-2 flex items-center justify-between">
+            <div className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 flex items-center gap-2">
+              {activeSection!.label}
+            </div>
           </div>
           
           {/* Menu Search */}
-          <div className="relative mx-3.5 mb-5">
+          <div className="relative mx-4 mb-6 group">
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search menus..."
-              className="w-full pl-8 pr-8 py-2 text-xs font-normal bg-white rounded-xl text-ink-900 border border-ink-200 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 shadow-sm transition-all duration-200"
+              className="w-full pl-9 pr-8 py-2.5 text-[13px] font-medium bg-transparent rounded-full text-slate-900 border border-slate-200 outline-none focus:border-brand-300 focus:ring-4 focus:ring-brand-500/10 focus:bg-white transition-all duration-300 placeholder-slate-400"
             />
-            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-400 pointer-events-none" />
+            <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-500 transition-colors" />
             {searchQuery && (
-              <button onClick={() => setSearchQuery('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-ink-400 hover:text-ink-900">✕</button>
+              <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 flex items-center justify-center rounded-full bg-slate-200 text-[10px] text-slate-600 hover:bg-slate-300 hover:text-slate-900 transition-colors">✕</button>
             )}
           </div>
 
-          <nav className="flex-1 overflow-y-hidden hover:overflow-y-auto px-3 space-y-1 text-xs">
+          <nav className="flex-1 overflow-y-hidden hover:overflow-y-auto px-4 space-y-0.5 text-[13px] font-medium custom-scrollbar">
             {activeSection!.children!
               .filter((child) => childVisible(child, activeRegime))
               .filter((child) => !searchQuery || child.label.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -411,31 +430,32 @@ export default function AppShell() {
                     onClick={() => go(child.id)}
                     title={child.description}
                     className={cn(
-                      'flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-left transition-all duration-200',
+                      'group flex w-full items-center gap-3.5 rounded-lg px-3 py-2.5 text-left transition-all duration-300 relative',
                       active 
-                        ? 'bg-white text-brand-600 font-bold shadow-sm border border-brand-100/50' 
-                        : 'text-ink-600 hover:bg-white/50 hover:text-ink-900',
+                        ? 'text-brand-700 bg-white shadow-sm ring-1 ring-slate-200/50' 
+                        : 'text-slate-500 hover:text-brand-600 hover:bg-white hover:shadow-sm hover:translate-x-1',
                     )}
                   >
-                    <Icon size={14} className={cn("shrink-0 transition-colors duration-200", active ? "text-brand-500" : "opacity-60")} />
+                    {active && <span className="absolute -left-1.5 top-1/2 -translate-y-1/2 w-1 h-4 bg-brand-500 rounded-full"></span>}
+                    <Icon size={16} className={cn("shrink-0 transition-transform duration-300", active ? "text-brand-600" : "opacity-60 group-hover:scale-110")} />
                     <span className="truncate">{child.label}</span>
                   </button>
                 );
               })}
           </nav>
-          <div className="border-t border-ink-200/60 px-5 pt-4 text-[10px] text-ink-500">
-            <div className="flex items-center gap-1.5 mb-3">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-              System operational
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="h-6 w-6 rounded-full bg-brand-500 text-white flex items-center justify-center font-bold text-[10px] shrink-0 shadow-sm">
+          
+          {/* User / Status Bottom Area */}
+          <div className="mt-4 mx-4 pt-4 border-t border-slate-200/60">
+            <div className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer" onClick={() => setAppMenuOpen(true)}>
+              <div className="h-8 w-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-xs shrink-0 border border-slate-200">
                 {user?.email?.charAt(0).toUpperCase() ?? 'U'}
               </div>
-              <div className="truncate font-medium text-ink-700" title={user?.email}>{user?.email}</div>
+              <div className="flex-1 min-w-0">
+                <div className="truncate font-semibold text-slate-800 text-xs" title={user?.email}>{user?.email?.split('@')[0]}</div>
+                <div className="text-[10px] text-emerald-600 font-medium flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 inline-block"></span> Online
+                </div>
+              </div>
             </div>
           </div>
         </aside>
@@ -444,10 +464,10 @@ export default function AppShell() {
       {/* MAIN with TOP BAR */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Top bar: breadcrumb + quick create */}
-        <header className="flex h-16 shrink-0 items-center justify-between border-b border-ink-150 bg-white px-6 md:px-8">
+        <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-100 bg-white px-6 md:px-8 z-20 sticky top-0">
           <div className="flex items-center gap-3">
             <button
-              className="md:hidden rounded-xl p-2 text-ink-500 hover:bg-ink-100"
+              className="md:hidden rounded-xl p-2 text-slate-500 hover:bg-slate-100"
               onClick={() => setMobileNavOpen(true)}
               aria-label="Open menu"
             >
@@ -455,14 +475,15 @@ export default function AppShell() {
             </button>
             <Breadcrumb sectionLabel={activeSection?.label} subLabel={currentSub?.label} />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
             <NotificationBell />
             <div className="relative">
               <button
                 onClick={() => setQuickOpen((o) => !o)}
-                className="btn-primary inline-flex items-center gap-1.5 shadow-sm shadow-brand-500/10"
+                className="group inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-all duration-300 hover:border-brand-500 hover:text-brand-600 active:scale-95 shadow-sm"
               >
-                <Plus size={16} /> Quick Create
+                <Plus size={16} className="transition-transform duration-300 group-hover:rotate-90" />
+                <span>Create</span>
               </button>
               {quickOpen && (
                 <>
@@ -619,12 +640,12 @@ export default function AppShell() {
 
 function Breadcrumb({ sectionLabel, subLabel }: { sectionLabel?: string; subLabel?: string }) {
   return (
-    <nav className="flex items-center gap-2 text-xs font-semibold tracking-wider uppercase text-ink-400">
-      <span>{sectionLabel ?? 'Home'}</span>
+    <nav className="flex items-center gap-2 text-[13px] font-semibold tracking-wide text-slate-400">
+      <span className="text-slate-500 hover:text-slate-800 transition-colors cursor-pointer">{sectionLabel ?? 'Home'}</span>
       {subLabel && (
         <>
-          <ChevronRight size={12} className="text-ink-300" />
-          <span className="font-bold text-ink-900">{subLabel}</span>
+          <span className="text-slate-300">/</span>
+          <span className="text-slate-900">{subLabel}</span>
         </>
       )}
     </nav>

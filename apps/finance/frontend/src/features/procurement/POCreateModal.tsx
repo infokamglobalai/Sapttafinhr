@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import Modal from '@/components/Modal';
 import { useActiveCompany } from '@/hooks/useActiveCompany';
-import { useItems, useParties } from '@/features/masters/api';
+import { useItems, useParties, peekNumber } from '@/features/masters/api';
 import { useCreatePO } from './api';
 import { D, formatINR, sum } from '@/lib/money';
 import { toast } from '@/components/Toaster';
@@ -29,13 +29,19 @@ export default function POCreateModal({ open, onClose }: { open: boolean; onClos
   const { data: items } = useItems(companyId);
   const create = useCreatePO();
 
-  const [poNo, setPoNo] = useState('PO-0001');
+  const [poNo, setPoNo] = useState('');
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [deliveryDate, setDeliveryDate] = useState('');
   const [vendorId, setVendorId] = useState<number | undefined>();
   const [notes, setNotes] = useState('');
   const [lines, setLines] = useState<DraftLine[]>([emptyLine()]);
   const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open && companyId) {
+      peekNumber(companyId, 'purchase_order').then(setPoNo).catch(console.error);
+    }
+  }, [open, companyId]);
 
   const totals = useMemo(() => {
     const computed = lines.map((l) => {

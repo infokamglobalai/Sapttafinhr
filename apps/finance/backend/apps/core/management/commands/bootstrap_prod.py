@@ -103,6 +103,15 @@ class Command(BaseCommand):
             )
             self.stdout.write(self.style.SUCCESS("Created demo admin: demo@saptta.com / Demo@1234"))
 
+        # Create Kuwit demo user
+        if not User.objects.filter(email="kuwit@saptta.com").exists():
+            User.objects.create_user(
+                email="kuwit@saptta.com",
+                password="Kuwit@1234",
+                full_name="Demo Kuwit",
+            )
+            self.stdout.write(self.style.SUCCESS("Created demo kuwit: kuwit@saptta.com / Kuwit@1234"))
+
         # 5. Inside Acme schema: seed Company, COA, Fiscal Year, and basic data
         with schema_context("acme"):
             company, created = Company.objects.get_or_create(

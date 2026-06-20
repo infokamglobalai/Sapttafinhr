@@ -55,6 +55,29 @@ export default function SetupWizard({ onComplete }: { onComplete: () => void }) 
 
   const [bank, setBank] = useState({ name: '', bank_name: '', account_number: '', ifsc: '', branch: '', opening_balance: '0', ledger_account: '' });
 
+  useEffect(() => {
+    if (bank.ifsc.length === 11) {
+      fetch(`https://ifsc.razorpay.com/${bank.ifsc}`)
+        .then((res) => {
+          if (!res.ok) throw new Error('Invalid IFSC');
+          return res.json();
+        })
+        .then((data) => {
+          if (data && data.BRANCH) {
+            setBank((prev) => ({
+              ...prev,
+              branch: data.BRANCH,
+              bank_name: prev.bank_name || data.BANK,
+            }));
+            toast.success('IFSC verified', `${data.BANK}, ${data.BRANCH}`);
+          }
+        })
+        .catch(() => {
+          toast.error('Could not verify IFSC', 'Please check the code or enter branch manually.');
+        });
+    }
+  }, [bank.ifsc]);
+
   // Suggest a bank-type GL account (code starting 112x) for the bank step.
   const bankAccountOptions = useMemo(
     () => (accounts ?? []).filter((a) => a.type === 'ASSET'),
@@ -172,10 +195,34 @@ export default function SetupWizard({ onComplete }: { onComplete: () => void }) 
                 <Field label="IFSC"><input className="input font-mono" value={bank.ifsc} onChange={(e) => setBank((p) => ({ ...p, ifsc: e.target.value.toUpperCase() }))} /></Field>
                 <Field label="Opening balance"><input className="input" value={bank.opening_balance} onChange={(e) => setBank((p) => ({ ...p, opening_balance: e.target.value }))} /></Field>
                 <Field label="GL account">
-                  <select className="input" value={bank.ledger_account} onChange={(e) => setBank((p) => ({ ...p, ledger_account: e.target.value }))}>
-                    <option value="">Select…</option>
-                    {bankAccountOptions.map((a) => <option key={a.id} value={a.id}>{a.code} — {a.name}</option>)}
-                  </select>
+                  <div className="flex flex-col gap-2 w-full">
+                    {(!accounts || bankAccountOptions.length === 0) ? (
+                      <div className="flex flex-col gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg mt-1">
+                        <div className="text-sm text-amber-800 font-medium">
+                          <strong>Missing Accounts:</strong> You must initialize standard ledgers first.
+                        </div>
+                        <button 
+                          type="button"
+                          className="btn-primary w-full bg-amber-600 hover:bg-amber-700 focus:ring-amber-500"
+                          onClick={() => {
+                            if (!companyId) return;
+                            fetch(`/api/v1/masters/accounts/seed_defaults/`, {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('access_token')}` },
+                              body: JSON.stringify({ company: companyId })
+                            }).then(() => window.location.reload());
+                          }}
+                        >
+                          Initialize Default Accounts Now
+                        </button>
+                      </div>
+                    ) : (
+                      <select className="input w-full" value={bank.ledger_account} onChange={(e) => setBank((p) => ({ ...p, ledger_account: e.target.value }))}>
+                        <option value="">Select…</option>
+                        {bankAccountOptions.map((a) => <option key={a.id} value={a.id}>{a.code} — {a.name}</option>)}
+                      </select>
+                    )}
+                  </div>
                 </Field>
               </div>
               <div className="flex items-center justify-between">

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Modal from '@/components/Modal';
 import { useActiveCompany } from '@/hooks/useActiveCompany';
-import { useParties, usePostableAccounts } from '@/features/masters/api';
+import { useParties, usePostableAccounts, peekNumber } from '@/features/masters/api';
 import { api } from '@/lib/api';
 import { D, formatINR, sum } from '@/lib/money';
 import type { VendorBill } from './api';
@@ -41,7 +41,7 @@ export default function VendorPaymentCreateModal({ open, onClose }: { open: bool
   const { data: accounts } = usePostableAccounts(companyId);
   const create = useCreateVendorPayment();
 
-  const [paymentNo, setPaymentNo] = useState('VP-0001');
+  const [paymentNo, setPaymentNo] = useState('');
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [vendorId, setVendorId] = useState<number | undefined>();
   const [mode, setMode] = useState('BANK');
@@ -60,6 +60,12 @@ export default function VendorPaymentCreateModal({ open, onClose }: { open: bool
     const acc = accounts.find((a) => a.code === code);
     if (acc) setPaidFrom(acc.id);
   }, [mode, accounts]);
+
+  useEffect(() => {
+    if (open && companyId) {
+      peekNumber(companyId, 'vendor_payment').then(setPaymentNo).catch(console.error);
+    }
+  }, [open, companyId]);
 
   const totalAllocated = useMemo(
     () => sum(Object.values(allocations).map((v) => v || 0)),
