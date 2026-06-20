@@ -54,6 +54,7 @@ export interface InvoiceLineInput {
   unit_price: string;
   discount_percent: string;
   tax_rate: string;
+  supply_type?: string; // GCC VAT: STANDARD | ZERO_RATED | EXEMPT
 }
 
 export interface InvoiceCreateInput {
@@ -63,7 +64,7 @@ export interface InvoiceCreateInput {
   date: string;
   due_date?: string | null;
   customer: number;
-  place_of_supply: string;
+  place_of_supply?: string;
   currency?: string;
   fx_rate?: string | number;
   notes?: string;

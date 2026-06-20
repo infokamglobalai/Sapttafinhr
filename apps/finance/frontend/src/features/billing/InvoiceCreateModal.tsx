@@ -4,22 +4,28 @@ import Modal from '@/components/Modal';
 import { useActiveCompany } from '@/hooks/useActiveCompany';
 import { useItems, useParties, peekNumber } from '@/features/masters/api';
 import { useCreateInvoice, type InvoiceLineInput } from './api';
-import { D, formatINR, sum } from '@/lib/money';
+import { D, formatMoney, sum } from '@/lib/money';
 import { toast } from '@/components/Toaster';
 
 interface Props { open: boolean; onClose: () => void; }
 
 interface DraftLine extends InvoiceLineInput { tmpId: string; }
 
-const emptyLine = (): DraftLine => ({
+const emptyLine = (rate = '18'): DraftLine => ({
   tmpId: crypto.randomUUID(),
   item: null, description: '', hsn_code: '',
-  quantity: '1', unit_price: '0', discount_percent: '0', tax_rate: '18',
+  quantity: '1', unit_price: '0', discount_percent: '0', tax_rate: rate,
+  supply_type: 'STANDARD',
 });
+
+const CURRENCIES = ['INR', 'USD', 'EUR', 'GBP', 'AED', 'SAR', 'QAR', 'KWD', 'BHD', 'OMR', 'SGD', 'AUD', 'CAD', 'JPY', 'CNY'];
 
 export default function InvoiceCreateModal({ open, onClose }: Props) {
   const { companyId, fyId, companies } = useActiveCompany();
   const seller = companies?.find((c) => c.id === companyId);
+  const isVat = seller?.tax_regime === 'GCC_VAT';
+  const baseCcy = seller?.base_currency || 'INR';
+  const standardRate = isVat ? String(seller?.standard_vat_rate ?? '5') : '18';
   const { data: customers } = useParties(companyId, 'CUSTOMER');
   const { data: items } = useItems(companyId);
   const create = useCreateInvoice();
@@ -33,29 +39,35 @@ export default function InvoiceCreateModal({ open, onClose }: Props) {
   const [fxRate, setFxRate] = useState('1');
   const [notes, setNotes] = useState('');
   const [lines, setLines] = useState<DraftLine[]>([emptyLine()]);
+  const [err, setErr] = useState<string | null>(null);
 
-  const CURRENCIES = ['INR','USD','EUR','GBP','AED','SGD','AUD','CAD','JPY','CNY'];
-
-  // Auto-lookup stored exchange rate when currency changes
+  // GCC company: default the invoice currency to its base, and switch any
+  // pristine GST-default lines to the standard VAT rate.
   useEffect(() => {
-    if (currency === 'INR' || !companyId) { setFxRate('1'); return; }
+    if (isVat) {
+      setCurrency(baseCcy);
+      setLines((p) => p.map((l) => (l.tax_rate === '18' ? { ...l, tax_rate: standardRate } : l)));
+    }
+  }, [isVat, baseCcy, standardRate]);
+
+  // Auto-lookup stored exchange rate when currency differs from base.
+  useEffect(() => {
+    if (currency === baseCcy || !companyId) { setFxRate('1'); return; }
     import('@/lib/api').then(({ api }) =>
       api.get('/masters/exchange-rates/', { params: { company: companyId, currency } })
         .then(r => { const rate = r.data.rates?.[0]?.rate; if (rate) setFxRate(String(rate)); })
         .catch(() => {})
     );
-  }, [currency, companyId]);
-  const [err, setErr] = useState<string | null>(null);
+  }, [currency, companyId, baseCcy]);
 
-  // Suggest the next invoice number from the server whenever the modal opens,
-  // so it follows the company's configured series instead of always "INV-0001".
+  // Suggest the next invoice number from the configured series when opening.
   useEffect(() => {
     if (open && companyId != null) {
       peekNumber(companyId, 'invoice').then(setInvoiceNo).catch(() => {});
     }
   }, [open, companyId]);
 
-  // Auto-set place of supply when customer selected
+  // Auto-set place of supply when customer selected (India GST).
   useEffect(() => {
     const cust = customers?.find((c) => c.id === customerId);
     if (cust?.state_code) setPlaceOfSupply(cust.state_code);
@@ -63,33 +75,40 @@ export default function InvoiceCreateModal({ open, onClose }: Props) {
 
   const sellerState = seller?.state_code ?? '';
   const isInterState = sellerState !== '' && placeOfSupply !== '' && sellerState !== placeOfSupply;
+  const m = (v: import('decimal.js').default) => formatMoney(v, currency);
 
-  // Compute totals live (mirroring backend math)
+  // Compute totals live (mirroring backend math).
   const computed = useMemo(() => {
     const computedLines = lines.map((l) => {
       const gross = D(l.quantity).times(D(l.unit_price));
       const disc = gross.times(D(l.discount_percent)).div(100);
       const taxable = gross.minus(disc);
       const tax = taxable.times(D(l.tax_rate)).div(100);
+      if (isVat) {
+        const zero = l.supply_type === 'ZERO_RATED' || l.supply_type === 'EXEMPT';
+        const vat = zero ? D(0) : tax;
+        return { ...l, taxable, cgst: D(0), sgst: D(0), igst: D(0), vat, total: taxable.plus(vat) };
+      }
       const cgst = isInterState ? D(0) : tax.div(2);
       const sgst = isInterState ? D(0) : tax.minus(cgst);
       const igst = isInterState ? tax : D(0);
-      return { ...l, taxable, cgst, sgst, igst, total: taxable.plus(tax) };
+      return { ...l, taxable, cgst, sgst, igst, vat: D(0), total: taxable.plus(tax) };
     });
     const totals = {
       taxable: sum(computedLines.map((l) => l.taxable)),
       cgst: sum(computedLines.map((l) => l.cgst)),
       sgst: sum(computedLines.map((l) => l.sgst)),
       igst: sum(computedLines.map((l) => l.igst)),
+      vat: sum(computedLines.map((l) => l.vat)),
       total: sum(computedLines.map((l) => l.total)),
     };
     return { computedLines, totals };
-  }, [lines, isInterState]);
+  }, [lines, isInterState, isVat]);
 
   const updateLine = (idx: number, patch: Partial<DraftLine>) =>
     setLines((p) => p.map((l, i) => (i === idx ? { ...l, ...patch } : l)));
 
-  const addLine = () => setLines((p) => [...p, emptyLine()]);
+  const addLine = () => setLines((p) => [...p, emptyLine(standardRate)]);
   const removeLine = (idx: number) => setLines((p) => p.filter((_, i) => i !== idx));
 
   const onItemPick = (idx: number, itemId: number) => {
@@ -117,26 +136,27 @@ export default function InvoiceCreateModal({ open, onClose }: Props) {
         date,
         due_date: dueDate || null,
         customer: customerId,
-        place_of_supply: placeOfSupply,
+        place_of_supply: isVat ? '' : placeOfSupply,
         currency,
         fx_rate: fxRate,
         notes,
         lines: lines.map(({ tmpId: _t, ...rest }) => rest),
       });
-      // bump invoice number
-      const m = invoiceNo.match(/(\d+)(?!.*\d)/);
-      const next = m ? invoiceNo.replace(/(\d+)(?!.*\d)/, String(Number(m[1]) + 1).padStart(m[1].length, '0')) : 'INV-0001';
+      const mm = invoiceNo.match(/(\d+)(?!.*\d)/);
+      const next = mm ? invoiceNo.replace(/(\d+)(?!.*\d)/, String(Number(mm[1]) + 1).padStart(mm[1].length, '0')) : 'INV-0001';
       setInvoiceNo(next);
-      setLines([emptyLine()]);
+      setLines([emptyLine(standardRate)]);
       setNotes('');
       setCustomerId(undefined);
       onClose();
-      toast.success(`Invoice ${inv.invoice_no} posted`, `Total ${formatINR(inv.grand_total)} · Journal Entry #${inv.journal_entry}`);
+      toast.success(`Invoice ${inv.invoice_no} posted`, `Total ${formatMoney(inv.grand_total, currency)} · Journal Entry #${inv.journal_entry}`);
     } catch (e: unknown) {
       const er = e as { response?: { data?: unknown } };
       setErr(JSON.stringify(er.response?.data ?? 'Save failed'));
     }
   };
+
+  const taxPct = isVat ? 'VAT%' : 'GST%';
 
   return (
     <Modal open={open} onClose={onClose} title="New Sales Invoice" size="xl">
@@ -161,16 +181,17 @@ export default function InvoiceCreateModal({ open, onClose }: Props) {
             <label className="label">Due Date</label>
             <input className="input" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
           </div>
-          <div>
-            <label className="label">Place of Supply (state)</label>
-            <input className="input" maxLength={2} value={placeOfSupply} onChange={(e) => setPlaceOfSupply(e.target.value)} />
-            <div className="mt-1 text-xs text-slate-500">
-              Seller: {sellerState || '—'} → {isInterState ? <span className="text-amber-700">Inter-state (IGST)</span> : <span className="text-emerald-700">Intra-state (CGST+SGST)</span>}
+          {!isVat && (
+            <div>
+              <label className="label">Place of Supply (state)</label>
+              <input className="input" maxLength={2} value={placeOfSupply} onChange={(e) => setPlaceOfSupply(e.target.value)} />
+              <div className="mt-1 text-xs text-slate-500">
+                Seller: {sellerState || '—'} → {isInterState ? <span className="text-amber-700">Inter-state (IGST)</span> : <span className="text-emerald-700">Intra-state (CGST+SGST)</span>}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
-        {/* Currency row — only shown when non-INR or explicitly expanded */}
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           <div>
             <label className="label">Currency</label>
@@ -178,13 +199,13 @@ export default function InvoiceCreateModal({ open, onClose }: Props) {
               {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
-          {currency !== 'INR' && (
+          {currency !== baseCcy && (
             <div>
-              <label className="label">Exchange Rate (1 {currency} = ? INR)</label>
+              <label className="label">Exchange Rate (1 {currency} = ? {baseCcy})</label>
               <input className="input font-mono" type="number" step="0.0001" value={fxRate}
                 onChange={e => setFxRate(e.target.value)} />
               <div className="mt-1 text-xs text-slate-500">
-                Total in INR: {formatINR(computed.totals.total.times(fxRate || 1))}
+                Total in {baseCcy}: {formatMoney(computed.totals.total.times(fxRate || 1), baseCcy)}
               </div>
             </div>
           )}
@@ -196,11 +217,12 @@ export default function InvoiceCreateModal({ open, onClose }: Props) {
               <tr>
                 <th className="px-2 py-2">Item</th>
                 <th className="px-2 py-2">Description</th>
-                <th className="px-2 py-2">HSN</th>
+                {!isVat && <th className="px-2 py-2">HSN</th>}
                 <th className="px-2 py-2 text-right">Qty</th>
                 <th className="px-2 py-2 text-right">Rate</th>
                 <th className="px-2 py-2 text-right">Disc%</th>
-                <th className="px-2 py-2 text-right">GST%</th>
+                <th className="px-2 py-2 text-right">{taxPct}</th>
+                {isVat && <th className="px-2 py-2">Type</th>}
                 <th className="px-2 py-2 text-right">Taxable</th>
                 <th className="px-2 py-2 text-right">Tax</th>
                 <th className="px-2 py-2 text-right">Total</th>
@@ -219,9 +241,11 @@ export default function InvoiceCreateModal({ open, onClose }: Props) {
                   <td className="px-2 py-1">
                     <input className="input text-xs" value={line.description} onChange={(e) => updateLine(idx, { description: e.target.value })} />
                   </td>
-                  <td className="px-2 py-1">
-                    <input className="input font-mono text-xs" value={line.hsn_code} onChange={(e) => updateLine(idx, { hsn_code: e.target.value })} />
-                  </td>
+                  {!isVat && (
+                    <td className="px-2 py-1">
+                      <input className="input font-mono text-xs" value={line.hsn_code} onChange={(e) => updateLine(idx, { hsn_code: e.target.value })} />
+                    </td>
+                  )}
                   <td className="px-2 py-1">
                     <input className="input text-right text-xs tabular-nums" inputMode="decimal" value={line.quantity} onChange={(e) => updateLine(idx, { quantity: e.target.value })} />
                   </td>
@@ -234,13 +258,24 @@ export default function InvoiceCreateModal({ open, onClose }: Props) {
                   <td className="px-2 py-1">
                     <input className="input text-right text-xs tabular-nums" inputMode="decimal" value={line.tax_rate} onChange={(e) => updateLine(idx, { tax_rate: e.target.value })} />
                   </td>
-                  <td className="px-2 py-1 text-right text-xs tabular-nums">{formatINR(line.taxable)}</td>
+                  {isVat && (
+                    <td className="px-2 py-1">
+                      <select className="input text-xs" value={line.supply_type ?? 'STANDARD'} onChange={(e) => updateLine(idx, { supply_type: e.target.value })}>
+                        <option value="STANDARD">Standard</option>
+                        <option value="ZERO_RATED">Zero-rated</option>
+                        <option value="EXEMPT">Exempt</option>
+                      </select>
+                    </td>
+                  )}
+                  <td className="px-2 py-1 text-right text-xs tabular-nums">{m(line.taxable)}</td>
                   <td className="px-2 py-1 text-right text-xs tabular-nums text-slate-500">
-                    {isInterState
-                      ? `I ${formatINR(line.igst)}`
-                      : `C+S ${formatINR(line.cgst.plus(line.sgst))}`}
+                    {isVat
+                      ? m(line.vat)
+                      : isInterState
+                        ? `I ${m(line.igst)}`
+                        : `C+S ${m(line.cgst.plus(line.sgst))}`}
                   </td>
-                  <td className="px-2 py-1 text-right text-xs font-medium tabular-nums">{formatINR(line.total)}</td>
+                  <td className="px-2 py-1 text-right text-xs font-medium tabular-nums">{m(line.total)}</td>
                   <td className="px-2 py-1">
                     <button className="btn-ghost p-1" onClick={() => removeLine(idx)} disabled={lines.length <= 1}>
                       <Trash2 size={14} />
@@ -263,17 +298,19 @@ export default function InvoiceCreateModal({ open, onClose }: Props) {
             <textarea className="input" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
           </div>
           <div className="card space-y-1 bg-slate-50 text-sm">
-            <Row label="Taxable" value={computed.totals.taxable} />
-            {!isInterState ? (
+            <Row label="Taxable" value={computed.totals.taxable} ccy={currency} />
+            {isVat ? (
+              <Row label="VAT" value={computed.totals.vat} ccy={currency} muted />
+            ) : !isInterState ? (
               <>
-                <Row label="CGST" value={computed.totals.cgst} muted />
-                <Row label="SGST" value={computed.totals.sgst} muted />
+                <Row label="CGST" value={computed.totals.cgst} ccy={currency} muted />
+                <Row label="SGST" value={computed.totals.sgst} ccy={currency} muted />
               </>
             ) : (
-              <Row label="IGST" value={computed.totals.igst} muted />
+              <Row label="IGST" value={computed.totals.igst} ccy={currency} muted />
             )}
             <div className="border-t border-slate-200 pt-2">
-              <Row label="Grand Total" value={computed.totals.total} bold />
+              <Row label="Grand Total" value={computed.totals.total} ccy={currency} bold />
             </div>
           </div>
         </div>
@@ -291,11 +328,11 @@ export default function InvoiceCreateModal({ open, onClose }: Props) {
   );
 }
 
-function Row({ label, value, bold, muted }: { label: string; value: import('decimal.js').default; bold?: boolean; muted?: boolean }) {
+function Row({ label, value, ccy = 'INR', bold, muted }: { label: string; value: import('decimal.js').default; ccy?: string; bold?: boolean; muted?: boolean }) {
   return (
     <div className={`flex items-center justify-between ${muted ? 'text-slate-500' : ''}`}>
       <div className={bold ? 'font-semibold' : ''}>{label}</div>
-      <div className={`tabular-nums ${bold ? 'font-semibold' : ''}`}>{formatINR(value)}</div>
+      <div className={`tabular-nums ${bold ? 'font-semibold' : ''}`}>{formatMoney(value, ccy)}</div>
     </div>
   );
 }

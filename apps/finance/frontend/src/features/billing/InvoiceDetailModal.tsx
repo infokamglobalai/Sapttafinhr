@@ -14,7 +14,7 @@ import {
 } from './api';
 import { downloadInvoicePdf } from '@/lib/pdf';
 import { printBilingualInvoice } from '@/lib/invoicePrint';
-import { formatINR } from '@/lib/money';
+import { formatMoney } from '@/lib/money';
 
 interface Props {
   id: number | null;
@@ -33,6 +33,8 @@ export default function InvoiceDetailModal({ id, onClose, onRecordPayment }: Pro
   const gccEInvoice = useGenerateGccEInvoice();
   const payLink = useCreatePaymentLink();
   const isVat = company?.tax_regime === 'GCC_VAT';
+  const ccy = company?.base_currency || 'INR';
+  const m = (v: string | number) => formatMoney(v, ccy);
 
   const open = id != null;
   const [eWayOpen, setEWayOpen] = useState(false);
@@ -155,7 +157,7 @@ export default function InvoiceDetailModal({ id, onClose, onRecordPayment }: Pro
             <Field label="Date" value={inv.date} />
             <Field label="Due" value={inv.due_date ?? '—'} />
             <Field label="Status" value={inv.status} />
-            <Field label="Place of supply" value={inv.place_of_supply} />
+            {!isVat && <Field label="Place of supply" value={inv.place_of_supply} />}
             <Field label="Journal Entry" value={inv.journal_entry ? `#${inv.journal_entry}` : '—'} />
           </div>
 
@@ -164,13 +166,19 @@ export default function InvoiceDetailModal({ id, onClose, onRecordPayment }: Pro
               <thead className="bg-slate-50 text-left text-slate-500">
                 <tr>
                   <th className="px-3 py-2">Description</th>
-                  <th className="px-3 py-2">HSN</th>
+                  {!isVat && <th className="px-3 py-2">HSN</th>}
                   <th className="px-3 py-2 text-right">Qty</th>
                   <th className="px-3 py-2 text-right">Rate</th>
                   <th className="px-3 py-2 text-right">Taxable</th>
-                  <th className="px-3 py-2 text-right">CGST</th>
-                  <th className="px-3 py-2 text-right">SGST</th>
-                  <th className="px-3 py-2 text-right">IGST</th>
+                  {isVat ? (
+                    <th className="px-3 py-2 text-right">VAT</th>
+                  ) : (
+                    <>
+                      <th className="px-3 py-2 text-right">CGST</th>
+                      <th className="px-3 py-2 text-right">SGST</th>
+                      <th className="px-3 py-2 text-right">IGST</th>
+                    </>
+                  )}
                   <th className="px-3 py-2 text-right">Total</th>
                 </tr>
               </thead>
@@ -178,14 +186,20 @@ export default function InvoiceDetailModal({ id, onClose, onRecordPayment }: Pro
                 {inv.lines.map((l) => (
                   <tr key={l.id}>
                     <td className="px-3 py-2">{l.description}</td>
-                    <td className="px-3 py-2 font-mono">{l.hsn_code || '—'}</td>
+                    {!isVat && <td className="px-3 py-2 font-mono">{l.hsn_code || '—'}</td>}
                     <td className="px-3 py-2 text-right tabular-nums">{l.quantity}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{formatINR(l.unit_price)}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{formatINR(l.taxable_amount)}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{formatINR(l.cgst)}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{formatINR(l.sgst)}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{formatINR(l.igst)}</td>
-                    <td className="px-3 py-2 text-right font-medium tabular-nums">{formatINR(l.line_total)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{m(l.unit_price)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{m(l.taxable_amount)}</td>
+                    {isVat ? (
+                      <td className="px-3 py-2 text-right tabular-nums">{Number(l.vat) ? m(l.vat) : '—'}</td>
+                    ) : (
+                      <>
+                        <td className="px-3 py-2 text-right tabular-nums">{m(l.cgst)}</td>
+                        <td className="px-3 py-2 text-right tabular-nums">{m(l.sgst)}</td>
+                        <td className="px-3 py-2 text-right tabular-nums">{m(l.igst)}</td>
+                      </>
+                    )}
+                    <td className="px-3 py-2 text-right font-medium tabular-nums">{m(l.line_total)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -193,13 +207,19 @@ export default function InvoiceDetailModal({ id, onClose, onRecordPayment }: Pro
           </div>
 
           <div className="ml-auto w-72 space-y-1 rounded bg-slate-50 p-3 text-sm">
-            <Row label="Taxable" value={inv.taxable_amount} />
-            <Row label="CGST" value={inv.cgst} muted />
-            <Row label="SGST" value={inv.sgst} muted />
-            <Row label="IGST" value={inv.igst} muted />
-            <div className="border-t border-slate-200 pt-1"><Row label="Grand Total" value={inv.grand_total} bold /></div>
-            <Row label="Paid" value={inv.amount_paid} muted />
-            <Row label="Balance Due" value={inv.balance_due} />
+            <Row label="Taxable" value={inv.taxable_amount} ccy={ccy} />
+            {isVat ? (
+              Number(inv.vat) ? <Row label="VAT" value={inv.vat} ccy={ccy} muted /> : null
+            ) : (
+              <>
+                <Row label="CGST" value={inv.cgst} ccy={ccy} muted />
+                <Row label="SGST" value={inv.sgst} ccy={ccy} muted />
+                <Row label="IGST" value={inv.igst} ccy={ccy} muted />
+              </>
+            )}
+            <div className="border-t border-slate-200 pt-1"><Row label="Grand Total" value={inv.grand_total} ccy={ccy} bold /></div>
+            <Row label="Paid" value={inv.amount_paid} ccy={ccy} muted />
+            <Row label="Balance Due" value={inv.balance_due} ccy={ccy} />
           </div>
 
           {inv.notes && <div className="text-xs text-slate-500"><strong>Notes:</strong> {inv.notes}</div>}
@@ -262,11 +282,11 @@ function Field({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Row({ label, value, bold, muted }: { label: string; value: string; bold?: boolean; muted?: boolean }) {
+function Row({ label, value, ccy = 'INR', bold, muted }: { label: string; value: string; ccy?: string; bold?: boolean; muted?: boolean }) {
   return (
     <div className={`flex items-center justify-between ${muted ? 'text-slate-500' : ''}`}>
       <div className={bold ? 'font-semibold' : ''}>{label}</div>
-      <div className={`tabular-nums ${bold ? 'font-semibold' : ''}`}>{formatINR(value)}</div>
+      <div className={`tabular-nums ${bold ? 'font-semibold' : ''}`}>{formatMoney(value, ccy)}</div>
     </div>
   );
 }
