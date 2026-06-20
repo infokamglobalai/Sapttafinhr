@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Download, FileSignature, Link as LinkIcon, Receipt as ReceiptIcon, Truck, XCircle } from 'lucide-react';
+import { Download, FileSignature, Link as LinkIcon, Printer, Receipt as ReceiptIcon, Truck, XCircle } from 'lucide-react';
 import Modal from '@/components/Modal';
 import { toast } from '@/components/Toaster';
 import { confirm } from '@/components/ConfirmDialog';
@@ -13,6 +13,7 @@ import {
   useInvoice,
 } from './api';
 import { downloadInvoicePdf } from '@/lib/pdf';
+import { printBilingualInvoice } from '@/lib/invoicePrint';
 import { formatINR } from '@/lib/money';
 
 interface Props {
@@ -59,6 +60,17 @@ export default function InvoiceDetailModal({ id, onClose, onRecordPayment }: Pro
     }
   };
 
+  const onPrintBilingual = () => {
+    if (!inv || !company) return;
+    const ok = printBilingualInvoice(inv, {
+      name: company.name, legal_name: company.legal_name,
+      tax_id: company.tax_id, base_currency: company.base_currency,
+    }, customer
+      ? { name: customer.name, gstin: customer.gstin, billing_address: customer.billing_address }
+      : { name: inv.customer_name });
+    if (!ok) toast.error('Popup blocked', 'Allow popups for this site to print the invoice.');
+  };
+
   const onGccEInvoice = async () => {
     if (!inv) return;
     try {
@@ -103,6 +115,11 @@ export default function InvoiceDetailModal({ id, onClose, onRecordPayment }: Pro
             <button className="btn-primary inline-flex items-center gap-1" onClick={onDownload}>
               <Download size={14} /> Download PDF
             </button>
+            {isVat && (
+              <button className="btn-ghost inline-flex items-center gap-1 border border-slate-200" onClick={onPrintBilingual}>
+                <Printer size={14} /> Print (AR / EN)
+              </button>
+            )}
             {Number(inv.balance_due) > 0 && onRecordPayment && (
               <button className="btn-ghost inline-flex items-center gap-1 border border-slate-200"
                 onClick={() => { onRecordPayment(inv.id, inv.customer); onClose(); }}>
