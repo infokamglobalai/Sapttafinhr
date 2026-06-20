@@ -12,7 +12,7 @@
 
 {% if requests %}
 
-<div class="card bg-base-100 shadow overflow-x-auto">
+<div class="card hr-table-wrap">
 
   <table class="table table-sm">
 
@@ -48,7 +48,7 @@
 
 {% else %}
 
-<div class="card bg-base-100 shadow">
+<div class="card">
 
   {% include "partials/empty_state.html" with title="No pending approvals" message="When your team raises hardware or software requests, they will appear here for your review." %}
 

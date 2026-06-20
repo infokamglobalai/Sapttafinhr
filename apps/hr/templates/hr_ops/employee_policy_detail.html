@@ -20,11 +20,11 @@
   </div>
 
   {% if policy.body %}
-  <div class="card bg-base-100 shadow mb-4">
+  <div class="card hr-filter-bar">
     <div class="card-body p-5 text-sm whitespace-pre-line leading-relaxed">{{ policy.body }}</div>
   </div>
   {% elif policy.attachment %}
-  <div class="card bg-base-100 shadow mb-4">
+  <div class="card hr-filter-bar">
     <div class="card-body p-5 text-sm text-base-content/60">
       This policy is available as a document. Download and read the full PDF before acknowledging.
     </div>
@@ -32,7 +32,7 @@
   {% endif %}
 
   {% if needs_ack %}
-  <div class="card bg-base-100 shadow border border-warning/30">
+  <div class="card border border-warning/30">
     <div class="card-body gap-4">
       <p class="text-sm font-medium">Please confirm you have read and understood this policy.</p>
       <form method="post">

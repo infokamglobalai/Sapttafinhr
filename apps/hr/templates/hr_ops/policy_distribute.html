@@ -12,7 +12,7 @@
     {% if compliance.pending %}<span class="text-warning">{{ compliance.pending }} still pending acknowledgment.</span>{% endif %}
   </p>
 
-  <form method="post" class="card bg-base-100 shadow">
+  <form method="post" class="card">
     <div class="card-body gap-4">
       {% csrf_token %}
 

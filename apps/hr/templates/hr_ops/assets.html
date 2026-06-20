@@ -1,11 +1,15 @@
 {% extends "base.html" %}
 {% block page_title %}Asset Management{% endblock %}
 {% block content %}
-<div class="flex items-center justify-between mb-4">
-  <h2 class="text-xl font-bold">Assets</h2>
-  <a href="{% url 'hr_ops:asset_create' %}" class="btn btn-primary btn-sm">+ Add Asset</a>
+<div class="hr-page-header">
+  <div class="hr-page-header__main">
+    <h1 class="hr-page-header__title">Assets</h1>
+  </div>
+  <div class="hr-page-header__actions">
+    <a href="{% url 'hr_ops:asset_create' %}" class="btn btn-primary btn-sm">+ Add Asset</a>
+  </div>
 </div>
-<div class="card bg-base-100 shadow overflow-x-auto">
+<div class="card hr-table-wrap">
   <table class="table table-sm">
     <thead>
       <tr><th>Code</th><th>Name</th><th>Category</th><th>Serial No.</th><th>Status</th><th>Assigned To</th><th></th></tr>

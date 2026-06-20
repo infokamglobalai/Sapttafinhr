@@ -12,7 +12,7 @@
   <a href="{% url 'reports:payroll_export' %}?run={{ selected_run.pk }}" class="btn btn-primary btn-sm">Export Excel</a>
   {% endif %}
 </div>
-<form method="get" class="card bg-base-100 shadow mb-4">
+<form method="get" class="card hr-filter-bar">
   <div class="card-body p-4 flex flex-wrap gap-3 items-end">
     <div>
       <label class="label-text text-xs">Payroll run</label>
@@ -34,7 +34,7 @@
   <div class="stat bg-base-100 shadow rounded-lg p-3"><div class="text-xs text-base-content/60">TDS</div><div class="font-bold">₹{{ totals.tds|default:0|floatformat:0|intcomma }}</div></div>
 </div>
 {% endif %}
-<div class="card bg-base-100 shadow overflow-x-auto">
+<div class="card hr-table-wrap">
   <table class="table table-sm">
     <thead><tr><th>Employee</th><th>Gross</th><th>Net</th><th>PF</th><th>ESI</th><th>TDS</th></tr></thead>
     <tbody>

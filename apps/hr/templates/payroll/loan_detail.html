@@ -3,7 +3,7 @@
 {% block page_title %}Loan · {{ loan.employee.full_name }}{% endblock %}
 {% block content %}
 <div style="max-width: 760px; margin: 0 auto;">
-  <a href="{% url 'payroll:loans' %}" class="btn-base btn-ghost btn-sm" style="margin-bottom: 14px;">← Back to Loans</a>
+  <a href="{% url 'payroll:loans' %}" class="btn btn-ghost btn-sm" style="margin-bottom: 14px;">← Back to Loans</a>
 
   <div class="surface" style="padding: 24px; margin-bottom: 14px;">
     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px;">
@@ -14,7 +14,7 @@
         </div>
         <div style="font-size: 13.5px; color: var(--ink-500);">{{ loan.employee.full_name }} · disbursed {{ loan.disbursed_date|date:"d M Y" }}</div>
       </div>
-      <a href="{% url 'payroll:loan_edit' loan.pk %}" class="btn-base btn-outline btn-sm">Edit</a>
+      <a href="{% url 'payroll:loan_edit' loan.pk %}" class="btn btn-outline btn-sm">Edit</a>
     </div>
 
     <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; padding: 16px 0; border-top: 1px solid var(--ink-150); border-bottom: 1px solid var(--ink-150);">
@@ -38,7 +38,7 @@
         <span style="color: var(--ink-500);">{{ progress }}%</span>
       </div>
       <div style="height: 10px; background: var(--ink-100); border-radius: 99px; overflow: hidden;">
-        <div style="height: 100%; width: {{ progress }}%; background: linear-gradient(90deg, #FB923C, #EA580C); transition: width 800ms;"></div>
+        <div style="height: 100%; width: {{ progress }}%; background: linear-gradient(90deg, #3B82F6, #1D4ED8); transition: width 800ms;"></div>
       </div>
       {% if loan.interest_rate %}
       <p style="font-size: 12px; color: var(--ink-500); margin-top: 12px;">Interest rate: {{ loan.interest_rate }}% per annum</p>

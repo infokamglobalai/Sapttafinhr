@@ -1,9 +1,13 @@
 {% extends "base.html" %}
 {% block page_title %}Pending Attendance Corrections{% endblock %}
 {% block content %}
-<div class="flex items-center justify-between mb-4">
-  <h2 class="text-xl font-bold">Attendance Regularizations</h2>
-  <span class="badge badge-warning badge-lg">{{ regularizations|length }} pending</span>
+<div class="hr-page-header">
+  <div class="hr-page-header__main">
+    <h1 class="hr-page-header__title">Attendance Regularizations</h1>
+  </div>
+  <div class="hr-page-header__actions">
+    <span class="badge badge-warning badge-lg">{{ regularizations|length }} pending</span>
+  </div>
 </div>
 <div id="reg-list">
   {% include "attendance/partials/regularization_list.html" %}

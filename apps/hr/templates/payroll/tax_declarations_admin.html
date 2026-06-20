@@ -8,7 +8,7 @@
     </div>
     <form method="get" style="display:flex; gap:8px;">
       <input name="fy" value="{{ fy }}" placeholder="2025-26" class="input input-bordered" style="width: 140px;">
-      <button class="btn-base btn-primary">Filter</button>
+      <button class="btn btn-primary">Filter</button>
     </form>
   </div>
 
@@ -16,7 +16,7 @@
 
   <div class="card" style="padding: 0; overflow: hidden;">
     <table style="width: 100%; border-collapse: collapse;">
-      <thead style="background: #FFF7ED;">
+      <thead style="background: #EFF6FF;">
         <tr>
           <th style="padding: 10px 14px; text-align: left; font-size: 12px; color: #7C2D12;">Employee</th>
           <th style="padding: 10px 14px; text-align: left; font-size: 12px; color: #7C2D12;">Regime</th>
@@ -42,7 +42,7 @@
             {% if d.status == "submitted" %}
             <form method="post" action="{% url 'payroll:tax_declaration_verify' d.pk %}" style="display:inline;">
               {% csrf_token %}
-              <button class="btn-base btn-primary" style="padding: 4px 12px; font-size: 12px;">Verify</button>
+              <button class="btn btn-primary" style="padding: 4px 12px; font-size: 12px;">Verify</button>
             </form>
             {% endif %}
           </td>

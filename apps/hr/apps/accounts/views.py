@@ -50,11 +50,17 @@ def employee_login(request):
         email = (request.POST.get("email") or "").strip().lower()
         if is_locked_out("emplogin", request, email):
             messages.error(request, "Too many attempts. Please wait a few minutes and try again.")
-            return render(request, "auth/employee_login.html", {"form": LoginForm(request)})
+            return render(request, "auth/employee_login.html", {
+                "form": LoginForm(request),
+                "platform_login_url": platform_login_url("hr", request),
+            })
 
         form = LoginForm(request, data=request.POST)
         if form.is_valid():
             user = form.get_user()
+            from apps.employees.profile_link import ensure_user_employee_profile
+
+            ensure_user_employee_profile(user, tenant=user.tenant)
             login(request, user, backend="apps.accounts.backends.TenantAuthBackend")
             clear_failures("emplogin", request, email)
             next_url = request.GET.get("next") or reverse("tenants:dashboard")
@@ -63,7 +69,10 @@ def employee_login(request):
     else:
         form = LoginForm(request)
 
-    return render(request, "auth/employee_login.html", {"form": form})
+    return render(request, "auth/employee_login.html", {
+        "form": form,
+        "platform_login_url": platform_login_url("hr", request),
+    })
 
 
 @require_http_methods(["GET", "POST"])
@@ -133,7 +142,14 @@ def change_password(request):
 
 @login_required
 def profile(request):
-    return render(request, "auth/profile.html", {"user": request.user})
+    """Legacy URL — unified settings page."""
+    return redirect("/auth/settings/?tab=profile")
+
+
+def _ensure_self_employee(user, tenant):
+    from apps.employees.profile_link import ensure_user_employee_profile
+
+    return ensure_user_employee_profile(user, tenant=tenant)
 
 
 # ────────────────────────────────────────────────────────────────────────────

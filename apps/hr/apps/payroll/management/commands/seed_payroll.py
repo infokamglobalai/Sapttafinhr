@@ -24,14 +24,26 @@ class Command(BaseCommand):
     @transaction.atomic
     def handle(self, *args, **options):
         from apps.tenants.models import Tenant
+        from apps.payroll.bootstrap import bootstrap_payroll_for_tenant
+
+        tenant = Tenant.objects.get(subdomain=options["tenant"])
+        ctc = options["ctc"]
+
+        if tenant.is_gcc_payroll:
+            result = bootstrap_payroll_for_tenant(tenant, assign_salaries=True)
+            self.stdout.write(self.style.SUCCESS(
+                f"GCC payroll ready: {result['structure']}, "
+                f"{result['salaries_assigned']} salary(ies) assigned."
+            ))
+            return
+
         from apps.employees.models import Employee
         from apps.payroll.models import (
             SalaryComponent, SalaryStructure, SalaryStructureComponent,
             EmployeeSalary, StatutorySetting,
         )
 
-        tenant = Tenant.objects.get(subdomain=options["tenant"])
-        ctc = Decimal(options["ctc"])
+        ctc = Decimal(ctc)
         self.stdout.write(f"Tenant: {tenant.name}  |  Default CTC: Rs.{ctc}/yr")
 
         # ── 1. Salary components ────────────────────────────────────────────

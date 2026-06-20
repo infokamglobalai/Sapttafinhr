@@ -15,7 +15,7 @@
 {% if templates %}
 <div class="grid gap-3 max-w-2xl">
   {% for tmpl in templates %}
-  <a href="{% url 'hr_ops:generate_letter' employee.pk tmpl.pk %}" class="card bg-base-100 shadow border border-base-200 hover:border-primary/40 no-underline text-inherit">
+  <a href="{% url 'hr_ops:generate_letter' employee.pk tmpl.pk %}" class="card border border-base-200 hover:border-primary/40 no-underline text-inherit">
     <div class="card-body p-4 flex-row items-center justify-between">
       <div>
         <span class="badge badge-outline badge-sm">{{ tmpl.get_letter_type_display }}</span>
@@ -27,7 +27,7 @@
   {% endfor %}
 </div>
 {% else %}
-<div class="card bg-base-100 shadow max-w-lg">
+<div class="card max-w-lg">
   <div class="card-body text-center py-10">
     <p class="mb-3">No letter templates yet.</p>
     <form method="post" action="{% url 'hr_ops:letter_seed_defaults' %}">

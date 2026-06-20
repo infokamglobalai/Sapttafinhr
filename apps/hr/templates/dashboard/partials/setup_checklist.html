@@ -1,19 +1,23 @@
 {% if setup_checklist and setup_checklist.percent < 100 %}
-<a href="{% url 'tenants:setup' %}" class="dash-setup-micro" aria-label="Company setup {{ setup_checklist.percent }} percent complete">
-  <span class="dash-setup-micro__ring" style="--pct: {{ setup_checklist.percent }};">
-    <span class="dash-setup-micro__ring-num">{{ setup_checklist.percent }}<small>%</small></span>
-  </span>
-  <span class="dash-setup-micro__content">
-    <span class="dash-setup-micro__title">Finish company setup</span>
-    <span class="dash-setup-micro__steps" aria-hidden="true">
-      {% for item in setup_checklist.items %}
-      <span class="dash-setup-micro__seg dash-setup-micro__seg--{{ item.dot_status }}" title="{{ item.label }}"></span>
+<a href="{{ setup_checklist.next_url }}" class="dash-setup-card dash-setup-card--compact" aria-label="Company setup {{ setup_checklist.percent }} percent complete">
+  <div class="dash-setup-card__copy">
+    <p class="dash-setup-card__title">Finish company setup</p>
+    <p class="dash-setup-card__next">
+      Next: {% if setup_checklist.next_label %}<strong>{{ setup_checklist.next_label }}</strong>{% else %}<strong>{{ setup_checklist.remaining }} steps left</strong>{% endif %}
+    </p>
+    {% if setup_checklist.display_steps %}
+    <div class="dash-setup-card__steps" aria-hidden="true">
+      {% for step in setup_checklist.display_steps %}
+      <span class="dash-setup-card__seg dash-setup-card__seg--{{ step.status }}" title="{{ step.label }}"></span>
       {% endfor %}
-    </span>
-    <span class="dash-setup-micro__next">{% if setup_checklist.next_label %}Up next: {{ setup_checklist.next_label }}{% else %}{{ setup_checklist.remaining }} step{{ setup_checklist.remaining|pluralize }} left{% endif %}</span>
-  </span>
-  <span class="dash-setup-micro__go" aria-hidden="true">
-    <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-  </span>
+    </div>
+    {% endif %}
+  </div>
+  <div class="dash-setup-card__progress">
+    <div class="dash-setup-card__bar" role="progressbar" aria-valuenow="{{ setup_checklist.percent }}" aria-valuemin="0" aria-valuemax="100">
+      <div class="dash-setup-card__bar-fill" style="width: {{ setup_checklist.percent }}%;"></div>
+    </div>
+    <span class="dash-setup-card__pct">{{ setup_checklist.percent }}%</span>
+  </div>
 </a>
 {% endif %}

@@ -51,7 +51,8 @@ CSRF_TRUSTED_ORIGINS = config(
     default=(
         "http://127.0.0.1:5173,http://localhost:5173,"
         "http://127.0.0.1:8001,http://localhost:8001,"
-        "http://hr.localhost:8080,http://localhost:8080"
+        "http://hr.localhost,http://hr.localhost:8080,http://localhost:8080,"
+        "http://127.0.0.1:8080"
     ),
     cast=Csv(),
 )

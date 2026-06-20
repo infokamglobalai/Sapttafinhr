@@ -2,10 +2,17 @@
 Celery tasks for payroll processing.
 """
 import logging
+from decimal import Decimal
+
 from celery import shared_task
 from django.utils import timezone
 
 logger = logging.getLogger(__name__)
+
+
+def _gratuity_accrual_from_record(record) -> Decimal:
+    detail = (record.earnings_detail or {}).get("GRAT_ACCR") or {}
+    return Decimal(str(detail.get("amount") or 0))
 
 
 @shared_task(bind=True, max_retries=2)
@@ -26,10 +33,16 @@ def run_payroll_for_tenant(self, tenant_id, payroll_run_id):
         payroll_run.run_at = timezone.now()
         payroll_run.save(update_fields=["status", "run_at"])
 
+        from apps.payroll.models import EmployeeSalary
+
+        salaried_ids = EmployeeSalary.objects.filter(
+            tenant=tenant, is_active=True,
+        ).values_list("employee_id", flat=True)
         employees = Employee.objects.filter(
             tenant=tenant,
             is_active=True,
             employment_status__in=["active", "notice_period"],
+            id__in=salaried_ids,
         )
 
         total_gross = 0
@@ -46,7 +59,12 @@ def run_payroll_for_tenant(self, tenant_id, payroll_run_id):
                 total_gross += float(record.gross_earnings)
                 total_deductions += float(record.total_deductions)
                 total_net += float(record.net_payable)
-                total_employer_cost += float(record.pf_employer + record.esi_employer + record.lwf_employer)
+                total_employer_cost += float(
+                    (record.pf_employer or Decimal("0"))
+                    + (record.esi_employer or Decimal("0"))
+                    + (record.lwf_employer or Decimal("0"))
+                    + _gratuity_accrual_from_record(record)
+                )
                 count += 1
             except Exception as exc:
                 logger.error("Payroll failed for %s: %s", emp, exc)

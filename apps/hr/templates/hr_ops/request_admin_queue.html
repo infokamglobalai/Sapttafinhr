@@ -4,33 +4,25 @@
 
 {% block content %}
 
-<div class="flex items-center justify-between mb-4">
-
-  <div>
-
-    <h2 class="text-xl font-bold">Service Requests</h2>
-
-    <p class="text-sm text-base-content/60">IT / Procurement inbox — {{ counts.open }} open</p>
-
+<div class="hr-page-header">
+  <div class="hr-page-header__main">
+    <h1 class="hr-page-header__title">Service Requests</h1>
+    <p class="hr-page-header__sub">IT / Procurement inbox — {{ counts.open }} open</p>
   </div>
-
-  <div class="join">
-
-    <a href="?status=open" class="btn btn-sm join-item {% if status == 'open' %}btn-primary{% else %}btn-ghost{% endif %}">Open</a>
-
-    <a href="?status=resolved" class="btn btn-sm join-item {% if status == 'resolved' %}btn-primary{% else %}btn-ghost{% endif %}">Resolved</a>
-
-    <a href="?status=all" class="btn btn-sm join-item {% if status == 'all' %}btn-primary{% else %}btn-ghost{% endif %}">All</a>
-
+  <div class="hr-page-header__actions">
+    <div class="join">
+      <a href="?status=open" class="btn btn-sm join-item {% if status == 'open' %}btn-primary{% else %}btn-ghost{% endif %}">Open</a>
+      <a href="?status=resolved" class="btn btn-sm join-item {% if status == 'resolved' %}btn-primary{% else %}btn-ghost{% endif %}">Resolved</a>
+      <a href="?status=all" class="btn btn-sm join-item {% if status == 'all' %}btn-primary{% else %}btn-ghost{% endif %}">All</a>
+    </div>
   </div>
-
 </div>
 
 
 
 {% if requests %}
 
-<div class="card bg-base-100 shadow overflow-x-auto">
+<div class="card hr-table-wrap">
 
   <table class="table table-sm">
 
@@ -70,7 +62,7 @@
 
 {% else %}
 
-<div class="card bg-base-100 shadow">
+<div class="card">
 
   {% include "partials/empty_state.html" with title="Queue is empty" message="No service requests match this filter. Employees can raise tickets from My Space → Help & Requests." %}
 

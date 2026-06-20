@@ -84,6 +84,25 @@ docker compose exec hr-backend python manage.py create_tenant \
   --name "Acme Pvt Ltd" --subdomain acme --email admin@acme.test --password admin12345
 ```
 
+### Run all tests (one command)
+
+With Docker running (the script starts backends if they are down):
+
+```powershell
+# Windows (PowerShell, from repo root)
+.\scripts\test-all.ps1
+```
+
+```bash
+# Linux / macOS / WSL
+chmod +x scripts/test-all.sh
+./scripts/test-all.sh
+```
+
+Optional: `-IncludeBuild` / `--include-build` (frontend tsc + build),
+`-IncludeE2E` / `--include-e2e` (Playwright against :8080). CI runs the same
+HR + FIN backend checks on every pull request.
+
 > `*.localhost` resolves to 127.0.0.1 automatically on most Linux/macOS. On
 > Windows, add `127.0.0.1 acme.localhost hr.localhost` to
 > `C:\Windows\System32\drivers\etc\hosts`.

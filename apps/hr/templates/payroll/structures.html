@@ -1,11 +1,15 @@
 {% extends "base.html" %}
 {% block page_title %}Salary Structures{% endblock %}
 {% block content %}
-<div class="flex items-center justify-between mb-4">
-  <h2 class="text-xl font-bold">Salary Structures</h2>
-  <a href="{% url 'payroll:structure_create' %}" class="btn btn-primary btn-sm">+ Add Structure</a>
+<div class="hr-page-header">
+  <div class="hr-page-header__main">
+    <h1 class="hr-page-header__title">Salary Structures</h1>
+  </div>
+  <div class="hr-page-header__actions">
+    <a href="{% url 'payroll:structure_create' %}" class="btn btn-primary btn-sm">+ Add Structure</a>
+  </div>
 </div>
-<div class="card bg-base-100 shadow overflow-x-auto">
+<div class="card hr-table-wrap">
   <table class="table table-sm">
     <thead><tr><th>Name</th><th>Description</th><th>Status</th><th></th></tr></thead>
     <tbody>

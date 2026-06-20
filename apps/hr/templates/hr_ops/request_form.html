@@ -6,7 +6,7 @@
   <h2 class="text-xl font-bold mb-1">Raise a Request</h2>
   <p class="text-sm text-base-content/60 mb-4">IT/laptop issues go to IT/Procurement. Hardware & software need manager approval first.</p>
 
-  <form method="post" enctype="multipart/form-data" class="card bg-base-100 shadow">
+  <form method="post" enctype="multipart/form-data" class="card">
     <div class="card-body gap-4">
       {% csrf_token %}
       {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors.0 }}</div>{% endif %}

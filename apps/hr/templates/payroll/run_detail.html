@@ -1,10 +1,13 @@
 {% extends "base.html" %}
 {% block page_title %}Payroll {{ run.year }}-{{ run.month|stringformat:"02d" }}{% endblock %}
 {% block content %}
-<div class="flex items-center justify-between mb-4">
-  <div class="flex items-center gap-3">
+{% if tenant_is_gcc_payroll %}
+{% include "dashboard/partials/gcc_payroll_banner.html" %}
+{% endif %}
+<div class="hr-page-header">
+  <div class="hr-page-header__main" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
     <a href="{% url 'payroll:run_list' %}" class="btn btn-ghost btn-sm">← Back</a>
-    <h2 class="text-xl font-bold">Payroll {{ run.year }}-{{ run.month|stringformat:"02d" }}</h2>
+    <h1 class="hr-page-header__title">Payroll {{ run.year }}-{{ run.month|stringformat:"02d" }}</h1>
     <span class="badge badge-lg
       {% if run.status == 'paid' %}badge-success
       {% elif run.status == 'approved' %}badge-info
@@ -14,7 +17,7 @@
       {{ run.get_status_display }}
     </span>
   </div>
-  <div class="flex gap-2">
+  <div class="hr-page-header__actions">
     {# Excel exports available from review onwards — HR needs to verify before approving #}
     {% if run.status in 'review,approved,paid' %}
     <div class="dropdown dropdown-end">
@@ -35,6 +38,35 @@
             <div class="text-xs text-base-content/50">For salary disbursement upload</div>
           </div>
         </a></li>
+        {% if tenant_is_gcc_payroll %}
+        <li><a href="{% url 'payroll:wps_sif' run.pk %}">
+          <div>
+            <div class="font-medium">WPS / SIF file (.csv)</div>
+            <div class="text-xs text-base-content/50">Salary Information File for banks</div>
+          </div>
+        </a></li>
+        <li><a href="{% url 'payroll:gcc_bank_transfer' run.pk %}">
+          <div>
+            <div class="font-medium">Bank transfer (.csv)</div>
+            <div class="text-xs text-base-content/50">IBAN bulk payment file</div>
+          </div>
+        </a></li>
+        {% if tenant.payroll_jurisdiction == "KW" %}
+        <li><a href="{% url 'payroll:pifss_statement' run.pk %}">
+          <div>
+            <div class="font-medium">PIFSS contribution (.xlsx)</div>
+            <div class="text-xs text-base-content/50">Kuwait social insurance filing</div>
+          </div>
+        </a></li>
+        {% endif %}
+        <li><a href="{% url 'payroll:indemnity_liability' %}">
+          <div>
+            <div class="font-medium">EOS liability snapshot</div>
+            <div class="text-xs text-base-content/50">Indemnity / gratuity estimates</div>
+          </div>
+        </a></li>
+        {% endif %}
+        {% if tenant_is_india_payroll %}
         <li><a href="{% url 'payroll:pf_statement' run.pk %}">
           <div>
             <div class="font-medium">PF Statement (Excel)</div>
@@ -66,6 +98,7 @@
             <div class="text-xs text-base-content/50">Import into TallyPrime / ERP 9</div>
           </div>
         </a></li>
+        {% endif %}
       </ul>
     </div>
     {% endif %}
@@ -92,15 +125,15 @@
 
 <!-- Summary -->
 <div class="grid grid-cols-4 gap-3 mb-4">
-  <div class="card bg-base-100 shadow p-4 text-center">
+  <div class="card p-4 text-center">
     <div class="text-2xl font-bold">{{ run.total_employees }}</div>
     <div class="text-xs text-base-content/60">Employees</div>
   </div>
-  <div class="card bg-base-100 shadow p-4 text-center">
+  <div class="card p-4 text-center">
     <div class="text-2xl font-bold text-primary">&#8377;{{ run.total_gross|floatformat:0 }}</div>
     <div class="text-xs text-base-content/60">Gross</div>
   </div>
-  <div class="card bg-base-100 shadow p-4 text-center">
+  <div class="card p-4 text-center">
     <div class="text-2xl font-bold text-error">&#8377;{{ run.total_deductions|floatformat:0 }}</div>
     <div class="text-xs text-base-content/60">Deductions</div>
   </div>
@@ -112,8 +145,8 @@
 
 <!-- ── Anomaly Detection (AI feature #7 — local rules, no external API) ── -->
 {% if anomalies %}
-<div class="card" style="margin-bottom: 18px; padding: 0; overflow: hidden; border: 1px solid #FED7AA;">
-  <div style="padding: 16px 20px; background: linear-gradient(135deg, #FFF7ED 0%, #FED7AA 100%); border-bottom: 1px solid #FED7AA; display: flex; align-items: center; justify-content: space-between;">
+<div class="card" style="margin-bottom: 18px; padding: 0; overflow: hidden; border: 1px solid #BFDBFE;">
+  <div style="padding: 16px 20px; background: linear-gradient(135deg, #EFF6FF 0%, #BFDBFE 100%); border-bottom: 1px solid #BFDBFE; display: flex; align-items: center; justify-content: space-between;">
     <div>
       <div style="font-weight: 700; font-size: 15px; color: #7C2D12;">
         Pre-publish anomaly check
@@ -130,7 +163,7 @@
     </div>
   </div>
   <table style="width: 100%; border-collapse: collapse;">
-    <thead style="background: #FFF7ED;">
+    <thead style="background: #EFF6FF;">
       <tr>
         <th style="padding: 10px 16px; text-align: left; font-size: 11.5px; color: #7C2D12;">Employee</th>
         <th style="padding: 10px 16px; text-align: left; font-size: 11.5px; color: #7C2D12;">Flag</th>
@@ -179,7 +212,7 @@
 {% endif %}
 
 <!-- Records table -->
-<div class="card bg-base-100 shadow overflow-x-auto">
+<div class="card hr-table-wrap">
   <table class="table table-sm">
     <thead>
       <tr>

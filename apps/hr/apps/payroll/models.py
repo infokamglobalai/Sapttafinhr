@@ -20,6 +20,8 @@ class SalaryComponent(models.Model):
         ("pt", "Professional Tax"),
         ("lwf", "Labour Welfare Fund"),
         ("tds", "TDS"),
+        ("pifss", "PIFSS (Kuwait)"),
+        ("gosi", "GOSI (Saudi Arabia)"),
     ]
 
     tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE, related_name="salary_components")
@@ -95,12 +97,15 @@ class EmployeeSalary(models.Model):
 
 
 class StatutorySetting(models.Model):
-    """Tenant-configurable statutory rates (PF, ESI, PT, LWF)."""
+    """Tenant-configurable statutory rates (PF, ESI, PT, LWF, PIFSS)."""
     STATUTORY_TYPES = [
         ("pf", "Provident Fund"),
         ("esi", "ESI"),
         ("pt", "Professional Tax"),
         ("lwf", "Labour Welfare Fund"),
+        ("tds", "TDS"),
+        ("pifss", "PIFSS (Kuwait)"),
+        ("gosi", "GOSI (Saudi Arabia)"),
     ]
 
     tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE, related_name="statutory_settings")

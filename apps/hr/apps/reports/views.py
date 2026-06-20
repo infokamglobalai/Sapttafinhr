@@ -222,8 +222,8 @@ def payroll_summary_report(request):
         ).select_related("employee").order_by("employee__first_name")
 
     totals = records.aggregate(
-        gross=Sum("gross_pay"),
-        net=Sum("net_pay"),
+        gross=Sum("gross_earnings"),
+        net=Sum("net_payable"),
         pf=Sum("pf_employee"),
         esi=Sum("esi_employee"),
         tds=Sum("tds"),
@@ -252,8 +252,8 @@ def payroll_summary_export(request):
     for rec in records:
         ws.append([
             rec.employee.full_name,
-            float(rec.gross_pay or 0),
-            float(rec.net_pay or 0),
+            float(rec.gross_earnings or 0),
+            float(rec.net_payable or 0),
             float(rec.pf_employee or 0),
             float(rec.esi_employee or 0),
             float(rec.tds or 0),

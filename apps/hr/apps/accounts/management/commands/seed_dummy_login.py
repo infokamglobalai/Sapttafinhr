@@ -32,6 +32,49 @@ class Command(BaseCommand):
         parser.add_argument("--reset-employee", action="store_true", help="Reset employee login password")
         parser.add_argument("--employee-email", default="", help="Employee user email to reset")
         parser.add_argument("--employee-password", default="Employee@1234", help="New employee password")
+        parser.add_argument(
+            "--with-demo-users",
+            action="store_true",
+            help="Create manager + employee demo logins (employee-login path)",
+        )
+
+    def _ensure_demo_user(self, tenant, *, email, password, role_name, emp_kwargs):
+        from apps.accounts.models import Role, User, UserRole
+        from apps.employees.models import Employee
+        from django.utils import timezone
+
+        user = User.objects.filter(tenant=tenant, email__iexact=email).first()
+        if user is None:
+            user = User.objects.create_user(email=email, tenant=tenant, password=password)
+            self.stdout.write(self.style.SUCCESS(f"Created user {email}"))
+        else:
+            user.set_password(password)
+            user.is_active = True
+            user.save(update_fields=["password", "is_active"])
+
+        role = Role.objects.get(tenant=tenant, name=role_name)
+        UserRole.objects.filter(user=user).exclude(role=role).delete()
+        UserRole.objects.get_or_create(user=user, role=role)
+
+        emp = user._employee_profile_or_none() if hasattr(user, "_employee_profile_or_none") else None
+        if emp is None:
+            try:
+                emp = user.employee_profile
+            except Employee.DoesNotExist:
+                emp = None
+        if emp is None:
+            code = emp_kwargs.pop("employee_code")
+            Employee.objects.create(
+                tenant=tenant,
+                user=user,
+                employee_code=code,
+                date_of_joining=timezone.localdate(),
+                employment_status="active",
+                is_active=True,
+                **emp_kwargs,
+            )
+            self.stdout.write(self.style.SUCCESS(f"Linked employee profile for {email}"))
+        return user
 
     @transaction.atomic
     def handle(self, *args, **options):
@@ -126,6 +169,43 @@ class Command(BaseCommand):
                 clear_failures("login", req, emp_email)
                 self.stdout.write("")
                 self.stdout.write(self.style.SUCCESS(f"Employee password reset: {emp_email}"))
+
+        if options["with_demo_users"]:
+            mgr = self._ensure_demo_user(
+                tenant,
+                email="manager@saptta.local",
+                password="Manager@1234",
+                role_name="manager",
+                emp_kwargs={
+                    "employee_code": "MGR0001",
+                    "first_name": "Demo",
+                    "last_name": "Manager",
+                    "official_email": "manager@saptta.local",
+                },
+            )
+            emp = self._ensure_demo_user(
+                tenant,
+                email="employee@saptta.local",
+                password="Employee@1234",
+                role_name="employee",
+                emp_kwargs={
+                    "employee_code": "EMP9001",
+                    "first_name": "Demo",
+                    "last_name": "Employee",
+                    "official_email": "employee@saptta.local",
+                },
+            )
+            from apps.employees.models import Employee
+            mgr_emp = mgr._employee_profile_or_none()
+            emp_profile = emp._employee_profile_or_none()
+            if mgr_emp and emp_profile and not emp_profile.reporting_manager_id:
+                emp_profile.reporting_manager = mgr_emp
+                emp_profile.save(update_fields=["reporting_manager"])
+            self.stdout.write("")
+            self.stdout.write(self.style.SUCCESS("-- Role demo logins (employee-login) --"))
+            self.stdout.write(f"  Manager:   manager@saptta.local / Manager@1234")
+            self.stdout.write(f"  Employee:  employee@saptta.local / Employee@1234")
+            self.stdout.write(f"  URL:       {base}/auth/employee-login/")
 
         self.stdout.write("")
         self.stdout.write("All workspace logins:")

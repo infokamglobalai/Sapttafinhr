@@ -4,8 +4,8 @@
 
    HOW PRO PRODUCTS USE COLOR (keep these rules):
    ─────────────────────────────────────────────
-   1. Primary (orange)  → main actions only: Save, Run Payroll, Submit
-   2. Secondary (blue)  → links, outline buttons, focus, secondary CTAs
+   1. Primary (blue)   → main actions: Save, Run Payroll, Submit, Add
+   2. Accent (orange)  → highlights, brand moments, PWA — sparingly
    3. Module tones      → sidebar icons + KPI accents ONLY (never full buttons)
    4. Neutrals (90%)    → backgrounds, text, borders — most of the UI
    5. Status colors     → success / warning / error badges & alerts only
@@ -13,17 +13,20 @@
    ============================================================ */
 
 :root {
-  /* ── Brand ── */
-  --saptta-primary: #F97316;
-  --saptta-primary-hover: #EA580C;
-  --saptta-primary-soft: rgba(249, 115, 22, 0.12);
-  --saptta-primary-muted: rgba(249, 115, 22, 0.22);
-  --saptta-primary-ring: rgba(249, 115, 22, 0.28);
+  /* ── Brand (blue-first HR UI) ── */
+  --saptta-primary: #2563EB;
+  --saptta-primary-hover: #1D4ED8;
+  --saptta-primary-soft: rgba(37, 99, 235, 0.12);
+  --saptta-primary-muted: rgba(37, 99, 235, 0.22);
+  --saptta-primary-ring: rgba(37, 99, 235, 0.28);
 
-  --saptta-secondary: #2563EB;
-  --saptta-secondary-hover: #1D4ED8;
-  --saptta-secondary-soft: rgba(37, 99, 235, 0.12);
-  --saptta-secondary-muted: rgba(37, 99, 235, 0.22);
+  --saptta-secondary: #6366F1;
+  --saptta-secondary-hover: #4F46E5;
+  --saptta-secondary-soft: rgba(99, 102, 241, 0.12);
+  --saptta-secondary-muted: rgba(99, 102, 241, 0.22);
+
+  --saptta-accent-orange: #F97316;
+  --saptta-accent-orange-soft: rgba(249, 115, 22, 0.12);
 
   /* ── Surfaces & text ── */
   --saptta-bg: #F4F7FB;

@@ -2,7 +2,7 @@
 {% block page_title %}{% if setting %}Edit{% else %}New{% endif %} Statutory Setting{% endblock %}
 {% block content %}
 <div style="max-width: 720px; margin: 0 auto;">
-  <a href="{% url 'payroll:statutory' %}" class="btn-base btn-ghost btn-sm" style="margin-bottom: 14px;">← Back</a>
+  <a href="{% url 'payroll:statutory' %}" class="btn btn-ghost btn-sm" style="margin-bottom: 14px;">← Back</a>
   <h2 style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 4px;">{% if setting %}Edit{% else %}New{% endif %} Statutory Setting</h2>
   <p style="font-size: 13.5px; color: var(--ink-500); margin-bottom: 22px;">Configure PF / ESI / Professional Tax / LWF rates.</p>
 
@@ -57,8 +57,8 @@
     </div>
 
     <div style="display: flex; justify-content: flex-end; gap: 12px;">
-      <a href="{% url 'payroll:statutory' %}" class="btn-base btn-ghost">Cancel</a>
-      <button type="submit" class="btn-base btn-primary">{% if setting %}Save Changes{% else %}Create Setting{% endif %}</button>
+      <a href="{% url 'payroll:statutory' %}" class="btn btn-ghost">Cancel</a>
+      <button type="submit" class="btn btn-primary">{% if setting %}Save Changes{% else %}Create Setting{% endif %}</button>
     </div>
   </form>
 </div>

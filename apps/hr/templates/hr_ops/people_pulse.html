@@ -14,7 +14,7 @@
 
   <!-- Today's birthdays -->
   <div class="surface" style="padding: 0; overflow: hidden;">
-    <div style="padding: 16px 22px; background: linear-gradient(135deg, #FB923C, #EA580C); color: white;">
+    <div style="padding: 16px 22px; background: linear-gradient(135deg, #3B82F6, #1D4ED8); color: white;">
       <div style="display: flex; align-items: center; gap: 8px;">
         <span style="font-size: 22px;">🎂</span>
         <span style="font-weight: 700; font-size: 15px;">Birthdays Today</span>
@@ -25,7 +25,7 @@
       {% for row in todays_birthdays %}
       <a href="{% url 'employees:detail' row.emp.pk %}" class="list-row" style="padding: 10px 14px;">
         <div style="display: flex; align-items: center; gap: 12px;">
-          <div style="width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, #FB923C, #EA580C); color: white; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700;">{{ row.emp.first_name|first }}{{ row.emp.last_name|first }}</div>
+          <div style="width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, #3B82F6, #1D4ED8); color: white; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700;">{{ row.emp.first_name|first }}{{ row.emp.last_name|first }}</div>
           <div>
             <div style="font-weight: 600; font-size: 14px;">{{ row.emp.full_name }}</div>
             <div style="font-size: 12px; color: var(--ink-500);">{{ row.emp.designation.name|default:"—" }}</div>
@@ -75,7 +75,7 @@
     {% for row in week_birthdays %}
     <div class="list-row" style="padding: 8px 10px;">
       <div style="display: flex; align-items: center; gap: 10px;">
-        <div style="width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, #FED7AA, #FB923C); color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">{{ row.emp.first_name|first }}{{ row.emp.last_name|first }}</div>
+        <div style="width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, #BFDBFE, #3B82F6); color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">{{ row.emp.first_name|first }}{{ row.emp.last_name|first }}</div>
         <div>
           <div style="font-weight: 600; font-size: 13px;">{{ row.emp.full_name }}</div>
           <div style="font-size: 11.5px; color: var(--ink-500);">{{ row.next_date|date:"l, d M" }}</div>

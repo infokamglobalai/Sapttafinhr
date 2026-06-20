@@ -4,25 +4,21 @@
 
 {% block content %}
 
-<div class="flex items-center justify-between mb-4">
-
-  <div>
-
-    <h2 class="text-xl font-bold">Help & Requests</h2>
-
-    <p class="text-sm text-base-content/60">IT issues, hardware, software subscriptions, HR queries</p>
-
+<div class="hr-page-header">
+  <div class="hr-page-header__main">
+    <h1 class="hr-page-header__title">Help &amp; Requests</h1>
+    <p class="hr-page-header__sub">IT issues, hardware, software subscriptions, HR queries</p>
   </div>
-
-  <a href="{% url 'hr_ops:request_create' %}" class="btn btn-primary btn-sm">+ Raise Request</a>
-
+  <div class="hr-page-header__actions">
+    <a href="{% url 'hr_ops:request_create' %}" class="btn btn-primary btn-sm">+ Raise Request</a>
+  </div>
 </div>
 
 
 
 {% if requests %}
 
-<div class="card bg-base-100 shadow overflow-x-auto">
+<div class="card hr-table-wrap">
 
   <table class="table table-sm">
 
@@ -64,7 +60,7 @@
 
 {% else %}
 
-<div class="card bg-base-100 shadow">
+<div class="card">
   {% url 'hr_ops:request_create' as request_create_url %}
   {% include "partials/empty_state.html" with title="No requests yet" message="Raise a ticket for IT issues, laptop problems, software access, or HR help. Hardware and software requests go to your manager first, then IT." cta_url=request_create_url cta_label="Raise your first request" %}
 </div>

@@ -1,21 +1,21 @@
 {% extends "base.html" %}
 {% block page_title %}Team Performance Reviews{% endblock %}
 {% block content %}
-<div class="flex items-center justify-between mb-4">
-  <div>
-    <h2 class="text-xl font-bold">Team Reviews</h2>
-    <p class="text-sm text-base-content/60">Write performance reviews for your direct reports.</p>
+<div class="hr-page-header">
+  <div class="hr-page-header__main">
+    <h1 class="hr-page-header__title">Team Reviews</h1>
+    <p class="hr-page-header__sub">Write performance reviews for your direct reports.</p>
   </div>
 </div>
 
 {% if not cycles %}
-<div class="card bg-base-100 shadow">
+<div class="card">
   <div class="card-body text-center py-12">
     <p class="text-base-content/40">No active review cycle right now. HR will open one soon.</p>
   </div>
 </div>
 {% elif not direct_reports %}
-<div class="card bg-base-100 shadow">
+<div class="card">
   <div class="card-body text-center py-12">
     <p class="text-base-content/40">You don't have any direct reports.</p>
   </div>
@@ -23,7 +23,7 @@
 {% else %}
 
 <!-- Pending reviews matrix -->
-<div class="card bg-base-100 shadow mb-4">
+<div class="card hr-filter-bar">
   <div class="card-body p-4">
     <h3 class="font-semibold mb-3">Open Reviews</h3>
     <div class="overflow-x-auto">
@@ -77,7 +77,7 @@
 
 <!-- Recent reviews you've written -->
 {% if past_reviews %}
-<div class="card bg-base-100 shadow">
+<div class="card">
   <div class="card-body p-4">
     <h3 class="font-semibold mb-3">Reviews You've Written</h3>
     <div class="space-y-2">

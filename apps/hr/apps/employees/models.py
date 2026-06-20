@@ -124,6 +124,26 @@ class Employee(models.Model):
     uan_number = models.CharField(max_length=12, blank=True)
     esi_number = models.CharField(max_length=10, blank=True)
 
+    # GCC / Kuwait compliance (P1)
+    nationality = models.CharField(max_length=2, blank=True, help_text="ISO country code")
+    is_kuwaiti_national = models.BooleanField(default=False)
+    _civil_id_enc = models.TextField(db_column="civil_id_enc", blank=True)
+    residency_number = models.CharField(max_length=50, blank=True)
+    residency_expiry = models.DateField(null=True, blank=True)
+    passport_number = models.CharField(max_length=50, blank=True)
+    passport_expiry = models.DateField(null=True, blank=True)
+    work_permit_number = models.CharField(max_length=50, blank=True)
+    work_permit_expiry = models.DateField(null=True, blank=True)
+    civil_id_expiry = models.DateField(null=True, blank=True)
+    sponsor_file_number = models.CharField(max_length=50, blank=True)
+    CONTRACT_TYPE_CHOICES = [
+        ("limited", "Limited"),
+        ("unlimited", "Unlimited"),
+    ]
+    contract_type = models.CharField(max_length=20, choices=CONTRACT_TYPE_CHOICES, blank=True)
+    contract_end_date = models.DateField(null=True, blank=True)
+    pifss_number = models.CharField(max_length=50, blank=True)
+
     # Org
     department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True)
     designation = models.ForeignKey(Designation, on_delete=models.SET_NULL, null=True, blank=True)
@@ -181,6 +201,14 @@ class Employee(models.Model):
     @pan_number.setter
     def pan_number(self, value):
         self._pan_enc = encrypt(value) if value else ""
+
+    @property
+    def civil_id(self):
+        return decrypt(self._civil_id_enc)
+
+    @civil_id.setter
+    def civil_id(self, value):
+        self._civil_id_enc = encrypt(value) if value else ""
 
     def get_current_salary(self):
         return self.salaries.filter(is_active=True).order_by("-effective_date").first()
@@ -248,6 +276,9 @@ class EmployeeDocument(models.Model):
         ("aadhaar", "Aadhaar Card"),
         ("pan", "PAN Card"),
         ("passport", "Passport"),
+        ("civil_id", "Civil ID"),
+        ("residency", "Residency / Iqama"),
+        ("work_permit", "Work Permit"),
         ("degree", "Degree Certificate"),
         ("offer_letter", "Offer Letter"),
         ("relieving", "Relieving Letter"),

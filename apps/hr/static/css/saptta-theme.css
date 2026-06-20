@@ -14,12 +14,12 @@
   --soft-text: #0F172A;
   --soft-text-secondary: #475569;
   --soft-text-tertiary: #94A3B8;
-  --soft-accent: #F97316;
-  --soft-accent-hover: #EA580C;
+  --soft-accent: #2563EB;
+  --soft-accent-hover: #1D4ED8;
   --color-secondary: #2563EB;
   --color-secondary-hover: #1D4ED8;
-  --saptta-accent: #F97316;
-  --saptta-accent-soft: rgba(249, 115, 22, 0.12);
+  --saptta-accent: #2563EB;
+  --saptta-accent-soft: rgba(37, 99, 235, 0.12);
   --soft-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 20px rgba(0, 0, 0, 0.04);
   --soft-shadow-hover: 0 4px 8px rgba(0, 0, 0, 0.06), 0 12px 32px rgba(0, 0, 0, 0.06);
   --soft-radius: 14px;

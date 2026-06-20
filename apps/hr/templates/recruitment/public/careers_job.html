@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ job.title }} — {{ tenant.name }}</title>
   <style>
-    :root { --fg:#1f2937; --muted:#6b7280; --bd:#e5e7eb; --accent:#2563eb; }
+    :root { --fg:#1f2937; --muted:#6b7280; --bd:#e5e7eb; --accent:#2563eb; --ok:#059669; }
     body { font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
            color: var(--fg); margin: 0; background: #f9fafb; }
     .wrap { max-width: 760px; margin: 0 auto; padding: 40px 20px; }
@@ -17,6 +17,15 @@
     .card { background:#fff; border:1px solid var(--bd); border-radius:10px; padding:20px; margin-bottom:16px; }
     h3 { font-size: 15px; margin: 0 0 8px; }
     .desc { white-space: pre-line; line-height: 1.6; }
+    .apply-form label { display:block; font-size:13px; font-weight:600; margin:10px 0 4px; }
+    .apply-form input, .apply-form textarea { width:100%; box-sizing:border-box; padding:10px 12px;
+      border:1px solid var(--bd); border-radius:8px; font-size:14px; }
+    .apply-btn { margin-top:14px; background:var(--accent); color:#fff; border:none; border-radius:8px;
+      padding:12px 20px; font-size:14px; font-weight:700; cursor:pointer; }
+    .success { background:#ecfdf5; border:1px solid #a7f3d0; color:var(--ok); padding:14px 16px;
+      border-radius:10px; margin-bottom:16px; }
+    .error { background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; padding:12px 14px;
+      border-radius:8px; margin-bottom:12px; font-size:13px; }
   </style>
 </head>
 <body>
@@ -29,6 +38,10 @@
       {% if job.experience_max %} · {{ job.experience_min }}–{{ job.experience_max }} yrs experience{% endif %}
     </div>
 
+    {% if applied %}
+    <div class="success">Thank you — your application was submitted. Our HR team will review it shortly.</div>
+    {% endif %}
+
     {% if job.mandatory_skills or job.preferred_skills %}
     <div class="card">
       <h3>Skills</h3>
@@ -39,6 +52,27 @@
 
     {% if job.description %}<div class="card"><h3>About the role</h3><div class="desc">{{ job.description }}</div></div>{% endif %}
     {% if job.requirements %}<div class="card"><h3>Requirements</h3><div class="desc">{{ job.requirements }}</div></div>{% endif %}
+
+    {% if not applied %}
+    <div class="card">
+      <h3>Apply for this role</h3>
+      {% if apply_error %}<div class="error">{{ apply_error }}</div>{% endif %}
+      <form method="post" enctype="multipart/form-data" class="apply-form">
+        {% csrf_token %}
+        <label for="first_name">First name *</label>
+        <input id="first_name" name="first_name" required>
+        <label for="last_name">Last name</label>
+        <input id="last_name" name="last_name">
+        <label for="email">Email *</label>
+        <input id="email" name="email" type="email" required>
+        <label for="phone">Phone</label>
+        <input id="phone" name="phone" type="tel">
+        <label for="resume">Resume (PDF / DOC)</label>
+        <input id="resume" name="resume" type="file" accept=".pdf,.doc,.docx,.txt">
+        <button type="submit" class="apply-btn">Submit application</button>
+      </form>
+    </div>
+    {% endif %}
   </div>
 </body>
 </html>

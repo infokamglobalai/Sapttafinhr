@@ -1,11 +1,20 @@
 {% extends "base.html" %}
 {% block page_title %}My Profile{% endblock %}
 {% block content %}
-<div class="max-w-lg mx-auto">
-  <h2 class="text-xl font-bold mb-4">My Profile</h2>
-  <div class="card bg-base-100 shadow">
-    <div class="card-body">
-      <div class="flex items-center gap-4 mb-6">
+<div class="max-w-2xl mx-auto">
+  <div class="hr-page-header">
+    <div class="hr-page-header__main">
+      <h1 class="hr-page-header__title">My Profile</h1>
+      <p class="hr-page-header__sub">Update your photo, contact details, and personal information</p>
+    </div>
+    <div class="hr-page-header__actions">
+      <a href="{% url 'accounts:change_password' %}" class="btn btn-outline btn-sm">Change Password</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body gap-6">
+      <div class="flex items-center gap-4 pb-2 border-b border-base-200">
         {% include "partials/user_avatar.html" with size="profile" %}
         <div>
           <p class="font-bold text-lg">{{ user.get_full_name }}</p>
@@ -13,16 +22,92 @@
           <p class="text-xs font-semibold uppercase tracking-wide text-primary mt-1">{{ user.role_label }}</p>
         </div>
       </div>
-      {% if user.employee_profile %}
-      <div class="grid grid-cols-2 gap-4 text-sm">
-        <div><span class="text-base-content/60">Employee Code</span><p class="font-mono font-medium">{{ user.employee_profile.employee_code }}</p></div>
-        <div><span class="text-base-content/60">Department</span><p>{{ user.employee_profile.department.name|default:"—" }}</p></div>
-        <div><span class="text-base-content/60">Designation</span><p>{{ user.employee_profile.designation.name|default:"—" }}</p></div>
-        <div><span class="text-base-content/60">Joined</span><p>{{ user.employee_profile.date_of_joining|date:"d M Y" }}</p></div>
-      </div>
+
+      {% if form %}
+      <form method="post" enctype="multipart/form-data" class="space-y-4">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+        <div class="alert alert-error"><span>{{ form.non_field_errors.0 }}</span></div>
+        {% endif %}
+
+        <div class="form-control">
+          <label class="label"><span class="label-text font-medium">Profile photo</span></label>
+          {{ form.profile_photo }}
+          {% if form.profile_photo.errors %}<p class="text-error text-sm mt-1">{{ form.profile_photo.errors.0 }}</p>{% endif %}
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="form-control">
+            <label class="label"><span class="label-text font-medium">First name</span></label>
+            {{ form.first_name }}
+            {% if form.first_name.errors %}<p class="text-error text-sm mt-1">{{ form.first_name.errors.0 }}</p>{% endif %}
+          </div>
+          <div class="form-control">
+            <label class="label"><span class="label-text font-medium">Middle name</span></label>
+            {{ form.middle_name }}
+          </div>
+          <div class="form-control">
+            <label class="label"><span class="label-text font-medium">Last name</span></label>
+            {{ form.last_name }}
+            {% if form.last_name.errors %}<p class="text-error text-sm mt-1">{{ form.last_name.errors.0 }}</p>{% endif %}
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="form-control">
+            <label class="label"><span class="label-text font-medium">Date of birth</span></label>
+            {{ form.date_of_birth }}
+          </div>
+          <div class="form-control">
+            <label class="label"><span class="label-text font-medium">Gender</span></label>
+            {{ form.gender }}
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="form-control">
+            <label class="label"><span class="label-text font-medium">Blood group</span></label>
+            {{ form.blood_group }}
+          </div>
+          <div class="form-control">
+            <label class="label"><span class="label-text font-medium">Personal email</span></label>
+            {{ form.personal_email }}
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="form-control">
+            <label class="label"><span class="label-text font-medium">Phone</span></label>
+            {{ form.phone_primary }}
+          </div>
+          <div class="form-control">
+            <label class="label"><span class="label-text font-medium">Alternate phone</span></label>
+            {{ form.phone_alternate }}
+          </div>
+        </div>
+
+        <div class="form-control">
+          <label class="label"><span class="label-text font-medium">Login email</span></label>
+          <input type="email" class="input input-bordered w-full" value="{{ user.email }}" disabled>
+          <label class="label"><span class="label-text-alt text-base-content/50">Login email is managed by your administrator or platform account.</span></label>
+        </div>
+
+        {% if employee %}
+        <div class="grid grid-cols-2 gap-4 text-sm pt-2 border-t border-base-200">
+          <div><span class="text-base-content/60">Employee Code</span><p class="font-mono font-medium">{{ employee.employee_code }}</p></div>
+          <div><span class="text-base-content/60">Department</span><p>{{ employee.department.name|default:"—" }}</p></div>
+          <div><span class="text-base-content/60">Designation</span><p>{{ employee.designation.name|default:"—" }}</p></div>
+          <div><span class="text-base-content/60">Joined</span><p>{{ employee.date_of_joining|date:"d M Y" }}</p></div>
+        </div>
+        {% endif %}
+
+        <div class="flex justify-end pt-2">
+          <button type="submit" class="btn btn-primary">Save profile</button>
+        </div>
+      </form>
+      {% else %}
+      <p class="text-base-content/60">Profile editing is unavailable — no workspace is linked to your session.</p>
       {% endif %}
-      <div class="divider"></div>
-      <a href="{% url 'accounts:change_password' %}" class="btn btn-outline btn-sm">Change Password</a>
     </div>
   </div>
 </div>

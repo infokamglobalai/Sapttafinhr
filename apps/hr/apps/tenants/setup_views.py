@@ -13,6 +13,7 @@ from __future__ import annotations
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
+from django.utils import timezone
 from django.views.decorators.http import require_http_methods, require_GET
 
 
@@ -37,12 +38,13 @@ def setup_complete(request):
     """One-time credentials display after setup. Reads and clears the session."""
     credentials = request.session.pop("setup_credentials", None)
     company_name = request.session.pop("setup_company_name", "")
+    login_url = request.session.pop("setup_login_url", "")
     if not credentials:
         return redirect("tenants:dashboard")
     return render(request, "tenants/setup_complete.html", {
         "credentials": credentials,
         "company_name": company_name,
-        "login_url": request.build_absolute_uri("/auth/login/"),
+        "login_url": login_url or request.build_absolute_uri("/auth/employee-login/"),
     })
 
 
@@ -94,46 +96,98 @@ def _handle_submit(request, tenant):
         email = (emp_email[i]  if i < len(emp_email)  else "").strip()
         role  = (emp_role[i]   if i < len(emp_role)   else "employee").strip() or "employee"
 
-        emp, created = Employee.objects.get_or_create(
-            tenant=tenant,
-            employee_code=code,
-            defaults={
+        from apps.employees.services import create_employee, _parse_date
+        from apps.tenants.limits import check_employee_capacity, EmployeeLimitExceeded
+
+        emp, created = None, False
+        try:
+            check_employee_capacity(tenant, additional=1)
+        except EmployeeLimitExceeded as exc:
+            messages.error(request, str(exc))
+            return redirect("tenants:setup")
+
+        try:
+            doj_parsed = _parse_date(doj)
+        except ValueError as exc:
+            messages.error(request, f"Invalid date for {code}: {exc}")
+            return redirect("tenants:setup")
+
+        emp, _ = create_employee(
+            tenant,
+            {
+                "employee_code": code,
                 "first_name": first,
-                "last_name":  last,
-                "date_of_joining": doj,
+                "last_name": last,
+                "date_of_joining": doj_parsed,
                 "department": dept,
                 "official_email": email,
+                "employment_status": "active",
             },
+            created_by=request.user,
         )
-        if created:
-            new_employees.append((emp, email, role))
+        new_employees.append((emp, email, role))
 
-    # 5) Provision login accounts for every new employee that has an email
+    # 5) Provision login accounts + assign roles for every new employee with email
+    from apps.employees.access_services import build_invite_url, set_employee_roles
+    from apps.employees.services import provision_employee_login, email_employee_invite, invite_delivery_message
+    from apps.employees.access_services import get_login_url
+
     credentials = []
     for emp, email, role_name in new_employees:
         if not email:
             continue
         try:
-            _ensure_role(tenant, role_name)
-            user, password = provision_employee_login(emp, created_by=request.user)
-            if password:
+            user, needs_invite = provision_employee_login(emp, created_by=request.user)
+            role_names = [role_name.lower()] if role_name else ["employee"]
+            set_employee_roles(user, role_names, granted_by=request.user)
+            if needs_invite:
+                invite_url = build_invite_url(request, user)
+                login_url = get_login_url(request)
+                mail_result = email_employee_invite(emp, invite_url, login_url)
                 credentials.append({
-                    "name":     emp.full_name or emp.employee_code,
-                    "code":     emp.employee_code,
-                    "email":    email,
-                    "password": password,
-                    "role":     role_name.replace("_", " ").title(),
+                    "name": emp.full_name or emp.employee_code,
+                    "code": emp.employee_code,
+                    "email": email,
+                    "invite_url": invite_url,
+                    "role": role_name.replace("_", " ").title(),
+                    "emailed": mail_result.get("sent"),
+                    "email_note": invite_delivery_message(
+                        mail_result, email=email, employee_name=emp.full_name,
+                    ),
                 })
-        except Exception:
-            pass  # No email or duplicate — skip silently
+        except Exception as exc:
+            messages.warning(
+                request,
+                f"Could not invite {emp.full_name or emp.employee_code} ({email}): {exc}",
+            )
 
     tenant.employee_count = Employee.objects.filter(tenant=tenant, is_active=True).count()
+
+    from apps.payroll.bootstrap import bootstrap_payroll_for_tenant
+    from apps.leaves.models import HolidayCalendar
+
+    if tenant.is_india_payroll or tenant.is_gcc_payroll:
+        try:
+            bootstrap_payroll_for_tenant(tenant, assign_salaries=True)
+        except Exception:
+            pass
+
+    year = timezone.localdate().year
+    if not HolidayCalendar.objects.filter(tenant=tenant, year=year).exists():
+        HolidayCalendar.objects.create(
+            tenant=tenant,
+            name=f"Company Calendar {year}",
+            year=year,
+            is_default=True,
+        )
+
     tenant.setup_complete = True
     tenant.save(update_fields=["employee_count", "setup_complete"])
 
     if credentials:
-        request.session["setup_credentials"]  = credentials
+        request.session["setup_credentials"] = credentials
         request.session["setup_company_name"] = tenant.name
+        request.session["setup_login_url"] = get_login_url(request)
         return redirect("tenants:setup_complete")
 
     messages.success(request, f"Setup complete — {len(new_employees)} employee(s) added.")
@@ -141,6 +195,6 @@ def _handle_submit(request, tenant):
 
 
 def _ensure_role(tenant, role_name: str):
-    """Make sure the named role exists in this tenant."""
+    """Ensure role row exists (legacy helper; roles are assigned via set_employee_roles)."""
     from apps.accounts.models import Role
-    Role.objects.get_or_create(tenant=tenant, name=role_name.lower())
+    Role.objects.get_or_create(tenant=tenant, name=role_name.lower(), defaults={"is_system": True})

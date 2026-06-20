@@ -16,6 +16,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from apps.employees.models import Department, Designation, OfficeLocation
+from apps.tenants.limits import EmployeeLimitExceeded
 
 from .models import Candidate, JDTemplate, JobApplication, JobOpening, RankingJob, ScoringWeights
 
@@ -175,12 +176,14 @@ def job_detail(request, pk):
         buckets.setdefault(app.status, []).append(app)
     # Template-friendly: ordered list of stages (no custom filter needed).
     stages = [{"key": s, "count": len(buckets[s]), "apps": buckets[s]} for s in PIPELINE]
+    from django.conf import settings
     weights = getattr(job, "scoring_weights", None)
     from . import talent
     ctx = {
         "job": job, "stages": stages, "pipeline": PIPELINE,
         "weights": weights.as_dict() if weights else dict(ScoringWeights.DEFAULTS),
         "bias_flags": talent.scan_jd_bias(job),
+        "ats_configured": bool(getattr(settings, "ATS_PROVIDER", "")),
     }
     return render(request, "recruitment/job_detail.html", ctx)
 
@@ -315,6 +318,30 @@ def bulk_upload(request, pk):
     if skipped:
         messages.warning(request, "Skipped: " + "; ".join(skipped[:5]) + ("…" if len(skipped) > 5 else ""))
     return redirect("recruitment:job_detail", pk=pk)
+
+
+@hr_admin_required
+@require_POST
+def convert_to_employee(request, pk):
+    """Create employee from a hired application and start onboarding."""
+    app = get_object_or_404(
+        JobApplication.objects.select_related("candidate", "job_opening"),
+        pk=pk,
+        tenant=request.tenant,
+    )
+    if app.status != "hired":
+        messages.error(request, "Move the candidate to Hired before converting to employee.")
+        return redirect("recruitment:job_detail", pk=app.job_opening_id)
+
+    from .services import convert_hired_application
+
+    try:
+        emp = convert_hired_application(app, created_by=request.user)
+    except EmployeeLimitExceeded as exc:
+        messages.error(request, str(exc))
+        return redirect("recruitment:job_detail", pk=app.job_opening_id)
+    messages.success(request, f"{emp.full_name} added as {emp.employee_code}. Onboarding started.")
+    return redirect("employees:detail", pk=emp.pk)
 
 
 @hr_admin_required

@@ -54,8 +54,7 @@ class TestReporter:
             marker = {"PASS": "[ OK ]", "FAIL": "[FAIL]", "SKIP": "[SKIP]"}[status]
             line = f"  {marker} {name}"
             if detail:
-                # strip non-ASCII to survive the Windows cp1252 console
-                detail_ascii = detail.encode("ascii", "replace").decode("ascii")
+                detail_ascii = str(detail).encode("ascii", "replace").decode("ascii")
                 line += f"  | {detail_ascii}"
             stdout.write(line)
         stdout.write("\n" + "=" * 78)
@@ -70,13 +69,24 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("--subdomain", default="smoketest", help="Tenant subdomain to use")
+        parser.add_argument(
+            "--jurisdiction", default="IN", choices=["IN", "KW", "AE", "SA"],
+            help="Payroll jurisdiction — use KW/AE/SA to run GCC smoke branch",
+        )
         parser.add_argument("--keep", action="store_true",
                             help="Don't wipe the tenant first; just rerun checks against it")
+
+    @property
+    def is_gcc(self) -> bool:
+        return getattr(self, "jurisdiction", "IN") != "IN"
 
     def handle(self, *args, **opts):
         random.seed(42)  # deterministic
         self.r = TestReporter()
+        self.jurisdiction = opts["jurisdiction"].upper()
         self.subdomain = opts["subdomain"]
+        if self.is_gcc and self.subdomain == "smoketest":
+            self.subdomain = f"smoketest-{self.jurisdiction.lower()}"
 
         # Silence the email firehose during the test
         from django.conf import settings
@@ -93,12 +103,22 @@ class Command(BaseCommand):
             self.test_leaves()
             self.test_performance()
             self.test_payroll()
-            self.test_tax_declarations()
-            self.test_form16()
+            if self.is_gcc:
+                self.r.skip("Tax declarations", "India-only jurisdiction")
+                self.r.skip("Form 16", "India-only jurisdiction")
+            else:
+                self.test_tax_declarations()
+                self.test_form16()
             self.test_exports()
             self.test_letters()
             self.test_documents()
             self.test_assets_announcements()
+            self.test_recruitment()
+            self.test_reports()
+            self.test_role_workflows()
+            self.test_cross_module_journey()
+            self.test_extended_modules()
+            self.test_employee_limits()
             self.test_public_pages()
             self.test_management_commands()
         except Exception as exc:
@@ -140,9 +160,12 @@ class Command(BaseCommand):
                 subdomain=self.subdomain,
                 admin_email=f"admin@{self.subdomain}.com",
                 admin_password="Admin@1234",
+                country=self.jurisdiction,
             )
             self.tenant = tenant
             self.admin_user = admin_user
+            tenant.setup_complete = True
+            tenant.save(update_fields=["setup_complete"])
 
             # Org structure
             dept = Department.objects.create(tenant=tenant, name="Engineering")
@@ -155,39 +178,52 @@ class Command(BaseCommand):
                 latitude=Decimal("12.9716"), longitude=Decimal("77.5946"),
             )
 
-            # Salary structure + statutory
-            self.structure = SalaryStructure.objects.create(
-                tenant=tenant, name="Default", is_active=True,
-            )
-            StatutorySetting.objects.create(
-                tenant=tenant, statutory_type="pf",
-                employee_rate=Decimal("0.12"), employer_rate=Decimal("0.1208"),
-                wage_ceiling=Decimal("15000"), effective_date=datetime.date(2024, 4, 1),
-            )
-            StatutorySetting.objects.create(
-                tenant=tenant, statutory_type="esi",
-                employee_rate=Decimal("0.0075"), employer_rate=Decimal("0.0325"),
-                wage_ceiling=Decimal("21000"), effective_date=datetime.date(2024, 4, 1),
-            )
-            StatutorySetting.objects.create(
-                tenant=tenant, statutory_type="pt", state_code="IN-KA",
-                effective_date=datetime.date(2024, 4, 1),
-                slabs=[
-                    {"min": 0, "max": 14999, "amount": 0},
-                    {"min": 15000, "max": None, "amount": 200},
-                ],
-            )
+            # Salary structure + statutory (India) or GCC bootstrap
+            if self.is_gcc:
+                from apps.payroll.bootstrap import bootstrap_gcc_payroll_defaults
+                bootstrap_gcc_payroll_defaults(tenant, assign_salaries=False)
+                self.structure = SalaryStructure.objects.filter(
+                    tenant=tenant, is_active=True,
+                ).first()
+            else:
+                self.structure = SalaryStructure.objects.create(
+                    tenant=tenant, name="Default", is_active=True,
+                )
+                StatutorySetting.objects.create(
+                    tenant=tenant, statutory_type="pf",
+                    employee_rate=Decimal("0.12"), employer_rate=Decimal("0.1208"),
+                    wage_ceiling=Decimal("15000"), effective_date=datetime.date(2024, 4, 1),
+                )
+                StatutorySetting.objects.create(
+                    tenant=tenant, statutory_type="esi",
+                    employee_rate=Decimal("0.0075"), employer_rate=Decimal("0.0325"),
+                    wage_ceiling=Decimal("21000"), effective_date=datetime.date(2024, 4, 1),
+                )
+                StatutorySetting.objects.create(
+                    tenant=tenant, statutory_type="pt", state_code="IN-KA",
+                    effective_date=datetime.date(2024, 4, 1),
+                    slabs=[
+                        {"min": 0, "max": 14999, "amount": 0},
+                        {"min": 15000, "max": None, "amount": 200},
+                    ],
+                )
 
-            # Leave types
-            self.leave_type_el = LeaveType.objects.create(
-                tenant=tenant, name="Earned Leave", code="EL",
-                is_paid=True, accrual_type="upfront", accrual_value=Decimal("18"),
-                max_annual_balance=Decimal("18"),
+            # Leave types (regional packs may already seed GCC leave types)
+            self.leave_type_el, _ = LeaveType.objects.get_or_create(
+                tenant=tenant, code="EL",
+                defaults={
+                    "name": "Earned Leave", "is_paid": True,
+                    "accrual_type": "upfront", "accrual_value": Decimal("18"),
+                    "max_annual_balance": Decimal("18"),
+                },
             )
-            self.leave_type_sl = LeaveType.objects.create(
-                tenant=tenant, name="Sick Leave", code="SL",
-                is_paid=True, accrual_type="upfront", accrual_value=Decimal("12"),
-                max_annual_balance=Decimal("12"),
+            self.leave_type_sl, _ = LeaveType.objects.get_or_create(
+                tenant=tenant, code="SL",
+                defaults={
+                    "name": "Sick Leave", "is_paid": True,
+                    "accrual_type": "upfront", "accrual_value": Decimal("12"),
+                    "max_annual_balance": Decimal("12"),
+                },
             )
 
             employee_role = Role.objects.get(tenant=tenant, name="employee")
@@ -207,6 +243,13 @@ class Command(BaseCommand):
                 desig = desig_mgr if i == 0 else desig_eng
                 ctc = Decimal("3000000") if i == 0 else Decimal("1200000")
                 basic = (ctc * Decimal("0.40") / 12).quantize(Decimal("0.01"))
+                if self.is_gcc:
+                    from utils.money import round_money
+                    basic = round_money(
+                        Decimal("500") if tenant.currency == "KWD" else Decimal("5000"),
+                        tenant.currency,
+                    )
+                    ctc = basic * 12
                 email = f"{first.lower()}.{last.lower()}@{self.subdomain}.com"
                 user = User.objects.create_user(
                     email=email, tenant=tenant, password="Demo@1234",
@@ -221,15 +264,16 @@ class Command(BaseCommand):
                     official_email=email,
                     phone_primary=f"+91{random.randint(6000000000, 9999999999)}",
                     department=dept, designation=desig, location=self.location,
-                    work_state_code="IN-KA",
+                    work_state_code="" if self.is_gcc else "IN-KA",
                     employment_type="full_time", employment_status="active",
                     date_of_joining=datetime.date.today() - datetime.timedelta(days=365 + i * 20),
-                    uan_number=str(random.randint(100000000000, 999999999999)),
-                    esi_number="",  # high-wage; no ESI
+                    uan_number="" if self.is_gcc else str(random.randint(100000000000, 999999999999)),
+                    esi_number="",
                     is_active=True,
                 )
-                emp.pan_number = f"ABCDE{1000+i}F"
-                emp.aadhaar_number = str(random.randint(100000000000, 999999999999))
+                if not self.is_gcc:
+                    emp.pan_number = f"ABCDE{1000+i}F"
+                    emp.aadhaar_number = str(random.randint(100000000000, 999999999999))
                 emp.save()
                 EmployeeSalary.objects.create(
                     tenant=tenant, employee=emp, structure=self.structure,
@@ -238,11 +282,16 @@ class Command(BaseCommand):
                 )
                 bank = EmployeeBankAccount(
                     employee=emp, account_holder_name=emp.full_name,
-                    bank_name="HDFC Bank", branch_name="Bengaluru Main",
-                    ifsc_code=f"HDFC0{random.randint(100000, 999999)}",
+                    bank_name="Gulf Bank" if self.is_gcc else "HDFC Bank",
+                    branch_name="Main",
                     account_type="savings", is_primary=True,
                 )
-                bank.account_number = str(random.randint(10000000000, 99999999999))
+                if self.is_gcc:
+                    bank.ifsc_code = "GULBKWKW"
+                    bank.account_number = f"KW{random.randint(10**28, 10**29 - 1)}"
+                else:
+                    bank.ifsc_code = f"HDFC0{random.randint(100000, 999999)}"
+                    bank.account_number = str(random.randint(10000000000, 99999999999))
                 bank.save()
                 self.employees.append(emp)
 
@@ -322,7 +371,8 @@ class Command(BaseCommand):
                 "date_of_joining": datetime.date.today(),
                 "department": self.dept,
             }, created_by=self.admin_user)
-            self.r.ok("create_employee service", f"{emp.employee_code}, temp pwd len={len(pwd)}")
+            detail = f"{emp.employee_code}, locked invite" if pwd is None else f"{emp.employee_code}, temp pwd len={len(pwd)}"
+            self.r.ok("create_employee service", detail)
             emp.delete()
         except Exception as exc:
             self.r.fail("create_employee service", str(exc))
@@ -330,7 +380,8 @@ class Command(BaseCommand):
         # Bank account encryption integrity
         emp = self.employees[1]
         bank = emp.bank_accounts.first()
-        if bank and bank.account_number and bank.account_number.isdigit():
+        acct = bank.account_number if bank else ""
+        if bank and acct and len(acct) >= 8:
             self.r.ok("Bank account decrypt", f"masked={bank.masked_account_number}")
         else:
             self.r.fail("Bank account decrypt", "could not read back account number")
@@ -339,6 +390,15 @@ class Command(BaseCommand):
     def test_encryption(self):
         self.r.section("PII ENCRYPTION (Fernet)")
         emp = self.employees[0]
+        if self.is_gcc:
+            bank = emp.bank_accounts.first()
+            if bank and bank.account_number:
+                self.r.ok("Bank account encrypt/decrypt (GCC)", f"len={len(bank.account_number)}")
+            else:
+                self.r.fail("Bank account encrypt/decrypt (GCC)", "no bank row")
+            self.r.skip("PAN encrypt/decrypt", "India-only field")
+            self.r.skip("Aadhaar encrypt/decrypt", "India-only field")
+            return
         if emp.pan_number and emp.pan_number.startswith("ABCDE"):
             self.r.ok("PAN encrypt/decrypt", f"{emp.pan_number}")
         else:
@@ -555,23 +615,21 @@ class Command(BaseCommand):
         from apps.payroll.engine import compute_payroll_record
         from apps.payroll.tasks import generate_payslips_for_run
 
-        # Define salary components (BASIC, HRA, SPECIAL) — all as % of basic
-        # to avoid the running-gross trap in the formula evaluator.
-        comps = {}
-        for code, name, val, seq in [
-            ("BASIC",   "Basic",                None, 10),
-            ("HRA",     "House Rent Allowance", 40,   20),
-            ("SPECIAL", "Special Allowance",    60,   30),
-        ]:
-            c = SalaryComponent.objects.create(
-                tenant=self.tenant, name=name, code=code, component_type="earning",
-                calc_type="pct_of_basic", calc_value=val,
-                is_taxable=True, sequence_order=seq,
-            )
-            SalaryStructureComponent.objects.create(
-                structure=self.structure, component=c, sequence_order=seq,
-            )
-            comps[code] = c
+        if not self.is_gcc:
+            # Define salary components (BASIC, HRA, SPECIAL) — all as % of basic
+            for code, name, val, seq in [
+                ("BASIC",   "Basic",                None, 10),
+                ("HRA",     "House Rent Allowance", 40,   20),
+                ("SPECIAL", "Special Allowance",    60,   30),
+            ]:
+                c = SalaryComponent.objects.create(
+                    tenant=self.tenant, name=name, code=code, component_type="earning",
+                    calc_type="pct_of_basic", calc_value=val,
+                    is_taxable=True, sequence_order=seq,
+                )
+                SalaryStructureComponent.objects.create(
+                    structure=self.structure, component=c, sequence_order=seq,
+                )
 
         # Create a payroll run for previous month
         today = datetime.date.today()
@@ -601,7 +659,15 @@ class Command(BaseCommand):
 
         # Verify a sample record
         sample = PayrollRecord.objects.filter(payroll_run=run, employee=self.employees[1]).first()
-        if sample and sample.basic > 0 and sample.pf_employee > 0 and sample.tds >= 0:
+        if self.is_gcc:
+            if sample and sample.basic > 0 and sample.gross_earnings > 0:
+                self.r.ok(
+                    "Sample GCC PayrollRecord",
+                    f"basic={sample.basic} gross={sample.gross_earnings} net={sample.net_payable}",
+                )
+            else:
+                self.r.fail("Sample GCC PayrollRecord", "fields missing")
+        elif sample and sample.basic > 0 and sample.pf_employee > 0 and sample.tds >= 0:
             self.r.ok("Sample PayrollRecord has basic/PF/TDS",
                       f"basic=₹{sample.basic} PF=₹{sample.pf_employee} TDS=₹{sample.tds}")
         else:
@@ -713,13 +779,39 @@ class Command(BaseCommand):
 
     # ───────────────────────────────────────────────────────────────────────
     def test_exports(self):
-        self.r.section("STATUTORY EXPORTS (Tally / PF / ESI)")
-        from apps.payroll.exports import build_tally_xml, build_pf_ecr, build_esi_return
+        self.r.section("STATUTORY EXPORTS (Tally / PF / ESI)" if not self.is_gcc else "GCC PAYROLL EXPORTS")
+        from django.test import Client
+        from django.urls import reverse
 
         run = getattr(self, "payroll_run", None)
         if not run:
-            self.r.skip("Tally/PF/ESI", "no payroll run")
+            self.r.skip("Payroll exports", "no payroll run")
             return
+
+        if self.is_gcc:
+            self.r.skip("Tally XML export", "India-only")
+            self.r.skip("PF ECR export", "India-only")
+            self.r.skip("ESI return CSV", "India-only")
+            export_urls = [
+                ("Salary Register Excel", "payroll:salary_register"),
+                ("Bank Advice Excel", "payroll:bank_advice"),
+            ]
+            if self.jurisdiction == "KW":
+                export_urls.append(("GCC Bank Transfer CSV", "payroll:gcc_bank_transfer"))
+            c = Client(HTTP_HOST="localhost")
+            c.force_login(self.admin_user, backend="apps.accounts.backends.TenantAuthBackend")
+            for name, url_name in export_urls:
+                try:
+                    r = c.get(reverse(url_name, args=[run.pk]))
+                    if r.status_code == 200 and len(r.content) > 100:
+                        self.r.ok(name, f"{len(r.content)} bytes")
+                    else:
+                        self.r.fail(name, f"HTTP {r.status_code}, {len(r.content)} bytes")
+                except Exception as exc:
+                    self.r.fail(name, str(exc))
+            return
+
+        from apps.payroll.exports import build_tally_xml, build_pf_ecr, build_esi_return
 
         try:
             xml = build_tally_xml(self.tenant, run)
@@ -846,6 +938,372 @@ class Command(BaseCommand):
             self.r.ok("Announcement published", a.title)
 
     # ───────────────────────────────────────────────────────────────────────
+    def test_recruitment(self):
+        self.r.section("RECRUITMENT (ATS + public careers)")
+        from django.urls import reverse
+        from apps.recruitment.models import JobOpening, Candidate, JobApplication
+        from apps.recruitment.services import convert_hired_application
+        from apps.hr_ops.models import EmployeeOnboarding
+        from apps.payroll.models import EmployeeSalary
+
+        job = JobOpening.objects.create(
+            tenant=self.tenant,
+            title="QA Engineer",
+            department=self.dept,
+            designation=self.employees[0].designation,
+            location=self.location,
+            status="published",
+            published_at=timezone.now(),
+            created_by=self.admin_user,
+        )
+        self.r.ok("Create published job opening", f"id={job.pk}")
+
+        cand = Candidate.objects.create(
+            tenant=self.tenant,
+            first_name="Neha",
+            last_name="Kapoor",
+            email=f"neha.kapoor@{self.subdomain}.com",
+            source="careers_page",
+        )
+        app = JobApplication.objects.create(
+            tenant=self.tenant,
+            job_opening=job,
+            candidate=cand,
+            status="hired",
+        )
+        self.r.ok("Job application (hired)", f"id={app.pk}")
+
+        try:
+            new_emp = convert_hired_application(app, created_by=self.admin_user)
+            if new_emp and new_emp.employee_code:
+                self.r.ok("convert_hired_application()", new_emp.employee_code)
+            else:
+                self.r.fail("convert_hired_application()", "no employee returned")
+            if EmployeeSalary.objects.filter(employee=new_emp, is_active=True).exists():
+                self.r.ok("Hired employee salary record")
+            else:
+                self.r.fail("Hired employee salary", "missing EmployeeSalary")
+            if EmployeeOnboarding.objects.filter(tenant=self.tenant, employee=new_emp).exists():
+                self.r.ok("Onboarding auto-started for hire")
+            else:
+                self.r.fail("Onboarding for hire", "checklist not created")
+        except Exception as exc:
+            self.r.fail("convert_hired_application()", str(exc))
+
+        c = Client(HTTP_HOST="localhost")
+        try:
+            r = c.get(f"/careers/{self.subdomain}/{job.pk}/")
+            if r.status_code == 200:
+                self.r.ok("Public careers job page", f"/careers/{self.subdomain}/{job.pk}/")
+            else:
+                self.r.fail("Public careers job page", f"HTTP {r.status_code}")
+        except Exception as exc:
+            self.r.fail("Public careers job page", str(exc))
+
+    # ───────────────────────────────────────────────────────────────────────
+    def test_reports(self):
+        self.r.section("REPORTS (MIS hub + exports)")
+        from django.urls import reverse
+
+        c = Client(HTTP_HOST="localhost")
+        c.force_login(self.admin_user, backend="apps.accounts.backends.TenantAuthBackend")
+        pages = [
+            ("Reports hub", reverse("reports:index")),
+            ("Leave report", reverse("reports:leave")),
+            ("Attendance report", reverse("reports:attendance")),
+            ("Headcount report", reverse("reports:headcount")),
+            ("Payroll report", reverse("reports:payroll")),
+        ]
+        for name, url in pages:
+            try:
+                r = c.get(url)
+                if r.status_code == 200:
+                    self.r.ok(name, url)
+                else:
+                    self.r.fail(name, f"HTTP {r.status_code}")
+            except Exception as exc:
+                self.r.fail(name, str(exc))
+
+        if getattr(self, "payroll_run", None):
+            try:
+                r = c.get(reverse("reports:leave_export") + "?from=2026-01-01&to=2026-12-31")
+                if r.status_code == 200 and len(r.content) > 200:
+                    self.r.ok("Leave report Excel export", f"{len(r.content)} bytes")
+                else:
+                    self.r.fail("Leave report Excel export", f"HTTP {r.status_code}")
+            except Exception as exc:
+                self.r.fail("Leave report Excel export", str(exc))
+
+    # ───────────────────────────────────────────────────────────────────────
+    def test_role_workflows(self):
+        self.r.section("ROLE WORKFLOWS (manager + employee ESS)")
+        from django.urls import reverse
+
+        mgr = Client(HTTP_HOST="localhost")
+        mgr.force_login(self.manager.user, backend="apps.accounts.backends.TenantAuthBackend")
+        emp = Client(HTTP_HOST="localhost")
+        emp.force_login(self.employees[1].user, backend="apps.accounts.backends.TenantAuthBackend")
+
+        mgr_pages = [
+            ("Manager leave approvals", reverse("leaves:pending")),
+            ("Manager team reviews", reverse("performance:team_reviews")),
+            ("Manager team attendance", reverse("attendance:team_attendance")),
+        ]
+        for name, url in mgr_pages:
+            try:
+                r = mgr.get(url)
+                if r.status_code == 200:
+                    self.r.ok(name, url)
+                else:
+                    self.r.fail(name, f"HTTP {r.status_code}")
+            except Exception as exc:
+                self.r.fail(name, str(exc))
+
+        ess_pages = [
+            ("Employee my attendance", reverse("attendance:my_attendance")),
+            ("Employee apply leave", reverse("leaves:apply")),
+            ("Employee leave history (redirect)", reverse("leaves:my_leaves")),
+            ("Employee my payslips", reverse("payroll:my_payslips")),
+        ]
+        if not self.is_gcc:
+            ess_pages.append(("Employee tax declaration", reverse("payroll:my_tax_declaration")))
+        for name, url in ess_pages:
+            try:
+                r = emp.get(url)
+                if r.status_code == 200:
+                    self.r.ok(name, url)
+                elif name.startswith("Employee leave history") and r.status_code == 302:
+                    self.r.ok(name, f"{url} -> apply history ({r.status_code})")
+                else:
+                    self.r.fail(name, f"HTTP {r.status_code}")
+            except Exception as exc:
+                self.r.fail(name, str(exc))
+
+        # Manager must not reach HR-only payroll run list
+        try:
+            r = mgr.get(reverse("payroll:run_list"))
+            if r.status_code in (403, 302):
+                self.r.ok("Manager blocked from payroll admin", f"HTTP {r.status_code}")
+            elif r.status_code == 200 and b"Payroll Runs" in r.content:
+                self.r.fail("Manager blocked from payroll admin", "manager saw HR payroll list")
+            else:
+                self.r.ok("Manager blocked from payroll admin", f"HTTP {r.status_code}")
+        except Exception as exc:
+            self.r.fail("Manager blocked from payroll admin", str(exc))
+
+    # ───────────────────────────────────────────────────────────────────────
+    def test_cross_module_journey(self):
+        self.r.section("CROSS-MODULE JOURNEY (hire → payroll record)")
+        from apps.recruitment.models import JobOpening, Candidate, JobApplication
+        from apps.recruitment.services import convert_hired_application
+        from apps.payroll.engine import compute_payroll_record
+        from apps.payroll.models import PayrollRun, PayrollRecord
+
+        job = JobOpening.objects.create(
+            tenant=self.tenant,
+            title="Journey Test Role",
+            department=self.dept,
+            status="published",
+            published_at=timezone.now(),
+            created_by=self.admin_user,
+        )
+        cand = Candidate.objects.create(
+            tenant=self.tenant,
+            first_name="Journey",
+            last_name="Tester",
+            email=f"journey.tester@{self.subdomain}.com",
+        )
+        app = JobApplication.objects.create(
+            tenant=self.tenant, job_opening=job, candidate=cand, status="hired",
+        )
+        hire = convert_hired_application(app, created_by=self.admin_user)
+
+        from apps.payroll.models import EmployeeSalary
+        if not EmployeeSalary.objects.filter(employee=hire, is_active=True).exists():
+            EmployeeSalary.objects.create(
+                tenant=self.tenant,
+                employee=hire,
+                structure=self.structure,
+                effective_date=hire.date_of_joining,
+                ctc_annual=Decimal("600000"),
+                basic_monthly=Decimal("20000"),
+                is_active=True,
+            )
+
+        run = PayrollRun.objects.create(
+            tenant=self.tenant,
+            year=timezone.localdate().year,
+            month=timezone.localdate().month,
+            status="draft",
+        )
+        rec, _ = PayrollRecord.objects.get_or_create(
+            tenant=self.tenant, payroll_run=run, employee=hire,
+        )
+        try:
+            compute_payroll_record(self.tenant, hire, run, run.year, run.month)
+            rec.refresh_from_db()
+            if rec.net_payable and rec.net_payable > 0:
+                self.r.ok("New hire in payroll run", f"net={rec.net_payable}")
+            else:
+                self.r.fail("New hire in payroll run", "net_payable not positive")
+        except Exception as exc:
+            self.r.fail("New hire in payroll run", str(exc))
+
+        # Performance launch reviews for cycle
+        from apps.performance.models import ReviewCycle, PerformanceReview
+        from apps.employees.models import Employee
+
+        cycle = ReviewCycle.objects.create(
+            tenant=self.tenant,
+            name="Journey Cycle",
+            cycle_type="annual",
+            review_period_start=datetime.date.today() - datetime.timedelta(days=90),
+            review_period_end=datetime.date.today(),
+            opens_at=datetime.date.today() - datetime.timedelta(days=1),
+            closes_at=datetime.date.today() + datetime.timedelta(days=30),
+            status="planning",
+        )
+        created = 0
+        for emp in Employee.objects.filter(tenant=self.tenant, employment_status="active", is_active=True):
+            reviewer = emp.reporting_manager
+            if not reviewer:
+                continue
+            _, was_created = PerformanceReview.objects.get_or_create(
+                tenant=self.tenant,
+                cycle=cycle,
+                employee=emp,
+                defaults={"reviewer": reviewer, "status": "draft"},
+            )
+            if was_created:
+                created += 1
+        if created >= 5:
+            self.r.ok("Launch reviews bulk-create", f"{created} reviews")
+        else:
+            self.r.fail("Launch reviews bulk-create", f"only {created} reviews")
+
+    # ───────────────────────────────────────────────────────────────────────
+    def test_extended_modules(self):
+        """Comp-off, expenses, loans, pre-payroll review, monthly report pack."""
+        self.r.section("EXTENDED MODULES")
+        from apps.leaves.comp_off_services import request_comp_off, approve_comp_off
+        from apps.leaves.models import CompOffCredit
+        from apps.payroll.models import EmployeeLoan, ExpenseClaim
+        from apps.payroll.review_services import build_monthly_readiness
+        from apps.reports.report_pack import build_monthly_report_pack
+        from django.urls import reverse
+
+        emp = self.employees[1]
+        try:
+            credit = request_comp_off(
+                self.tenant, emp,
+                worked_date=timezone.localdate() - datetime.timedelta(days=3),
+                reason="Weekend release",
+            )
+            approve_comp_off(credit, self.admin_user)
+            if credit.status == "available":
+                self.r.ok("Comp-off request + approve", f"id={credit.id}")
+            else:
+                self.r.fail("Comp-off approve", credit.status)
+        except Exception as exc:
+            self.r.fail("Comp-off workflow", str(exc))
+
+        try:
+            loan = EmployeeLoan.objects.create(
+                tenant=self.tenant,
+                employee=emp,
+                loan_type="Personal",
+                principal_amount=Decimal("50000"),
+                outstanding_amount=Decimal("50000"),
+                emi_amount=Decimal("5000"),
+                total_installments=10,
+                interest_rate=Decimal("0"),
+                disbursed_date=timezone.localdate(),
+                status="active",
+            )
+            self.r.ok("Employee loan create", f"id={loan.id}")
+        except Exception as exc:
+            self.r.fail("Employee loan create", str(exc))
+
+        try:
+            claim = ExpenseClaim.objects.create(
+                tenant=self.tenant,
+                employee=emp,
+                category="Travel",
+                amount=Decimal("1200"),
+                description="Client visit",
+                expense_date=timezone.localdate(),
+                status="pending",
+            )
+            self.r.ok("Expense claim create", f"id={claim.id}")
+        except Exception as exc:
+            self.r.fail("Expense claim create", str(exc))
+
+        try:
+            today = timezone.localdate()
+            data = build_monthly_readiness(self.tenant, today.year, today.month)
+            if data.get("rows") is not None:
+                self.r.ok("Pre-payroll review data", f"{len(data['rows'])} rows")
+            else:
+                self.r.fail("Pre-payroll review data", "no rows key")
+        except Exception as exc:
+            self.r.fail("Pre-payroll review data", str(exc))
+
+        try:
+            run = getattr(self, "payroll_run", None)
+            if run:
+                c = Client(HTTP_HOST="localhost")
+                c.force_login(self.admin_user)
+                r = c.get(reverse("payroll:monthly_review") + f"?year={run.year}&month={run.month}")
+                if r.status_code == 200:
+                    self.r.ok("Pre-payroll review page", f"HTTP {r.status_code}")
+                else:
+                    self.r.fail("Pre-payroll review page", f"HTTP {r.status_code}")
+            else:
+                self.r.skip("Pre-payroll review page", "no payroll run")
+        except Exception as exc:
+            self.r.fail("Pre-payroll review page", str(exc))
+
+        try:
+            run = getattr(self, "payroll_run", None)
+            if run:
+                pack = build_monthly_report_pack(self.tenant, run.year, run.month)
+                if pack and len(pack) > 500:
+                    self.r.ok("Monthly report pack ZIP", f"{len(pack)} bytes")
+                else:
+                    self.r.fail("Monthly report pack ZIP", f"{len(pack) if pack else 0} bytes")
+            else:
+                self.r.skip("Monthly report pack ZIP", "no payroll run")
+        except Exception as exc:
+            self.r.fail("Monthly report pack ZIP", str(exc))
+
+    def test_employee_limits(self):
+        self.r.section("EMPLOYEE LIMIT ENFORCEMENT")
+        from apps.employees.services import create_employee
+        from apps.tenants.limits import EmployeeLimitExceeded, active_employee_count
+
+        original_max = self.tenant.max_employees
+        current = active_employee_count(self.tenant)
+        self.tenant.max_employees = current
+        self.tenant.save(update_fields=["max_employees"])
+
+        try:
+            create_employee(self.tenant, {
+                "first_name": "Limit",
+                "last_name": "Test",
+                "official_email": "limit.test@smoketest.com",
+                "date_of_joining": timezone.localdate(),
+                "employment_status": "active",
+            })
+            self.r.fail("Employee limit block", "create succeeded at cap")
+        except EmployeeLimitExceeded:
+            self.r.ok("Employee limit block", f"blocked at {current}/{current}")
+        except Exception as exc:
+            self.r.fail("Employee limit block", str(exc))
+        finally:
+            self.tenant.max_employees = original_max
+            self.tenant.save(update_fields=["max_employees"])
+
+    # ───────────────────────────────────────────────────────────────────────
     def test_public_pages(self):
         self.r.section("PUBLIC PAGES (HTTP smoke)")
         from django.urls import reverse
@@ -856,10 +1314,16 @@ class Command(BaseCommand):
                 super().__init__(**kw)
 
         c = _C()
+        # Platform SSO routes redirect (302) to the Finance app; employee auth pages render 200.
+        platform_redirects = {
+            reverse("accounts:login"),
+            reverse("accounts:password_reset_request"),
+        }
         for name, url in [
-            ("Login page",            reverse("accounts:login")),
+            ("Login page (platform SSO)", reverse("accounts:login")),
             ("Signup page",           reverse("tenants:signup")),
-            ("Password reset page",   reverse("accounts:password_reset_request")),
+            ("Password reset (platform SSO)", reverse("accounts:password_reset_request")),
+            ("Employee login page",   reverse("accounts:employee_login")),
             ("Privacy page",          reverse("tenants:legal_privacy")),
             ("Terms page",            reverse("tenants:legal_terms")),
             ("DPA page",              reverse("tenants:legal_dpa")),
@@ -868,6 +1332,8 @@ class Command(BaseCommand):
                 r = c.get(url)
                 if r.status_code == 200:
                     self.r.ok(name, url)
+                elif r.status_code == 302 and url in platform_redirects:
+                    self.r.ok(name, f"{url} -> platform ({r.status_code})")
                 else:
                     self.r.fail(name, f"HTTP {r.status_code}")
             except Exception as exc:

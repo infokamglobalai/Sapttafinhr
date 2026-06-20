@@ -2,7 +2,7 @@
 {% block page_title %}{% if leave_type %}Edit Leave Type{% else %}New Leave Type{% endif %}{% endblock %}
 {% block content %}
 <div style="max-width: 760px; margin: 0 auto;">
-  <a href="{% url 'leaves:leave_types' %}" class="btn-base btn-ghost btn-sm" style="margin-bottom: 14px;">← Back to Leave Types</a>
+  <a href="{% url 'leaves:leave_types' %}" class="btn btn-ghost btn-sm" style="margin-bottom: 14px;">← Back to Leave Types</a>
   <h2 style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 4px;">{% if leave_type %}Edit Leave Type{% else %}New Leave Type{% endif %}</h2>
   <p style="font-size: 13.5px; color: var(--ink-500); margin-bottom: 22px;">Configure accrual, eligibility, and approval rules for a leave type.</p>
 
@@ -83,8 +83,8 @@
     </div>
 
     <div style="display: flex; justify-content: flex-end; gap: 12px;">
-      <a href="{% url 'leaves:leave_types' %}" class="btn-base btn-ghost">Cancel</a>
-      <button type="submit" class="btn-base btn-primary">{% if leave_type %}Save Changes{% else %}Create Leave Type{% endif %}</button>
+      <a href="{% url 'leaves:leave_types' %}" class="btn btn-ghost">Cancel</a>
+      <button type="submit" class="btn btn-primary">{% if leave_type %}Save Changes{% else %}Create Leave Type{% endif %}</button>
     </div>
   </form>
 </div>

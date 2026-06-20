@@ -7,8 +7,9 @@ from django.db.models import Q
 from django.views.decorators.http import require_POST
 
 from .models import Employee, Department, Designation, OfficeLocation, EmployeeDocument, AttritionScore
-from .forms import EmployeeForm, DepartmentForm, DesignationForm, OfficeLocationForm, DocumentUploadForm
-from .services import create_employee, bulk_import_employees, provision_employee_login, email_employee_invite
+from .forms import EmployeeForm, DepartmentForm, DesignationForm, OfficeLocationForm, DocumentUploadForm, COMPLIANCE_FIELD_NAMES
+from .services import create_employee, bulk_import_employees, provision_employee_login, email_employee_invite, invite_delivery_message
+from apps.tenants.limits import EmployeeLimitExceeded, seats_remaining, employee_limit, active_employee_count
 from .access_services import (
     get_employee_access,
     get_login_url,
@@ -20,6 +21,7 @@ from .access_services import (
     set_employee_roles,
 )
 from utils.access import hr_admin_required
+from utils.mail import smtp_configured
 from utils.pdf import render_pdf_response
 
 
@@ -73,6 +75,10 @@ def employee_list(request):
         "search": search,
         "selected_dept": dept_id,
         "selected_status": status,
+        "seats_remaining": seats_remaining(tenant),
+        "employee_limit": employee_limit(tenant),
+        "active_employee_count": active_employee_count(tenant),
+        "at_employee_cap": seats_remaining(tenant) == 0,
     })
 
 
@@ -98,15 +104,19 @@ def employee_create(request):
     if request.method == "POST":
         form = EmployeeForm(tenant, request.POST, request.FILES)
         if form.is_valid():
-            data = form.cleaned_data
+            data = {k: v for k, v in form.cleaned_data.items() if k not in COMPLIANCE_FIELD_NAMES}
             try:
                 emp, _pw = create_employee(tenant, data, created_by=request.user)
+                form.save_compliance(emp)
                 # A locked login was created → hand the admin a secure invite link
                 # (the only way the employee first gets in).
                 if emp.user_id and not emp.user.has_usable_password():
                     invite_url = build_invite_url(request, emp.user)
-                    email_employee_invite(emp, invite_url, get_login_url(request))
+                    mail_result = email_employee_invite(emp, invite_url, get_login_url(request))
                     push_credential_session(request, emp, emp.user.email, invite_url)
+                    messages.warning(request, invite_delivery_message(
+                        mail_result, email=emp.user.email, employee_name=emp.full_name,
+                    ))
                     if request.htmx:
                         return HttpResponse(
                             headers={"HX-Redirect": f"/employees/{emp.pk}/credentials/"}
@@ -118,6 +128,8 @@ def employee_create(request):
                         headers={"HX-Redirect": f"/employees/{emp.pk}/"}
                     )
                 return redirect("employees:detail", pk=emp.pk)
+            except EmployeeLimitExceeded as exc:
+                messages.error(request, str(exc))
             except Exception as exc:
                 messages.error(request, f"Error creating employee: {exc}")
     else:
@@ -146,19 +158,12 @@ def employee_create_login(request, pk):
         if needs_invite:
             verb = "reset" if reset else "created"
             invite_url = build_invite_url(request, user)
-            emailed = email_employee_invite(employee, invite_url, get_login_url(request))
+            mail_result = email_employee_invite(employee, invite_url, get_login_url(request))
             push_credential_session(request, employee, user.email, invite_url)
-            if emailed:
-                messages.success(
-                    request,
-                    f"Self-service login {verb} for {employee.full_name} and an invite link emailed to {user.email}.",
-                )
-            else:
-                messages.success(
-                    request,
-                    f"Self-service login {verb} for {employee.full_name}. "
-                    f"Share the invite link on the next screen.",
-                )
+            messages.warning(request, (
+                f"Self-service login {verb} for {employee.full_name}. "
+                + invite_delivery_message(mail_result, email=user.email, employee_name=employee.full_name)
+            ))
             return redirect("employees:credentials", pk=pk)
         messages.info(request, f"{employee.full_name} already has a login ({user.email}).")
     except Exception as exc:
@@ -217,6 +222,7 @@ def bulk_credentials(request):
     return render(request, "employees/bulk_credentials.html", {
         "credentials": credentials,
         "login_url": get_login_url(request),
+        "smtp_configured": smtp_configured(),
     })
 
 
@@ -238,6 +244,7 @@ def employee_credentials(request, pk):
         "employee": employee,
         "credential": cred,
         "login_url": get_login_url(request),
+        "smtp_configured": smtp_configured(),
     })
 
 
@@ -312,7 +319,8 @@ def employee_edit(request, pk):
     if request.method == "POST":
         form = EmployeeForm(tenant, request.POST, request.FILES, instance=employee)
         if form.is_valid():
-            form.save()
+            emp = form.save()
+            form.save_compliance(emp)
             messages.success(request, "Employee updated successfully.")
             if request.htmx:
                 return HttpResponse(headers={"HX-Redirect": f"/employees/{pk}/"})

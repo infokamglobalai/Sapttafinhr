@@ -21,7 +21,7 @@
       <option value="">All resources</option>
       {% for r in resources %}<option value="{{ r }}" {% if filters.resource == r %}selected{% endif %}>{{ r }}</option>{% endfor %}
     </select>
-    <button type="submit" class="btn-base btn-primary btn-sm">Filter</button>
+    <button type="submit" class="btn btn-primary btn-sm">Filter</button>
   </form>
 </div>
 
@@ -72,9 +72,9 @@
 
 {% if page.has_other_pages %}
 <div style="display: flex; justify-content: center; gap: 6px; margin-top: 14px;">
-  {% if page.has_previous %}<a href="?page={{ page.previous_page_number }}" class="btn-base btn-outline btn-sm">← Previous</a>{% endif %}
+  {% if page.has_previous %}<a href="?page={{ page.previous_page_number }}" class="btn btn-outline btn-sm">← Previous</a>{% endif %}
   <span style="padding: 8px 14px; font-size: 13px; color: var(--ink-700); font-weight: 600;">Page {{ page.number }} / {{ page.paginator.num_pages }}</span>
-  {% if page.has_next %}<a href="?page={{ page.next_page_number }}" class="btn-base btn-outline btn-sm">Next →</a>{% endif %}
+  {% if page.has_next %}<a href="?page={{ page.next_page_number }}" class="btn btn-outline btn-sm">Next →</a>{% endif %}
 </div>
 {% endif %}
 {% endblock %}

@@ -1,0 +1,325 @@
+{% load static %}
+
+<section id="dash-company-calendar" class="dash-calendar-card stagger" aria-label="Company calendar"
+  x-data="companyCalendar()"
+  x-init="init()"
+  @keydown.escape.window="closeModal()">
+  {{ calendar_month.all_events|json_script:"calendar-events-data" }}
+  {{ calendar_month.weeks|json_script:"calendar-weeks-data" }}
+  {{ calendar_month.day_context|json_script:"calendar-day-context-data" }}
+
+  <div class="dash-calendar-card__head">
+    <div>
+      <h2 class="dash-calendar-card__title">Company calendar</h2>
+      <p class="dash-calendar-card__sub">Click any date to open details — add notes, view holidays, leave &amp; birthdays</p>
+    </div>
+    <span class="dash-calendar-card__month">{{ calendar_month.month_label }}</span>
+  </div>
+
+  <div class="dash-calendar-layout">
+    <div class="dash-calendar-grid-wrap">
+      <div class="dash-calendar-grid">
+        <div class="dash-calendar-grid__weekdays">
+          <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+        </div>
+        <template x-for="(week, wi) in weeks" :key="wi">
+          <div class="dash-calendar-grid__week">
+            <template x-for="(cell, di) in week" :key="`${wi}-${di}`">
+              <button type="button" class="dash-calendar-day"
+                :class="{
+                  'dash-calendar-day--empty': !cell,
+                  'dash-calendar-day--today': cell && cell.is_today,
+                  'dash-calendar-day--active': cell && modalOpen && selectedDate === cell.iso,
+                  'dash-calendar-day--marked': cell && cell.event_count
+                }"
+                :disabled="!cell"
+                :aria-label="cell ? `Open ${cell.day}` : ''"
+                @click="cell && openDate(cell.iso)">
+                <span class="dash-calendar-day__num" x-text="cell ? cell.day : ''"></span>
+                <span class="dash-calendar-day__dots" x-show="cell && cell.event_count">
+                  <span class="dash-calendar-day__dot dash-calendar-day__dot--note" x-show="cell && cell.has_note"></span>
+                  <span class="dash-calendar-day__dot dash-calendar-day__dot--team" x-show="cell && cell.event_count && (!cell.has_note || cell.event_count > 1)"></span>
+                </span>
+              </button>
+            </template>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <aside class="dash-calendar-insights" aria-label="Month overview">
+      <div class="dash-calendar-insights__head">
+        <h3 class="dash-calendar-insights__title">This month</h3>
+        <p class="dash-calendar-insights__sub">Key dates &amp; quick actions</p>
+      </div>
+
+      <div class="dash-calendar-insights__stats">
+        <div class="dash-calendar-stat">
+          <span class="dash-calendar-stat__value">{{ calendar_month.month_stats.holidays }}</span>
+          <span class="dash-calendar-stat__label">Holidays</span>
+        </div>
+        <div class="dash-calendar-stat">
+          <span class="dash-calendar-stat__value">{{ calendar_month.month_stats.birthdays }}</span>
+          <span class="dash-calendar-stat__label">Birthdays</span>
+        </div>
+        <div class="dash-calendar-stat">
+          <span class="dash-calendar-stat__value">{{ calendar_month.month_stats.notes }}</span>
+          <span class="dash-calendar-stat__label">Your notes</span>
+        </div>
+      </div>
+
+      <div class="dash-calendar-insights__section">
+        <p class="dash-calendar-insights__label">Coming up</p>
+        <div class="dash-calendar-insights__list">
+          {% for item in calendar_month.month_highlights %}
+          <button type="button" class="dash-calendar-highlight{% if item.is_today %} dash-calendar-highlight--today{% endif %}{% if item.has_holiday %} dash-calendar-highlight--holiday{% endif %}"
+            @click="openDate('{{ item.iso }}')">
+            <span class="dash-calendar-highlight__date">
+              <span class="dash-calendar-highlight__day">{{ item.day }}</span>
+              <span class="dash-calendar-highlight__wd">{{ item.weekday }}</span>
+            </span>
+            <span class="dash-calendar-highlight__text">{{ item.summary }}</span>
+          </button>
+          {% empty %}
+          <p class="dash-calendar-insights__empty">No marked dates left this month. Click the calendar to add a note.</p>
+          {% endfor %}
+        </div>
+      </div>
+
+      {% if pending_work.leaves or pending_work.regularizations %}
+      <div class="dash-calendar-insights__section">
+        <p class="dash-calendar-insights__label">Needs attention</p>
+        <div class="dash-calendar-insights__actions">
+          {% if pending_work.leaves %}
+          <a href="{% url 'leaves:pending' %}" class="dash-calendar-action">
+            <span class="dash-calendar-action__title">Leave approvals</span>
+            <span class="dash-calendar-action__badge">{{ pending_work.leaves }}</span>
+          </a>
+          {% endif %}
+          {% if pending_work.regularizations %}
+          <a href="{% url 'attendance:regularizations' %}" class="dash-calendar-action">
+            <span class="dash-calendar-action__title">Regularizations</span>
+            <span class="dash-calendar-action__badge">{{ pending_work.regularizations }}</span>
+          </a>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="dash-calendar-insights__foot">
+        <a href="{% url 'leaves:holidays' %}" class="dash-calendar-link">Holiday calendar</a>
+        <a href="{% url 'leaves:pending' %}" class="dash-calendar-link">Leave queue</a>
+        <a href="#dash-more-insights" class="dash-calendar-link">More insights ↓</a>
+      </div>
+    </aside>
+  </div>
+
+  {# Date detail modal #}
+  <div class="dash-cal-modal" x-show="modalOpen" x-cloak role="dialog" aria-modal="true" :aria-label="selectedLabel">
+    <div class="dash-cal-modal__backdrop" @click="closeModal()"></div>
+    <div class="dash-cal-modal__panel" @click.stop>
+      <div class="dash-cal-modal__head">
+        <div>
+          <p class="dash-cal-modal__eyebrow">Date details</p>
+          <h3 class="dash-cal-modal__title" x-text="selectedLabel"></h3>
+        </div>
+        <button type="button" class="dash-cal-modal__close" @click="closeModal()" aria-label="Close">×</button>
+      </div>
+
+      <div class="dash-cal-modal__body">
+        <div class="dash-calendar-block" x-show="selectedEvents.length">
+          <p class="dash-calendar-block__label">Your notes</p>
+          <div class="dash-calendar-events">
+            <template x-for="ev in selectedEvents" :key="ev.id">
+              <div class="dash-calendar-event">
+                <div class="dash-calendar-event__icon" :class="`dash-calendar-event__icon--${ev.event_type}`" aria-hidden="true">
+                  <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                </div>
+                <div class="dash-calendar-event__body">
+                  <p class="dash-calendar-event__title" x-text="ev.title"></p>
+                  <p class="dash-calendar-event__sub" x-text="ev.description || ev.event_type"></p>
+                </div>
+                <button type="button" class="dash-calendar-event__delete" @click="deleteEvent(ev.id)" aria-label="Delete">×</button>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <div class="dash-calendar-block" x-show="selectedContext.holidays.length">
+          <p class="dash-calendar-block__label">Holiday</p>
+          <template x-for="(item, idx) in selectedContext.holidays" :key="`h-${idx}`">
+            <a href="{% url 'leaves:holidays' %}" class="dash-calendar-context-row dash-calendar-context-row--holiday">
+              <span class="dash-calendar-context-row__title" x-text="item.title"></span>
+              <span class="dash-calendar-context-row__tag" x-text="item.type"></span>
+            </a>
+          </template>
+        </div>
+
+        <div class="dash-calendar-block" x-show="selectedContext.leaves.length">
+          <p class="dash-calendar-block__label">On leave</p>
+          <template x-for="(item, idx) in selectedContext.leaves" :key="`l-${idx}`">
+            <a :href="employeeDetailUrl(item.employee_id)" class="dash-calendar-context-row dash-calendar-context-row--leave">
+              <span class="dash-calendar-context-row__title" x-text="item.name"></span>
+              <span class="dash-calendar-context-row__tag" x-text="item.type"></span>
+            </a>
+          </template>
+        </div>
+
+        <div class="dash-calendar-block" x-show="selectedContext.birthdays.length">
+          <p class="dash-calendar-block__label">Birthdays</p>
+          <template x-for="(item, idx) in selectedContext.birthdays" :key="`b-${idx}`">
+            <a :href="employeeDetailUrl(item.id)" class="dash-calendar-context-row dash-calendar-context-row--birthday">
+              <span class="dash-calendar-context-row__emoji" aria-hidden="true">🎂</span>
+              <span class="dash-calendar-context-row__title" x-text="item.name"></span>
+            </a>
+          </template>
+        </div>
+
+        <div class="dash-calendar-empty-state" x-show="isEmptyDay && !showForm">
+          <p class="dash-calendar-empty-state__title">Nothing on this date</p>
+          <p class="dash-calendar-empty-state__sub">Add a meeting, reminder, or task below.</p>
+        </div>
+      </div>
+
+      <div class="dash-cal-modal__foot">
+        <button type="button" class="dash-cal-modal__add-btn" @click="showForm = !showForm" x-text="showForm ? 'Cancel add note' : '+ Add note'"></button>
+        <div class="dash-calendar-form" x-show="showForm" x-cloak>
+          <input type="text" class="dash-calendar-form__input" placeholder="Title — meeting, reminder, task…" x-model="form.title">
+          <select class="dash-calendar-form__input" x-model="form.event_type">
+            <option value="meeting">Meeting</option>
+            <option value="reminder">Reminder</option>
+            <option value="task">Task</option>
+            <option value="other">Other</option>
+          </select>
+          <textarea class="dash-calendar-form__input dash-calendar-form__textarea" rows="2" placeholder="Details (optional)" x-model="form.description"></textarea>
+          <label class="dash-calendar-form__check">
+            <input type="checkbox" x-model="form.notify_on_day"> Notify me when I log in on this day
+          </label>
+          <button type="button" class="dash-calendar-form__save" @click="saveEvent()" :disabled="saving">Save to this date</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+function companyCalendar() {
+  const todayIso = '{{ today|date:"Y-m-d" }}';
+  const createUrl = '{% url "hr_ops:calendar_event_create" %}';
+  const deleteUrlFor = (id) => '{% url "hr_ops:calendar_event_delete" pk=999999 %}'.replace('999999', String(id));
+  const employeeDetailUrl = (id) => '{% url "employees:detail" pk=999999 %}'.replace('999999', String(id));
+  const rawEvents = JSON.parse(document.getElementById('calendar-events-data').textContent || '[]');
+  const dayContext = JSON.parse(document.getElementById('calendar-day-context-data').textContent || '{}');
+  const eventsByDate = {};
+  rawEvents.forEach(ev => {
+    if (!eventsByDate[ev.event_date]) eventsByDate[ev.event_date] = [];
+    eventsByDate[ev.event_date].push(ev);
+  });
+  const weeks = JSON.parse(document.getElementById('calendar-weeks-data').textContent || '[]');
+  const emptyCtx = () => ({ holidays: [], leaves: [], birthdays: [] });
+
+  return {
+    weeks,
+    eventsByDate,
+    dayContext,
+    employeeDetailUrl,
+    modalOpen: false,
+    selectedDate: todayIso,
+    selectedLabel: '',
+    selectedEvents: [],
+    selectedContext: emptyCtx(),
+    isEmptyDay: true,
+    showForm: false,
+    saving: false,
+    form: { title: '', description: '', event_type: 'reminder', notify_on_day: true },
+    init() {},
+    openDate(iso) {
+      this.selectedDate = iso;
+      this.showForm = false;
+      this.refreshSelected();
+      this.modalOpen = true;
+      document.body.classList.add('dash-cal-modal-open');
+    },
+    closeModal() {
+      this.modalOpen = false;
+      this.showForm = false;
+      document.body.classList.remove('dash-cal-modal-open');
+    },
+    refreshSelected() {
+      const d = new Date(this.selectedDate + 'T12:00:00');
+      this.selectedLabel = d.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
+      this.selectedEvents = this.eventsByDate[this.selectedDate] || [];
+      this.selectedContext = this.dayContext[this.selectedDate] || emptyCtx();
+      this.isEmptyDay = (
+        !this.selectedEvents.length
+        && !this.selectedContext.holidays.length
+        && !this.selectedContext.leaves.length
+        && !this.selectedContext.birthdays.length
+      );
+    },
+    async saveEvent() {
+      if (!this.form.title.trim()) {
+        window.toast && window.toast('Please enter a title', 'error');
+        return;
+      }
+      this.saving = true;
+      try {
+        const resp = await fetch(createUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content,
+          },
+          body: JSON.stringify({
+            title: this.form.title.trim(),
+            description: this.form.description.trim(),
+            event_type: this.form.event_type,
+            event_date: this.selectedDate,
+            notify_on_day: this.form.notify_on_day,
+          }),
+        });
+        const data = await resp.json();
+        if (!resp.ok || !data.ok) throw new Error(data.error || 'Save failed');
+        if (!this.eventsByDate[this.selectedDate]) this.eventsByDate[this.selectedDate] = [];
+        this.eventsByDate[this.selectedDate].push(data.event);
+        this.markDay(this.selectedDate);
+        this.form = { title: '', description: '', event_type: 'reminder', notify_on_day: true };
+        this.refreshSelected();
+        this.showForm = false;
+        window.toast && window.toast('Saved to calendar', 'success');
+      } catch (e) {
+        window.toast && window.toast(e.message || 'Could not save event', 'error');
+      } finally {
+        this.saving = false;
+      }
+    },
+    markDay(iso) {
+      const ctx = this.dayContext[iso] || emptyCtx();
+      const userEvents = (this.eventsByDate[iso] || []).length;
+      const markerCount = userEvents + ctx.holidays.length + ctx.leaves.length + ctx.birthdays.length;
+      this.weeks.forEach(week => week.forEach(cell => {
+        if (cell && cell.iso === iso) {
+          cell.event_count = markerCount;
+          cell.has_note = userEvents > 0;
+        }
+      }));
+    },
+    async deleteEvent(id) {
+      try {
+        const resp = await fetch(deleteUrlFor(id), {
+          method: 'POST',
+          headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content },
+        });
+        const data = await resp.json();
+        if (!resp.ok || !data.ok) throw new Error('Delete failed');
+        this.eventsByDate[this.selectedDate] = (this.eventsByDate[this.selectedDate] || []).filter(ev => ev.id !== id);
+        this.markDay(this.selectedDate);
+        this.refreshSelected();
+        window.toast && window.toast('Event removed', 'success');
+      } catch (e) {
+        window.toast && window.toast('Could not delete event', 'error');
+      }
+    },
+  };
+}
+</script>

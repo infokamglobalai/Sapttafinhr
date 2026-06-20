@@ -13,7 +13,7 @@
   .signup-pitch {
     display: none;
     padding: 56px 64px;
-    background: var(--brand-100);
+    background: linear-gradient(160deg, #EFF6FF 0%, #DBEAFE 50%, #EEF2FF 100%);
     border-right: 1px solid var(--border-light);
     color: var(--ink-900);
     flex-direction: column;
@@ -75,6 +75,20 @@
     color: var(--ink-950);
   }
   .signup-sub { font-size: 13.5px; color: var(--ink-500); margin-top: 4px; margin-bottom: 24px; font-weight: 300; }
+  .signup-select {
+    width: 100%;
+    padding: 11px 12px;
+    border: 1px solid rgba(15, 23, 42, 0.12);
+    border-radius: 10px;
+    font-size: 14px;
+    background: #fff;
+  }
+  .field-hint {
+    font-size: 11.5px;
+    color: var(--ink-500);
+    margin-top: 6px;
+    line-height: 1.45;
+  }
 
   .field { margin-bottom: 14px; }
   .field label { display: block; font-size: 13px; font-weight: 600; color: var(--ink-700); margin-bottom: 6px; }
@@ -149,7 +163,7 @@
       <p class="pitch-sub">Free 14-day trial. No card required. Import your team, run payroll, approve leave — all from one calm dashboard built for Indian businesses.</p>
  
       <ul class="pitch-list">
-        <li><span class="ico">&#8377;</span><span><strong>Indian payroll built-in</strong> — PF, ESI, PT, TDS, gratuity calculated automatically each month.</span></li>
+        <li><span class="ico">&#8377;</span><span><strong>Indian payroll built-in</strong> — PF, ESI, PT, TDS, gratuity accrual, and exit settlement estimates.</span></li>
         <li><span class="ico">&#10003;</span><span><strong>Geo-fenced attendance</strong> with shift management and regularization workflows.</span></li>
         <li><span class="ico">&#9733;</span><span><strong>Performance reviews</strong>, structured ratings, goals and acknowledgement.</span></li>
         <li><span class="ico">&#9993;</span><span><strong>Bank advice export</strong> ready to upload to ICICI, HDFC, Axis and SBI corporate banking.</span></li>
@@ -183,6 +197,16 @@
                    title="3-50 chars, lowercase letters, numbers, dashes; must start with a letter">
             <span class="subdomain-suffix">.hrms.app</span>
           </div>
+        </div>
+
+        <div class="field">
+          <label for="country">Country / region</label>
+          <select id="country" name="country" required class="signup-select">
+            {% for code, label in country_choices %}
+            <option value="{{ code }}" {% if initial.country == code %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+          <p class="field-hint">India includes PF, ESI, TDS &amp; Form 16. GCC regions get core HR today — local statutory payroll is on our roadmap.</p>
         </div>
 
         <div class="field">

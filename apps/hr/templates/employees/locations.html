@@ -2,7 +2,7 @@
 {% block page_title %}Office Locations{% endblock %}
 {% block content %}
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-  <div class="card bg-base-100 shadow">
+  <div class="card">
     <div class="card-body">
       <h3 class="card-title text-base">Add Location</h3>
       <form method="post" action="{% url 'employees:location_create' %}"

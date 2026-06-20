@@ -2,15 +2,15 @@
 {% block page_title %}{{ employee.full_name }}{% endblock %}
 
 {% block content %}
-<div class="flex items-center justify-between mb-4">
-  <div class="flex items-center gap-3">
+<div class="hr-page-header">
+  <div class="hr-page-header__main" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
     <a href="{% url 'employees:list' %}" class="btn btn-ghost btn-sm">← Back</a>
-    <h2 class="text-xl font-bold">{{ employee.full_name }}</h2>
+    <h1 class="hr-page-header__title">{{ employee.full_name }}</h1>
     <span class="badge {% if employee.employment_status == 'active' %}badge-success{% else %}badge-warning{% endif %}">
       {{ employee.get_employment_status_display }}
     </span>
   </div>
-  <div class="flex gap-2">
+  <div class="hr-page-header__actions">
     <a href="{% url 'employees:id_card' employee.pk %}" class="btn btn-outline btn-sm" target="_blank">ID Card PDF</a>
     <a href="{% url 'employees:edit' employee.pk %}" class="btn btn-primary btn-sm">Edit</a>
   </div>
@@ -21,7 +21,7 @@
   <!-- Left: core info -->
   <div class="col-span-2 space-y-4">
     <!-- Personal info card -->
-    <div class="card bg-base-100 shadow">
+    <div class="card">
       <div class="card-body">
         <h3 class="card-title text-base">Personal Information</h3>
         <div class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm mt-2">
@@ -37,7 +37,7 @@
     </div>
 
     <!-- Employment info -->
-    <div class="card bg-base-100 shadow">
+    <div class="card">
       <div class="card-body">
         <h3 class="card-title text-base">Employment</h3>
         <div class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm mt-2">
@@ -52,8 +52,73 @@
       </div>
     </div>
 
+    {% if tenant_is_india_payroll %}
+    <div class="card">
+      <div class="card-body">
+        <h3 class="card-title text-base">Statutory IDs</h3>
+        <div class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm mt-2">
+          <div><span class="text-base-content/60">PAN</span><p class="font-mono">{% if employee.pan_number %}{{ employee.pan_number|slice:":5" }}****{{ employee.pan_number|slice:"-1:" }}{% else %}—{% endif %}</p></div>
+          <div><span class="text-base-content/60">Aadhaar</span><p class="font-mono">{% if employee.aadhaar_number %}**** **** {{ employee.aadhaar_number|slice:"-4:" }}{% else %}—{% endif %}</p></div>
+          <div><span class="text-base-content/60">UAN (PF)</span><p class="font-mono">{{ employee.uan_number|default:"—" }}</p></div>
+          <div><span class="text-base-content/60">ESI</span><p class="font-mono">{{ employee.esi_number|default:"—" }}</p></div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if tenant_is_gcc_payroll %}
+    <div class="card">
+      <div class="card-body">
+        <h3 class="card-title text-base">Work authorization &amp; identity</h3>
+        <div class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm mt-2">
+          <div><span class="text-base-content/60">Nationality</span><p>{{ employee.nationality|default:"—" }}</p></div>
+          <div><span class="text-base-content/60">Kuwaiti national</span><p>{% if employee.is_kuwaiti_national %}Yes{% else %}No{% endif %}</p></div>
+          <div><span class="text-base-content/60">Civil ID</span><p class="font-mono">{% if employee.civil_id %}****{{ employee.civil_id|slice:"-4:" }}{% else %}—{% endif %}</p></div>
+          <div><span class="text-base-content/60">Civil ID expiry</span><p>{{ employee.civil_id_expiry|date:"d M Y"|default:"—" }}</p></div>
+          <div><span class="text-base-content/60">Residency</span><p class="font-mono">{{ employee.residency_number|default:"—" }}</p></div>
+          <div><span class="text-base-content/60">Residency expiry</span><p>{{ employee.residency_expiry|date:"d M Y"|default:"—" }}</p></div>
+          <div><span class="text-base-content/60">Passport</span><p>{{ employee.passport_number|default:"—" }}</p></div>
+          <div><span class="text-base-content/60">Passport expiry</span><p>{{ employee.passport_expiry|date:"d M Y"|default:"—" }}</p></div>
+          <div><span class="text-base-content/60">Work permit</span><p>{{ employee.work_permit_number|default:"—" }}</p></div>
+          <div><span class="text-base-content/60">Work permit expiry</span><p>{{ employee.work_permit_expiry|date:"d M Y"|default:"—" }}</p></div>
+          {% if tenant.payroll_jurisdiction == "KW" %}
+          <div><span class="text-base-content/60">PIFSS</span><p>{{ employee.pifss_number|default:"—" }}</p></div>
+          {% endif %}
+          <div><span class="text-base-content/60">Contract</span><p>{{ employee.get_contract_type_display|default:"—" }}{% if employee.contract_end_date %} · ends {{ employee.contract_end_date|date:"d M Y" }}{% endif %}</p></div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="card">
+      <div class="card-body">
+        <h3 class="card-title text-base">Bank accounts</h3>
+        {% if bank_accounts %}
+        <div class="space-y-3 mt-2">
+          {% for acct in bank_accounts %}
+          <div class="border border-base-200 rounded-lg p-3 text-sm">
+            <div class="flex justify-between items-start gap-2">
+              <div>
+                <p class="font-medium">{{ acct.bank_name }}{% if acct.is_primary %} <span class="badge badge-ghost badge-xs">Primary</span>{% endif %}</p>
+                <p class="text-base-content/60">{{ acct.account_holder_name }}</p>
+              </div>
+              <span class="font-mono text-xs">{{ acct.masked_account_number }}</span>
+            </div>
+            <p class="text-xs text-base-content/50 mt-1">
+              {% if tenant_is_india_payroll %}IFSC{% else %}SWIFT{% endif %}: {{ acct.ifsc_code|default:"—" }}
+              {% if acct.branch_name %} · {{ acct.branch_name }}{% endif %}
+            </p>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-sm text-base-content/60 mt-2">No bank account on file. <a href="{% url 'employees:edit' employee.pk %}" class="link link-primary">Add one</a></p>
+        {% endif %}
+      </div>
+    </div>
+
     <!-- Documents -->
-    <div class="card bg-base-100 shadow">
+    <div class="card">
       <div class="card-body">
         <div class="flex justify-between items-center mb-3">
           <h3 class="card-title text-base">Documents</h3>
@@ -75,7 +140,7 @@
   <!-- Right: actions & summary -->
   <div class="space-y-4">
     <!-- Photo & quick stats -->
-    <div class="card bg-base-100 shadow">
+    <div class="card">
       <div class="card-body items-center text-center">
         {% if employee.profile_photo %}
         <div class="avatar"><div class="w-24 rounded-full ring ring-primary ring-offset-2"><img src="{{ employee.profile_photo.url }}" alt="{{ employee.full_name }}"></div></div>
@@ -89,7 +154,7 @@
 
     <!-- Application access (HR admin) -->
     {% if user.is_hr_admin %}
-    <div class="card bg-base-100 shadow">
+    <div class="card">
       <div class="card-body">
         <h3 class="font-semibold text-sm mb-2">Application access</h3>
         {% if access.has_login %}
@@ -150,7 +215,7 @@
     {% endif %}
 
     <!-- Quick actions -->
-    <div class="card bg-base-100 shadow">
+    <div class="card">
       <div class="card-body">
         <h3 class="font-semibold text-sm mb-2">Actions</h3>
         <div class="flex flex-col gap-2">

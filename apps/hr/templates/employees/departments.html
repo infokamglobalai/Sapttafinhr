@@ -1,12 +1,14 @@
 {% extends "base.html" %}
 {% block page_title %}Departments{% endblock %}
 {% block content %}
-<div class="flex items-center justify-between mb-4">
-  <h2 class="text-xl font-bold">Departments</h2>
+<div class="hr-page-header">
+  <div class="hr-page-header__main">
+    <h1 class="hr-page-header__title">Departments</h1>
+  </div>
 </div>
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
   <!-- Create form -->
-  <div class="card bg-base-100 shadow">
+  <div class="card">
     <div class="card-body">
       <h3 class="card-title text-base">Add Department</h3>
       <form method="post" action="{% url 'employees:department_create' %}"

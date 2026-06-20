@@ -6,6 +6,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from utils.access import hr_admin_required
+from utils.pdf import render_pdf_response
 
 from .models import (
     LetterTemplate, HRLetter, Asset, AssetAssignment,
@@ -224,9 +225,25 @@ def onboarding_item_complete(request, item_pk):
 @hr_admin_required
 def exit_list(request):
     tenant = request.tenant
+    from apps.payroll.settlement import settlement_estimate
+
     exits = ExitRequest.objects.filter(tenant=tenant).select_related(
         "employee", "employee__department", "employee__user"
     ).order_by("-created_at")
+    for exit_req in exits:
+        lwd = exit_req.last_working_date or timezone.localdate()
+        if exit_req.settlement_amount is not None and exit_req.settlement_computed_at:
+            exit_req.gratuity_info = {
+                "eligible": True,
+                "years": 0,
+                "amount": exit_req.settlement_amount,
+                "note": exit_req.settlement_note,
+                "label": exit_req.settlement_label or "Settlement",
+                "currency": tenant.currency,
+            }
+        else:
+            info = settlement_estimate(exit_req.employee, lwd, tenant=tenant)
+            exit_req.gratuity_info = info
     return render(request, "hr_ops/exits.html", {
         "exits": exits,
         "today": timezone.localdate(),
@@ -361,6 +378,41 @@ def exit_finalize(request, pk):
             msg += " Application login disabled."
         messages.success(request, msg)
     return redirect("hr_ops:exit_list")
+
+
+@hr_admin_required
+def exit_settlement_pdf(request, pk):
+    """PDF settlement statement (indemnity / gratuity) for an exit request."""
+    tenant = request.tenant
+    exit_req = get_object_or_404(ExitRequest, pk=pk, tenant=tenant)
+    from apps.payroll.settlement import settlement_estimate
+
+    lwd = exit_req.last_working_date or timezone.localdate()
+    if exit_req.settlement_amount is not None and exit_req.settlement_computed_at:
+        est = {
+            "label": exit_req.settlement_label or "Settlement",
+            "amount": exit_req.settlement_amount,
+            "years": 0,
+            "note": exit_req.settlement_note,
+            "currency": tenant.currency,
+            "eligible": True,
+        }
+    else:
+        est = settlement_estimate(exit_req.employee, lwd, tenant=tenant)
+
+    from utils.money import format_money
+    return render_pdf_response(
+        "hr_ops/settlement_statement_pdf.html",
+        {
+            "tenant": tenant,
+            "exit_req": exit_req,
+            "employee": exit_req.employee,
+            "estimate": est,
+            "amount_display": format_money(est.get("amount"), est.get("currency", tenant.currency)),
+            "generated_at": timezone.localdate(),
+        },
+        filename=f"settlement_{exit_req.employee.employee_code}.pdf",
+    )
 
 
 @hr_admin_required

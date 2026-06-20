@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Saptta — Company Overview (One Pager)</title>
+  <style>
+    :root { --blue:#2563EB; --blue-dark:#1D4ED8; --text:#0F172A; --muted:#64748B; --border:#E2E8F0; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:"Segoe UI",system-ui,sans-serif; color:var(--text); font-size:10pt; line-height:1.45; }
+    @page { size:A4 portrait; margin:10mm; }
+    @media print { body { -webkit-print-color-adjust:exact; print-color-adjust:exact; } .no-print{display:none} }
+    .page { max-width:210mm; margin:0 auto; padding:12mm; min-height:277mm; position:relative; }
+    .hero { background:linear-gradient(135deg,#0F172A,#2563EB); color:#fff; border-radius:16px; padding:24px 28px; margin-bottom:16px; }
+    .hero h1 { font-size:22pt; font-weight:800; letter-spacing:-.03em; margin-bottom:6px; }
+    .hero p { color:rgba(255,255,255,.88); font-size:11pt; max-width:520px; }
+    .logo { display:inline-flex; align-items:center; gap:8px; font-weight:800; font-size:12pt; margin-bottom:12px; }
+    .logo-mark { width:28px;height:28px;border-radius:8px;background:#fff;color:var(--blue);display:flex;align-items:center;justify-content:center;font-weight:800; }
+    .grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin:16px 0; }
+    .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:12px 0; }
+    .box { border:1px solid var(--border); border-radius:12px; padding:14px; }
+    .box h3 { font-size:10pt; font-weight:700; margin-bottom:6px; color:var(--blue); }
+    .box p, .box li { font-size:9pt; color:var(--muted); }
+    .box ul { margin-left:14px; }
+    .box li { margin:3px 0; }
+    .featured { border:2px solid var(--blue); background:#EFF6FF; }
+    .price { font-size:18pt; font-weight:800; color:var(--blue); }
+    .price small { font-size:10pt; font-weight:600; color:var(--muted); }
+    table { width:100%; border-collapse:collapse; font-size:8.5pt; margin-top:8px; }
+    th,td { border:1px solid var(--border); padding:6px 8px; text-align:left; }
+    th { background:#F8FAFC; font-weight:700; }
+    .footer { margin-top:16px; padding-top:12px; border-top:2px solid var(--border); display:flex; justify-content:space-between; font-size:8.5pt; color:var(--muted); }
+    .cta { background:var(--text); color:#fff; border-radius:12px; padding:14px 18px; margin-top:14px; display:flex; justify-content:space-between; align-items:center; }
+    .cta strong { font-size:11pt; display:block; margin-bottom:2px; }
+    .cta span { font-size:9pt; color:#94A3B8; }
+    .cta a { color:#60A5FA; font-weight:700; text-decoration:none; font-size:10pt; }
+    .pill { display:inline-block; background:#EFF6FF; color:var(--blue); font-size:7.5pt; font-weight:700; padding:3px 8px; border-radius:999px; margin:2px; }
+    .no-print { text-align:center; padding:12px; background:#1E293B; color:#fff; font-size:9pt; }
+  </style>
+</head>
+<body>
+  <p class="no-print">Print → A4 Portrait · Background graphics ON</p>
+  <div class="page">
+    <div class="hero">
+      <div class="logo"><div class="logo-mark">S</div> Saptta</div>
+      <h1>HR &amp; Finance.<br>One platform. One truth.</h1>
+      <p>Saptta Complete gives growing companies hire-to-retire HRMS and GST-ready accounting on a single login — built for India, expanding GCC.</p>
+    </div>
+
+    <div class="grid-3">
+      <div class="box featured">
+        <h3>Saptta Complete ★</h3>
+        <div class="price">$95<small>/mo</small></div>
+        <p style="margin:6px 0 8px">₹7,999/mo in India (+ GST)</p>
+        <ul>
+          <li>HRMS + Accounts bundled</li>
+          <li>30 employees included</li>
+          <li>Save 20% vs separate</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h3>Saptta HRMS</h3>
+        <div class="price" style="font-size:15pt">$59<small>/mo</small></div>
+        <ul>
+          <li>Payroll, leave, attendance</li>
+          <li>Recruitment &amp; performance</li>
+          <li>Manager &amp; employee ESS</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h3>Saptta Accounts</h3>
+        <div class="price" style="font-size:15pt">$59<small>/mo</small></div>
+        <ul>
+          <li>Invoicing &amp; GST</li>
+          <li>Ledger &amp; bank rec</li>
+          <li>Unlimited finance users</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="box">
+        <h3>Why company heads choose Saptta</h3>
+        <ul>
+          <li><strong>One employee record</strong> — HR and Finance stay aligned</li>
+          <li><strong>Manager self-service</strong> — leave, attendance, reviews</li>
+          <li><strong>India statutory</strong> — PF, ESI, PT, TDS, Form 16, Tally</li>
+          <li><strong>GCC-ready</strong> — Kuwait/UAE payroll MVP, IBAN, PIFSS</li>
+          <li><strong>Security</strong> — encrypted PII, RBAC, audit trail</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h3>Modules at a glance</h3>
+        <p>
+          <span class="pill">Employees</span><span class="pill">Attendance</span><span class="pill">Leave</span>
+          <span class="pill">Payroll</span><span class="pill">Recruitment</span><span class="pill">Performance</span>
+          <span class="pill">Invoicing</span><span class="pill">GST</span><span class="pill">Ledger</span>
+          <span class="pill">Inventory</span><span class="pill">Reports</span>
+        </p>
+        <table style="margin-top:10px">
+          <tr><th>Employees</th><th>Complete USD</th></tr>
+          <tr><td>30</td><td>$95</td></tr>
+          <tr><td>50</td><td>$125</td></tr>
+          <tr><td>100</td><td>$200</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="cta">
+      <div>
+        <strong>Book a 45-minute executive demo</strong>
+        <span>14-day free trial · Free Complete setup (limited time)</span>
+      </div>
+      <a href="mailto:hello@saptta.com">hello@saptta.com →</a>
+    </div>
+
+    <div class="footer">
+      <span><strong>Saptta</strong> · People &amp; money, unified · saptta.com</span>
+      <span>Jun 2026 · Confidential</span>
+    </div>
+  </div>
+</body>
+</html>

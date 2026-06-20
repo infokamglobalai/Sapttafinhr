@@ -9,7 +9,7 @@
  * If billing isn't configured on the server, createBillingOrder throws
  * ApiError(503) and the caller shows a "billing unavailable" message.
  */
-import { createBillingOrder, ApiError } from './api';
+import { createBillingOrder, confirmBillingPayment, ApiError } from './api';
 
 const RZP_SRC = 'https://checkout.razorpay.com/v1/checkout.js';
 
@@ -41,11 +41,17 @@ export interface CheckoutResult {
  */
 export async function startCheckout(
   planId: string,
-  opts: { cycle?: 'monthly' | 'annual'; email?: string; name?: string; onPaid?: () => void } = {},
+  opts: {
+    cycle?: 'monthly' | 'annual';
+    email?: string;
+    name?: string;
+    employees?: number;
+    onPaid?: () => void;
+  } = {},
 ): Promise<CheckoutResult> {
   let order;
   try {
-    order = await createBillingOrder(planId, opts.cycle ?? 'monthly');
+    order = await createBillingOrder(planId, opts.cycle ?? 'monthly', opts.employees);
   } catch (err) {
     if (err instanceof ApiError && err.status === 503) {
       return { status: 'unavailable', message: 'Online payments are not enabled yet. Please contact sales.' };
@@ -66,9 +72,16 @@ export async function startCheckout(
     description: `Subscription — ${order.plan}`,
     prefill: { email: opts.email, name: opts.name },
     theme: { color: '#FF6D00' },
-    handler: () => {
-      // Payment authorized in the widget; the webhook activates the
-      // subscription server-side. Give the caller a chance to refresh.
+    handler: async (response: { razorpay_payment_id?: string; razorpay_order_id?: string }) => {
+      const paymentId = response?.razorpay_payment_id;
+      const orderId = response?.razorpay_order_id || order.order_id;
+      if (paymentId) {
+        try {
+          await confirmBillingPayment(paymentId, orderId);
+        } catch {
+          // Webhook may still activate; caller can refresh subscription state.
+        }
+      }
       opts.onPaid?.();
     },
   });

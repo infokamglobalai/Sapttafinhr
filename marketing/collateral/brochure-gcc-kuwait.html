@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Saptta HRMS — GCC &amp; Kuwait Brochure</title>
+  <style>
+    :root { --blue:#2563EB; --gold:#B45309; --text:#0F172A; --muted:#64748B; --border:#E2E8F0; --sand:#FFFBEB; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:"Segoe UI",system-ui,sans-serif; color:var(--text); font-size:9.5pt; line-height:1.45; }
+    @page { size:A4 portrait; margin:10mm; }
+    @media print {
+      .page { page-break-after:always; }
+      .page:last-child { page-break-after:avoid; }
+      body { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+      .no-print { display:none; }
+    }
+    .page { max-width:210mm; margin:0 auto; padding:11mm; min-height:275mm; }
+    .hero { background:linear-gradient(135deg,#78350F 0%,#B45309 40%,#2563EB 100%); color:#fff; border-radius:14px; padding:22px 24px; margin-bottom:14px; }
+    .hero h1 { font-size:20pt; font-weight:800; margin-bottom:6px; }
+    .hero p { color:rgba(255,255,255,.9); font-size:10pt; max-width:480px; }
+    .tag { display:inline-block; background:rgba(255,255,255,.2); padding:3px 10px; border-radius:999px; font-size:7.5pt; font-weight:700; margin-bottom:8px; }
+    .head { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+    .logo { font-weight:800; font-size:11pt; }
+    h2 { font-size:12pt; color:var(--blue); margin:12px 0 8px; font-weight:700; }
+    .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+    .card { border:1px solid var(--border); border-radius:10px; padding:12px; }
+    .card h3 { font-size:9.5pt; margin-bottom:4px; }
+    .card p, .card li { font-size:8.5pt; color:var(--muted); }
+    .card ul { margin-left:14px; margin-top:4px; }
+    .card li { margin:2px 0; }
+    .live { border-left:3px solid #059669; background:#ECFDF5; }
+    .road { border-left:3px solid var(--gold); background:var(--sand); }
+    table { width:100%; border-collapse:collapse; font-size:8.5pt; margin:8px 0; }
+    th,td { border:1px solid var(--border); padding:6px 8px; }
+    th { background:#F8FAFC; }
+    .flags { font-size:14pt; letter-spacing:4px; margin:8px 0; }
+    .cta { background:var(--text); color:#fff; border-radius:12px; padding:16px; text-align:center; margin-top:14px; }
+    .cta strong { display:block; font-size:11pt; margin-bottom:4px; }
+    .foot { font-size:8pt; color:var(--muted); text-align:center; margin-top:12px; border-top:1px solid var(--border); padding-top:8px; }
+    .no-print { text-align:center; padding:12px; background:#1E293B; color:#fff; font-size:9pt; }
+  </style>
+</head>
+<body>
+  <p class="no-print">GCC brochure · 2 pages · A4 Portrait</p>
+
+  <div class="page">
+    <div class="hero">
+      <span class="tag">GCC &amp; Kuwait · 2026</span>
+      <div class="logo">Saptta HRMS</div>
+      <h1>Modern HR for the Gulf.<br>Payroll that speaks KWD, AED &amp; SAR.</h1>
+      <p>One platform for workforce management across Kuwait, UAE, Saudi Arabia, and the wider GCC — with jurisdiction-aware payroll, leave packs, and compliance exports.</p>
+    </div>
+
+    <p class="flags">🇰🇼 🇦🇪 🇸🇦 🇧🇭 🇴🇲 🇶🇦</p>
+
+    <h2>What is live today</h2>
+    <div class="grid-3">
+      <div class="card live"><h3>Core HRMS</h3><ul><li>Employee master</li><li>Attendance &amp; shifts</li><li>Leave &amp; holidays</li><li>Performance &amp; ATS</li><li>Manager ESS</li></ul></div>
+      <div class="card live"><h3>GCC payroll MVP</h3><ul><li>Basic + housing + transport</li><li>PIFSS (Kuwaiti nationals)</li><li>GOSI (Saudi nationals)</li><li>Indemnity / EOS accrual</li><li>Payslip PDF</li></ul></div>
+      <div class="card live"><h3>Exports</h3><ul><li>Salary register (IBAN)</li><li>Bank transfer CSV</li><li>WPS SIF stub (UAE)</li><li>PIFSS summary</li><li>Exit settlement PDF</li></ul></div>
+    </div>
+
+    <h2>Kuwait-specific (Law No. 6/2010 aligned)</h2>
+    <div class="grid-2">
+      <div class="card">
+        <h3>Employee master fields</h3>
+        <ul>
+          <li>Civil ID · Residency / iqama</li>
+          <li>Passport &amp; work permit expiry</li>
+          <li>Nationality (Kuwaiti vs expat)</li>
+          <li>IBAN · contract type &amp; dates</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Leave policy packs (seeded)</h3>
+        <ul>
+          <li>Annual leave (30 days)</li>
+          <li>Sick · maternity · unpaid</li>
+          <li>Kuwait public holiday calendar</li>
+          <li>Compliance expiry alerts</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2>Locale defaults at signup</h2>
+    <table>
+      <tr><th>Country</th><th>Currency</th><th>Timezone</th></tr>
+      <tr><td>Kuwait</td><td>KWD (3 decimals)</td><td>Asia/Kuwait</td></tr>
+      <tr><td>UAE</td><td>AED</td><td>Asia/Dubai</td></tr>
+      <tr><td>Saudi Arabia</td><td>SAR</td><td>Asia/Riyadh</td></tr>
+      <tr><td>Bahrain · Oman · Qatar</td><td>Local currency</td><td>Regional TZ</td></tr>
+    </table>
+    <div class="foot">Saptta GCC · Page 1 of 2</div>
+  </div>
+
+  <div class="page">
+    <div class="head"><span class="logo">Saptta · GCC brochure</span><span style="font-size:8pt;color:var(--muted)">For company heads &amp; HR directors</span></div>
+
+    <h2>Why Gulf companies choose Saptta</h2>
+    <div class="grid-2">
+      <div class="card">
+        <h3>vs legacy on-premise HR</h3>
+        <ul>
+          <li>Cloud — no server room or IT team</li>
+          <li>Mobile-ready for field &amp; site staff</li>
+          <li>English UI today · Arabic RTL layout</li>
+          <li>Unified with finance (Complete plan)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>vs global HR-only SaaS</h3>
+        <ul>
+          <li>Built for Gulf payroll nuances</li>
+          <li>Indemnity accrual on payslip</li>
+          <li>Local bank file formats (MVP)</li>
+          <li><strong>$95/mo Complete</strong> — under ZenHR HR-only</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2>Honest positioning</h2>
+    <div class="grid-2">
+      <div class="card live"><h3>✓ Demo-ready today</h3><p>Full HR lifecycle, GCC payroll run, manager approvals, employee payslips, compliance field tracking, export stubs.</p></div>
+      <div class="card road"><h3>◐ Validate before filing</h3><p>PIFSS rates, WPS bank layouts, and indemnity formulas should be confirmed with your licensed payroll consultant before regulatory submission.</p></div>
+    </div>
+
+    <h2>Pricing (USD · 30 employees included)</h2>
+    <table>
+      <tr><th>Plan</th><th>Price</th><th>Notes</th></tr>
+      <tr><td>Saptta HRMS</td><td>$59/mo</td><td>Full GCC core HR + payroll MVP</td></tr>
+      <tr><td>Saptta Complete</td><td>$95/mo</td><td>HR + Finance · recommended</td></tr>
+      <tr><td>50 employees</td><td>$125/mo</td><td>Complete + 20 extra @ $1.50</td></tr>
+    </table>
+
+    <h2>Getting started</h2>
+    <table>
+      <tr><th>Step</th><th>Action</th></tr>
+      <tr><td>1</td><td>Sign up · select Kuwait / UAE / KSA at registration</td></tr>
+      <tr><td>2</td><td>Import employees · GCC salary structure auto-seeded</td></tr>
+      <tr><td>3</td><td>Configure leave · assign managers · run first payroll</td></tr>
+      <tr><td>4</td><td>Export bank file · share with your payroll advisor</td></tr>
+    </table>
+
+    <div class="cta">
+      <strong>Book a GCC executive demo</strong>
+      <span style="font-size:9pt;color:#94A3B8">hello@saptta.com · saptta.com · 14-day free trial</span>
+    </div>
+    <div class="foot">Saptta · GCC &amp; Kuwait · Confidential · © 2026</div>
+  </div>
+</body>
+</html>

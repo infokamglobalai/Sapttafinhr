@@ -1,0 +1,67 @@
+{# Statutory IDs + primary bank — India vs GCC labels #}
+<div class="card hr-filter-bar">
+  <div class="card-body">
+    <h3 class="card-title text-base mb-1">
+      {% if tenant_is_india_payroll %}Statutory &amp; bank details{% else %}Bank &amp; payroll details{% endif %}
+    </h3>
+    <p class="text-sm text-base-content/60 mb-4">
+      {% if tenant_is_india_payroll %}
+      Used for PF, ESI, TDS, and salary disbursement. Stored encrypted where required.
+      {% else %}
+      Primary account for salary (WPS-ready when payroll integration ships). Stored encrypted.
+      {% endif %}
+    </p>
+
+    {% if tenant_is_gcc_payroll %}
+    {% include "employees/partials/gcc_compliance_fields.html" %}
+    {% endif %}
+
+    {% if tenant_is_india_payroll %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+      <div class="form-control">
+        <label class="label"><span class="label-text">PAN</span></label>
+        {{ form.pan_number }}
+        {% if form.pan_number.errors %}<p class="text-error text-xs mt-1">{{ form.pan_number.errors.0 }}</p>{% endif %}
+      </div>
+      <div class="form-control">
+        <label class="label"><span class="label-text">Aadhaar</span></label>
+        {{ form.aadhaar_number }}
+      </div>
+      <div class="form-control">
+        <label class="label"><span class="label-text">UAN (PF)</span></label>
+        {{ form.uan_number }}
+      </div>
+      <div class="form-control">
+        <label class="label"><span class="label-text">ESI number</span></label>
+        {{ form.esi_number }}
+      </div>
+    </div>
+    {% endif %}
+
+    <h4 class="font-semibold text-sm mb-3">Primary bank account</h4>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="form-control">
+        <label class="label"><span class="label-text">Account holder name</span></label>
+        {{ form.bank_account_holder }}
+      </div>
+      <div class="form-control">
+        <label class="label"><span class="label-text">Bank name</span></label>
+        {{ form.bank_name }}
+      </div>
+      <div class="form-control">
+        <label class="label"><span class="label-text">Branch</span></label>
+        {{ form.bank_branch }}
+      </div>
+      <div class="form-control">
+        <label class="label"><span class="label-text">Account number / IBAN</span></label>
+        {{ form.bank_account_number }}
+      </div>
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">{% if tenant_is_india_payroll %}IFSC code{% else %}SWIFT / BIC{% endif %}</span>
+        </label>
+        {{ form.bank_ifsc }}
+      </div>
+    </div>
+  </div>
+</div>

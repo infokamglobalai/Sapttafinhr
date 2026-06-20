@@ -1,0 +1,138 @@
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/sahayak-chat.css' %}?v=1">
+
+<button type="button" id="sahayak-fab" aria-label="Open Sahayak" title="Sahayak — your HR assistant"
+  data-icon-url="{% static 'images/sahayak-s-mark.png' %}">
+  <img src="{% static 'images/sahayak-s-mark.png' %}" alt="">
+</button>
+
+<div id="sahayak-panel" role="dialog" aria-label="Sahayak — HR assistant">
+  <div class="sahayak-header">
+    <div class="sahayak-header-avatar">
+      <img src="{% static 'images/sahayak-s-mark.png' %}" alt="">
+    </div>
+    <div class="sahayak-header-text">
+      <div class="sahayak-header-title">
+        <strong>Sahayak</strong>
+        <span class="sahayak-badge">HR</span>
+      </div>
+      <div class="sahayak-header-sub">Your Saptta HR assistant</div>
+    </div>
+    <button type="button" class="sahayak-close-btn" id="sahayak-close" aria-label="Close Sahayak">×</button>
+  </div>
+
+  <div class="sahayak-msgs" id="sahayak-msgs">
+    <div class="sahayak-welcome" id="sahayak-welcome">
+      <div class="sahayak-welcome-emoji">👋</div>
+      <div class="sahayak-welcome-title">Ask Sahayak anything HR</div>
+      <div class="sahayak-welcome-desc">
+        Leave balance, attendance, payslips, policies, holidays — I answer from your workspace data when I can.
+      </div>
+      <div class="sahayak-starters" id="sahayak-starters">
+        {% if user.is_hr_admin %}
+        <button type="button" class="sahayak-starter" data-msg="How many active employees do we have?">👥 Headcount</button>
+        <button type="button" class="sahayak-starter" data-msg="Who is absent today?">📅 Absent today</button>
+        <button type="button" class="sahayak-starter" data-msg="Show pending leave requests">✋ Pending leaves</button>
+        <button type="button" class="sahayak-starter" data-msg="Payroll summary for last run">💸 Last payroll</button>
+        {% else %}
+        <button type="button" class="sahayak-starter" data-msg="What is my leave balance?">📅 Leave balance</button>
+        <button type="button" class="sahayak-starter" data-msg="When is my next holiday?">🎉 Upcoming holidays</button>
+        <button type="button" class="sahayak-starter" data-msg="How do I apply for leave?">✋ Apply leave</button>
+        <button type="button" class="sahayak-starter" data-msg="Where can I download my payslip?">💸 My payslip</button>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="sahayak-input-row">
+    <input id="sahayak-input" type="text" placeholder="Ask Sahayak…" autocomplete="off">
+    <button type="button" id="sahayak-send">Send</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  var fab = document.getElementById('sahayak-fab');
+  var panel = document.getElementById('sahayak-panel');
+  var closeBtn = document.getElementById('sahayak-close');
+  var input = document.getElementById('sahayak-input');
+  var sendBtn = document.getElementById('sahayak-send');
+  var msgs = document.getElementById('sahayak-msgs');
+  var welcome = document.getElementById('sahayak-welcome');
+  var history = [];
+
+  function setOpen(open) {
+    panel.classList.toggle('is-open', open);
+    fab.classList.toggle('is-open', open);
+    fab.setAttribute('aria-label', open ? 'Close Sahayak' : 'Open Sahayak');
+    var iconUrl = fab.getAttribute('data-icon-url');
+    fab.innerHTML = open
+      ? '<span style="font-size:20px;line-height:1">×</span>'
+      : '<img src="' + iconUrl + '" alt="">';
+    if (open) input.focus();
+  }
+
+  function hideWelcome() {
+    if (welcome) welcome.style.display = 'none';
+  }
+
+  function addMsg(text, from) {
+    hideWelcome();
+    var div = document.createElement('div');
+    div.className = 'sahayak-msg sahayak-msg--' + (from === 'user' ? 'user' : 'ai');
+    div.textContent = text;
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+    return div;
+  }
+
+  function sendChat(preset) {
+    var msg = (preset || input.value || '').trim();
+    if (!msg) return;
+    input.value = '';
+    addMsg(msg, 'user');
+    history.push({ role: 'user', content: msg });
+
+    var typing = addMsg('Thinking…', 'ai');
+    typing.classList.add('sahayak-msg--typing');
+
+    fetch('/hr/ai/chat/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+      },
+      body: JSON.stringify({ message: msg, history: history.slice(-10) })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        typing.remove();
+        var reply = data.reply || 'Sorry, something went wrong.';
+        addMsg(reply, 'ai');
+        history.push({ role: 'assistant', content: reply });
+      })
+      .catch(function () {
+        typing.remove();
+        addMsg('Network error. Please try again.', 'ai');
+      });
+  }
+
+  fab.addEventListener('click', function () {
+    setOpen(!panel.classList.contains('is-open'));
+  });
+  closeBtn.addEventListener('click', function () { setOpen(false); });
+  sendBtn.addEventListener('click', function () { sendChat(); });
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') sendChat();
+  });
+
+  document.querySelectorAll('.sahayak-starter').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      sendChat(btn.getAttribute('data-msg'));
+    });
+  });
+
+  window.openSahayak = function () { setOpen(true); };
+  window.toggleSahayak = function () { setOpen(!panel.classList.contains('is-open')); };
+})();
+</script>

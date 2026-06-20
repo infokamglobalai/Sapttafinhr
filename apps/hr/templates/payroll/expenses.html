@@ -29,18 +29,18 @@
 
 <!-- Status filter -->
 <div style="display: flex; gap: 6px; margin-bottom: 14px;">
-  <a href="?status=pending" class="btn-base {% if status_filter == 'pending' %}btn-primary{% else %}btn-outline{% endif %} btn-sm">Pending</a>
-  <a href="?status=approved" class="btn-base {% if status_filter == 'approved' %}btn-primary{% else %}btn-outline{% endif %} btn-sm">Approved</a>
-  <a href="?status=paid" class="btn-base {% if status_filter == 'paid' %}btn-primary{% else %}btn-outline{% endif %} btn-sm">Paid</a>
-  <a href="?status=rejected" class="btn-base {% if status_filter == 'rejected' %}btn-primary{% else %}btn-outline{% endif %} btn-sm">Rejected</a>
-  <a href="?status=" class="btn-base {% if not status_filter %}btn-primary{% else %}btn-outline{% endif %} btn-sm">All</a>
+  <a href="?status=pending" class="btn {% if status_filter == 'pending' %}btn-primary{% else %}btn-outline{% endif %} btn-sm">Pending</a>
+  <a href="?status=approved" class="btn {% if status_filter == 'approved' %}btn-primary{% else %}btn-outline{% endif %} btn-sm">Approved</a>
+  <a href="?status=paid" class="btn {% if status_filter == 'paid' %}btn-primary{% else %}btn-outline{% endif %} btn-sm">Paid</a>
+  <a href="?status=rejected" class="btn {% if status_filter == 'rejected' %}btn-primary{% else %}btn-outline{% endif %} btn-sm">Rejected</a>
+  <a href="?status=" class="btn {% if not status_filter %}btn-primary{% else %}btn-outline{% endif %} btn-sm">All</a>
 </div>
 
 <div style="display: flex; flex-direction: column; gap: 10px;">
   {% for e in expenses %}
   <div class="surface" style="padding: 16px 20px;">
     <div style="display: flex; align-items: flex-start; gap: 14px;">
-      <div style="width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, #FB923C, #EA580C); color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0;">
+      <div style="width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, #3B82F6, #1D4ED8); color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0;">
         {{ e.employee.first_name|first }}{{ e.employee.last_name|first }}
       </div>
       <div style="flex: 1; min-width: 0;">
@@ -62,12 +62,12 @@
           <form method="post" action="{% url 'payroll:expense_action' e.pk %}" style="display: inline;">
             {% csrf_token %}
             <input type="hidden" name="action" value="approve">
-            <button type="submit" class="btn-base btn-primary btn-sm">Approve</button>
+            <button type="submit" class="btn btn-primary btn-sm">Approve</button>
           </form>
           <form method="post" action="{% url 'payroll:expense_action' e.pk %}" style="display: inline;">
             {% csrf_token %}
             <input type="hidden" name="action" value="reject">
-            <button type="submit" class="btn-base btn-outline btn-sm" style="color: var(--err-600); border-color: var(--err-200);" onclick="return confirm('Reject this claim?')">Reject</button>
+            <button type="submit" class="btn btn-outline btn-sm" style="color: var(--err-600); border-color: var(--err-200);" onclick="return confirm('Reject this claim?')">Reject</button>
           </form>
         </div>
         {% endif %}

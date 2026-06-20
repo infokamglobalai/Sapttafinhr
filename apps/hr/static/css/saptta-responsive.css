@@ -63,7 +63,7 @@ body {
   color: var(--color-primary) !important;
 }
 
-/* ── Buttons: primary orange, secondary blue ── */
+/* ── Buttons: primary blue ── */
 .btn.btn-primary,
 .btn-primary,
 .saas-btn-solid,
@@ -663,16 +663,13 @@ a.dash-kpi-tile:hover {
   text-overflow: ellipsis;
 }
 
-/* ── Sidebar icon sizing ── */
-.dock-item svg {
+/* ── Sidebar icon sizing (v3: icons live in .dock-icon-wrap) ── */
+.dock-item > svg {
   width: 20px !important;
   height: 20px !important;
-  padding: 7px;
-  border-radius: 10px;
-  box-sizing: content-box;
-  flex-shrink: 0;
-  transition: background 180ms ease, color 180ms ease, opacity 150ms ease;
-  opacity: 1;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  box-sizing: border-box !important;
 }
 
 .sidebar-secondary .nav-item svg {
@@ -722,11 +719,10 @@ textarea,
   }
 }
 
-/* ── AI chat FAB ── */
-#ai-chat-btn {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover)) !important;
-  bottom: max(16px, env(safe-area-inset-bottom)) !important;
-  right: max(16px, env(safe-area-inset-right)) !important;
+/* ── Sahayak chat FAB ── */
+#sahayak-fab {
+  bottom: max(28px, env(safe-area-inset-bottom)) !important;
+  right: max(28px, env(safe-area-inset-right)) !important;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -897,4 +893,29 @@ body:not(:has(.app-shell)) {
 #pipeline-board > * {
   scroll-snap-align: start;
   flex: 0 0 min(280px, 85vw);
+}
+
+/* Data tables — horizontal scroll on phones */
+.hr-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
+
+.hr-table-wrap .table {
+  min-width: min(100%, 560px);
+}
+
+@media (max-width: 639px) {
+  .hr-page-header {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 12px;
+  }
+  .hr-page-header__actions {
+    width: 100%;
+  }
+  .hr-page-header__actions .btn {
+    width: 100%;
+  }
 }

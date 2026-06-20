@@ -2,7 +2,7 @@
 {% block page_title %}{% if cycle %}Edit{% else %}New{% endif %} Review Cycle{% endblock %}
 {% block content %}
 <div style="max-width: 720px; margin: 0 auto;">
-  <a href="{% url 'performance:cycles' %}" class="btn-base btn-ghost btn-sm" style="margin-bottom: 14px;">← Back to Cycles</a>
+  <a href="{% url 'performance:cycles' %}" class="btn btn-ghost btn-sm" style="margin-bottom: 14px;">← Back to Cycles</a>
   <h2 style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 4px;">{% if cycle %}Edit{% else %}New{% endif %} Review Cycle</h2>
   <p style="font-size: 13.5px; color: var(--ink-500); margin-bottom: 22px;">Define a performance review period that managers will fill in for their reports.</p>
 
@@ -56,8 +56,8 @@
     </div>
 
     <div style="display: flex; justify-content: flex-end; gap: 12px;">
-      <a href="{% url 'performance:cycles' %}" class="btn-base btn-ghost">Cancel</a>
-      <button type="submit" class="btn-base btn-primary">{% if cycle %}Save Changes{% else %}Create Cycle{% endif %}</button>
+      <a href="{% url 'performance:cycles' %}" class="btn btn-ghost">Cancel</a>
+      <button type="submit" class="btn btn-primary">{% if cycle %}Save Changes{% else %}Create Cycle{% endif %}</button>
     </div>
   </form>
 </div>

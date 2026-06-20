@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Form, Input, Button, Steps, Tag, Slider, message } from 'antd';
+import { Form, Input, Button, Steps, Tag, Slider, message, Select } from 'antd';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import {
   CheckCircleFilled,
@@ -12,6 +12,16 @@ import {
 import ScrollReveal from '../components/shared/ScrollReveal';
 import { useAuth } from '../contexts/AuthContext';
 import { PLANS, planMonthly, extraEmployees, EXTRA_EMPLOYEE_PRICE, GST_RATE } from '../types';
+
+const SIGNUP_COUNTRIES = [
+  { value: 'IN', label: 'India' },
+  { value: 'KW', label: 'Kuwait' },
+  { value: 'AE', label: 'United Arab Emirates' },
+  { value: 'SA', label: 'Saudi Arabia' },
+  { value: 'BH', label: 'Bahrain' },
+  { value: 'OM', label: 'Oman' },
+  { value: 'QA', label: 'Qatar' },
+];
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -43,7 +53,7 @@ export default function Signup() {
     setStep(1);
   };
 
-  const handleSubmit = async (values: { email: string; password: string; firstName: string; lastName: string; companyName: string }) => {
+  const handleSubmit = async (values: { email: string; password: string; firstName: string; lastName: string; companyName: string; country?: string }) => {
     if (!selectedPlanId) return;
     try {
       await signup({
@@ -53,6 +63,7 @@ export default function Signup() {
         lastName: values.lastName,
         planId: selectedPlanId,
         companyName: values.companyName,
+        country: values.country || 'IN',
       });
       message.success('Account created! Welcome to Saptta.');
       navigate(import.meta.env.DEV ? '/app' : '/app/billing');
@@ -682,6 +693,20 @@ export default function Signup() {
                     style={{ marginBottom: 16 }}
                   >
                     <Input placeholder="Acme Pvt Ltd" size="large" />
+                  </Form.Item>
+
+                  <Form.Item
+                    name="country"
+                    label={<span style={{ fontWeight: 600, fontSize: 13, color: '#0A1128' }}>Country / region</span>}
+                    initialValue="IN"
+                    rules={[{ required: true, message: 'Select your country' }]}
+                    style={{ marginBottom: 16 }}
+                  >
+                    <Select
+                      size="large"
+                      options={SIGNUP_COUNTRIES}
+                      placeholder="Where is your company based?"
+                    />
                   </Form.Item>
 
                   <Form.Item

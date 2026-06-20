@@ -2,7 +2,7 @@
 {% block page_title %}{% if announcement %}Edit Announcement{% else %}New Announcement{% endif %}{% endblock %}
 {% block content %}
 <div style="max-width: 720px; margin: 0 auto;">
-  <a href="{% url 'hr_ops:announcements' %}" class="btn-base btn-ghost btn-sm" style="margin-bottom: 14px;">← Back to Announcements</a>
+  <a href="{% url 'hr_ops:announcements' %}" class="btn btn-ghost btn-sm" style="margin-bottom: 14px;">← Back to Announcements</a>
   <h2 style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 4px;">{% if announcement %}Edit Announcement{% else %}New Announcement{% endif %}</h2>
   <p style="font-size: 13.5px; color: var(--ink-500); margin-bottom: 22px;">Post a company-wide update visible to all employees.</p>
 
@@ -29,8 +29,8 @@
     </div>
 
     <div style="display: flex; justify-content: flex-end; gap: 12px;">
-      <a href="{% url 'hr_ops:announcements' %}" class="btn-base btn-ghost">Cancel</a>
-      <button type="submit" class="btn-base btn-primary">{% if announcement %}Save Changes{% else %}Create Announcement{% endif %}</button>
+      <a href="{% url 'hr_ops:announcements' %}" class="btn btn-ghost">Cancel</a>
+      <button type="submit" class="btn btn-primary">{% if announcement %}Save Changes{% else %}Create Announcement{% endif %}</button>
     </div>
   </form>
 </div>

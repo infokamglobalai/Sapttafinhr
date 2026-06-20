@@ -99,9 +99,9 @@ jobs:
           VITE_API_BASE_URL: /api/v1
           VITE_PLATFORM_BASE_URL: https://app.example.com
 
-  # ── HR backend: Django check (SQLite dev settings, no services needed) ───
+  # ── HR backend: Django check + tests (SQLite dev settings) ─────────────
   hr-backend:
-    name: hr-backend (check)
+    name: hr-backend (check + test)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -128,3 +128,7 @@ jobs:
         run: echo "FIELD_ENCRYPTION_KEY=$(python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())')" >> "$GITHUB_ENV"
       - name: Django system check
         run: python manage.py check
+      - name: Migrations are in sync (no missing makemigrations)
+        run: python manage.py makemigrations --check --dry-run
+      - name: Run tests
+        run: python manage.py test --verbosity=1

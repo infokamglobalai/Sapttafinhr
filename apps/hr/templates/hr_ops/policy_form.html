@@ -5,7 +5,7 @@
 <h2 class="text-xl font-bold mb-1">{% if policy %}Edit{% else %}Add{% endif %} Policy {% if policy %}<span class="badge badge-outline">{{ policy.version_label }}</span>{% endif %}</h2>
 <p class="text-sm text-base-content/60 mb-4">Upload a PDF/DOCX or paste text. Changing content creates a new version (v2, v3…).</p>
 
-<form method="post" enctype="multipart/form-data" class="card bg-base-100 shadow max-w-3xl">
+<form method="post" enctype="multipart/form-data" class="card max-w-3xl">
   <div class="card-body gap-4">
     {% csrf_token %}
     <label class="form-control">

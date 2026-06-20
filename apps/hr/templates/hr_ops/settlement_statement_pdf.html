@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; font-size: 10pt; color: #333; }
+  .doc { max-width: 720px; margin: 0 auto; padding: 24px; }
+  .header { border-bottom: 2px solid #1a3a5c; padding-bottom: 12px; margin-bottom: 20px; }
+  .company-name { font-size: 18pt; font-weight: bold; color: #1a3a5c; }
+  .title { font-size: 14pt; color: #1a3a5c; margin-top: 8px; }
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid #ddd; margin-bottom: 20px; }
+  .info-cell { padding: 8px 12px; border-bottom: 1px solid #eee; }
+  .info-label { font-size: 8pt; color: #666; text-transform: uppercase; }
+  .info-value { font-size: 10pt; font-weight: 500; margin-top: 2px; }
+  .amount-box { background: #1a3a5c; color: #fff; padding: 16px 20px; border-radius: 4px; margin: 20px 0; }
+  .amount-box .label { font-size: 11pt; }
+  .amount-box .value { font-size: 20pt; font-weight: bold; margin-top: 4px; }
+  .note { font-size: 9pt; color: #555; line-height: 1.5; margin-top: 12px; padding: 10px; background: #f5f8ff; border-left: 3px solid #1a3a5c; }
+  .footer { margin-top: 32px; font-size: 8pt; color: #999; border-top: 1px solid #eee; padding-top: 10px; }
+  .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 48px; }
+  .sig-line { border-top: 1px solid #333; padding-top: 6px; font-size: 9pt; }
+</style>
+</head>
+<body>
+<div class="doc">
+  <div class="header">
+    <div class="company-name">{{ tenant.name }}</div>
+    {% if tenant.address %}<div style="font-size:8pt;color:#666;margin-top:4px">{{ tenant.address }}</div>{% endif %}
+    <div class="title">{{ estimate.label|default:"End of Service Settlement" }}</div>
+    <div style="font-size:9pt;color:#666;margin-top:4px">Generated {{ generated_at|date:"d M Y" }}</div>
+  </div>
+
+  <div class="info-grid">
+    <div class="info-cell">
+      <div class="info-label">Employee</div>
+      <div class="info-value">{{ employee.full_name }}</div>
+    </div>
+    <div class="info-cell">
+      <div class="info-label">Employee code</div>
+      <div class="info-value">{{ employee.employee_code }}</div>
+    </div>
+    <div class="info-cell">
+      <div class="info-label">Department</div>
+      <div class="info-value">{{ employee.department.name|default:"—" }}</div>
+    </div>
+    <div class="info-cell">
+      <div class="info-label">Designation</div>
+      <div class="info-value">{{ employee.designation.name|default:"—" }}</div>
+    </div>
+    <div class="info-cell">
+      <div class="info-label">Date of joining</div>
+      <div class="info-value">{{ employee.date_of_joining|date:"d M Y"|default:"—" }}</div>
+    </div>
+    <div class="info-cell">
+      <div class="info-label">Last working day</div>
+      <div class="info-value">{{ exit_req.last_working_date|date:"d M Y"|default:"—" }}</div>
+    </div>
+    <div class="info-cell">
+      <div class="info-label">Resignation date</div>
+      <div class="info-value">{{ exit_req.resignation_date|date:"d M Y"|default:"—" }}</div>
+    </div>
+    <div class="info-cell">
+      <div class="info-label">Years of service</div>
+      <div class="info-value">{{ estimate.years|floatformat:2 }}</div>
+    </div>
+  </div>
+
+  <div class="amount-box">
+    <div class="label">Estimated {{ estimate.label|default:"settlement" }}</div>
+    <div class="value">{{ amount_display }}</div>
+  </div>
+
+  {% if estimate.note %}
+  <div class="note">{{ estimate.note }}</div>
+  {% endif %}
+
+  <div class="note" style="background:#fff8f0;border-color:#D97706">
+    This document is an estimate for HR and finance review. Final settlement may include
+    leave encashment, loan recovery, and other adjustments not shown here.
+  </div>
+
+  <div class="signatures">
+    <div><div class="sig-line">HR Manager</div></div>
+    <div><div class="sig-line">Employee acknowledgement</div></div>
+  </div>
+
+  <div class="footer">
+    {{ tenant.name }} · {{ estimate.label|default:"Settlement" }} statement · Confidential
+  </div>
+</div>
+</body>
+</html>

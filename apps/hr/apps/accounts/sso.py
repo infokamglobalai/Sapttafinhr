@@ -33,6 +33,30 @@ User = get_user_model()
 SSO_SALT = "saptta.hr-sso"
 
 
+def mint_hr_sso_token(email: str, workspace: str) -> str:
+    """Sign a short-lived SSO payload (shared with FIN hr-sso-token endpoint)."""
+    signer = _signer()
+    if signer is None:
+        raise RuntimeError("SSO_SHARED_SECRET is not configured")
+    return signer.sign(f"{email.strip().lower()}|{workspace.strip().lower()}")
+
+
+def build_sso_redirect_url(token: str, *, next_path: str = "/", platform_url: str = "") -> str:
+    """Absolute HR SSO entry URL for browser redirect."""
+    from urllib.parse import quote
+
+    from django.conf import settings
+
+    base = (getattr(settings, "HR_PUBLIC_BASE_URL", "") or "").rstrip("/")
+    if not base:
+        base = "http://hr.localhost:8080"
+    next_q = quote(next_path if next_path.startswith("/") else f"/{next_path}")
+    url = f"{base}/auth/sso/?token={quote(token)}&next={next_q}"
+    if platform_url:
+        url += f"&platform={quote(platform_url.rstrip('/'))}"
+    return url
+
+
 def _signer() -> TimestampSigner | None:
     secret = getattr(settings, "SSO_SHARED_SECRET", "")
     if not secret:
@@ -87,6 +111,10 @@ def sso_login(request):
         )
     if user is None or not user.is_active:
         return _fallback(request, "No matching HR account for this workspace.")
+
+    from apps.employees.profile_link import ensure_user_employee_profile
+
+    ensure_user_employee_profile(user, tenant=user.tenant)
 
     login(request, user, backend="apps.accounts.backends.TenantAuthBackend")
     remember_platform_origin(request)

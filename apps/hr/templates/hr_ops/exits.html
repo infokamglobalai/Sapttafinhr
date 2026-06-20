@@ -1,10 +1,11 @@
 {% extends "base.html" %}
+{% load money_tags %}
 {% block page_title %}Exit Management{% endblock %}
 {% block content %}
-<div class="flex items-center justify-between mb-4">
-  <div>
-    <h2 class="text-xl font-bold">Exit Requests</h2>
-    <p class="text-sm text-base-content/60">Set last working day, track clearance, finalize exit, or disable login.</p>
+<div class="hr-page-header">
+  <div class="hr-page-header__main">
+    <h1 class="hr-page-header__title">Exit Requests</h1>
+    <p class="hr-page-header__sub">Set last working day, track clearance, finalize exit, or disable login.</p>
   </div>
 </div>
 
@@ -12,7 +13,7 @@
   <span>Logins are <strong>disabled automatically</strong> on last working day (daily job). Use <strong>Finalize exit</strong> to mark someone as exited before that date.</span>
 </div>
 
-<div class="card bg-base-100 shadow overflow-x-auto">
+<div class="card hr-table-wrap">
   <table class="table table-sm">
     <thead>
       <tr>
@@ -22,6 +23,7 @@
         <th>Employment</th>
         <th>Status</th>
         <th>Clearance</th>
+        <th>{% if tenant_is_gcc_payroll %}Settlement est.{% else %}Gratuity est.{% endif %}</th>
         {% if user.is_hr_admin %}<th>Actions</th>{% endif %}
       </tr>
     </thead>
@@ -85,6 +87,20 @@
           </div>
           {% endif %}
         </td>
+        <td class="text-xs">
+          {% if exit.gratuity_info.amount %}
+          {% with cur=exit.gratuity_info.currency|default:tenant.currency %}
+          <span class="font-semibold">{{ exit.gratuity_info.amount|money_format:cur }}</span>
+          {% endwith %}
+          {% if exit.gratuity_info.years %}<div class="text-base-content/50">{{ exit.gratuity_info.years }} yrs</div>{% endif %}
+          {% if exit.gratuity_info.label %}<div class="text-base-content/40">{{ exit.gratuity_info.label }}</div>{% endif %}
+          {% elif exit.gratuity_info.eligible %}
+          <span class="text-warning">Assign salary</span>
+          {% else %}
+          <span class="text-base-content/40">{{ exit.gratuity_info.note|truncatechars:40 }}</span>
+          {% endif %}
+          <a href="{% url 'hr_ops:exit_settlement_pdf' exit.pk %}" class="link link-primary link-hover text-xs mt-1 inline-block" target="_blank">PDF</a>
+        </td>
         {% if user.is_hr_admin %}
         <td>
           <div class="flex flex-col gap-1">
@@ -113,7 +129,7 @@
         {% endif %}
       </tr>
       {% empty %}
-      <tr><td colspan="{% if user.is_hr_admin %}7{% else %}6{% endif %}" class="text-center py-8 text-base-content/40">No exit requests. Initiate from an employee's profile page.</td></tr>
+      <tr><td colspan="{% if user.is_hr_admin %}8{% else %}7{% endif %}" class="text-center py-8 text-base-content/40">No exit requests. Initiate from an employee's profile page.</td></tr>
       {% endfor %}
     </tbody>
   </table>

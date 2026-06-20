@@ -223,12 +223,36 @@ export async function login(
     null,
   );
   setTokens(data.access, data.refresh);
-  // Prefer an explicitly passed workspace, else the one the backend resolved for
-  // this user (their owned tenant). Without this the SPA would fall back to the
-  // default workspace and show another tenant's data.
   const ws = workspace || data.workspace || null;
   if (ws) setWorkspace(ws);
   return data;
+}
+
+/** HR staff (employee / team lead) login via unified platform page → HR SSO redirect. */
+export async function hrStaffLogin(
+  email: string,
+  password: string,
+  workspace?: string,
+  nextPath = '/',
+): Promise<{ redirect_url: string; workspace: string; auth_type: string }> {
+  const platformUrl =
+    typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8080';
+  return rawRequest<{ redirect_url: string; workspace: string; auth_type: string }>(
+    '/auth/hr-staff-login/',
+    {
+      surface: 'platform',
+      method: 'POST',
+      body: {
+        email,
+        password,
+        workspace: workspace || getWorkspace() || undefined,
+        platform_url: platformUrl,
+        next: nextPath,
+      },
+      auth: false,
+    },
+    null,
+  );
 }
 
 export async function fetchMe(): Promise<BackendUser> {
@@ -282,6 +306,7 @@ export async function signup(payload: {
   company_name: string;
   plan_id?: string;
   products?: ProductSlug[];
+  country?: string;
 }): Promise<SignupResult> {
   const data = await rawRequest<SignupResult>(
     '/saas/signup/',
@@ -306,11 +331,24 @@ export interface BillingOrder {
  * Create a payment-gateway order for a plan. Throws ApiError(503) when billing
  * isn't configured on the server — callers should surface a friendly message.
  */
-export function createBillingOrder(planId: string, cycle: 'monthly' | 'annual' = 'monthly'): Promise<BillingOrder> {
+export function createBillingOrder(
+  planId: string,
+  cycle: 'monthly' | 'annual' = 'monthly',
+  employees?: number,
+): Promise<BillingOrder> {
   return request<BillingOrder>('/saas/billing/order/', {
     surface: 'platform',
     method: 'POST',
-    body: { plan_id: planId, cycle },
+    body: { plan_id: planId, cycle, employees },
+  });
+}
+
+/** Verify Razorpay payment server-side and activate subscription immediately. */
+export function confirmBillingPayment(paymentId: string, orderId?: string): Promise<{ status: string; workspace: string }> {
+  return request('/saas/billing/confirm/', {
+    surface: 'platform',
+    method: 'POST',
+    body: { payment_id: paymentId, order_id: orderId },
   });
 }
 

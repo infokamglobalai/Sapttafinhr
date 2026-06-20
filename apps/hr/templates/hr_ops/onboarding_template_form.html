@@ -2,7 +2,7 @@
 {% block page_title %}{% if template %}Edit{% else %}New{% endif %} Onboarding Template{% endblock %}
 {% block content %}
 <div style="max-width: 1000px; margin: 0 auto;">
-  <a href="{% url 'hr_ops:onboarding_templates' %}" class="btn-base btn-ghost btn-sm" style="margin-bottom: 14px;">← Back to Templates</a>
+  <a href="{% url 'hr_ops:onboarding_templates' %}" class="btn btn-ghost btn-sm" style="margin-bottom: 14px;">← Back to Templates</a>
   <h2 style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 4px;">{% if template %}Edit{% else %}New{% endif %} Onboarding Template</h2>
   <p style="font-size: 13.5px; color: var(--ink-500); margin-bottom: 22px;">Define the checklist of tasks every new hire goes through.</p>
 
@@ -27,7 +27,7 @@
           <h3 style="font-size: 14px; font-weight: 700; color: var(--ink-700); text-transform: uppercase; letter-spacing: 0.06em;">Checklist Tasks</h3>
           <p style="font-size: 12px; color: var(--ink-500); margin-top: 2px;">Each task is due X days after the hire's start date.</p>
         </div>
-        <button type="button" onclick="addTask()" class="btn-base btn-outline btn-sm">+ Add Task</button>
+        <button type="button" onclick="addTask()" class="btn btn-outline btn-sm">+ Add Task</button>
       </div>
 
       {{ formset.management_form }}
@@ -59,7 +59,7 @@
             {% if taskform.instance.pk %}
             <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--err-600);">{{ taskform.DELETE }} Remove</label>
             {% else %}
-            <button type="button" onclick="this.closest('.task-row').remove()" class="btn-base btn-ghost btn-sm" style="color: var(--err-600);">✕</button>
+            <button type="button" onclick="this.closest('.task-row').remove()" class="btn btn-ghost btn-sm" style="color: var(--err-600);">✕</button>
             {% endif %}
           </div>
         </div>
@@ -68,8 +68,8 @@
     </div>
 
     <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 14px;">
-      <a href="{% url 'hr_ops:onboarding_templates' %}" class="btn-base btn-ghost">Cancel</a>
-      <button type="submit" class="btn-base btn-primary">{% if template %}Save Changes{% else %}Create Template{% endif %}</button>
+      <a href="{% url 'hr_ops:onboarding_templates' %}" class="btn btn-ghost">Cancel</a>
+      <button type="submit" class="btn btn-primary">{% if template %}Save Changes{% else %}Create Template{% endif %}</button>
     </div>
   </form>
 </div>
@@ -96,7 +96,7 @@ function addTask() {
   });
   // Replace remove control with X button
   const last = clone.lastElementChild;
-  last.innerHTML = '<button type="button" onclick="this.closest(\'.task-row\').remove()" class="btn-base btn-ghost btn-sm" style="color: var(--err-600);">✕</button>';
+  last.innerHTML = '<button type="button" onclick="this.closest(\'.task-row\').remove()" class="btn btn-ghost btn-sm" style="color: var(--err-600);">✕</button>';
   container.appendChild(clone);
   formset.value = idx + 1;
 }

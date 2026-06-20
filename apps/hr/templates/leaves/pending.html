@@ -2,9 +2,14 @@
 {% block page_title %}Pending Leave Requests{% endblock %}
 
 {% block content %}
-<div class="flex items-center justify-between mb-4">
-  <h2 class="text-xl font-bold">Pending Leave Requests</h2>
-  <span class="badge badge-warning badge-lg">{{ page_obj.paginator.count }} pending</span>
+<div class="hr-page-header">
+  <div class="hr-page-header__main">
+    <h1 class="hr-page-header__title">Pending Leave Requests</h1>
+    <p class="hr-page-header__sub">Review and approve team leave applications</p>
+  </div>
+  <div class="hr-page-header__actions">
+    <span class="badge badge-warning badge-lg">{{ page_obj.paginator.count }} pending</span>
+  </div>
 </div>
 
 <div id="leave-list">

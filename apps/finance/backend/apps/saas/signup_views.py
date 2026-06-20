@@ -84,6 +84,7 @@ class SignupSerializer(serializers.Serializer):
     products = serializers.ListField(
         child=serializers.CharField(), required=False, allow_empty=True
     )
+    country = serializers.CharField(max_length=2, required=False, default="IN")
 
 
 class SignupView(APIView):
@@ -180,7 +181,10 @@ class SignupView(APIView):
         #     In dev mode always provision HR so both products work out of the box.
         if ProductCode.HR in _all_products:
             self._provision_hr(
-                name=data["company_name"], subdomain=schema_name, email=data["email"]
+                name=data["company_name"],
+                subdomain=schema_name,
+                email=data["email"],
+                country=data.get("country") or "IN",
             )
 
         # 5) Send the email-verification link (best-effort; never block signup
@@ -206,7 +210,7 @@ class SignupView(APIView):
         )
 
     @staticmethod
-    def _provision_hr(*, name: str, subdomain: str, email: str) -> None:
+    def _provision_hr(*, name: str, subdomain: str, email: str, country: str = "IN") -> None:
         """Call the HR backend's internal provisioning endpoint (best-effort)."""
         import logging
 
@@ -226,7 +230,7 @@ class SignupView(APIView):
                     "Authorization": f"Bearer {secret}",
                     "Host": "localhost",  # HR's ALLOWED_HOSTS only accepts localhost
                 },
-                json={"name": name, "subdomain": subdomain, "email": email},
+                json={"name": name, "subdomain": subdomain, "email": email, "country": country},
                 timeout=15,
             )
         except Exception:  # noqa: BLE001 — HR outage must not fail FIN signup

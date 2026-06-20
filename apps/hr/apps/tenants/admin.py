@@ -15,14 +15,14 @@ class ProductEntitlementInline(admin.TabularInline):
 @admin.register(Tenant)
 class TenantAdmin(admin.ModelAdmin):
     list_display = ("name", "subdomain", "plan", "status", "employee_count", "created_at")
-    list_filter = ("plan", "status", "country")
+    list_filter = ("plan", "status", "country", "payroll_jurisdiction")
     search_fields = ("name", "subdomain", "gstin", "pan", "customer_uid")
     readonly_fields = ("id", "customer_uid", "created_at", "updated_at", "employee_count")
     inlines = [ProductEntitlementInline, TenantSettingInline]
     fieldsets = (
         ("Identity", {"fields": ("id", "customer_uid", "name", "subdomain", "logo_url")}),
         ("Plan", {"fields": ("plan", "status", "max_employees", "employee_count")}),
-        ("Locale", {"fields": ("country", "currency", "timezone")}),
+        ("Locale", {"fields": ("country", "payroll_jurisdiction", "currency", "timezone")}),
         ("Legal", {"fields": ("gstin", "pan", "cin", "address")}),
         ("Timestamps", {"fields": ("created_at", "updated_at")}),
     )

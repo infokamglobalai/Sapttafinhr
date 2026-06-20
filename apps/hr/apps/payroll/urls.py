@@ -54,4 +54,9 @@ urlpatterns = [
     path("run/<int:pk>/pf-ecr/", views.pf_ecr_export, name="pf_ecr"),
     path("run/<int:pk>/esi-return/", views.esi_return_export, name="esi_return"),
     path("run/<int:pk>/statutory-bundle/", views.statutory_bundle_export, name="statutory_bundle"),
+    # GCC exports
+    path("run/<int:pk>/wps-sif/", views.wps_sif_export, name="wps_sif"),
+    path("run/<int:pk>/bank-transfer/", views.gcc_bank_transfer_export, name="gcc_bank_transfer"),
+    path("run/<int:pk>/pifss/", views.pifss_statement_export, name="pifss_statement"),
+    path("exports/indemnity-liability/", views.indemnity_liability_export, name="indemnity_liability"),
 ]

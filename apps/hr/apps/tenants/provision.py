@@ -49,6 +49,8 @@ def provision_tenant(request):
         return JsonResponse({"detail": "Invalid JSON."}, status=400)
 
     from apps.accounts.models import Permission, Role, RolePermission, User, UserRole
+    from .limits import DEFAULT_INCLUDED_EMPLOYEES
+    from .jurisdiction import locale_defaults_for_country, normalise_jurisdiction
     from .models import ProductCode, ProductEntitlement, Tenant
 
     subdomain = (data.get("subdomain") or "").strip().lower()
@@ -69,7 +71,18 @@ def provision_tenant(request):
         )
 
     with transaction.atomic():
-        tenant_kwargs = {"name": name, "subdomain": subdomain, "status": "trial"}
+        country = normalise_jurisdiction(data.get("country") or data.get("payroll_jurisdiction"))
+        locale = locale_defaults_for_country(country)
+        tenant_kwargs = {
+            "name": name,
+            "subdomain": subdomain,
+            "status": "trial",
+            "max_employees": DEFAULT_INCLUDED_EMPLOYEES,
+            "country": locale["country"],
+            "currency": locale["currency"],
+            "timezone": locale["timezone"],
+            "payroll_jurisdiction": locale["payroll_jurisdiction"],
+        }
         customer_uid = data.get("customer_uid")
         if customer_uid:
             tenant_kwargs["customer_uid"] = customer_uid
@@ -109,7 +122,81 @@ def provision_tenant(request):
             defaults={"status": ProductEntitlement.Status.TRIAL},
         )
 
+        from .regional_packs import seed_regional_defaults
+        seed_regional_defaults(tenant)
+
     return JsonResponse(
         {"detail": "Workspace provisioned.", "subdomain": subdomain, "created": True},
         status=201,
+    )
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def sync_subscription(request):
+    """POST /internal/sync-subscription/  (Bearer SSO_SHARED_SECRET)
+
+    Body: {
+      subdomain, max_employees?, subscription_id?, status?, plan_code?
+    }
+    Updates tenant headcount cap and HR entitlement from platform billing.
+    """
+    if not _authorized(request):
+        return JsonResponse({"detail": "Unauthorized."}, status=401)
+
+    try:
+        data = json.loads(request.body.decode() or "{}")
+    except (ValueError, UnicodeDecodeError):
+        return JsonResponse({"detail": "Invalid JSON."}, status=400)
+
+    from .limits import DEFAULT_INCLUDED_EMPLOYEES, sync_employee_count
+    from .models import ProductCode, ProductEntitlement, Tenant
+
+    subdomain = (data.get("subdomain") or "").strip().lower()
+    if not subdomain:
+        return JsonResponse({"detail": "subdomain is required."}, status=400)
+
+    tenant = Tenant.objects.filter(subdomain=subdomain).first()
+    if not tenant:
+        return JsonResponse({"detail": "Workspace not found."}, status=404)
+
+    max_employees = data.get("max_employees")
+    if max_employees is not None:
+        try:
+            tenant.max_employees = max(int(max_employees), 1)
+        except (TypeError, ValueError):
+            return JsonResponse({"detail": "max_employees must be a positive integer."}, status=400)
+    elif tenant.max_employees < DEFAULT_INCLUDED_EMPLOYEES:
+        tenant.max_employees = DEFAULT_INCLUDED_EMPLOYEES
+
+    if data.get("status") == "active":
+        tenant.status = "active"
+    tenant.save(update_fields=["max_employees", "status", "updated_at"])
+
+    ent_defaults = {}
+    subscription_id = (data.get("subscription_id") or "").strip()
+    if subscription_id:
+        ent_defaults["external_subscription_id"] = subscription_id
+    ent_status = (data.get("entitlement_status") or data.get("status") or "").strip().lower()
+    if ent_status in ProductEntitlement.Status.values:
+        ent_defaults["status"] = ent_status
+    elif data.get("status") == "active":
+        ent_defaults["status"] = ProductEntitlement.Status.ACTIVE
+
+    if ent_defaults:
+        ProductEntitlement.objects.update_or_create(
+            tenant=tenant,
+            product=ProductCode.HR,
+            defaults=ent_defaults,
+        )
+
+    sync_employee_count(tenant)
+    return JsonResponse(
+        {
+            "detail": "Subscription synced.",
+            "subdomain": subdomain,
+            "max_employees": tenant.max_employees,
+            "employee_count": tenant.employee_count,
+        },
+        status=200,
     )

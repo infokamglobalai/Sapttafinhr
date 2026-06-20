@@ -1,15 +1,21 @@
 {% extends "base.html" %}
 {% block page_title %}{{ cycle.name }}{% endblock %}
 {% block content %}
-<div class="flex items-center gap-3 mb-4">
+<div class="flex items-center gap-3 mb-4 flex-wrap">
   <a href="{% url 'performance:cycles' %}" class="btn btn-ghost btn-sm">← Back</a>
   <h2 class="text-xl font-bold">{{ cycle.name }}</h2>
   <span class="badge {% if cycle.status == 'active' %}badge-success{% else %}badge-ghost{% endif %}">{{ cycle.get_status_display }}</span>
+  {% if user.is_hr_admin %}
+  <form method="post" action="{% url 'performance:cycle_launch' cycle.pk %}" class="ml-auto">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-primary btn-sm">Launch reviews for team</button>
+  </form>
+  {% endif %}
 </div>
 
 <!-- Stats -->
 <div class="grid grid-cols-4 gap-3 mb-4">
-  <div class="card bg-base-100 shadow p-4 text-center">
+  <div class="card p-4 text-center">
     <div class="text-2xl font-bold">{{ stats.total }}</div>
     <div class="text-xs text-base-content/60">Total Reviews</div>
   </div>
@@ -28,7 +34,7 @@
 </div>
 
 <!-- Review list -->
-<div class="card bg-base-100 shadow overflow-x-auto">
+<div class="card hr-table-wrap">
   <table class="table table-sm">
     <thead><tr><th>Employee</th><th>Department</th><th>Reviewer</th><th>Rating</th><th>Status</th><th>Updated</th><th></th></tr></thead>
     <tbody>

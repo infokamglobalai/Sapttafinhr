@@ -1,11 +1,15 @@
 {% extends "base.html" %}
 {% block page_title %}Leave Types{% endblock %}
 {% block content %}
-<div class="flex items-center justify-between mb-4">
-  <h2 class="text-xl font-bold">Leave Types</h2>
-  <a href="{% url 'leaves:leave_type_create' %}" class="btn btn-primary btn-sm">+ Add Leave Type</a>
+<div class="hr-page-header">
+  <div class="hr-page-header__main">
+    <h1 class="hr-page-header__title">Leave Types</h1>
+  </div>
+  <div class="hr-page-header__actions">
+    <a href="{% url 'leaves:leave_type_create' %}" class="btn btn-primary btn-sm">+ Add Leave Type</a>
+  </div>
 </div>
-<div class="card bg-base-100 shadow overflow-x-auto">
+<div class="card hr-table-wrap">
   <table class="table table-sm">
     <thead><tr><th>Name</th><th>Code</th><th>Paid</th><th>Accrual</th><th>Annual Cap</th><th>Carry Forward</th><th>Half Day</th><th>Status</th></tr></thead>
     <tbody>

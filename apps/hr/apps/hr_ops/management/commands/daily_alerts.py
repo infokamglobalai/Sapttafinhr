@@ -94,6 +94,35 @@ class Command(BaseCommand):
                         action_url=f"/employees/{doc.employee.pk}/")
                     counts["expiry"] += 1
 
+            # ── GCC compliance dates (passport, residency, work permit, civil ID) ──
+            from apps.tenants.jurisdiction import is_gcc_payroll
+            if is_gcc_payroll(tenant.payroll_jurisdiction):
+                from apps.employees.models import Employee
+                in_a_month = today + datetime.timedelta(days=30)
+                date_fields = (
+                    ("Passport", "passport_expiry"),
+                    ("Residency", "residency_expiry"),
+                    ("Work permit", "work_permit_expiry"),
+                    ("Civil ID", "civil_id_expiry"),
+                    ("Contract", "contract_end_date"),
+                )
+                for emp in Employee.objects.filter(tenant=tenant, is_active=True).select_related("user"):
+                    for label, attr in date_fields:
+                        expiry = getattr(emp, attr, None)
+                        if not expiry or expiry < today or expiry > in_a_month:
+                            continue
+                        days = (expiry - today).days
+                        if emp.user:
+                            notify(
+                                emp.user,
+                                "compliance_expiring",
+                                f"{label} expiring in {days} day{'s' if days != 1 else ''}",
+                                message=f"Your {label.lower()} for {emp.full_name} expires on {expiry.strftime('%d %b %Y')}. "
+                                        f"Please update records with HR.",
+                                action_url=f"/employees/{emp.pk}/",
+                            )
+                            counts["expiry"] += 1
+
             total = sum(counts.values())
             self.stdout.write(self.style.SUCCESS(
                 f"{tenant.subdomain}: {total} alerts sent "

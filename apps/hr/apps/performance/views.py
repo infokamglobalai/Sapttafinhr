@@ -221,6 +221,35 @@ class ReviewCycleForm(djforms.ModelForm):
 
 
 @hr_admin_required
+@require_POST
+def cycle_launch_reviews(request, pk):
+    """Bulk-create performance reviews for all active employees with managers."""
+    from apps.employees.models import Employee
+    from .models import PerformanceReview
+
+    tenant = request.tenant
+    cycle = get_object_or_404(ReviewCycle, pk=pk, tenant=tenant)
+    created = 0
+    for emp in Employee.objects.filter(tenant=tenant, employment_status="active", is_active=True):
+        reviewer = emp.reporting_manager
+        if not reviewer:
+            continue
+        _, was_created = PerformanceReview.objects.get_or_create(
+            tenant=tenant,
+            cycle=cycle,
+            employee=emp,
+            defaults={"reviewer": reviewer, "status": "draft"},
+        )
+        if was_created:
+            created += 1
+    if cycle.status == "planning":
+        cycle.status = "active"
+        cycle.save(update_fields=["status"])
+    messages.success(request, f"Launched cycle — {created} new review(s) created.")
+    return redirect("performance:cycle_detail", pk=pk)
+
+
+@hr_admin_required
 def cycle_create_or_edit(request, pk=None):
     tenant = request.tenant
     cycle = get_object_or_404(ReviewCycle, pk=pk, tenant=tenant) if pk else None

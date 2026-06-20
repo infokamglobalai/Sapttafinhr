@@ -6,7 +6,7 @@
   <h2 class="text-xl font-bold mb-1">Generate {{ template.get_letter_type_display }}</h2>
   <p class="text-sm text-base-content/60 mb-4">For <strong>{{ employee.full_name }}</strong> · {{ template.name }}</p>
 
-  <form method="post" class="card bg-base-100 shadow">
+  <form method="post" class="card">
     <div class="card-body gap-4">
       {% csrf_token %}
       <div class="text-sm bg-base-200/50 rounded-lg p-3">

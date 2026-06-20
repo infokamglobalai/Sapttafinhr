@@ -2,7 +2,7 @@
 {% block page_title %}{% if loan %}Edit Loan{% else %}New Loan{% endif %}{% endblock %}
 {% block content %}
 <div style="max-width: 720px; margin: 0 auto;">
-  <a href="{% url 'payroll:loans' %}" class="btn-base btn-ghost btn-sm" style="margin-bottom: 14px;">← Back to Loans</a>
+  <a href="{% url 'payroll:loans' %}" class="btn btn-ghost btn-sm" style="margin-bottom: 14px;">← Back to Loans</a>
   <h2 style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 4px;">{% if loan %}Edit Loan{% else %}Issue New Loan{% endif %}</h2>
   <p style="font-size: 13.5px; color: var(--ink-500); margin-bottom: 22px;">EMI will be deducted automatically from the employee's payroll until the loan is closed.</p>
 
@@ -55,8 +55,8 @@
     </div>
 
     <div style="display: flex; justify-content: flex-end; gap: 12px;">
-      <a href="{% url 'payroll:loans' %}" class="btn-base btn-ghost">Cancel</a>
-      <button type="submit" class="btn-base btn-primary">{% if loan %}Save Changes{% else %}Issue Loan{% endif %}</button>
+      <a href="{% url 'payroll:loans' %}" class="btn btn-ghost">Cancel</a>
+      <button type="submit" class="btn btn-primary">{% if loan %}Save Changes{% else %}Issue Loan{% endif %}</button>
     </div>
   </form>
 </div>
