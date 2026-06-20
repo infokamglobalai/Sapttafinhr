@@ -59,6 +59,21 @@ class Command(BaseCommand):
             domain=f"acme.{base_domain}", tenant=acme, defaults={"is_primary": True}
         )
 
+        # Kuwait tenant
+        kuwait, created = Tenant.objects.get_or_create(
+            schema_name="kuwait",
+            defaults={"name": "Kuwait LLC", "billing_email": "kuwit@saptta.com"},
+        )
+        if not kuwait.billing_email:
+            kuwait.billing_email = "kuwit@saptta.com"
+            kuwait.save(update_fields=["billing_email"])
+        if created:
+            self.stdout.write(self.style.SUCCESS("Created Kuwait tenant + schema."))
+
+        Domain.objects.get_or_create(
+            domain=f"kuwait.{base_domain}", tenant=kuwait, defaults={"is_primary": True}
+        )
+
         # 3. Create SaaS Plans and Subscription
         plan, _ = Plan.objects.get_or_create(
             code="dev-complete",
@@ -82,6 +97,22 @@ class Command(BaseCommand):
         for product in [ProductCode.FIN, ProductCode.HR]:
             SubscriptionEntitlement.objects.update_or_create(
                 subscription=subscription,
+                product=product,
+                defaults={"status": SubscriptionEntitlement.Status.ACTIVE},
+            )
+
+        kuwait_subscription, created = Subscription.objects.get_or_create(
+            tenant=kuwait,
+            defaults={"plan": plan, "status": Subscription.Status.ACTIVE},
+        )
+        if not created:
+            kuwait_subscription.status = Subscription.Status.ACTIVE
+            kuwait_subscription.plan = plan
+            kuwait_subscription.save(update_fields=["status", "plan", "updated_at"])
+
+        for product in [ProductCode.FIN, ProductCode.HR]:
+            SubscriptionEntitlement.objects.update_or_create(
+                subscription=kuwait_subscription,
                 product=product,
                 defaults={"status": SubscriptionEntitlement.Status.ACTIVE},
             )
@@ -202,6 +233,28 @@ class Command(BaseCommand):
                 },
             )
             self.stdout.write(self.style.SUCCESS("Seeded demo data."))
+
+        # 6. Inside Kuwait schema: seed Company, COA, Fiscal Year
+        with schema_context("kuwait"):
+            kuwait_company, created = Company.objects.get_or_create(
+                name="Kuwait LLC",
+                defaults={
+                    "legal_name": "Kuwait Trading Company LLC",
+                    "state_code": "KW",
+                    "base_currency": "KWD",
+                },
+            )
+            if created:
+                self.stdout.write(self.style.SUCCESS("Created Kuwait company."))
+
+            seed_coa(kuwait_company)
+            start, end, fy_name = fy_dates_for(date.today())
+            FiscalYear.objects.get_or_create(
+                company=kuwait_company,
+                name=fy_name,
+                defaults={"start_date": start, "end_date": end, "is_active": True},
+            )
+            self.stdout.write(self.style.SUCCESS(f"Ensured fiscal year {fy_name} for Kuwait."))
 
         self.stdout.write(self.style.SUCCESS("Bootstrap complete."))
         self.stdout.write(f"Login at http://acme.{base_domain}/  (demo@saptta.com / Demo@1234)")
