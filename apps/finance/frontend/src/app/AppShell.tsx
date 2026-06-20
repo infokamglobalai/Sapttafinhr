@@ -58,6 +58,7 @@ import BudgetVsActualPage from '@/features/reports/BudgetVsActualPage';
 import CostCenterPnLPage from '@/features/reports/CostCenterPnLPage';
 import ConsolidationPage from '@/features/reports/ConsolidationPage';
 import VatReturnPage from '@/features/reports/VatReturnPage';
+import DirectTaxPage from '@/features/reports/DirectTaxPage';
 import PortalAccessPage from '@/features/portal/PortalAccessPage';
 import NotificationBell from '@/features/notifications/NotificationBell';
 import NumberSeriesPage from '@/features/settings/NumberSeriesPage';
@@ -76,7 +77,7 @@ type RouteId =
   | 'manual' | 'trial-balance'
   | 'pnl' | 'balance-sheet' | 'cash-flow' | 'day-book' | 'party-ledger'
   | 'ar-aging' | 'sales-register' | 'hsn-summary' | 'gstr-export' | 'audit-log'
-  | 'budget-vs-actual' | 'cost-center-pnl' | 'consolidation' | 'vat-return'
+  | 'budget-vs-actual' | 'cost-center-pnl' | 'consolidation' | 'vat-return' | 'direct-tax'
   | 'settings' | 'company-profile' | 'tax-jurisdiction' | 'api-keys' | 'webhooks' | 'number-series'
   | 'team' | 'tds' | 'uncategorized';
 
@@ -158,6 +159,7 @@ const SECTIONS: Section[] = [
       { id: 'ar-aging', label: 'Receivables Aging', icon: Wallet, description: 'Who owes you and for how long' },
       { id: 'sales-register', label: 'Sales Register', icon: FileText, description: 'Register of all posted invoices' },
       { id: 'vat-return', label: 'VAT Return', icon: FileText, description: 'GCC output/input VAT and net payable', regimes: ['GCC_VAT'] },
+      { id: 'direct-tax', label: 'Direct Tax', icon: BarChart3, description: 'UAE corporate tax / KSA Zakat estimate', regimes: ['GCC_VAT'] },
       { id: 'hsn-summary', label: 'HSN Summary', icon: BarChart3, description: 'GSTR-1 HSN-wise outward summary', regimes: ['INDIA_GST'] },
       { id: 'cost-center-pnl', label: 'P&L by Cost Center', icon: BarChart3, description: 'Income / expense by cost center' },
       { id: 'budget-vs-actual', label: 'Budget vs Actual', icon: TrendingUp, description: 'Variance per account' },
@@ -533,6 +535,7 @@ export default function AppShell() {
             {route === 'cost-center-pnl' && <CostCenterPnLPage />}
             {route === 'consolidation' && <ConsolidationPage />}
             {route === 'vat-return' && <VatReturnPage />}
+            {route === 'direct-tax' && <DirectTaxPage />}
             {route === 'team' && <TeamPage />}
             {route === 'tds' && <TDSPage />}
             {route === 'uncategorized' && <UncategorizedPage />}

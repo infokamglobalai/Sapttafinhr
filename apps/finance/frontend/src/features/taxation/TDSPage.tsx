@@ -25,7 +25,8 @@ const currentFY = () => {
 };
 
 export default function TDSPage() {
-  const { companyId } = useActiveCompany();
+  const { companyId, companies } = useActiveCompany();
+  const isVat = companies?.find((c) => c.id === companyId)?.tax_regime === 'GCC_VAT';
   const qc = useQueryClient();
   const fy = currentFY();
   const [showAdd, setShowAdd] = useState(false);
@@ -81,8 +82,8 @@ export default function TDSPage() {
   return (
     <div className="mx-auto max-w-5xl p-6 space-y-6">
       <PageHeader
-        title="TDS Management"
-        subtitle={`Tax Deducted at Source — FY ${fy}`}
+        title={isVat ? 'Withholding Tax (WHT)' : 'TDS Management'}
+        subtitle={isVat ? `Tax withheld on payments — FY ${fy}` : `Tax Deducted at Source — FY ${fy}`}
         action={
           <button onClick={() => setShowAdd(true)}
             className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">

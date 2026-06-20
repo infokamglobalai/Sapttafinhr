@@ -139,3 +139,21 @@ export const useVatReturn = (company?: number, start?: string, end?: string) =>
     enabled: company != null,
     queryFn: async () => (await api.get<VatReturn>('/reports/vat-return/', { params: { company, start, end } })).data,
   });
+
+export interface DirectTaxLine {
+  name: string; rate: string; threshold: string; taxable: string; amount: string;
+}
+
+export interface DirectTax {
+  period: { start: string; end: string };
+  country: string;
+  net_profit: string;
+  taxes: DirectTaxLine[];
+}
+
+export const useDirectTax = (company?: number, start?: string, end?: string) =>
+  useQuery({
+    queryKey: ['direct-tax', company, start, end],
+    enabled: company != null,
+    queryFn: async () => (await api.get<DirectTax>('/reports/direct-tax/', { params: { company, start, end } })).data,
+  });

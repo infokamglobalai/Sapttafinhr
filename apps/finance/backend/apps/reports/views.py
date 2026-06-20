@@ -139,3 +139,13 @@ class VATReturnView(APIView):
         start = _date_or(today.replace(day=1), "start", request)
         end = _date_or(today, "end", request)
         return Response(queries.vat_return(company, start, end))
+
+
+class DirectTaxView(APIView):
+    """GET /api/v1/reports/direct-tax/?company=&start=&end= — UAE corp tax / KSA Zakat."""
+    def get(self, request):
+        company = _company(request)
+        today = _date.today()
+        start = _date_or(today.replace(day=1, month=1), "start", request)
+        end = _date_or(today, "end", request)
+        return Response(queries.direct_tax(company, start, end))

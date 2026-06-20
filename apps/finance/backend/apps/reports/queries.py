@@ -678,3 +678,42 @@ def vat_return(company_id: int, start: date, end: date) -> dict:
         },
         "net_vat_payable": net_payable,
     }
+
+
+# ---------- Direct taxes (GCC) ----------
+
+def direct_tax(company_id: int, start: date, end: date) -> dict:
+    """Indicative direct-tax estimate for a GCC company, from book net profit.
+
+    UAE: corporate tax 9% on taxable income above AED 375,000 (0% below).
+    KSA: Zakat 2.5% on a simplified base (net profit). Other GCC states: none.
+    """
+    from apps.masters.models import Company
+
+    company = Company.objects.get(pk=company_id)
+    net_profit = profit_and_loss(company_id, start, end)["net_profit"]
+    country = (company.country or "IN").upper()
+
+    taxes: list[dict] = []
+    if country == "AE":
+        threshold = Decimal("375000")
+        taxable = max(Decimal("0"), net_profit - threshold)
+        amount = (taxable * Decimal("0.09")).quantize(Decimal("0.01"))
+        taxes.append({
+            "name": "Corporate Tax (UAE)", "rate": "9%",
+            "threshold": str(threshold), "taxable": str(taxable), "amount": str(amount),
+        })
+    elif country == "SA":
+        base = max(Decimal("0"), net_profit)
+        amount = (base * Decimal("0.025")).quantize(Decimal("0.01"))
+        taxes.append({
+            "name": "Zakat (KSA)", "rate": "2.5%",
+            "threshold": "0", "taxable": str(base), "amount": str(amount),
+        })
+
+    return {
+        "period": {"start": start.isoformat(), "end": end.isoformat()},
+        "country": country,
+        "net_profit": str(net_profit),
+        "taxes": taxes,
+    }
