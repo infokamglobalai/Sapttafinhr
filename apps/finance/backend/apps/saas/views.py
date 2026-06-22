@@ -1,7 +1,11 @@
+from django.utils import timezone
 from rest_framework import viewsets
 from rest_framework import serializers as s
+from rest_framework.decorators import action
+from rest_framework.response import Response
 
-from .models import Plan, SaasInvoice, Subscription, SubscriptionEntitlement
+from .models import Plan, ProductCode, SaasInvoice, Subscription, SubscriptionEntitlement
+from .permissions import IsSuperAdmin
 
 
 class PlanSer(s.ModelSerializer):
@@ -14,13 +18,27 @@ class EntitlementSer(s.ModelSerializer):
 
 class SubSer(s.ModelSerializer):
     tenant_name = s.CharField(source="tenant.name", read_only=True)
+    tenant_schema = s.CharField(source="tenant.schema_name", read_only=True)
     plan_code = s.CharField(source="plan.code", read_only=True)
+    plan_name = s.CharField(source="plan.name", read_only=True)
     entitlements = EntitlementSer(many=True, read_only=True)
     class Meta: model = Subscription; fields = "__all__"
 
 
 class InvSer(s.ModelSerializer):
     class Meta: model = SaasInvoice; fields = "__all__"
+
+
+def products_for_plan(plan: Plan) -> list[str]:
+    """Derive the product seats a plan grants, from its code (mirrors signup)."""
+    code = (plan.code or "").lower()
+    if "complete" in code or "combo" in code:
+        return [ProductCode.FIN, ProductCode.HR]
+    if "hrm" in code or code.startswith("hr"):
+        return [ProductCode.HR]
+    if "fin" in code or "account" in code:
+        return [ProductCode.FIN]
+    return [ProductCode.FIN]
 
 
 # All SaaS billing state is server-managed: plans are a catalog, and
@@ -56,6 +74,58 @@ class SubscriptionViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         qs = Subscription.objects.select_related("tenant", "plan").prefetch_related("entitlements").order_by("id")
         return _own_tenant_filter(self, qs, "tenant")
+
+    # Privileged super-admin operations for the platform-owner dashboard
+    # (web SPA /superadmin). Standard CRUD stays disabled (ReadOnly); only
+    # these explicit, is_staff-gated POST actions can mutate a subscription.
+    @action(detail=True, methods=["post"], permission_classes=[IsSuperAdmin])
+    def activate(self, request, pk=None):
+        """Flip a subscription (and its entitlements) to ACTIVE for a billing period."""
+        sub = self.get_object()
+        from .billing import activate_subscription_for_tenant
+
+        activate_subscription_for_tenant(sub.tenant.schema_name)
+        sub.refresh_from_db()
+        return Response(SubSer(sub).data)
+
+    @action(detail=True, methods=["post"], permission_classes=[IsSuperAdmin])
+    def suspend(self, request, pk=None):
+        """Cancel the subscription and suspend all its product entitlements."""
+        sub = self.get_object()
+        sub.status = Subscription.Status.CANCELLED
+        sub.cancelled_at = timezone.now()
+        sub.save(update_fields=["status", "cancelled_at"])
+        sub.entitlements.update(status=SubscriptionEntitlement.Status.SUSPENDED)
+        return Response(SubSer(sub).data)
+
+    @action(detail=True, methods=["post"], permission_classes=[IsSuperAdmin])
+    def change_plan(self, request, pk=None):
+        """Move the subscription to a different plan and re-sync product seats."""
+        sub = self.get_object()
+        plan_id = request.data.get("plan_id")
+        try:
+            plan = Plan.objects.get(pk=plan_id)
+        except Plan.DoesNotExist:
+            return Response({"detail": "Plan not found."}, status=404)
+
+        sub.plan = plan
+        sub.save(update_fields=["plan"])
+
+        # Re-sync entitlements to the new plan's products, preserving the
+        # subscription's current active/pending status.
+        ent_status = (
+            SubscriptionEntitlement.Status.ACTIVE
+            if sub.is_commercially_active
+            else SubscriptionEntitlement.Status.PENDING
+        )
+        wanted = set(products_for_plan(plan))
+        sub.entitlements.exclude(product__in=wanted).delete()
+        for product in wanted:
+            sub.entitlements.update_or_create(
+                product=product, defaults={"status": ent_status}
+            )
+        sub.refresh_from_db()
+        return Response(SubSer(sub).data)
 
 
 class SubscriptionEntitlementViewSet(viewsets.ReadOnlyModelViewSet):

@@ -58,6 +58,7 @@ function toAppUser(be: BackendUser, products: ProductSlug[], workspace: string |
     firstName: firstName || be.email.split('@')[0],
     lastName: rest.join(' '),
     role: be.is_staff ? 'admin' : 'owner',
+    isSuperAdmin: !!be.is_staff,
     tenantId: workspace || '',
     products,
     setupComplete: true,

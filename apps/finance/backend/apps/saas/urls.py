@@ -1,6 +1,7 @@
 from django.urls import path
 from rest_framework.routers import DefaultRouter
 
+from .admin_views import AdminCompaniesView, AdminStatsView
 from .billing import ConfirmPaymentView, CreateOrderView, DevActivateView, WebhookView
 from .signup_views import SignupView
 from .views import PlanViewSet, SaasInvoiceViewSet, SubscriptionEntitlementViewSet, SubscriptionViewSet
@@ -17,4 +18,7 @@ urlpatterns = [
     path("billing/confirm/", ConfirmPaymentView.as_view(), name="billing_confirm"),
     path("billing/webhook/", WebhookView.as_view(), name="billing_webhook"),
     path("dev/activate/", DevActivateView.as_view(), name="dev_activate"),
+    # Super-admin platform management (web SPA /superadmin).
+    path("admin/companies/", AdminCompaniesView.as_view(), name="admin_companies"),
+    path("admin/stats/", AdminStatsView.as_view(), name="admin_stats"),
 ] + router.urls

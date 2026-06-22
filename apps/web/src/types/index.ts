@@ -74,6 +74,8 @@ export interface User {
   firstName: string;
   lastName: string;
   role: 'owner' | 'admin' | 'manager' | 'staff';
+  /** Platform super-admin (Django is_staff) → routed to /superadmin. */
+  isSuperAdmin: boolean;
   tenantId: string;
   products: ('hrms' | 'finance')[];
   setupComplete: boolean;

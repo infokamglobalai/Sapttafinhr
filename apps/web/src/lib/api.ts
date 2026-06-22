@@ -458,6 +458,91 @@ export async function fetchProducts(): Promise<ProductSlug[] | null> {
   }
 }
 
+// ─── Super-admin platform API (web /superadmin) ───────────────────────────
+export interface AdminStats {
+  total_companies: number;
+  active_subscriptions: number;
+  pending_subscriptions: number;
+  cancelled_subscriptions: number;
+  mrr: string;
+  finance_seats: number;
+  hr_seats: number;
+  open_invoices: number;
+  paid_revenue: string;
+}
+
+export interface AdminCompanySubscription {
+  id: number;
+  status: string;
+  is_active: boolean;
+  plan_code: string;
+  plan_name: string;
+  monthly_price: string;
+  current_period_end: string | null;
+  products: ProductSlug[];
+}
+
+export interface AdminCompany {
+  schema_name: string;
+  name: string;
+  billing_email: string;
+  created_on: string;
+  is_active: boolean;
+  subscription: AdminCompanySubscription | null;
+}
+
+export interface AdminPlan {
+  id: number;
+  code: string;
+  name: string;
+  monthly_price: string;
+  annual_price: string;
+}
+
+export interface AdminInvoice {
+  id: number;
+  number: string;
+  amount: string;
+  status: 'OPEN' | 'PAID' | 'VOID';
+  due_date: string;
+  period_start: string;
+  period_end: string;
+  subscription: number;
+}
+
+/** DRF list endpoints may be paginated ({results}) or a plain array. */
+function unwrapList<T>(res: T[] | { results?: T[] }): T[] {
+  return Array.isArray(res) ? res : res.results ?? [];
+}
+
+export function fetchAdminStats(): Promise<AdminStats> {
+  return request<AdminStats>('/saas/admin/stats/', { surface: 'platform' });
+}
+
+export async function fetchAdminCompanies(): Promise<AdminCompany[]> {
+  return unwrapList(await request<AdminCompany[] | { results?: AdminCompany[] }>('/saas/admin/companies/', { surface: 'platform' }));
+}
+
+export async function fetchAdminPlans(): Promise<AdminPlan[]> {
+  return unwrapList(await request<AdminPlan[] | { results?: AdminPlan[] }>('/saas/plans/', { surface: 'platform' }));
+}
+
+export async function fetchAdminInvoices(): Promise<AdminInvoice[]> {
+  return unwrapList(await request<AdminInvoice[] | { results?: AdminInvoice[] }>('/saas/invoices/', { surface: 'platform' }));
+}
+
+export function activateSubscription(id: number): Promise<unknown> {
+  return request(`/saas/subscriptions/${id}/activate/`, { surface: 'platform', method: 'POST' });
+}
+
+export function suspendSubscription(id: number): Promise<unknown> {
+  return request(`/saas/subscriptions/${id}/suspend/`, { surface: 'platform', method: 'POST' });
+}
+
+export function changeSubscriptionPlan(id: number, planId: number): Promise<unknown> {
+  return request(`/saas/subscriptions/${id}/change_plan/`, { surface: 'platform', method: 'POST', body: { plan_id: planId } });
+}
+
 // ─── Dev-only helpers ─────────────────────────────────────────────────────
 /** Instantly activate the current user's subscription (DEBUG=True only). */
 export function devActivateSubscription(): Promise<{ status: string; workspace: string }> {

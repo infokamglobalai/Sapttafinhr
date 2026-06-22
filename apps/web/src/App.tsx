@@ -43,8 +43,9 @@ import Billing from './pages/dashboard/Billing';
 import AccessDenied from './pages/AccessDenied';
 import Launch from './pages/Launch';
 import Logout from './pages/Logout';
+import SuperAdminDashboard from './pages/superadmin/SuperAdminDashboard';
 
-const HIDE_CHROME_ROUTES = ['/setup', '/app', '/logout', '/launch', '/verify-email', '/access-denied'];
+const HIDE_CHROME_ROUTES = ['/setup', '/app', '/superadmin', '/logout', '/launch', '/verify-email', '/access-denied'];
 const AUTH_MARKETING_ROUTES = ['/login', '/forgot-password', '/reset-password', '/signup'];
 
 function AppLayout() {
@@ -99,6 +100,9 @@ function AppLayout() {
           {/* Product Switcher — landing after login. Opens the REAL products
               (Finance app on the workspace host; HR app via SSO). */}
           <Route path="/app" element={<ProtectedRoute><ProductSwitcher /></ProtectedRoute>} />
+
+          {/* Super Admin Dashboard — platform owner only (page self-gates on is_staff). */}
+          <Route path="/superadmin" element={<ProtectedRoute><SuperAdminDashboard /></ProtectedRoute>} />
 
           {/* Account billing/subscription (stays in the marketing shell). */}
           <Route path="/app/billing" element={<ProtectedRoute><Billing /></ProtectedRoute>} />
