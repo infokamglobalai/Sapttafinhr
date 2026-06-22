@@ -208,7 +208,7 @@ export default function SetupWizard({ onComplete }: { onComplete: () => void }) 
                           className="btn-primary w-full bg-amber-600 hover:bg-amber-700 focus:ring-amber-500"
                           onClick={() => {
                             if (!companyId) return;
-                            api.post(`/api/v1/masters/accounts/seed_defaults/`, { company: companyId })
+                            api.post(`/masters/accounts/seed_defaults/`, { company: companyId })
                               .then(() => window.location.reload());
                           }}
                         >
