@@ -174,8 +174,8 @@ class SignupView(APIView):
             )
 
         # 4) Company + COA + fiscal year inside the new tenant schema.
-        if ProductCode.FIN in products:
-            self._seed_finance(schema_name, data["company_name"])
+        if ProductCode.FIN in _all_products:
+            self._seed_finance(schema_name, data["company_name"], data.get("country", "IN"))
 
         # 4b) Provision the HR workspace (separate backend service).
         #     In dev mode always provision HR so both products work out of the box.
@@ -203,7 +203,7 @@ class SignupView(APIView):
                 "access": str(refresh.access_token),
                 "refresh": str(refresh),
                 "workspace": schema_name,
-                "products": [PRODUCT_TO_SLUG[p] for p in _all_products if p in PRODUCT_TO_SLUG],
+                "products": [PRODUCT_TO_SLUG[p] for p in _all_products if p in PRODUCT_TO_SLUG] if getattr(_settings, "DEBUG", False) else [],
                 "user": {"id": user.id, "email": user.email, "full_name": user.full_name},
             },
             status=status.HTTP_201_CREATED,
@@ -237,23 +237,29 @@ class SignupView(APIView):
             logging.getLogger(__name__).exception("HR provisioning call failed for %s", subdomain)
 
     @staticmethod
-    def _seed_finance(schema_name: str, company_name: str) -> None:
+    def _seed_finance(schema_name: str, company_name: str, country: str = "IN") -> None:
         from datetime import date
         from apps.masters.coa_template import seed_coa
         from apps.masters.models import Company, FiscalYear
 
         with schema_context(schema_name):
+            base_currency = "INR" if country == "IN" else ("KWD" if country == "KW" else "AED" if country == "AE" else "SAR" if country == "SA" else "BHD" if country == "BH" else "OMR" if country == "OM" else "QAR" if country == "QA" else "USD")
             company, created = Company.objects.get_or_create(
                 name=company_name,
-                defaults={"legal_name": company_name, "base_currency": "INR"},
+                defaults={"legal_name": company_name, "base_currency": base_currency, "country": country},
             )
-            if created:
+            if created and country == "IN":
                 seed_coa(company)
+            
             today = date.today()
-            if today.month >= 4:
-                start, end = date(today.year, 4, 1), date(today.year + 1, 3, 31)
+            if country == "IN":
+                if today.month >= 4:
+                    start, end = date(today.year, 4, 1), date(today.year + 1, 3, 31)
+                else:
+                    start, end = date(today.year - 1, 4, 1), date(today.year, 3, 31)
             else:
-                start, end = date(today.year - 1, 4, 1), date(today.year, 3, 31)
+                start, end = date(today.year, 1, 1), date(today.year, 12, 31)
+
             fy_name = f"FY{str(start.year)[-2:]}-{str(end.year)[-2:]}"
             FiscalYear.objects.get_or_create(
                 company=company,

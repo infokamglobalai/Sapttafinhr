@@ -26,7 +26,6 @@ import Careers from './pages/Careers';
 import Login from './pages/Login';
 import Pricing from './pages/Pricing';
 import Signup from './pages/Signup';
-import Setup from './pages/Setup';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import VerifyEmail from './pages/VerifyEmail';
@@ -45,7 +44,7 @@ import Launch from './pages/Launch';
 import Logout from './pages/Logout';
 import SuperAdminDashboard from './pages/superadmin/SuperAdminDashboard';
 
-const HIDE_CHROME_ROUTES = ['/setup', '/app', '/superadmin', '/logout', '/launch', '/verify-email', '/access-denied'];
+const HIDE_CHROME_ROUTES = ['/app', '/superadmin', '/logout', '/launch', '/verify-email', '/access-denied'];
 const AUTH_MARKETING_ROUTES = ['/login', '/forgot-password', '/reset-password', '/signup'];
 
 function AppLayout() {
@@ -93,9 +92,6 @@ function AppLayout() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
-
-          {/* Setup wizard (post-signup) */}
-          <Route path="/setup" element={<ProtectedRoute><Setup /></ProtectedRoute>} />
 
           {/* Product Switcher — landing after login. Opens the REAL products
               (Finance app on the workspace host; HR app via SSO). */}

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { api } from '@/lib/api';
 import { useActiveCompany } from '@/hooks/useActiveCompany';
 import {
   useUpdateCompany, useFiscalYears, useCreateFiscalYear, useCreateBankAccount,
@@ -90,8 +91,9 @@ export default function SetupWizard({ onComplete }: { onComplete: () => void }) 
   async function saveCompany() {
     setErr(null);
     if (!companyId) return;
-    if (!cForm.legal_name || !cForm.gstin || !cForm.state_code) {
-      setErr('Legal name, GSTIN and home state code are required.');
+    const isIndia = cForm.base_currency === 'INR' || cForm.country === 'IN';
+    if (!cForm.legal_name || (isIndia && (!cForm.gstin || !cForm.state_code))) {
+      setErr(isIndia ? 'Legal name, GSTIN and home state code are required.' : 'Legal name is required.');
       return;
     }
     try {
@@ -206,11 +208,8 @@ export default function SetupWizard({ onComplete }: { onComplete: () => void }) 
                           className="btn-primary w-full bg-amber-600 hover:bg-amber-700 focus:ring-amber-500"
                           onClick={() => {
                             if (!companyId) return;
-                            fetch(`/api/v1/masters/accounts/seed_defaults/`, {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('access_token')}` },
-                              body: JSON.stringify({ company: companyId })
-                            }).then(() => window.location.reload());
+                            api.post(`/api/v1/masters/accounts/seed_defaults/`, { company: companyId })
+                              .then(() => window.location.reload());
                           }}
                         >
                           Initialize Default Accounts Now

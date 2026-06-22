@@ -44,7 +44,7 @@ export default function Billing() {
     ? sub.products.map(p => (p === 'HR' ? 'hrms' : 'finance'))
     : user?.products ?? [];
 
-  const isPending = !sub || (sub.status as string) === 'PENDING';
+  const isPending = !subRes.loading && sub && (sub.status as string) === 'PENDING';
 
   const subscribe = async (planId: string) => {
     setLoadingPlan(planId);

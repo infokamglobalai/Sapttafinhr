@@ -283,7 +283,7 @@ export default function Signup() {
                 Choose your workspace foundation
               </h1>
               <p style={{ color: 'var(--color-text-secondary)', fontSize: 16, maxWidth: 600, margin: '0 auto' }}>
-                All plans include a 14-day free trial. Scale up or down as your business evolves.
+                Scale up or down as your business evolves.
               </p>
             </div>
 
@@ -624,7 +624,7 @@ export default function Signup() {
                     Create your workspace
                   </h2>
                   <p style={{ color: 'var(--color-text-secondary)', fontSize: 14 }}>
-                    Start your 14-day free trial. Setup takes under a minute.
+                    Setup takes under a minute.
                   </p>
                 </div>
 
@@ -641,9 +641,6 @@ export default function Signup() {
                       <CrownOutlined style={{ color: '#FF6D00', fontSize: 14 }} />
                       <span style={{ fontSize: 13.5, fontWeight: 700, color: '#0A1128' }}>{selectedPlan.name}</span>
                     </div>
-                    <Tag color="green" style={{ border: 'none', fontWeight: 700, fontSize: 11, background: 'rgba(0,200,83,0.1)', color: '#00C853', borderRadius: 6 }}>
-                      14-day free trial
-                    </Tag>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: 'rgba(10,17,40,0.55)', marginBottom: 5 }}>
                     <span>Billing cycle</span>
@@ -654,9 +651,6 @@ export default function Signup() {
                     <span style={{ fontWeight: 600, color: '#0A1128' }}>
                       ₹{formatPrice(Math.round(getPlanPriceExGst(selectedPlan.id) * (1 + GST_RATE)))}/{billingCycle === 'annual' ? 'yr' : 'mo'}
                     </span>
-                  </div>
-                  <div style={{ fontSize: 11, color: 'rgba(10,17,40,0.4)', borderTop: '1px solid rgba(10,17,40,0.05)', paddingTop: 8, marginTop: 6 }}>
-                    No payment details required today. Estimations will only be generated starting <strong>{trialEndDate}</strong>.
                   </div>
                 </div>
 
@@ -777,7 +771,7 @@ export default function Signup() {
                         boxShadow: '0 8px 24px rgba(255,109,0,0.25)',
                       }}
                     >
-                      Start Free 14-Day Trial
+                      Create Workspace
                     </Button>
                   </Form.Item>
                 </Form>

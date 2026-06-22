@@ -32,9 +32,10 @@ class SetupStatusView(APIView):
         missing = []
         if not company.legal_name:
             missing.append("legal_name")
-        if not company.gstin:
+        is_india = getattr(company, "country", "IN") == "IN" or company.base_currency == "INR"
+        if is_india and not company.gstin:
             missing.append("gstin")
-        if not company.state_code:
+        if is_india and not company.state_code:
             missing.append("state_code")
         if not company.pan:
             missing.append("pan")
@@ -69,9 +70,10 @@ class SetupCompleteView(APIView):
         required_missing = []
         if not company.legal_name:
             required_missing.append("legal_name")
-        if not company.gstin:
+        is_india = getattr(company, "country", "IN") == "IN" or company.base_currency == "INR"
+        if is_india and not company.gstin:
             required_missing.append("gstin")
-        if not company.state_code:
+        if is_india and not company.state_code:
             required_missing.append("state_code")
         if not FiscalYear.objects.filter(company=company, is_active=True).exists():
             required_missing.append("fiscal_year")
