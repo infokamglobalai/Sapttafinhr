@@ -13,6 +13,13 @@ urlpatterns = [
     # subdomain (request.tenant). saas models live in the public schema.
     path("api/v1/saas/my-subscription/", MySubscriptionView.as_view(), name="my_subscription"),
 
+    # SaaS platform surface (signup, subscriptions, entitlements, billing,
+    # dev/activate). These live in the shared/public schema and must be reachable
+    # on the single domain: the custom HeaderTenantMiddleware does NOT honour
+    # django-tenants' PUBLIC_SCHEMA_URLCONF, so config.urls_public is never used.
+    # Listed AFTER my-subscription so that explicit path keeps priority.
+    path("api/v1/saas/", include("apps.saas.urls")),
+
     path("api/v1/auth/", include("apps.identity.urls")),
     path("api/v1/masters/", include("apps.masters.urls")),
     path("api/v1/ledger/", include("apps.ledger.urls")),
