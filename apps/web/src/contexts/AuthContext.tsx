@@ -103,7 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     try {
       const res = await apiLogin(email, password, workspace);
-      const resolvedWs = workspace ?? res.workspace ?? getWorkspace();
+      const resolvedWs = res.workspace ?? workspace ?? getWorkspace();
       const [me, rawProducts] = await Promise.all([fetchMe(), fetchProducts()]);
 
       // Dev mode: if no active products (PENDING subscription), auto-activate
