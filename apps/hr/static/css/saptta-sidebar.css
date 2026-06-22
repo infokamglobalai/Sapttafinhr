@@ -26,26 +26,27 @@
   opacity: 1 !important;
 }
 
-.dock-item[data-tone="violet"] .dock-icon-wrap { background: rgba(124, 58, 237, 0.1); color: #7C3AED; }
-.dock-item[data-tone="blue"] .dock-icon-wrap { background: rgba(37, 99, 235, 0.1); color: #2563EB; }
-.dock-item[data-tone="indigo"] .dock-icon-wrap { background: rgba(99, 102, 241, 0.1); color: #6366F1; }
-.dock-item[data-tone="cyan"] .dock-icon-wrap { background: rgba(8, 145, 178, 0.1); color: #0891B2; }
-.dock-item[data-tone="green"] .dock-icon-wrap { background: rgba(5, 150, 105, 0.1); color: #059669; }
-.dock-item[data-tone="amber"] .dock-icon-wrap { background: rgba(217, 119, 6, 0.1); color: #D97706; }
-.dock-item[data-tone="rose"] .dock-icon-wrap { background: rgba(225, 29, 72, 0.08); color: #E11D48; }
+/* Mono indigo rail (Finance base): icons rest neutral-slate, turn indigo when
+   active/hovered. Per-module tones intentionally collapsed to one treatment. */
+.dock-item[data-tone] .dock-icon-wrap,
 .dock-item[data-tone="slate"] .dock-icon-wrap,
 .dock-icon-wrap--muted { background: rgba(100, 116, 139, 0.1); color: #64748B; }
 
+.dock-item:hover .dock-icon-wrap {
+  background: rgba(79, 70, 229, 0.1);
+  color: #4f46e5;
+}
+
 .dock-item.active .dock-icon-wrap {
-  background: rgba(37, 99, 235, 0.14) !important;
-  color: #2563EB !important;
+  background: rgba(79, 70, 229, 0.14) !important;
+  color: #4f46e5 !important;
 }
 
 .brand-logo-fallback {
   width: 38px;
   height: 38px;
   border-radius: 11px;
-  background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+  background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
   color: #fff;
   font-size: 17px;
   font-weight: 700;
@@ -87,7 +88,7 @@
   }
 
   .primary-brand-link:hover {
-    background: rgba(37, 99, 235, 0.06);
+    background: rgba(79, 70, 229, 0.06);
   }
 
   .sidebar-desktop-container.is-expanded .primary-brand-link {
@@ -202,13 +203,13 @@
   }
 
   .dock-item.active {
-    background: #EFF6FF !important;
+    background: #eef2ff !important;
   }
 
   .dock-item.active::before {
     height: 24px !important;
     border-radius: 0 3px 3px 0 !important;
-    background: #2563EB !important;
+    background: #4f46e5 !important;
   }
 
   .dock-item:hover {
@@ -250,8 +251,8 @@
 
   .dock-hub-trigger:hover,
   .dock-hub-trigger[aria-expanded="true"] {
-    border-color: rgba(37, 99, 235, 0.22);
-    background: rgba(37, 99, 235, 0.04);
+    border-color: rgba(79, 70, 229, 0.22);
+    background: rgba(79, 70, 229, 0.04);
     box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
   }
 
@@ -269,7 +270,7 @@
     width: 22px;
     height: 22px;
     border-radius: 6px;
-    background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+    background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
     color: #fff;
     font-size: 10px;
     font-weight: 700;
@@ -280,7 +281,7 @@
   }
 
   .dock-hub-initial--saptta {
-    background: linear-gradient(135deg, #F97316 0%, #EA580C 100%);
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
   }
 
   .dock-hub-initial--lg {
@@ -328,7 +329,7 @@
 
   .dock-hub-chevron.is-open {
     transform: rotate(180deg);
-    color: #2563EB;
+    color: #4f46e5;
   }
 
   .dock-hub-menu {
@@ -489,7 +490,7 @@
     margin-left: auto;
     font-size: 11px;
     font-weight: 600;
-    color: #2563EB;
+    color: #4f46e5;
     white-space: nowrap;
   }
 
@@ -563,8 +564,8 @@
 .sidebar-secondary--reports,
 .sidebar-secondary--hrOps,
 .sidebar-secondary--settings {
-  --panel-accent: #2563EB;
-  --panel-accent-soft: rgba(37, 99, 235, 0.08);
+  --panel-accent: #4f46e5;
+  --panel-accent-soft: rgba(79, 70, 229, 0.08);
 }
 
 @media (max-width: 1023px) {

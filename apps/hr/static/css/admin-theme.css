@@ -7,17 +7,17 @@
 :root[data-theme="light"],
 html[data-theme="light"] {
   /* Brand */
-  --primary: #F97316;             /* header bg / primary buttons */
+  --primary: #6366f1;             /* header bg / primary buttons */
   --primary-fg: #FFFFFF;
-  --secondary: #C2410C;           /* breadcrumb bg / module headers */
+  --secondary: #3730a3;           /* breadcrumb bg / module headers */
 
-  --accent: #FB923C;
+  --accent: #818cf8;
   --primary-foreground: #FFFFFF;
 
   /* Links */
-  --link-fg: #C2410C;
+  --link-fg: #3730a3;
   --link-hover-color: #9A3412;
-  --link-selected-fg: #EA580C;
+  --link-selected-fg: #4f46e5;
 
   /* Backgrounds */
   --body-bg: #FAFAF8;
@@ -26,14 +26,14 @@ html[data-theme="light"] {
   --body-medium-color: #4B5563;
   --body-loud-color: #111827;
 
-  --header-bg: #F97316;
+  --header-bg: #6366f1;
   --header-color: #FFFFFF;
   --header-branding-color: #FFFFFF;
   --header-link-color: #FFFFFF;
 
-  --breadcrumbs-bg: #FFEDD5;
+  --breadcrumbs-bg: #e0e7ff;
   --breadcrumbs-fg: #7C2D12;
-  --breadcrumbs-link-fg: #C2410C;
+  --breadcrumbs-link-fg: #3730a3;
 
   --hairline-color: #FEDDC8;
   --border-color: #E5E7EB;
@@ -44,16 +44,16 @@ html[data-theme="light"] {
   --delete-button-bg: #DC2626;
   --delete-button-hover-bg: #B91C1C;
 
-  --default-button-bg: #F97316;
-  --default-button-hover-bg: #EA580C;
+  --default-button-bg: #6366f1;
+  --default-button-hover-bg: #4f46e5;
 
-  --button-bg: #F97316;
+  --button-bg: #6366f1;
   --button-fg: #FFFFFF;
-  --button-hover-bg: #EA580C;
+  --button-hover-bg: #4f46e5;
 
-  --darkened-bg: #FFF7ED;
-  --selected-bg: #FFEDD5;
-  --selected-row: #FFEDD5;
+  --darkened-bg: #eef2ff;
+  --selected-bg: #e0e7ff;
+  --selected-row: #e0e7ff;
 
   /* Messages */
   --message-success-bg: #DCFCE7;
@@ -61,7 +61,7 @@ html[data-theme="light"] {
   --message-error-bg: #FEE2E2;
 
   /* Object tools (top-right action buttons like "Add", "History") */
-  --object-tools-bg: #C2410C;
+  --object-tools-bg: #3730a3;
   --object-tools-fg: #FFFFFF;
   --object-tools-hover-bg: #9A3412;
 }
@@ -77,7 +77,7 @@ body {
 }
 
 #header {
-  background: linear-gradient(135deg, #F97316 0%, #EA580C 60%, #C2410C 100%);
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 60%, #3730a3 100%);
   border-bottom: none;
   padding: 14px 32px;
   box-shadow: 0 4px 16px -8px rgba(194, 65, 12, 0.35);
@@ -132,7 +132,7 @@ div.breadcrumbs a:focus, div.breadcrumbs a:hover {
 
 /* Module headers (the small dark bars above each section) */
 .module h2, .module caption, .inline-group h2 {
-  background: linear-gradient(135deg, #F97316, #EA580C);
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
   color: white;
   padding: 11px 16px;
   font-weight: 700;
@@ -182,9 +182,9 @@ textarea, select, .vTextField {
 }
 
 input:focus, textarea:focus, select:focus, .vTextField:focus {
-  border-color: #F97316;
+  border-color: #6366f1;
   outline: none;
-  box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.18);
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.18);
 }
 
 textarea { min-height: 120px; }
@@ -209,7 +209,7 @@ input[type=submit]:hover, input[type=button]:hover, .button:hover, button:hover 
 }
 
 input[type=submit].default, input[type=button].default, .submit-row input.default {
-  background: linear-gradient(180deg, #F97316, #EA580C);
+  background: linear-gradient(180deg, #6366f1, #4f46e5);
 }
 
 .button.cancel-link, a.cancel-link {
@@ -233,7 +233,7 @@ input[type=submit].default, input[type=button].default, .submit-row input.defaul
 
 /* Object tools (Add / History / Save and continue editing buttons) */
 .object-tools a {
-  background: #C2410C;
+  background: #3730a3;
   border-radius: 8px;
   padding: 8px 16px;
   font-size: 12.5px;
@@ -248,7 +248,7 @@ input[type=submit].default, input[type=button].default, .submit-row input.defaul
   box-shadow: 0 6px 14px rgba(194, 65, 12, 0.3);
 }
 .object-tools a.addlink {
-  background: linear-gradient(180deg, #F97316, #C2410C);
+  background: linear-gradient(180deg, #6366f1, #3730a3);
 }
 
 /* Tables (change list) */
@@ -267,8 +267,8 @@ table {
   border-spacing: 0;
 }
 thead th {
-  background: #FFF7ED;
-  color: #C2410C;
+  background: #eef2ff;
+  color: #3730a3;
   font-size: 11.5px;
   font-weight: 700;
   text-transform: uppercase;
@@ -277,11 +277,11 @@ thead th {
   border-bottom: 1px solid #FED7AA;
 }
 thead th.sorted, thead th.sorted a {
-  background: #FFEDD5;
+  background: #e0e7ff;
   color: #9A3412;
 }
 tbody tr:hover {
-  background: #FFF7ED;
+  background: #eef2ff;
 }
 tbody td {
   padding: 12px 16px;
@@ -299,7 +299,7 @@ tbody tr.row2 { background: #FFFBF5; }
   padding: 0;
 }
 #changelist-filter h2 {
-  background: linear-gradient(135deg, #F97316, #EA580C);
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
   color: white;
   padding: 12px 16px;
   border-radius: 12px 12px 0 0;
@@ -314,7 +314,7 @@ tbody tr.row2 { background: #FFFBF5; }
   padding: 0 16px;
 }
 #changelist-filter li.selected a {
-  color: #C2410C;
+  color: #3730a3;
   font-weight: 700;
 }
 #changelist-filter ul {
@@ -332,7 +332,7 @@ tbody tr.row2 { background: #FFFBF5; }
   max-width: 100%;
 }
 #toolbar form input[type="submit"] {
-  background: #F97316;
+  background: #6366f1;
   margin-left: 4px;
 }
 
@@ -352,12 +352,12 @@ tbody tr.row2 { background: #FFFBF5; }
   text-decoration: none;
 }
 .paginator .this-page {
-  background: #F97316;
+  background: #6366f1;
   color: white;
 }
 .paginator a {
-  background: #FFEDD5;
-  color: #C2410C;
+  background: #e0e7ff;
+  color: #3730a3;
 }
 .paginator a:hover {
   background: #FED7AA;
@@ -371,8 +371,8 @@ tbody tr.row2 { background: #FFFBF5; }
   padding: 10px;
 }
 .selector-available h2, .selector-chosen h2 {
-  background: #FFF7ED;
-  color: #C2410C;
+  background: #eef2ff;
+  color: #3730a3;
   border-bottom: 1px solid #FED7AA;
   border-radius: 8px 8px 0 0;
   font-weight: 700;
@@ -398,7 +398,7 @@ tbody tr.row2 { background: #FFFBF5; }
 
 /* Login page */
 .login {
-  background: linear-gradient(135deg, #FFF7ED 0%, #FED7AA 100%);
+  background: linear-gradient(135deg, #eef2ff 0%, #FED7AA 100%);
 }
 .login #container {
   background: white;
@@ -408,7 +408,7 @@ tbody tr.row2 { background: #FFFBF5; }
   border: 1px solid #FED7AA;
 }
 .login #header {
-  background: linear-gradient(135deg, #F97316, #C2410C);
+  background: linear-gradient(135deg, #6366f1, #3730a3);
   border-radius: 12px;
   margin-bottom: 18px;
 }
@@ -419,20 +419,20 @@ tbody tr.row2 { background: #FFFBF5; }
 
 /* Calendar / datetime picker */
 .calendar caption, .calendarbox h2 {
-  background: linear-gradient(135deg, #F97316, #EA580C);
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
   color: white;
 }
 .calendar td.selected a {
-  background: #F97316;
+  background: #6366f1;
   color: white;
 }
 .calendar td:hover {
-  background: #FFEDD5;
+  background: #e0e7ff;
 }
 
 /* Inline forms */
 .inline-related h3, .inline-group .tabular caption {
-  background: linear-gradient(135deg, #FB923C, #F97316);
+  background: linear-gradient(135deg, #818cf8, #6366f1);
   color: white;
   padding: 10px 14px;
   border-radius: 10px 10px 0 0;
@@ -443,5 +443,5 @@ tbody tr.row2 { background: #FFFBF5; }
 
 /* Selected row in changelist */
 .row-selected, tbody tr.selected {
-  background: #FFEDD5 !important;
+  background: #e0e7ff !important;
 }

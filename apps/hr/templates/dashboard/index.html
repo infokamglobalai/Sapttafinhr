@@ -16,14 +16,14 @@
   Chart.defaults.plugins.legend.labels.usePointStyle = true;
   Chart.defaults.plugins.legend.labels.boxWidth = 6;
   Chart.defaults.animation.duration = 600;
-  const PALETTE = ['#2563EB', '#3B82F6', '#60A5FA', '#6366F1', '#818CF8', '#93C5FD', '#1D4ED8', '#4F46E5'];
-  const BRAND_ORANGE = (window.SAPTTA_THEME && window.SAPTTA_THEME.primary) || '#F97316';
-  const BRAND_BLUE = (window.SAPTTA_THEME && window.SAPTTA_THEME.secondary) || '#2563EB';
-  const DASH_PRIMARY = '#2563EB';
+  const PALETTE = ['#4f46e5', '#6366f1', '#818cf8', '#6366F1', '#818CF8', '#a5b4fc', '#4338ca', '#4F46E5'];
+  const BRAND_ORANGE = (window.SAPTTA_THEME && window.SAPTTA_THEME.primary) || '#6366f1';
+  const BRAND_BLUE = (window.SAPTTA_THEME && window.SAPTTA_THEME.secondary) || '#4f46e5';
+  const DASH_PRIMARY = '#4f46e5';
 </script>
 <style>
   .dash-refresh {
-  --saas-brand: #2563EB;
+  --saas-brand: #4f46e5;
     --saas-text-title: #1D1D1F;
     --saas-text-body: #6E6E73;
     --saas-border-color: rgba(0, 0, 0, 0.06);
@@ -34,8 +34,8 @@
     --warn-600: #F59E0B;
     --err-100: rgba(239, 68, 68, 0.05);
     --err-600: #EF4444;
-    --info-100: rgba(59, 130, 246, 0.05);
-    --info-600: #3B82F6;
+    --info-100: rgba(99, 102, 241, 0.05);
+    --info-600: #6366f1;
     
     font-family: 'Inter', -apple-system, sans-serif;
   }
@@ -252,16 +252,16 @@
   /* Premium hero — brand gradient mesh */
   .dash-refresh .dashboard-hero {
     background:
-      radial-gradient(ellipse 80% 60% at 0% 0%, rgba(249, 115, 22, 0.12), transparent 55%),
-      radial-gradient(ellipse 70% 50% at 100% 20%, rgba(37, 99, 235, 0.10), transparent 50%),
+      radial-gradient(ellipse 80% 60% at 0% 0%, rgba(99, 102, 241, 0.12), transparent 55%),
+      radial-gradient(ellipse 70% 50% at 100% 20%, rgba(79, 70, 229, 0.10), transparent 50%),
       rgba(255, 255, 255, 0.88);
-    border-color: rgba(249, 115, 22, 0.12);
+    border-color: rgba(99, 102, 241, 0.12);
   }
   .dash-refresh .dashboard-hero::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(135deg, rgba(249,115,22,0.03) 0%, transparent 40%, rgba(37,99,235,0.04) 100%);
+    background: linear-gradient(135deg, rgba(99, 102, 241,0.03) 0%, transparent 40%, rgba(79, 70, 229,0.04) 100%);
     pointer-events: none;
   }
   .dash-refresh .saas-hero-left { position: relative; z-index: 1; }
@@ -324,7 +324,7 @@
     color: inherit;
   }
   .dash-refresh .insight-card:hover {
-    border-color: rgba(249, 115, 22, 0.2);
+    border-color: rgba(99, 102, 241, 0.2);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
     transform: translateY(-2px);
   }
@@ -337,8 +337,8 @@
     justify-content: center;
     flex-shrink: 0;
   }
-  .dash-refresh .insight-icon--orange { background: rgba(249, 115, 22, 0.12); color: #1D4ED8; }
-  .dash-refresh .insight-icon--blue { background: rgba(37, 99, 235, 0.12); color: #2563EB; }
+  .dash-refresh .insight-icon--orange { background: rgba(99, 102, 241, 0.12); color: #4338ca; }
+  .dash-refresh .insight-icon--blue { background: rgba(79, 70, 229, 0.12); color: #4f46e5; }
   .dash-refresh .insight-icon--green { background: rgba(16, 185, 129, 0.12); color: #059669; }
   .dash-refresh .insight-icon--violet { background: rgba(139, 92, 246, 0.12); color: #7C3AED; }
   .dash-refresh .insight-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #AEAEB2; }
@@ -346,8 +346,8 @@
   .dash-refresh .insight-sub { font-size: 11px; color: #6E6E73; margin-top: 2px; }
 
   /* Stat tone accents */
-  .dash-refresh .stat--orange .stat-icon { background: rgba(249, 115, 22, 0.12); color: #1D4ED8; }
-  .dash-refresh .stat--blue .stat-icon { background: rgba(37, 99, 235, 0.12); color: #2563EB; }
+  .dash-refresh .stat--orange .stat-icon { background: rgba(99, 102, 241, 0.12); color: #4338ca; }
+  .dash-refresh .stat--blue .stat-icon { background: rgba(79, 70, 229, 0.12); color: #4f46e5; }
   .dash-refresh .stat--green .stat-icon { background: rgba(16, 185, 129, 0.12); color: #059669; }
   .dash-refresh .stat--amber .stat-icon { background: rgba(245, 158, 11, 0.12); color: #D97706; }
   .dash-refresh .stat--rose .stat-icon { background: rgba(244, 63, 94, 0.12); color: #E11D48; }
@@ -407,9 +407,9 @@
     transition: all 150ms ease;
   }
   .dash-refresh .quick-link:hover {
-    color: #1D4ED8;
-    border-color: rgba(249, 115, 22, 0.25);
-    background: rgba(249, 115, 22, 0.06);
+    color: #4338ca;
+    border-color: rgba(99, 102, 241, 0.25);
+    background: rgba(99, 102, 241, 0.06);
   }
 
   /* Section divider label */
@@ -453,11 +453,11 @@
     cursor: pointer;
     transition: all 150ms ease;
   }
-  .dash-layout-btn:hover { border-color: rgba(249, 115, 22, 0.35); color: #1D4ED8; }
+  .dash-layout-btn:hover { border-color: rgba(99, 102, 241, 0.35); color: #4338ca; }
   .dash-layout-btn.is-active {
-    background: rgba(249, 115, 22, 0.1);
-    border-color: rgba(249, 115, 22, 0.35);
-    color: #1D4ED8;
+    background: rgba(99, 102, 241, 0.1);
+    border-color: rgba(99, 102, 241, 0.35);
+    color: #4338ca;
   }
   .dash-layout-btn--ghost { background: transparent; }
   .dash-layout-hint {
@@ -484,7 +484,7 @@
     position: relative;
   }
   .dash-panel-grid.is-editing .dash-panel {
-    outline: 2px dashed rgba(249, 115, 22, 0.35);
+    outline: 2px dashed rgba(99, 102, 241, 0.35);
     outline-offset: 4px;
     border-radius: 16px;
   }
@@ -494,8 +494,8 @@
     gap: 4px;
     margin-bottom: 12px;
     padding: 6px 8px;
-    background: rgba(249, 115, 22, 0.06);
-    border: 1px solid rgba(249, 115, 22, 0.15);
+    background: rgba(99, 102, 241, 0.06);
+    border: 1px solid rgba(99, 102, 241, 0.15);
     border-radius: 10px;
   }
   .dash-panel-toolbar-label {
@@ -503,7 +503,7 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    color: #1D4ED8;
+    color: #4338ca;
     margin-right: auto;
   }
   .dash-panel-tool {
@@ -522,13 +522,13 @@
     transition: all 120ms ease;
   }
   .dash-panel-tool:hover:not(:disabled) {
-    border-color: rgba(249, 115, 22, 0.4);
-    color: #1D4ED8;
+    border-color: rgba(99, 102, 241, 0.4);
+    color: #4338ca;
   }
   .dash-panel-tool:disabled { opacity: 0.35; cursor: not-allowed; }
   .dash-panel-tool.is-on {
-    background: #F97316;
-    border-color: #F97316;
+    background: #6366f1;
+    border-color: #6366f1;
     color: #fff;
   }
   .dash-panel-tool--wide { width: auto; padding: 0 10px; }
@@ -665,8 +665,8 @@
 
     function makeTrendGradient(ctx) {
       const grad = ctx.createLinearGradient(0, 0, 0, 220);
-      grad.addColorStop(0, 'rgba(37, 99, 235, 0.22)');
-      grad.addColorStop(0.5, 'rgba(37, 99, 235, 0.06)');
+      grad.addColorStop(0, 'rgba(79, 70, 229, 0.22)');
+      grad.addColorStop(0.5, 'rgba(79, 70, 229, 0.06)');
       grad.addColorStop(1, 'rgba(255, 255, 255, 0.01)');
       return grad;
     }

@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Set up {{ tenant.name }} · HRMS</title>
   <style>
-    :root { --primary:#2563EB; --primary-hover:#1D4ED8; --ink:#0F172A; --muted:#64748B; }
+    :root { --primary:#4f46e5; --primary-hover:#4338ca; --ink:#0F172A; --muted:#64748B; }
     * { box-sizing: border-box; }
-    body { margin:0; font-family: "Plus Jakarta Sans", Inter, system-ui, sans-serif; background: linear-gradient(160deg, #F8FAFC 0%, #EFF6FF 50%, #F1F5F9 100%); color:#0F172A; min-height: 100vh; }
+    body { margin:0; font-family: "Plus Jakarta Sans", Inter, system-ui, sans-serif; background: linear-gradient(160deg, #F8FAFC 0%, #eef2ff 50%, #F1F5F9 100%); color:#0F172A; min-height: 100vh; }
     .wrap { max-width: 760px; margin: 40px auto; padding: 0 16px; }
     .head { text-align:center; margin-bottom: 28px; }
     .head h1 { font-size: 1.75rem; font-weight: 800; margin: 0 0 6px; letter-spacing: -0.03em; }
@@ -17,13 +17,13 @@
     .card .hint { color:var(--muted); font-size: 12px; margin: 0 0 14px; }
     label { display:block; font-size: 12px; font-weight: 600; color:#334155; margin-bottom: 4px; }
     input, textarea { width:100%; padding: 10px 12px; border:1px solid rgba(15,23,42,0.12); border-radius:10px; font-size: 14px; font-family: inherit; transition: border-color 0.15s, box-shadow 0.15s; }
-    input:focus, textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.2); }
+    input:focus, textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229,0.2); }
     .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     .grid-emp { display:grid; grid-template-columns: 1fr 1fr 1fr 1fr 1.2fr; gap: 8px; align-items:end; margin-bottom: 8px; }
     .row { display:flex; gap: 8px; align-items:end; margin-bottom: 8px; }
-    .btn { background: var(--primary); color:#fff; border:none; padding: 12px 22px; border-radius:10px; font-weight:700; font-size:15px; cursor:pointer; box-shadow: 0 1px 2px rgba(37,99,235,0.2); }
+    .btn { background: var(--primary); color:#fff; border:none; padding: 12px 22px; border-radius:10px; font-weight:700; font-size:15px; cursor:pointer; box-shadow: 0 1px 2px rgba(79, 70, 229,0.2); }
     .btn:hover { background: var(--primary-hover); }
-    .btn-add { background:rgba(37,99,235,0.1); color:var(--primary); border:none; padding: 7px 12px; border-radius:8px; font-weight:600; font-size:12px; cursor:pointer; }
+    .btn-add { background:rgba(79, 70, 229,0.1); color:var(--primary); border:none; padding: 7px 12px; border-radius:8px; font-weight:600; font-size:12px; cursor:pointer; }
     .steplbl { font-size: 11px; font-weight:700; color:var(--primary); text-transform:uppercase; letter-spacing:.5px; }
     .msgs { margin-bottom: 14px; }
     .msg { background:#fef2f2; color:#b91c1c; padding:8px 12px; border-radius:10px; font-size:13px; }

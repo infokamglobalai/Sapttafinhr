@@ -6,9 +6,9 @@
 
 {% for n in notifications %}
 <a href="{% url 'hr_ops:notification_open' n.pk %}"
-   style="display: block; padding: 12px 16px; border-bottom: 1px solid var(--ink-100); text-decoration: none; color: inherit; {% if not n.is_read %}background: rgba(249,115,22,0.04);{% endif %} transition: background 150ms;"
+   style="display: block; padding: 12px 16px; border-bottom: 1px solid var(--ink-100); text-decoration: none; color: inherit; {% if not n.is_read %}background: rgba(99, 102, 241,0.04);{% endif %} transition: background 150ms;"
    onmouseover="this.style.background='var(--ink-50)'"
-   onmouseout="this.style.background='{% if not n.is_read %}rgba(249,115,22,0.04){% else %}transparent{% endif %}'">
+   onmouseout="this.style.background='{% if not n.is_read %}rgba(99, 102, 241,0.04){% else %}transparent{% endif %}'">
   <div style="display: flex; gap: 10px;">
     <div style="width: 6px; flex-shrink: 0; margin-top: 6px; height: 6px; border-radius: 50%; background: {% if n.is_read %}var(--ink-300){% else %}var(--brand-500){% endif %};"></div>
     <div style="flex: 1; min-width: 0;">

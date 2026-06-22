@@ -17,25 +17,25 @@
   </div>
 
   {# ── AI Draft Assistant ── #}
-  <div id="ai-assistant" style="background: linear-gradient(135deg, #EFF6FF 0%, #BFDBFE 100%); border: 1px solid #BFDBFE; border-radius: 16px; padding: 18px 20px; margin-bottom: 18px;">
+  <div id="ai-assistant" style="background: linear-gradient(135deg, #eef2ff 0%, #c7d2fe 100%); border: 1px solid #c7d2fe; border-radius: 16px; padding: 18px 20px; margin-bottom: 18px;">
     <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px;">
       <div>
         <div style="font-weight: 700; color: #7C2D12; font-size: 14px;">
           AI Draft Assistant
-          <span style="font-size: 10.5px; background: #fff; color: #2563EB; padding: 2px 8px; border-radius: 999px; margin-left: 6px; font-weight: 600;">Optional</span>
+          <span style="font-size: 10.5px; background: #fff; color: #4f46e5; padding: 2px 8px; border-radius: 999px; margin-left: 6px; font-weight: 600;">Optional</span>
         </div>
         <div style="font-size: 12.5px; color: #9A3412;">Paste rough bullet notes &mdash; the assistant turns them into structured paragraphs. You always review &amp; edit before saving.</div>
       </div>
-      <button type="button" id="ai-toggle" style="background: #fff; border: 1px solid #BFDBFE; color: #2563EB; padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;">Show</button>
+      <button type="button" id="ai-toggle" style="background: #fff; border: 1px solid #c7d2fe; color: #4f46e5; padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;">Show</button>
     </div>
     <div id="ai-panel" style="display: none; margin-top: 8px;">
       <textarea id="ai-notes" rows="6" placeholder="e.g.
 - Shipped the new bank-advice export feature on time
 - Mentored 2 juniors through onboarding
 - Sometimes misses standups when context-switching
-- Needs to be more proactive in sharing blockers" style="width: 100%; padding: 10px 12px; border: 1px solid #BFDBFE; border-radius: 10px; font-family: inherit; font-size: 13.5px; resize: vertical;"></textarea>
+- Needs to be more proactive in sharing blockers" style="width: 100%; padding: 10px 12px; border: 1px solid #c7d2fe; border-radius: 10px; font-family: inherit; font-size: 13.5px; resize: vertical;"></textarea>
       <div style="display: flex; align-items: center; gap: 10px; margin-top: 10px;">
-        <button type="button" id="ai-draft-btn" style="background: linear-gradient(180deg, #F97316, #1D4ED8); color: #fff; padding: 9px 20px; border: none; border-radius: 10px; font-weight: 600; font-size: 13px; cursor: pointer; box-shadow: 0 4px 12px rgba(249,115,22,0.30);">Draft from notes</button>
+        <button type="button" id="ai-draft-btn" style="background: linear-gradient(180deg, #6366f1, #4338ca); color: #fff; padding: 9px 20px; border: none; border-radius: 10px; font-weight: 600; font-size: 13px; cursor: pointer; box-shadow: 0 4px 12px rgba(99, 102, 241,0.30);">Draft from notes</button>
         <div id="ai-status" style="font-size: 12px; color: #9A3412;"></div>
       </div>
       <div id="ai-bias" style="display: none; margin-top: 12px; padding: 10px 12px; background: #FEF2F2; border-left: 3px solid #DC2626; border-radius: 8px; font-size: 12.5px;"></div>

@@ -145,8 +145,8 @@
 
 <!-- ── Anomaly Detection (AI feature #7 — local rules, no external API) ── -->
 {% if anomalies %}
-<div class="card" style="margin-bottom: 18px; padding: 0; overflow: hidden; border: 1px solid #BFDBFE;">
-  <div style="padding: 16px 20px; background: linear-gradient(135deg, #EFF6FF 0%, #BFDBFE 100%); border-bottom: 1px solid #BFDBFE; display: flex; align-items: center; justify-content: space-between;">
+<div class="card" style="margin-bottom: 18px; padding: 0; overflow: hidden; border: 1px solid #c7d2fe;">
+  <div style="padding: 16px 20px; background: linear-gradient(135deg, #eef2ff 0%, #c7d2fe 100%); border-bottom: 1px solid #c7d2fe; display: flex; align-items: center; justify-content: space-between;">
     <div>
       <div style="font-weight: 700; font-size: 15px; color: #7C2D12;">
         Pre-publish anomaly check
@@ -158,12 +158,12 @@
     <div style="display: flex; gap: 6px; font-size: 11px; font-weight: 700;">
       {% if anomaly_counts.critical %}<span style="background: #FEE2E2; color: #991B1B; padding: 3px 10px; border-radius: 999px;">{{ anomaly_counts.critical }} critical</span>{% endif %}
       {% if anomaly_counts.high %}<span style="background: #FEF3C7; color: #92400E; padding: 3px 10px; border-radius: 999px;">{{ anomaly_counts.high }} high</span>{% endif %}
-      {% if anomaly_counts.medium %}<span style="background: #DBEAFE; color: #1E40AF; padding: 3px 10px; border-radius: 999px;">{{ anomaly_counts.medium }} medium</span>{% endif %}
+      {% if anomaly_counts.medium %}<span style="background: #e0e7ff; color: #3730a3; padding: 3px 10px; border-radius: 999px;">{{ anomaly_counts.medium }} medium</span>{% endif %}
       {% if anomaly_counts.low %}<span style="background: #F3F4F6; color: #374151; padding: 3px 10px; border-radius: 999px;">{{ anomaly_counts.low }} low</span>{% endif %}
     </div>
   </div>
   <table style="width: 100%; border-collapse: collapse;">
-    <thead style="background: #EFF6FF;">
+    <thead style="background: #eef2ff;">
       <tr>
         <th style="padding: 10px 16px; text-align: left; font-size: 11.5px; color: #7C2D12;">Employee</th>
         <th style="padding: 10px 16px; text-align: left; font-size: 11.5px; color: #7C2D12;">Flag</th>
@@ -186,7 +186,7 @@
               text-transform: uppercase; letter-spacing: 0.04em;
               {% if f.severity == 'critical' %}background: #FEE2E2; color: #991B1B;{% endif %}
               {% if f.severity == 'high' %}background: #FEF3C7; color: #92400E;{% endif %}
-              {% if f.severity == 'medium' %}background: #DBEAFE; color: #1E40AF;{% endif %}
+              {% if f.severity == 'medium' %}background: #e0e7ff; color: #3730a3;{% endif %}
               {% if f.severity == 'low' %}background: #F3F4F6; color: #374151;{% endif %}
             ">{{ f.severity }}</span>
             <div style="font-size: 11px; color: var(--ink-500); margin-top: 4px;">{{ f.rule }}</div>

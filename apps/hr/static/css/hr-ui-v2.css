@@ -17,10 +17,10 @@
 }
 
 :root {
-  --hr-primary: #2563EB;
-  --hr-primary-hover: #1D4ED8;
-  --hr-primary-soft: rgba(37, 99, 235, 0.1);
-  --hr-primary-ring: rgba(37, 99, 235, 0.22);
+  --hr-primary: #4f46e5;
+  --hr-primary-hover: #4338ca;
+  --hr-primary-soft: rgba(79, 70, 229, 0.1);
+  --hr-primary-ring: rgba(79, 70, 229, 0.22);
   --hr-accent: #6366F1;
   --hr-surface: #FFFFFF;
   --hr-surface-muted: #F8FAFC;
@@ -112,7 +112,7 @@
   color: #fff !important;
   font-weight: 600;
   border-radius: 10px !important;
-  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2);
+  box-shadow: 0 1px 2px rgba(79, 70, 229, 0.2);
   transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
 }
 
@@ -121,7 +121,7 @@
 .btn-base.btn-primary:hover {
   background: var(--hr-primary-hover) !important;
   border-color: var(--hr-primary-hover) !important;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.28);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.28);
 }
 
 .btn-outline,
@@ -305,7 +305,7 @@ table.table {
 }
 
 .table tbody tr:hover td {
-  background: rgba(37, 99, 235, 0.03) !important;
+  background: rgba(79, 70, 229, 0.03) !important;
 }
 
 .table-zebra tbody tr:nth-child(even) td {
@@ -313,7 +313,7 @@ table.table {
 }
 
 .table-zebra tbody tr:nth-child(even):hover td {
-  background: rgba(37, 99, 235, 0.04) !important;
+  background: rgba(79, 70, 229, 0.04) !important;
 }
 
 .card .overflow-x-auto,
@@ -347,7 +347,7 @@ table.table {
 .alert-success { background: rgba(5, 150, 105, 0.08) !important; border-color: rgba(5, 150, 105, 0.2) !important; color: #047857 !important; }
 .alert-error { background: rgba(220, 38, 38, 0.08) !important; border-color: rgba(220, 38, 38, 0.2) !important; color: #B91C1C !important; }
 .alert-warning { background: rgba(217, 119, 6, 0.08) !important; border-color: rgba(217, 119, 6, 0.2) !important; color: #B45309 !important; }
-.alert-info { background: var(--hr-primary-soft) !important; border-color: rgba(37, 99, 235, 0.2) !important; color: var(--hr-primary-hover) !important; }
+.alert-info { background: var(--hr-primary-soft) !important; border-color: rgba(79, 70, 229, 0.2) !important; color: var(--hr-primary-hover) !important; }
 
 /* ── Empty state ── */
 .hr-empty {
@@ -465,9 +465,9 @@ table.table {
   justify-content: center;
   padding: 24px;
   background:
-    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(37, 99, 235, 0.12), transparent),
+    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(79, 70, 229, 0.12), transparent),
     radial-gradient(ellipse 60% 50% at 90% 90%, rgba(99, 102, 241, 0.1), transparent),
-    linear-gradient(160deg, #F8FAFC 0%, #EFF6FF 50%, #F1F5F9 100%);
+    linear-gradient(160deg, #F8FAFC 0%, #eef2ff 50%, #F1F5F9 100%);
 }
 
 .auth-card {
@@ -571,7 +571,7 @@ table.table {
 
 /* ── HTMX loading bar ── */
 .htmx-indicator {
-  background: linear-gradient(90deg, var(--hr-primary), #60A5FA) !important;
+  background: linear-gradient(90deg, var(--hr-primary), #818cf8) !important;
 }
 
 /* ── Detail page two-column ── */
@@ -686,7 +686,7 @@ table.table {
 
 /* ── Signup pitch (blue) ── */
 .signup-pitch {
-  background: linear-gradient(160deg, #EFF6FF 0%, #DBEAFE 50%, #EEF2FF 100%) !important;
+  background: linear-gradient(160deg, #eef2ff 0%, #e0e7ff 50%, #EEF2FF 100%) !important;
   border-right-color: var(--hr-border) !important;
 }
 
@@ -754,7 +754,7 @@ table.table {
 /* ── Sahayak FAB ── */
 .sahayak-fab {
   background: var(--hr-primary) !important;
-  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.35) !important;
+  box-shadow: 0 8px 24px rgba(79, 70, 229, 0.35) !important;
 }
 
 /* ── UX: accessibility & clarity (target ≥85% UI score) ── */
@@ -784,7 +784,7 @@ table.table {
 
 .page a.card.hover\\:shadow-md:hover {
   transform: translateY(-2px);
-  border-color: rgba(37, 99, 235, 0.25) !important;
+  border-color: rgba(79, 70, 229, 0.25) !important;
 }
 
 .page a.card.hover\\:shadow-md h3 {
@@ -833,8 +833,8 @@ table.table {
 
 :root {
   --hr-text-muted-accessible: #64748B;
-  --hr-link: #2563EB;
-  --hr-link-hover: #1D4ED8;
+  --hr-link: #4f46e5;
+  --hr-link-hover: #4338ca;
   --hr-focus-ring: 0 0 0 3px var(--hr-primary-ring);
   color-scheme: light;
 }

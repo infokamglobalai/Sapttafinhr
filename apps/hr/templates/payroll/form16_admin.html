@@ -25,7 +25,7 @@
 
   <div class="card" style="padding: 0; overflow: hidden;">
     <table style="width: 100%; border-collapse: collapse;">
-      <thead style="background: #EFF6FF;">
+      <thead style="background: #eef2ff;">
         <tr>
           <th style="padding: 10px 14px; text-align: left; font-size: 12px; color: #7C2D12;">Employee</th>
           <th style="padding: 10px 14px; text-align: left; font-size: 12px; color: #7C2D12;">Regime</th>
@@ -46,7 +46,7 @@
             {% if f.is_issued %}<span class="badge badge-success badge-sm">Issued</span>{% elif f.part_b_pdf %}<span class="badge badge-warning badge-sm">Draft</span>{% else %}—{% endif %}
           </td>
           <td style="padding: 10px 14px; text-align: center; white-space: nowrap;">
-            {% if f.part_b_pdf %}<a href="{{ f.part_b_pdf.url }}" target="_blank" style="color:#2563EB; font-weight:600; font-size:12px; margin-right:8px;">PDF</a>{% endif %}
+            {% if f.part_b_pdf %}<a href="{{ f.part_b_pdf.url }}" target="_blank" style="color:#4f46e5; font-weight:600; font-size:12px; margin-right:8px;">PDF</a>{% endif %}
             {% if f.part_b_pdf and not f.is_issued %}
             <form method="post" action="{% url 'payroll:form16_issue' f.pk %}" style="display:inline;">{% csrf_token %}
               <button type="submit" class="btn btn-xs btn-primary">Issue &amp; email</button>

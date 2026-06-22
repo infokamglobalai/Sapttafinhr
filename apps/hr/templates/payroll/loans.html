@@ -61,7 +61,7 @@
           <div style="font-size: 11px; color: var(--ink-500); margin-bottom: 2px;">{{ l.paid_installments }} / {{ l.total_installments }}</div>
           <div style="height: 6px; background: var(--ink-100); border-radius: 99px; overflow: hidden;">
             {% widthratio l.paid_installments l.total_installments 100 as pct %}
-            <div style="height: 100%; width: {{ pct }}%; background: linear-gradient(90deg, #3B82F6, #1D4ED8);"></div>
+            <div style="height: 100%; width: {{ pct }}%; background: linear-gradient(90deg, #6366f1, #4338ca);"></div>
           </div>
         </td>
         <td style="text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; color: var(--err-600);">&#8377;{{ l.outstanding_amount|floatformat:0|intcomma }}</td>

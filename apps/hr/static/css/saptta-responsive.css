@@ -84,13 +84,13 @@ button[type="submit"].btn-primary {
 .btn.btn-outline,
 .saas-btn-outline {
   background: var(--color-secondary-soft) !important;
-  border: 1px solid rgba(37, 99, 235, 0.25) !important;
+  border: 1px solid rgba(79, 70, 229, 0.25) !important;
   color: var(--color-secondary) !important;
 }
 
 .btn-secondary:hover,
 .btn.btn-outline:hover {
-  background: rgba(37, 99, 235, 0.18) !important;
+  background: rgba(79, 70, 229, 0.18) !important;
   color: var(--color-secondary-hover) !important;
 }
 
@@ -115,8 +115,8 @@ button[type="submit"].btn-primary {
 /* ── Sidebar: single brand blue, neutral icons (clean product look) ── */
 .dock-item[data-tone] {
   --module-color: var(--saptta-secondary);
-  --module-soft: rgba(37, 99, 235, 0.08);
-  --module-muted: rgba(37, 99, 235, 0.14);
+  --module-soft: rgba(79, 70, 229, 0.08);
+  --module-muted: rgba(79, 70, 229, 0.14);
 }
 
 .dock-item[data-tone] svg {
@@ -134,7 +134,7 @@ button[type="submit"].btn-primary {
 }
 
 .dock-item.active {
-  background: rgba(37, 99, 235, 0.08) !important;
+  background: rgba(79, 70, 229, 0.08) !important;
 }
 
 .primary-brand-text .brand-tag {
@@ -143,7 +143,7 @@ button[type="submit"].btn-primary {
 
 .sidebar-desktop-container.is-pinned .dock-pin-btn {
   color: var(--saptta-secondary) !important;
-  background: rgba(37, 99, 235, 0.1) !important;
+  background: rgba(79, 70, 229, 0.1) !important;
 }
 
 /* Secondary nav — neutral icons, blue when active */
@@ -159,11 +159,11 @@ button[type="submit"].btn-primary {
 
 .nav-item.active svg {
   color: var(--saptta-secondary) !important;
-  background: rgba(37, 99, 235, 0.12) !important;
+  background: rgba(79, 70, 229, 0.12) !important;
 }
 
 .nav-item.active {
-  background: rgba(37, 99, 235, 0.08) !important;
+  background: rgba(79, 70, 229, 0.08) !important;
 }
 
 .nav-item.active::before {
@@ -181,7 +181,7 @@ button[type="submit"].btn-primary {
 }
 
 .dash-refresh .dash-stat-compact:hover {
-  border-color: rgba(37, 99, 235, 0.2) !important;
+  border-color: rgba(79, 70, 229, 0.2) !important;
   transform: none !important;
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05) !important;
 }
@@ -206,13 +206,13 @@ button[type="submit"].btn-primary {
 
 .saas-btn-outline--blue {
   color: var(--saptta-secondary) !important;
-  border-color: rgba(37, 99, 235, 0.28) !important;
+  border-color: rgba(79, 70, 229, 0.28) !important;
   background: #fff !important;
 }
 
 .saas-btn-outline--blue:hover {
-  background: rgba(37, 99, 235, 0.06) !important;
-  border-color: rgba(37, 99, 235, 0.4) !important;
+  background: rgba(79, 70, 229, 0.06) !important;
+  border-color: rgba(79, 70, 229, 0.4) !important;
   color: var(--saptta-secondary-hover) !important;
 }
 
@@ -276,13 +276,13 @@ button[type="submit"].btn-primary {
 }
 
 .dash-hero__btn--primary {
-  background: var(--saptta-primary, #F97316);
+  background: var(--saptta-primary, #6366f1);
   color: #fff;
 }
 
 .dash-hero__btn--primary:hover {
   filter: brightness(1.05);
-  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.25);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
 }
 
 .dash-hero__btn--ghost {
@@ -292,9 +292,9 @@ button[type="submit"].btn-primary {
 }
 
 .dash-hero__btn--ghost:hover {
-  border-color: rgba(37, 99, 235, 0.25);
-  color: #2563EB;
-  background: rgba(37, 99, 235, 0.04);
+  border-color: rgba(79, 70, 229, 0.25);
+  color: #4f46e5;
+  background: rgba(79, 70, 229, 0.04);
 }
 
 .dash-setup-micro {
@@ -304,16 +304,16 @@ button[type="submit"].btn-primary {
   padding: 10px 12px;
   margin-bottom: 14px;
   border-radius: 12px;
-  border: 1px solid rgba(37, 99, 235, 0.14);
-  background: linear-gradient(135deg, #EFF6FF 0%, #F8FAFC 70%, #fff 100%);
+  border: 1px solid rgba(79, 70, 229, 0.14);
+  background: linear-gradient(135deg, #eef2ff 0%, #F8FAFC 70%, #fff 100%);
   text-decoration: none;
   color: inherit;
   transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
 }
 
 .dash-setup-micro:hover {
-  border-color: rgba(37, 99, 235, 0.3);
-  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.08);
+  border-color: rgba(79, 70, 229, 0.3);
+  box-shadow: 0 4px 16px rgba(79, 70, 229, 0.08);
   transform: translateY(-1px);
 }
 
@@ -325,7 +325,7 @@ button[type="submit"].btn-primary {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: conic-gradient(#2563EB calc(var(--pct) * 1%), #DBEAFE 0);
+  background: conic-gradient(#4f46e5 calc(var(--pct) * 1%), #e0e7ff 0);
   padding: 3px;
 }
 
@@ -339,7 +339,7 @@ button[type="submit"].btn-primary {
   justify-content: center;
   font-size: 11px;
   font-weight: 800;
-  color: #1D4ED8;
+  color: #4338ca;
   line-height: 1;
 }
 
@@ -356,7 +356,7 @@ button[type="submit"].btn-primary {
   gap: 5px;
 }
 
-.dash-setup-micro__title { font-size: 12px; font-weight: 700; color: #1E3A8A; }
+.dash-setup-micro__title { font-size: 12px; font-weight: 700; color: #312e81; }
 
 .dash-setup-micro__steps { display: flex; gap: 3px; align-items: center; }
 
@@ -367,10 +367,10 @@ button[type="submit"].btn-primary {
   border-radius: 999px;
 }
 
-.dash-setup-micro__seg--done { background: #2563EB; }
+.dash-setup-micro__seg--done { background: #4f46e5; }
 .dash-setup-micro__seg--current {
-  background: linear-gradient(90deg, #2563EB 50%, #BFDBFE 50%);
-  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.2);
+  background: linear-gradient(90deg, #4f46e5 50%, #c7d2fe 50%);
+  box-shadow: 0 0 0 1px rgba(79, 70, 229, 0.2);
 }
 .dash-setup-micro__seg--pending { background: #E2E8F0; }
 
@@ -390,14 +390,14 @@ button[type="submit"].btn-primary {
   display: grid;
   place-items: center;
   background: #fff;
-  border: 1px solid rgba(37, 99, 235, 0.15);
-  color: #2563EB;
+  border: 1px solid rgba(79, 70, 229, 0.15);
+  color: #4f46e5;
 }
 
 .dash-setup-micro:hover .dash-setup-micro__go {
-  background: #2563EB;
+  background: #4f46e5;
   color: #fff;
-  border-color: #2563EB;
+  border-color: #4f46e5;
 }
 
 .dash-pulse {
@@ -441,7 +441,7 @@ button[type="submit"].btn-primary {
 }
 
 a.dash-pulse-card:hover {
-  border-color: rgba(37, 99, 235, 0.2);
+  border-color: rgba(79, 70, 229, 0.2);
   box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
   transform: translateY(-2px);
 }
@@ -458,7 +458,7 @@ a.dash-pulse-card:hover {
   background: linear-gradient(180deg, #FFFBEB 0%, #fff 45%);
 }
 
-.dash-pulse-card--active .dash-pulse-card__val { color: #C2410C; }
+.dash-pulse-card--active .dash-pulse-card__val { color: #3730a3; }
 
 .dash-pulse-card__icon {
   flex-shrink: 0;
@@ -579,8 +579,8 @@ a.dash-pulse-card:hover {
   box-shadow: 0 2px 8px rgba(245, 158, 11, 0.1);
 }
 
-.dash-attention__val { font-size: 1.25rem; font-weight: 800; color: #EA580C; line-height: 1; }
-.dash-attention__val--blue { color: #2563EB; }
+.dash-attention__val { font-size: 1.25rem; font-weight: 800; color: #4f46e5; line-height: 1; }
+.dash-attention__val--blue { color: #4f46e5; }
 .dash-attention__lbl { font-size: 10px; font-weight: 600; color: #78716C; }
 
 /* Legacy KPI tiles */
@@ -619,7 +619,7 @@ a.dash-pulse-card:hover {
 }
 
 a.dash-kpi-tile:hover {
-  border-color: rgba(37, 99, 235, 0.22);
+  border-color: rgba(79, 70, 229, 0.22);
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
 }
 
@@ -628,12 +628,12 @@ a.dash-kpi-tile:hover {
 }
 
 .dash-kpi-tile--alert {
-  border-color: rgba(249, 115, 22, 0.28);
+  border-color: rgba(99, 102, 241, 0.28);
   background: #FFFBEB;
 }
 
 .dash-kpi-tile--alert .dash-kpi-tile__value {
-  color: #C2410C;
+  color: #3730a3;
 }
 
 .dash-kpi-tile__value {

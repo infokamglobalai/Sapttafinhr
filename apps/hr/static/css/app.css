@@ -6,9 +6,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
-  /* ──── Font Stacks ──── */
-  --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-serif: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  /* ──── Font Stacks (Finance base: Outfit body · Plus Jakarta Sans headings) ──── */
+  --font-sans: "Outfit", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-serif: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 
   /* Soft neutral palette */
   --brand-50: #FAFAFA;
@@ -28,12 +29,12 @@
   --gold-accent: #1D1D1F;
 
   /* Saptta brand — primary orange, secondary blue */
-  --saptta-accent: #F97316;
-  --saptta-accent-hover: #EA580C;
-  --saptta-accent-soft: rgba(249, 115, 22, 0.12);
-  --saptta-accent-ring: rgba(249, 115, 22, 0.28);
-  --saptta-secondary: #2563EB;
-  --saptta-secondary-soft: rgba(37, 99, 235, 0.12);
+  --saptta-accent: #6366f1;
+  --saptta-accent-hover: #4f46e5;
+  --saptta-accent-soft: rgba(99, 102, 241, 0.12);
+  --saptta-accent-ring: rgba(99, 102, 241, 0.28);
+  --saptta-secondary: #4f46e5;
+  --saptta-secondary-soft: rgba(79, 70, 229, 0.12);
 
   /* Sidebar layout tokens */
   --sidebar-rail-collapsed: 68px;
@@ -50,9 +51,9 @@
   --err-50: rgba(239, 68, 68, 0.05);
   --err-500: #EF4444;
   --err-600: #DC2626;
-  --info-50: rgba(59, 130, 246, 0.05);
-  --info-500: #3B82F6;
-  --info-600: #2563EB;
+  --info-50: rgba(99, 102, 241, 0.05);
+  --info-500: #6366f1;
+  --info-600: #4f46e5;
 
   --ink-950: #1D1D1F;
   --ink-900: #1D1D1F;
@@ -134,15 +135,15 @@ body {
   letter-spacing: -0.01em;
   font-size: 14.5px;
   line-height: 1.6;
-  font-weight: 300;
-  /* Lightweight geometric sans-serif */
+  font-weight: 400;
+  /* Outfit — geometric sans body, matching Finance */
 }
 
-h1,
+h1, h2, h3, h4,
 .font-serif-italic {
-  font-family: var(--font-sans);
+  font-family: var(--font-display);
   font-style: normal;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--ink-950);
 }
@@ -771,7 +772,7 @@ pre,
   }
 
   .dock-item.active {
-    background: rgba(37, 99, 235, 0.08);
+    background: rgba(79, 70, 229, 0.08);
     color: var(--ink-950);
   }
 
@@ -1143,7 +1144,7 @@ pre,
 
 .user-chip--pro:hover {
   background: #fff;
-  border-color: rgba(37, 99, 235, 0.22);
+  border-color: rgba(79, 70, 229, 0.22);
   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
 }
 
@@ -1200,8 +1201,8 @@ pre,
 }
 
 .user-chip-role-badge--admin {
-  background: rgba(37, 99, 235, 0.12);
-  color: #1D4ED8;
+  background: rgba(79, 70, 229, 0.12);
+  color: #4338ca;
 }
 
 .user-chip-role-badge--manager {
@@ -1241,7 +1242,7 @@ pre,
   width: 26px;
   height: 26px;
   border-radius: var(--r-sm);
-  background: linear-gradient(135deg, #F97316, #EA580C);
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
   color: #FFFFFF;
   display: flex;
   align-items: center;
@@ -1270,8 +1271,8 @@ pre,
   font-size: 11px;
 }
 
-.user-avatar-fallback--orange { background: linear-gradient(145deg, #FB923C, #EA580C); }
-.user-avatar-fallback--blue { background: linear-gradient(145deg, #60A5FA, #2563EB); }
+.user-avatar-fallback--orange { background: linear-gradient(145deg, #818cf8, #4f46e5); }
+.user-avatar-fallback--blue { background: linear-gradient(145deg, #818cf8, #4f46e5); }
 .user-avatar-fallback--indigo { background: linear-gradient(145deg, #818CF8, #4F46E5); }
 .user-avatar-fallback--teal { background: linear-gradient(145deg, #2DD4BF, #0D9488); }
 .user-avatar-fallback--violet { background: linear-gradient(145deg, #A78BFA, #7C3AED); }
@@ -1315,7 +1316,7 @@ pre,
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #F97316, #EA580C);
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
   color: #fff;
   display: flex;
   align-items: center;
@@ -1354,7 +1355,7 @@ pre,
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #EA580C;
+  color: #4f46e5;
   margin-top: 4px;
 }
 
@@ -3182,7 +3183,7 @@ a.grad-card {
   width: 88px;
   height: 88px;
   border-radius: var(--r-xl);
-  background: linear-gradient(135deg, #FB923C, #EC4899);
+  background: linear-gradient(135deg, #818cf8, #EC4899);
   color: white;
   display: flex;
   align-items: center;
@@ -3754,9 +3755,9 @@ a.grad-card {
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  color: #2563EB;
-  background: #EFF6FF;
-  border: 1px solid #DBEAFE;
+  color: #4f46e5;
+  background: #eef2ff;
+  border: 1px solid #e0e7ff;
 }
 
 /* ╔══════════════════════════════════════════════════════════════════════
@@ -3980,8 +3981,8 @@ p.text-sm {
 }
 
 .btn.btn-info {
-  background: #2563EB !important;
-  border-color: #2563EB !important;
+  background: #4f46e5 !important;
+  border-color: #4f46e5 !important;
   color: #fff !important;
   border-radius: 8px !important;
 }
@@ -4086,8 +4087,8 @@ label.label-text {
 }
 
 .badge-info {
-  background: #DBEAFE !important;
-  color: #1D4ED8 !important;
+  background: #e0e7ff !important;
+  color: #4338ca !important;
 }
 
 .badge-neutral {
@@ -4096,8 +4097,8 @@ label.label-text {
 }
 
 .badge-primary {
-  background: #DBEAFE !important;
-  color: #1D4ED8 !important;
+  background: #e0e7ff !important;
+  color: #4338ca !important;
 }
 
 .badge-ghost {
@@ -4132,9 +4133,9 @@ label.label-text {
 }
 
 .alert-info {
-  background: #EFF6FF !important;
-  border-color: #BFDBFE !important;
-  color: #1E40AF !important;
+  background: #eef2ff !important;
+  border-color: #c7d2fe !important;
+  color: #3730a3 !important;
 }
 
 /* ── Divider ── */
@@ -4223,7 +4224,7 @@ label.label-text {
 /* ── Loading spinner ── */
 .loading-spinner {
   border-color: #E9ECF0;
-  border-top-color: #2563EB;
+  border-top-color: #4f46e5;
 }
 
 /* ── Account & Settings page ── */
@@ -4235,7 +4236,7 @@ label.label-text {
 .settings-hero {
   padding: 1.5rem 1.25rem;
   border-radius: 16px;
-  background: linear-gradient(135deg, rgba(249, 115, 22, 0.08) 0%, rgba(37, 99, 235, 0.06) 100%);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(79, 70, 229, 0.06) 100%);
   border: 1px solid rgba(15, 23, 42, 0.06);
 }
 
@@ -4367,7 +4368,7 @@ label.label-text {
 }
 
 .settings-sidebar-mock-dot.is-active {
-  background: rgba(37, 99, 235, 0.1);
+  background: rgba(79, 70, 229, 0.1);
 }
 
 .settings-sidebar-mock-bottom {
@@ -4407,8 +4408,8 @@ label.label-text {
   justify-content: center;
   font-size: 1.1rem;
   font-weight: 700;
-  color: #2563EB;
-  background: rgba(37, 99, 235, 0.08);
+  color: #4f46e5;
+  background: rgba(79, 70, 229, 0.08);
 }
 
 .settings-support-card {
@@ -4424,7 +4425,7 @@ label.label-text {
 }
 
 .settings-support-card:hover {
-  border-color: rgba(249, 115, 22, 0.35);
+  border-color: rgba(99, 102, 241, 0.35);
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
 }
 

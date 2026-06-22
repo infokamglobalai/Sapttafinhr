@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500&display=swap"
     rel="stylesheet">
 
   <!-- Tailwind utilities (still useful for grid/flex/spacing) + DaisyUI baseline -->
@@ -20,21 +20,24 @@
     tailwind.config = {
       theme: {
         extend: {
-          fontFamily: { sans: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'] },
+          fontFamily: {
+            sans: ['Outfit', 'system-ui', 'sans-serif'],
+            display: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
+          },
         },
       },
       daisyui: {
         themes: [{
           saptta: {
-            primary: '#2563EB',
+            primary: '#4F46E5',
             'primary-content': '#ffffff',
             secondary: '#6366F1',
-            accent: '#0891B2',
+            accent: '#6366F1',
             neutral: '#0F172A',
             'base-100': '#FFFFFF',
-            'base-200': '#F4F7FB',
+            'base-200': '#F8FAFC',
             'base-300': '#E2E8F0',
-            info: '#2563EB',
+            info: '#4F46E5',
             success: '#059669',
             warning: '#D97706',
             error: '#DC2626',
@@ -46,27 +49,27 @@
   <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css" rel="stylesheet">
 
   <!-- Design tokens first, then layers -->
-  <link rel="stylesheet" href="{% static 'css/saptta-tokens.css' %}">
-  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=11">
-  <link rel="stylesheet" href="{% static 'css/saptta-theme.css' %}">
-  <link rel="stylesheet" href="{% static 'css/saptta-responsive.css' %}?v=10">
-  <link rel="stylesheet" href="{% static 'css/saptta-sidebar.css' %}?v=9">
-  <link rel="stylesheet" href="{% static 'css/hr-ui-v2.css' %}?v=7">
-  <link rel="stylesheet" href="{% static 'css/recruitment.css' %}?v=2">
-  <link rel="stylesheet" href="{% static 'css/leave-apply.css' %}?v=2">
+  <link rel="stylesheet" href="{% static 'css/saptta-tokens.css' %}?v=2">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=12">
+  <link rel="stylesheet" href="{% static 'css/saptta-theme.css' %}?v=2">
+  <link rel="stylesheet" href="{% static 'css/saptta-responsive.css' %}?v=11">
+  <link rel="stylesheet" href="{% static 'css/saptta-sidebar.css' %}?v=10">
+  <link rel="stylesheet" href="{% static 'css/hr-ui-v2.css' %}?v=8">
+  <link rel="stylesheet" href="{% static 'css/recruitment.css' %}?v=3">
+  <link rel="stylesheet" href="{% static 'css/leave-apply.css' %}?v=3">
   {% if tenant_ui_direction == 'rtl' %}
   <link rel="stylesheet" href="{% static 'css/saptta-rtl.css' %}?v=1">
   {% endif %}
 
   <script>
     window.SAPTTA_THEME = {
-      primary: '#2563EB',
+      primary: '#4F46E5',
       secondary: '#6366F1',
-      accent: '#F97316',
-      chart: ['#2563EB', '#3B82F6', '#6366F1', '#0891B2', '#059669', '#D97706', '#7C3AED', '#E11D48'],
+      accent: '#6366F1',
+      chart: ['#4F46E5', '#6366F1', '#818CF8', '#0891B2', '#059669', '#D97706', '#7C3AED', '#E11D48'],
       modules: {
-        dashboard: 'violet', people: 'blue', timeLeave: 'cyan', payroll: 'green',
-        performance: 'amber', reports: 'violet', hrOps: 'rose', settings: 'slate'
+        dashboard: 'indigo', people: 'indigo', timeLeave: 'indigo', payroll: 'indigo',
+        performance: 'indigo', reports: 'indigo', hrOps: 'indigo', settings: 'indigo'
       }
     };
   </script>
@@ -85,7 +88,7 @@
   <script src="{% static 'js/app.js' %}" defer></script>
 
   <link rel="manifest" href="{% static 'manifest.json' %}">
-  <meta name="theme-color" content="#2563EB">
+  <meta name="theme-color" content="#4F46E5">
   <meta name="csrf-token" content="{{ csrf_token }}">
   <script>
     document.addEventListener('DOMContentLoaded', function () {
@@ -96,7 +99,7 @@
   </script>
   {% block extra_head %}{% endblock %}
   {% if user.is_authenticated %}
-  <link rel="stylesheet" href="{% static 'css/dashboard-soft-ui.css' %}?v=18">
+  <link rel="stylesheet" href="{% static 'css/dashboard-soft-ui.css' %}?v=20">
   {% endif %}
 </head>
 
@@ -1371,7 +1374,7 @@
               <div style="margin-top:4px; border-top:1px solid var(--ink-150); padding-top:6px;">
                 <div style="padding:2px 12px 4px; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-400);">Products</div>
                 <div class="nav-item" style="font-weight:600; cursor:default;">
-                  <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#2563EB;margin-right:6px;"></span>
+                  <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#4F46E5;margin-right:6px;"></span>
                   Saptta HR <span style="margin-left:auto; font-size:11px; color:var(--ink-400);">current</span>
                 </div>
                 <a href="{{ PLATFORM_BASE_URL }}/launch?to=finance" class="nav-item">fin-saptta</a>
@@ -1432,9 +1435,9 @@
 
   <!-- PWA install banner (shown when ?install=1 is in the URL) -->
   <div id="install-banner" style="display:none; position:fixed; top:0; left:0; right:0; z-index:9999;
-  background:#fff; border-bottom:3px solid #2563EB; box-shadow:0 4px 24px rgba(0,0,0,.10);
+  background:#fff; border-bottom:3px solid #4F46E5; box-shadow:0 4px 24px rgba(0,0,0,.10);
   padding:14px 20px; align-items:center; gap:14px; font-family:Inter,sans-serif;">
-    <div style="width:40px;height:40px;border-radius:10px;flex-shrink:0;background:#2563EB;
+    <div style="width:40px;height:40px;border-radius:10px;flex-shrink:0;background:#4F46E5;
     display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;">💼</div>
     <div style="flex:1">
       <div style="font-weight:700;font-size:14px;color:#0f172a">Install Saptta HR as a Desktop App</div>
@@ -1442,7 +1445,7 @@
       </div>
     </div>
     <button id="install-btn" style="display:none;align-items:center;gap:6px;
-    background:#2563EB;color:#fff;border:none;border-radius:8px;padding:8px 16px;
+    background:#4F46E5;color:#fff;border:none;border-radius:8px;padding:8px 16px;
     font-weight:700;font-size:13px;cursor:pointer;flex-shrink:0">⬇ Install</button>
     <div id="install-hint" style="font-size:12px;color:#64748b;flex-shrink:0">
       Click the <strong>Install</strong> button (⊕) in your browser's address bar.

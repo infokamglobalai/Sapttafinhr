@@ -14,7 +14,7 @@
       {% if declaration.status == "draft" %}
         <span style="background: #FEF3C7; color: #92400E; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;">Draft</span>
       {% elif declaration.status == "submitted" %}
-        <span style="background: #DBEAFE; color: #1E40AF; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;">Submitted</span>
+        <span style="background: #e0e7ff; color: #3730a3; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;">Submitted</span>
       {% elif declaration.status == "verified" %}
         <span style="background: #D1FAE5; color: #065F46; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;">Verified by HR</span>
       {% endif %}
@@ -134,9 +134,9 @@
             <span style="color:var(--ink-500);">Cess (4%)</span>
             <strong>₹{{ estimate.cess|floatformat:0 }}</strong>
           </div>
-          <div style="display:flex; justify-content:space-between; padding: 10px; background: #EFF6FF; border-radius: 8px; margin-top: 10px;">
+          <div style="display:flex; justify-content:space-between; padding: 10px; background: #eef2ff; border-radius: 8px; margin-top: 10px;">
             <span style="font-weight: 700; color: #7C2D12;">Annual tax</span>
-            <strong style="font-size: 16px; color: #2563EB;">₹{{ estimate.total_tax|floatformat:0 }}</strong>
+            <strong style="font-size: 16px; color: #4f46e5;">₹{{ estimate.total_tax|floatformat:0 }}</strong>
           </div>
           <div style="display:flex; justify-content:space-between; margin-top:8px;">
             <span style="color:var(--ink-500);">Monthly TDS (approx)</span>
