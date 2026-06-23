@@ -4,6 +4,7 @@ from rest_framework import serializers as s
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from .audit import record_audit
 from .models import Plan, ProductCode, SaasInvoice, Subscription, SubscriptionEntitlement
 from .permissions import IsSuperAdmin
 
@@ -86,6 +87,8 @@ class SubscriptionViewSet(viewsets.ReadOnlyModelViewSet):
 
         activate_subscription_for_tenant(sub.tenant.schema_name)
         sub.refresh_from_db()
+        record_audit(request, "subscription.activate", target_schema=sub.tenant.schema_name,
+                     target_label=sub.tenant.name, detail={"plan": sub.plan.code})
         return Response(SubSer(sub).data)
 
     @action(detail=True, methods=["post"], permission_classes=[IsSuperAdmin])
@@ -96,6 +99,8 @@ class SubscriptionViewSet(viewsets.ReadOnlyModelViewSet):
         sub.cancelled_at = timezone.now()
         sub.save(update_fields=["status", "cancelled_at"])
         sub.entitlements.update(status=SubscriptionEntitlement.Status.SUSPENDED)
+        record_audit(request, "subscription.suspend", target_schema=sub.tenant.schema_name,
+                     target_label=sub.tenant.name, detail={})
         return Response(SubSer(sub).data)
 
     @action(detail=True, methods=["post"], permission_classes=[IsSuperAdmin])
@@ -125,7 +130,42 @@ class SubscriptionViewSet(viewsets.ReadOnlyModelViewSet):
                 product=product, defaults={"status": ent_status}
             )
         sub.refresh_from_db()
+        record_audit(request, "subscription.change_plan", target_schema=sub.tenant.schema_name,
+                     target_label=sub.tenant.name, detail={"plan": plan.code})
         return Response(SubSer(sub).data)
+
+
+class PlanAdminViewSet(viewsets.ModelViewSet):
+    """Full CRUD on pricing plans — super-admin only (web /superadmin Plans screen).
+
+    Distinct from the public read-only PlanViewSet: this is the catalog editor.
+    Plans are never hard-deleted from under live subscriptions; ``destroy`` just
+    retires the plan (is_active=False) so historical rows keep resolving.
+    """
+
+    queryset = Plan.objects.all().order_by("monthly_price")
+    serializer_class = PlanSer
+    permission_classes = [IsSuperAdmin]
+
+    def perform_create(self, serializer):
+        plan = serializer.save()
+        record_audit(self.request, "plan.create", target_label=plan.code, detail={"name": plan.name})
+
+    def perform_update(self, serializer):
+        plan = serializer.save()
+        record_audit(self.request, "plan.update", target_label=plan.code,
+                     detail={"monthly_price": str(plan.monthly_price)})
+
+    def destroy(self, request, *args, **kwargs):
+        plan = self.get_object()
+        if Subscription.objects.filter(plan=plan).exists():
+            plan.is_active = False
+            plan.save(update_fields=["is_active"])
+            record_audit(request, "plan.retire", target_label=plan.code, detail={})
+            return Response(PlanSer(plan).data)
+        record_audit(request, "plan.delete", target_label=plan.code, detail={})
+        plan.delete()
+        return Response(status=204)
 
 
 class SubscriptionEntitlementViewSet(viewsets.ReadOnlyModelViewSet):

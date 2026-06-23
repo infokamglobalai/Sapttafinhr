@@ -39,17 +39,65 @@ def _subscription_summary(sub: Subscription | None) -> dict | None:
 
 
 class AdminCompaniesView(APIView):
-    """GET /api/v1/saas/admin/companies/ → every tenant + its subscription."""
+    """GET /api/v1/saas/admin/companies/ → tenants + subscriptions.
+
+    Server-side search / filter / sort / pagination:
+      ?q=          name / billing_email / schema contains
+      ?status=     subscription status (ACTIVE, PENDING, …)
+      ?product=    finance | hrms (active entitlement)
+      ?plan=       plan code
+      ?sort=       created_on | -created_on | name | -name
+      ?page= ?page_size=
+    Returns {count, page, page_size, results}.
+    """
 
     permission_classes = [IsAuthenticated, IsSuperAdmin]
 
+    _PRODUCT = {"finance": ProductCode.FIN, "hrms": ProductCode.HR}
+    _SORTS = {"created_on", "-created_on", "name", "-name", "is_active", "-is_active"}
+
     def get(self, request):
-        tenants = (
+        from django.db.models import Q
+
+        qs = (
             Tenant.objects.exclude(schema_name="public")
             .select_related("subscription", "subscription__plan")
             .prefetch_related("subscription__entitlements")
-            .order_by("-created_on")
         )
+
+        q = (request.query_params.get("q") or "").strip()
+        if q:
+            qs = qs.filter(Q(name__icontains=q) | Q(billing_email__icontains=q) | Q(schema_name__icontains=q))
+
+        status_f = (request.query_params.get("status") or "").strip()
+        if status_f:
+            qs = qs.filter(subscription__status=status_f)
+
+        product = self._PRODUCT.get((request.query_params.get("product") or "").strip())
+        if product:
+            qs = qs.filter(
+                subscription__entitlements__product=product,
+                subscription__entitlements__status__in=SubscriptionEntitlement.ACTIVE_STATUSES,
+            )
+
+        plan = (request.query_params.get("plan") or "").strip()
+        if plan:
+            qs = qs.filter(subscription__plan__code=plan)
+
+        sort = (request.query_params.get("sort") or "-created_on").strip()
+        if sort not in self._SORTS:
+            sort = "-created_on"
+        qs = qs.distinct().order_by(sort)
+
+        try:
+            page = max(int(request.query_params.get("page", 1)), 1)
+            page_size = min(max(int(request.query_params.get("page_size", 20)), 1), 200)
+        except (TypeError, ValueError):
+            page, page_size = 1, 20
+
+        total = qs.count()
+        start = (page - 1) * page_size
+        rows = qs[start:start + page_size]
         data = [
             {
                 "schema_name": t.schema_name,
@@ -59,9 +107,9 @@ class AdminCompaniesView(APIView):
                 "is_active": t.is_active,
                 "subscription": _subscription_summary(getattr(t, "subscription", None)),
             }
-            for t in tenants
+            for t in rows
         ]
-        return Response(data)
+        return Response({"count": total, "page": page, "page_size": page_size, "results": data})
 
 
 class AdminStatsView(APIView):

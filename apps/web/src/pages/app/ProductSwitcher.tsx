@@ -28,10 +28,12 @@ export default function ProductSwitcher() {
   const [canInstall, setCanInstall] = useState(!!_deferredInstall);
 
   useEffect(() => {
-    if (products.length === 0) {
+    if (user?.isSuperAdmin) {
+      navigate('/superadmin', { replace: true });
+    } else if (products.length === 0) {
       navigate('/app/billing', { replace: true });
     }
-  }, [products.length, navigate]);
+  }, [user?.isSuperAdmin, products.length, navigate]);
 
   useEffect(() => {
     const onPrompt = () => setCanInstall(true);

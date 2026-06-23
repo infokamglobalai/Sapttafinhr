@@ -82,6 +82,11 @@ export function setWorkspace(workspace: string | null) {
 export function clearAuth() {
   localStorage.removeItem(ACCESS_KEY);
   localStorage.removeItem(REFRESH_KEY);
+  // Clear any impersonation session/backup so logout never leaves stale state.
+  localStorage.removeItem('saptta_impersonating');
+  localStorage.removeItem('saptta_admin_access');
+  localStorage.removeItem('saptta_admin_refresh');
+  localStorage.removeItem('saptta_admin_workspace');
 }
 
 // ─── Core request helper (with one-shot token refresh on 401) ────────────
@@ -541,6 +546,362 @@ export function suspendSubscription(id: number): Promise<unknown> {
 
 export function changeSubscriptionPlan(id: number, planId: number): Promise<unknown> {
   return request(`/saas/subscriptions/${id}/change_plan/`, { surface: 'platform', method: 'POST', body: { plan_id: planId } });
+}
+
+// ─── Super-admin: company drill-down, users, lifecycle, billing, plans ────
+export interface AdminUser {
+  id: number;
+  email: string;
+  full_name: string;
+  is_active: boolean;
+  is_staff: boolean;
+  is_verified: boolean;
+  date_joined: string;
+  is_owner: boolean;
+  reset_link?: string | null;
+}
+
+export interface AdminEntitlement {
+  id: number;
+  product: 'FIN' | 'HR';
+  product_slug: ProductSlug;
+  status: string;
+  is_active: boolean;
+}
+
+export interface AdminCompanyDetail {
+  schema_name: string;
+  name: string;
+  billing_email: string;
+  created_on: string;
+  is_active: boolean;
+  domains: string[];
+  subscription: null | {
+    id: number;
+    status: string;
+    is_active: boolean;
+    plan_id: number;
+    plan_code: string;
+    plan_name: string;
+    monthly_price: string;
+    current_period_start: string | null;
+    current_period_end: string | null;
+    cancelled_at: string | null;
+    entitlements: AdminEntitlement[];
+  };
+  users: AdminUser[];
+  invoices: AdminInvoice[];
+  audit: { actor: string; action: string; detail: Record<string, unknown>; at: string }[];
+}
+
+export interface AuditRow {
+  id: number;
+  actor: string;
+  action: string;
+  target_schema: string;
+  target_label: string;
+  detail: Record<string, unknown>;
+  at: string;
+}
+
+export interface AdminAnalytics {
+  signups_by_month: { month: string; signups: number; total: number }[];
+  status_mix: Record<string, number>;
+  plan_mix: { plan: string; code: string; count: number }[];
+  mrr: string;
+  total_companies: number;
+}
+
+export function fetchAdminCompanyDetail(schema: string): Promise<AdminCompanyDetail> {
+  return request<AdminCompanyDetail>(`/saas/admin/companies/${encodeURIComponent(schema)}/`, { surface: 'platform' });
+}
+
+export function fetchAdminAnalytics(): Promise<AdminAnalytics> {
+  return request<AdminAnalytics>('/saas/admin/analytics/', { surface: 'platform' });
+}
+
+export function fetchAdminAudit(schema?: string): Promise<AuditRow[]> {
+  const q = schema ? `?schema=${encodeURIComponent(schema)}` : '';
+  return request<AuditRow[]>(`/saas/admin/audit/${q}`, { surface: 'platform' });
+}
+
+// Users
+export function createCompanyUser(
+  schema: string,
+  payload: { email: string; full_name?: string; password?: string; make_owner?: boolean },
+): Promise<AdminUser> {
+  return request<AdminUser>(`/saas/admin/companies/${encodeURIComponent(schema)}/users/`, {
+    surface: 'platform', method: 'POST', body: payload,
+  });
+}
+
+export function resetUserPassword(userId: number): Promise<{ detail: string; reset_link: string; emailed: boolean }> {
+  return request(`/saas/admin/users/${userId}/reset-password/`, { surface: 'platform', method: 'POST' });
+}
+
+export function setUserActive(userId: number, isActive: boolean): Promise<AdminUser> {
+  return request<AdminUser>(`/saas/admin/users/${userId}/set-active/`, {
+    surface: 'platform', method: 'POST', body: { is_active: isActive },
+  });
+}
+
+// Lifecycle
+export function provisionCompany(payload: {
+  company_name: string; email: string; full_name?: string;
+  plan_id?: string; products?: ProductSlug[]; country?: string; password?: string;
+}): Promise<{ schema_name: string; name: string; billing_email: string; reset_link?: string | null }> {
+  return request('/saas/admin/companies/new/', { surface: 'platform', method: 'POST', body: payload });
+}
+
+export function setCompanyActive(schema: string, active: boolean): Promise<{ schema_name: string; is_active: boolean }> {
+  return request(`/saas/admin/companies/${encodeURIComponent(schema)}/lifecycle/`, {
+    surface: 'platform', method: 'POST', body: { active },
+  });
+}
+
+export function deleteCompany(schema: string): Promise<{ deleted: string; name: string }> {
+  return request(`/saas/admin/companies/${encodeURIComponent(schema)}/lifecycle/?confirm=${encodeURIComponent(schema)}`, {
+    surface: 'platform', method: 'DELETE',
+  });
+}
+
+// Billing ops
+export function generateCompanyInvoice(schema: string, amount?: number): Promise<AdminInvoice> {
+  return request<AdminInvoice>(`/saas/admin/companies/${encodeURIComponent(schema)}/invoices/`, {
+    surface: 'platform', method: 'POST', body: amount != null ? { amount } : {},
+  });
+}
+
+export function invoiceAction(invoiceId: number, action: 'mark-paid' | 'void'): Promise<AdminInvoice> {
+  return request<AdminInvoice>(`/saas/admin/invoices/${invoiceId}/${action}/`, { surface: 'platform', method: 'POST' });
+}
+
+export function toggleEntitlement(subId: number, product: 'FIN' | 'HR', enable: boolean): Promise<AdminEntitlement> {
+  return request<AdminEntitlement>(`/saas/admin/subscriptions/${subId}/entitlement/`, {
+    surface: 'platform', method: 'POST', body: { product, enable },
+  });
+}
+
+// Plans CRUD
+export interface AdminPlanFull {
+  id: number; code: string; name: string; description: string;
+  monthly_price: string; annual_price: string; features: Record<string, unknown>; is_active: boolean;
+}
+
+export async function fetchAdminPlansFull(): Promise<AdminPlanFull[]> {
+  return unwrapList(await request<AdminPlanFull[] | { results?: AdminPlanFull[] }>('/saas/admin/plans/', { surface: 'platform' }));
+}
+
+export function createPlan(payload: Partial<AdminPlanFull>): Promise<AdminPlanFull> {
+  return request<AdminPlanFull>('/saas/admin/plans/', { surface: 'platform', method: 'POST', body: payload });
+}
+
+export function updatePlan(id: number, payload: Partial<AdminPlanFull>): Promise<AdminPlanFull> {
+  return request<AdminPlanFull>(`/saas/admin/plans/${id}/`, { surface: 'platform', method: 'PATCH', body: payload });
+}
+
+export function deletePlan(id: number): Promise<unknown> {
+  return request(`/saas/admin/plans/${id}/`, { surface: 'platform', method: 'DELETE' });
+}
+
+// ─── Super-admin: directory scaling + tenant detail (Phase 7) ─────────────
+export interface CompaniesPage { count: number; page: number; page_size: number; results: AdminCompany[]; }
+export interface CompanyUsage {
+  fin: { invoices: number; parties: number; items: number; journal_entries: number; available: boolean };
+  hr: { headcount: number | null };
+  onboarding: { has_subscription: boolean; subscription_active: boolean; fin_seeded: boolean; has_first_invoice: boolean; hr_provisioned: boolean };
+}
+export interface TenantNote { id: number; author: string; body: string; at: string }
+
+export function fetchAdminCompaniesPaged(params: {
+  q?: string; status?: string; product?: string; plan?: string; sort?: string; page?: number; page_size?: number;
+} = {}): Promise<CompaniesPage> {
+  const sp = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== '' && v !== null) sp.set(k, String(v)); });
+  const qs = sp.toString();
+  return request<CompaniesPage>(`/saas/admin/companies/${qs ? '?' + qs : ''}`, { surface: 'platform' });
+}
+
+export function fetchCompanyUsage(schema: string): Promise<CompanyUsage> {
+  return request<CompanyUsage>(`/saas/admin/companies/${encodeURIComponent(schema)}/usage/`, { surface: 'platform' });
+}
+export function fetchCompanyNotes(schema: string): Promise<TenantNote[]> {
+  return request<TenantNote[]>(`/saas/admin/companies/${encodeURIComponent(schema)}/notes/`, { surface: 'platform' });
+}
+export function addCompanyNote(schema: string, body: string): Promise<TenantNote> {
+  return request<TenantNote>(`/saas/admin/companies/${encodeURIComponent(schema)}/notes/`, { surface: 'platform', method: 'POST', body: { body } });
+}
+
+// ─── Super-admin: revenue & dunning (Phase 8) ─────────────────────────────
+export interface RevenueReport {
+  mrr: string; arr: string; paid_revenue: string; gst_collected: string;
+  active_subscriptions: number; cancelled_this_month: number; churn_rate: number;
+  revenue_by_month: { month: string; amount: string }[];
+}
+export interface DunningRow {
+  id: number; company: string; schema: string; billing_email: string;
+  status: string; plan: string; current_period_end: string; days_overdue: number;
+}
+export function fetchRevenue(): Promise<RevenueReport> {
+  return request<RevenueReport>('/saas/admin/revenue/', { surface: 'platform' });
+}
+export function fetchDunning(within = 7): Promise<{ count: number; results: DunningRow[] }> {
+  return request(`/saas/admin/dunning/?within=${within}`, { surface: 'platform' });
+}
+export function remindSubscription(id: number): Promise<{ status: string; to: string }> {
+  return request(`/saas/admin/subscriptions/${id}/remind/`, { surface: 'platform', method: 'POST' });
+}
+export function extendSubscription(id: number, days: number): Promise<unknown> {
+  return request(`/saas/admin/subscriptions/${id}/extend/`, { surface: 'platform', method: 'POST', body: { days } });
+}
+
+/** Download a CSV export (auth-protected) and trigger a browser save. */
+export async function downloadAdminCsv(path: string, filename: string): Promise<void> {
+  const res = await fetch(`${PLATFORM_BASE}${path}`, {
+    headers: { Authorization: `Bearer ${getAccessToken()}` },
+  });
+  if (!res.ok) throw new ApiError(res.status, 'Export failed', null);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; document.body.appendChild(a); a.click();
+  a.remove(); URL.revokeObjectURL(url);
+}
+
+// ─── Super-admin: access & governance (Phase 10) ──────────────────────────
+export interface PlatformUser {
+  id: number; email: string; full_name: string; is_active: boolean;
+  is_staff: boolean; is_verified: boolean; workspace: string;
+}
+export function searchUsers(q: string): Promise<PlatformUser[]> {
+  return request<PlatformUser[]>(`/saas/admin/users/?q=${encodeURIComponent(q)}`, { surface: 'platform' });
+}
+export function setUserStaff(id: number, isStaff: boolean): Promise<{ id: number; email: string; is_staff: boolean }> {
+  return request(`/saas/admin/users/${id}/set-staff/`, { surface: 'platform', method: 'POST', body: { is_staff: isStaff } });
+}
+
+// ─── Super-admin: announcements (Phase 11) ────────────────────────────────
+export interface Announcement {
+  id: number; title: string; body: string; level: 'INFO' | 'WARNING' | 'CRITICAL';
+  is_active: boolean; is_live: boolean; starts_at: string | null; ends_at: string | null;
+  created_by: string; created_at: string;
+}
+export function fetchAnnouncements(): Promise<Announcement[]> {
+  return request<Announcement[]>('/saas/admin/announcements/', { surface: 'platform' });
+}
+export function createAnnouncement(payload: { title: string; body?: string; level?: string; starts_at?: string; ends_at?: string }): Promise<Announcement> {
+  return request<Announcement>('/saas/admin/announcements/', { surface: 'platform', method: 'POST', body: payload });
+}
+export function updateAnnouncement(id: number, payload: Partial<Announcement>): Promise<Announcement> {
+  return request<Announcement>(`/saas/admin/announcements/${id}/`, { surface: 'platform', method: 'PATCH', body: payload });
+}
+export function deleteAnnouncement(id: number): Promise<unknown> {
+  return request(`/saas/admin/announcements/${id}/`, { surface: 'platform', method: 'DELETE' });
+}
+export function fetchActiveAnnouncements(): Promise<Announcement[]> {
+  return request<Announcement[]>('/saas/announcements/active/', { surface: 'platform' });
+}
+
+// ─── Super-admin: observability (Phase 9) ─────────────────────────────────
+export interface ActivityRow {
+  source: 'console' | 'system';
+  actor: string;
+  action: string;
+  target: string;
+  label: string;
+  detail: Record<string, unknown>;
+  at: string;
+}
+
+export interface HealthService { status: 'up' | 'down'; latency_ms: number; detail: string; }
+export interface HealthReport {
+  overall: 'up' | 'degraded';
+  services: Record<string, HealthService>;
+  checked_at: string;
+  hr_headcount?: { total_employees: number; tenants_counted: number; reachable: boolean };
+}
+
+export interface PaymentsLog {
+  invoices: {
+    id: number; number: string; company: string; schema: string; amount: string;
+    status: 'OPEN' | 'PAID' | 'VOID'; period_start: string; period_end: string;
+    paid_at: string | null; created_at: string;
+  }[];
+  webhook_events: { id: number; event_id: string; received_at: string }[];
+  summary: { paid: number; open: number; void: number; webhook_events: number };
+}
+
+export interface JobsReport {
+  jobs: { name: string; task: string; schedule: string }[];
+  candidates: { active_lapsed: number; past_due_to_cancel: number };
+  recent_auto_actions: { action: string; target: string; created_at: string }[];
+}
+
+export function fetchAdminActivity(params?: { actor?: string; action?: string; schema?: string; limit?: number }): Promise<{ count: number; results: ActivityRow[] }> {
+  const q = new URLSearchParams();
+  if (params?.actor) q.set('actor', params.actor);
+  if (params?.action) q.set('action', params.action);
+  if (params?.schema) q.set('schema', params.schema);
+  if (params?.limit) q.set('limit', String(params.limit));
+  const qs = q.toString();
+  return request(`/saas/admin/activity/${qs ? '?' + qs : ''}`, { surface: 'platform' });
+}
+
+export function fetchAdminHealth(hrRollup = false): Promise<HealthReport> {
+  return request<HealthReport>(`/saas/admin/health/${hrRollup ? '?hr_rollup=1' : ''}`, { surface: 'platform' });
+}
+
+export function fetchAdminPayments(): Promise<PaymentsLog> {
+  return request<PaymentsLog>('/saas/admin/payments/', { surface: 'platform' });
+}
+
+export function fetchAdminJobs(): Promise<JobsReport> {
+  return request<JobsReport>('/saas/admin/jobs/', { surface: 'platform' });
+}
+
+export function runAdminJob(task: string): Promise<{ task: string; changed: number }> {
+  return request('/saas/admin/jobs/', { surface: 'platform', method: 'POST', body: { task } });
+}
+
+// ─── Impersonation ("open workspace as admin") ────────────────────────────
+const ADMIN_BACKUP_ACCESS = 'saptta_admin_access';
+const ADMIN_BACKUP_REFRESH = 'saptta_admin_refresh';
+const ADMIN_BACKUP_WS = 'saptta_admin_workspace';
+const IMPERSONATING_KEY = 'saptta_impersonating';
+
+export function getImpersonating(): string | null {
+  return localStorage.getItem(IMPERSONATING_KEY);
+}
+
+/** Begin impersonating a tenant: back up the admin session, swap in the scoped
+ *  token, then hard-navigate to the product switcher so the app re-bootstraps. */
+export async function startImpersonation(schema: string, userId?: number): Promise<void> {
+  const res = await request<{ access: string; refresh: string; workspace: string; company: string }>(
+    `/saas/admin/companies/${encodeURIComponent(schema)}/impersonate/`,
+    { surface: 'platform', method: 'POST', body: userId ? { user_id: userId } : undefined },
+  );
+  // Back up the current (admin) session so we can return to it.
+  localStorage.setItem(ADMIN_BACKUP_ACCESS, getAccessToken() ?? '');
+  localStorage.setItem(ADMIN_BACKUP_REFRESH, getRefreshToken() ?? '');
+  localStorage.setItem(ADMIN_BACKUP_WS, getWorkspace() ?? '');
+  setTokens(res.access, res.refresh);
+  setWorkspace(res.workspace);
+  localStorage.setItem(IMPERSONATING_KEY, res.company || schema);
+  window.location.assign('/app');
+}
+
+/** End impersonation: restore the backed-up admin session and return to console. */
+export function exitImpersonation(): void {
+  const a = localStorage.getItem(ADMIN_BACKUP_ACCESS);
+  const r = localStorage.getItem(ADMIN_BACKUP_REFRESH);
+  const ws = localStorage.getItem(ADMIN_BACKUP_WS);
+  if (a) setTokens(a, r || null);
+  setWorkspace(ws || null);
+  localStorage.removeItem(ADMIN_BACKUP_ACCESS);
+  localStorage.removeItem(ADMIN_BACKUP_REFRESH);
+  localStorage.removeItem(ADMIN_BACKUP_WS);
+  localStorage.removeItem(IMPERSONATING_KEY);
+  window.location.assign('/superadmin');
 }
 
 // ─── Dev-only helpers ─────────────────────────────────────────────────────

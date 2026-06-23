@@ -40,7 +40,7 @@ interface SignupData {
 }
 
 interface AuthContextValue extends AuthState {
-  login: (email: string, password: string, workspace?: string) => Promise<void>;
+  login: (email: string, password: string, workspace?: string) => Promise<User>;
   signup: (data: SignupData) => Promise<void>;
   logout: () => void;
   updateUser: (updates: Partial<User>) => void;
@@ -116,8 +116,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch { /* no workspace yet — leave products empty */ }
       }
 
-      setUser(toAppUser(me, products ?? [], resolvedWs));
+      const appUser = toAppUser(me, products ?? [], resolvedWs);
+      setUser(appUser);
       setToken(res.access);
+      return appUser;
     } finally {
       setIsLoading(false);
     }

@@ -141,6 +141,79 @@ class SaasInvoice(TimeStampedModel):
                                default=Status.OPEN)
 
 
+class SaasAuditLog(models.Model):
+    """Append-only record of privileged super-admin actions on the platform.
+
+    Every mutating operation in the /superadmin console (activate, suspend,
+    change plan, provision, impersonate, billing changes, …) writes one row so
+    there is an accountable trail of who did what, to which tenant, and when.
+    """
+
+    actor_email = models.CharField(max_length=254, db_index=True)
+    action = models.CharField(max_length=64, db_index=True)
+    target_schema = models.CharField(max_length=63, blank=True, db_index=True)
+    target_label = models.CharField(max_length=200, blank=True)
+    detail = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+
+    def __str__(self) -> str:
+        return f"{self.created_at:%Y-%m-%d %H:%M} {self.actor_email} {self.action} {self.target_schema}"
+
+
+class TenantNote(models.Model):
+    """Internal operator note attached to a tenant (CRM-style). Public schema."""
+
+    tenant_schema = models.CharField(max_length=63, db_index=True)
+    author_email = models.CharField(max_length=254, blank=True)
+    body = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+
+    def __str__(self) -> str:
+        return f"{self.tenant_schema}: {self.body[:40]}"
+
+
+class PlatformAnnouncement(models.Model):
+    """Platform-wide announcement broadcast to all tenants (in-app banner)."""
+
+    class Level(models.TextChoices):
+        INFO = "INFO", "Info"
+        WARNING = "WARNING", "Warning"
+        CRITICAL = "CRITICAL", "Critical"
+
+    title = models.CharField(max_length=200)
+    body = models.TextField(blank=True)
+    level = models.CharField(max_length=10, choices=Level.choices, default=Level.INFO)
+    is_active = models.BooleanField(default=True)
+    starts_at = models.DateTimeField(null=True, blank=True)
+    ends_at = models.DateTimeField(null=True, blank=True)
+    created_by = models.CharField(max_length=254, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+
+    def __str__(self) -> str:
+        return f"[{self.level}] {self.title}"
+
+    @property
+    def is_live(self) -> bool:
+        from django.utils import timezone
+        now = timezone.now()
+        if not self.is_active:
+            return False
+        if self.starts_at and now < self.starts_at:
+            return False
+        if self.ends_at and now > self.ends_at:
+            return False
+        return True
+
+
 class ProcessedWebhookEvent(models.Model):
     """Replay guard for inbound payment webhooks.
 

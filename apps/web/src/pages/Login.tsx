@@ -158,6 +158,10 @@ export default function Login() {
 
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/app';
 
+  // Superadmins land on the platform console, not the product switcher.
+  const landingFor = (u: { isSuperAdmin?: boolean } | null | undefined) =>
+    u?.isSuperAdmin && from === '/app' ? '/superadmin' : from;
+
   const redirectTarget = searchParams.get('redirect');
 
   const workspaceParam = searchParams.get('workspace') || undefined;
@@ -255,7 +259,7 @@ export default function Login() {
 
 
 
-  if (isAuthenticated && !redirectTarget) return <Navigate to={from} replace />;
+  if (isAuthenticated && !redirectTarget) return <Navigate to={landingFor(user)} replace />;
 
 
 
@@ -353,11 +357,11 @@ export default function Login() {
 
     try {
 
-      await login(email, password, workspaceParam);
+      const u = await login(email, password, workspaceParam);
 
       if (redirectTarget) await performRedirect();
 
-      else navigate(from, { replace: true });
+      else navigate(landingFor(u), { replace: true });
 
     } catch {
 
@@ -414,9 +418,9 @@ export default function Login() {
     setEmail(dEmail);
     setPassword(dPass);
     try {
-      await login(dEmail, dPass, workspaceParam);
+      const u = await login(dEmail, dPass, workspaceParam);
       if (redirectTarget) await performRedirect();
-      else navigate(from, { replace: true });
+      else navigate(landingFor(u), { replace: true });
     } catch {
       handoffOnceRef.current = false;
       setError('Demo login unavailable. Check that the API is running.');

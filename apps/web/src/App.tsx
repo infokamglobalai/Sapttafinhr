@@ -43,6 +43,14 @@ import AccessDenied from './pages/AccessDenied';
 import Launch from './pages/Launch';
 import Logout from './pages/Logout';
 import SuperAdminDashboard from './pages/superadmin/SuperAdminDashboard';
+import CompanyDetail from './pages/superadmin/CompanyDetail';
+import PlansAdmin from './pages/superadmin/PlansAdmin';
+import Operations from './pages/superadmin/Operations';
+import Revenue from './pages/superadmin/Revenue';
+import UsersAdmin from './pages/superadmin/UsersAdmin';
+import Announcements from './pages/superadmin/Announcements';
+import ImpersonationBanner from './components/ImpersonationBanner';
+import AnnouncementBanner from './components/AnnouncementBanner';
 
 const HIDE_CHROME_ROUTES = ['/app', '/superadmin', '/logout', '/launch', '/verify-email', '/access-denied'];
 const AUTH_MARKETING_ROUTES = ['/login', '/forgot-password', '/reset-password', '/signup'];
@@ -62,6 +70,8 @@ function AppLayout() {
           : { minHeight: '100vh', display: 'flex', flexDirection: 'column' }
       }
     >
+      <ImpersonationBanner />
+      <AnnouncementBanner />
       {!hideChrome && <Navbar />}
       <main
         className={`main-content${authMarketingPage ? ' main-content--login' : hideChrome ? ' main-content--auth' : ''}`}
@@ -99,6 +109,12 @@ function AppLayout() {
 
           {/* Super Admin Dashboard — platform owner only (page self-gates on is_staff). */}
           <Route path="/superadmin" element={<ProtectedRoute><SuperAdminDashboard /></ProtectedRoute>} />
+          <Route path="/superadmin/plans" element={<ProtectedRoute><PlansAdmin /></ProtectedRoute>} />
+          <Route path="/superadmin/ops" element={<ProtectedRoute><Operations /></ProtectedRoute>} />
+          <Route path="/superadmin/revenue" element={<ProtectedRoute><Revenue /></ProtectedRoute>} />
+          <Route path="/superadmin/users" element={<ProtectedRoute><UsersAdmin /></ProtectedRoute>} />
+          <Route path="/superadmin/announcements" element={<ProtectedRoute><Announcements /></ProtectedRoute>} />
+          <Route path="/superadmin/companies/:schema" element={<ProtectedRoute><CompanyDetail /></ProtectedRoute>} />
 
           {/* Account billing/subscription (stays in the marketing shell). */}
           <Route path="/app/billing" element={<ProtectedRoute><Billing /></ProtectedRoute>} />
