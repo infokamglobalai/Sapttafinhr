@@ -120,3 +120,6 @@ if "localhost" not in ALLOWED_HOSTS:
 if "127.0.0.1" not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append("127.0.0.1")
 
+# Prevent internal backend-to-backend HTTP requests from being redirected to HTTPS
+SECURE_REDIRECT_EXEMPT = [r"^internal/"]
+
