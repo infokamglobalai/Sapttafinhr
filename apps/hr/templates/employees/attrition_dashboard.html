@@ -1,102 +1,130 @@
 {% extends "base.html" %}
+{% block page_title %}Attrition Risk{% endblock %}
 {% block content %}
-<div style="padding: 24px; max-width: 1280px; margin: 0 auto;">
 
-  <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 12px; margin-bottom: 18px;">
-    <div>
-      <div style="font-size: 12px; color: var(--ink-500); text-transform: uppercase; letter-spacing: 0.06em;">HR Intelligence</div>
-      <h1 style="font-size: 26px; font-weight: 700; letter-spacing: -0.025em; margin-top: 4px;">Attrition Risk</h1>
-      <p style="font-size: 13px; color: var(--ink-500); margin-top: 4px;">
-        Flight-risk scoring across 7 signals - tenure, leave usage, attendance, performance, comp lag, manager churn, notice status.
-        {% if last_computed %}Last computed {{ last_computed|timesince }} ago.{% endif %}
-      </p>
-    </div>
+<div class="hr-page-header">
+  <div class="hr-page-header__main">
+    <p class="text-xs font-bold uppercase tracking-wider text-base-content/40 mb-1">People · Intelligence</p>
+    <h1 class="hr-page-header__title">Attrition Risk</h1>
+    <p class="hr-page-header__sub">
+      Flight-risk scoring across tenure, leave, attendance, performance, comp lag, and notice status.
+      {% if last_computed %}Last computed {{ last_computed|timesince }} ago.{% endif %}
+    </p>
+  </div>
+  <div class="hr-page-header__actions">
     <form method="post" action="{% url 'employees:attrition_recompute' %}">
       {% csrf_token %}
-      <button class="btn btn-primary" style="padding: 8px 18px;">Recompute now</button>
+      <button type="submit" class="btn btn-primary btn-sm">Recompute scores</button>
     </form>
   </div>
+</div>
 
-  {% if messages %}{% for m in messages %}<div class="alert alert-{% if m.tags == 'error' %}error{% else %}success{% endif %}" style="margin-bottom:14px;">{{ m }}</div>{% endfor %}{% endif %}
+{% if messages %}
+{% for m in messages %}
+<div class="alert alert-{% if m.tags == 'error' %}error{% else %}success{% endif %} mb-4 text-sm">{{ m }}</div>
+{% endfor %}
+{% endif %}
 
-  <!-- Summary tiles -->
-  <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 22px;">
-    <a href="?" class="card" style="padding: 18px; text-decoration: none; color: inherit; {% if not band %}border: 2px solid #6366f1;{% endif %}">
-      <div style="font-size: 12px; color: var(--ink-500); text-transform: uppercase; letter-spacing: 0.06em;">All Employees</div>
-      <div style="font-size: 30px; font-weight: 700; margin-top: 4px;">{{ counts.total }}</div>
-    </a>
-    <a href="?band=high" class="card" style="padding: 18px; text-decoration: none; color: inherit; {% if band == 'high' %}border: 2px solid #DC2626;{% endif %}">
-      <div style="font-size: 12px; color: #DC2626; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700;">High Risk</div>
-      <div style="font-size: 30px; font-weight: 700; margin-top: 4px; color: #DC2626;">{{ counts.high }}</div>
-      <div style="font-size: 11.5px; color: var(--ink-500); margin-top: 4px;">Score 60-100</div>
-    </a>
-    <a href="?band=medium" class="card" style="padding: 18px; text-decoration: none; color: inherit; {% if band == 'medium' %}border: 2px solid #D97706;{% endif %}">
-      <div style="font-size: 12px; color: #D97706; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700;">Medium</div>
-      <div style="font-size: 30px; font-weight: 700; margin-top: 4px; color: #D97706;">{{ counts.medium }}</div>
-      <div style="font-size: 11.5px; color: var(--ink-500); margin-top: 4px;">Score 30-59</div>
-    </a>
-    <a href="?band=low" class="card" style="padding: 18px; text-decoration: none; color: inherit; {% if band == 'low' %}border: 2px solid #15803D;{% endif %}">
-      <div style="font-size: 12px; color: #15803D; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700;">Low</div>
-      <div style="font-size: 30px; font-weight: 700; margin-top: 4px; color: #15803D;">{{ counts.low }}</div>
-      <div style="font-size: 11.5px; color: var(--ink-500); margin-top: 4px;">Score 0-29</div>
-    </a>
+{% if counts.total > 0 %}
+<div class="people-risk-chart card mb-5 p-5">
+  <div class="text-xs font-bold uppercase tracking-wider text-base-content/40 mb-4">Risk distribution</div>
+  <div class="people-risk-chart__bars">
+    <div class="people-risk-chart__row">
+      <span class="people-risk-chart__label">Low</span>
+      <div class="people-risk-chart__track"><div class="people-risk-chart__fill people-risk-chart__fill--low" style="width: {% widthratio counts.low counts.total 100 %}%"></div></div>
+      <span class="people-risk-chart__count">{{ counts.low }}</span>
+    </div>
+    <div class="people-risk-chart__row">
+      <span class="people-risk-chart__label">Medium</span>
+      <div class="people-risk-chart__track"><div class="people-risk-chart__fill people-risk-chart__fill--medium" style="width: {% widthratio counts.medium counts.total 100 %}%"></div></div>
+      <span class="people-risk-chart__count">{{ counts.medium }}</span>
+    </div>
+    <div class="people-risk-chart__row">
+      <span class="people-risk-chart__label">High</span>
+      <div class="people-risk-chart__track"><div class="people-risk-chart__fill people-risk-chart__fill--high" style="width: {% widthratio counts.high counts.total 100 %}%"></div></div>
+      <span class="people-risk-chart__count">{{ counts.high }}</span>
+    </div>
   </div>
+</div>
+{% endif %}
 
-  <!-- Scored list -->
-  <div class="card" style="padding: 0; overflow: hidden;">
-    <table style="width: 100%; border-collapse: collapse;">
-      <thead style="background: #eef2ff;">
-        <tr>
-          <th style="padding: 12px 16px; text-align: left; font-size: 12px; color: #7C2D12;">Employee</th>
-          <th style="padding: 12px 16px; text-align: left; font-size: 12px; color: #7C2D12;">Department</th>
-          <th style="padding: 12px 16px; text-align: center; font-size: 12px; color: #7C2D12;">Score</th>
-          <th style="padding: 12px 16px; text-align: left; font-size: 12px; color: #7C2D12;">Why</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for s in scores %}
-        <tr style="border-top: 1px solid #F3F4F6;">
-          <td style="padding: 14px 16px;">
-            <a href="{% url 'employees:detail' s.employee.pk %}" style="color: inherit; text-decoration: none;">
-              <div style="font-weight: 600;">{{ s.employee.full_name }}</div>
-              <div style="font-size: 11.5px; color: var(--ink-500);">{{ s.employee.employee_code }} - {{ s.employee.designation.name|default:"" }}</div>
-            </a>
-          </td>
-          <td style="padding: 14px 16px; font-size: 13px;">{{ s.employee.department.name|default:"-" }}</td>
-          <td style="padding: 14px 16px; text-align: center;">
-            <div style="display: inline-flex; flex-direction: column; align-items: center;">
-              <div style="
-                width: 52px; height: 52px; border-radius: 50%;
-                display: flex; align-items: center; justify-content: center;
-                font-weight: 800; font-size: 18px;
-                {% if s.risk_band == 'high' %}background: #FEE2E2; color: #B91C1C;{% endif %}
-                {% if s.risk_band == 'medium' %}background: #FEF3C7; color: #92400E;{% endif %}
-                {% if s.risk_band == 'low' %}background: #DCFCE7; color: #166534;{% endif %}
-              ">{{ s.score }}</div>
-              <div style="font-size: 10.5px; color: var(--ink-500); margin-top: 4px; text-transform: uppercase; font-weight: 600;">{{ s.risk_band }}</div>
-            </div>
-          </td>
-          <td style="padding: 14px 16px;">
-            {% if s.factors %}
-              <ul style="margin: 0; padding-left: 18px; font-size: 12.5px; color: var(--ink-700);">
-                {% for f in s.factors %}
-                <li style="margin-bottom: 3px;">
-                  <span style="font-weight: 600; color: #4f46e5;">[{{ f.points }}pt]</span> {{ f.reason }}
-                </li>
-                {% endfor %}
-              </ul>
-            {% else %}
-              <span style="font-size: 12.5px; color: var(--ink-500);">No risk factors detected.</span>
-            {% endif %}
-          </td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="4" style="padding: 40px; text-align: center; color: var(--ink-500);">
-          No scores yet. Click "Recompute now" to score everyone.
-        </td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+<div class="people-kpi-grid">
+  <a href="?" class="people-kpi {% if not band %}is-selected{% endif %}">
+    <div class="people-kpi__label">All employees</div>
+    <div class="people-kpi__value">{{ counts.total }}</div>
+    <div class="people-kpi__hint">Scored workforce</div>
+  </a>
+  <a href="?band=high" class="people-kpi people-kpi--danger {% if band == 'high' %}is-selected{% endif %}">
+    <div class="people-kpi__label">High risk</div>
+    <div class="people-kpi__value">{{ counts.high }}</div>
+    <div class="people-kpi__hint">Score 60–100</div>
+  </a>
+  <a href="?band=medium" class="people-kpi people-kpi--warn {% if band == 'medium' %}is-selected{% endif %}">
+    <div class="people-kpi__label">Medium</div>
+    <div class="people-kpi__value">{{ counts.medium }}</div>
+    <div class="people-kpi__hint">Score 30–59</div>
+  </a>
+  <a href="?band=low" class="people-kpi people-kpi--success {% if band == 'low' %}is-selected{% endif %}">
+    <div class="people-kpi__label">Low risk</div>
+    <div class="people-kpi__value">{{ counts.low }}</div>
+    <div class="people-kpi__hint">Score 0–29</div>
+  </a>
+</div>
+
+<div class="people-quick-actions">
+  <a href="{% url 'employees:list' %}?status=notice_period" class="btn btn-ghost btn-sm">View notice-period staff</a>
+  <a href="{% url 'hr_ops:exit_list' %}" class="btn btn-ghost btn-sm">Exit workflows</a>
+  <a href="{% url 'performance:team_reviews' %}" class="btn btn-ghost btn-sm">Team reviews</a>
+</div>
+
+<div class="people-table-card">
+  <table class="table table-sm">
+    <thead>
+      <tr>
+        <th>Employee</th>
+        <th>Department</th>
+        <th class="text-center">Score</th>
+        <th>Risk factors</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in scores %}
+      <tr>
+        <td>
+          <a href="{% url 'employees:detail' s.employee.pk %}" class="no-underline text-inherit">
+            <div class="people-emp-row__name">{{ s.employee.full_name }}</div>
+            <div class="people-emp-row__email">{{ s.employee.employee_code }} · {{ s.employee.designation.name|default:"—" }}</div>
+          </a>
+        </td>
+        <td class="text-sm">{{ s.employee.department.name|default:"—" }}</td>
+        <td class="text-center">
+          <div class="people-risk-score people-risk-score--{{ s.risk_band }}">{{ s.score }}</div>
+          <div class="text-[10px] uppercase font-bold text-base-content/50 mt-1">{{ s.risk_band }}</div>
+        </td>
+        <td>
+          {% if s.factors %}
+          <ul class="people-factor-list">
+            {% for f in s.factors|slice:":3" %}
+            <li><strong>[{{ f.points }}pt]</strong> {{ f.reason }}</li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <span class="text-sm text-base-content/50">No risk factors detected.</span>
+          {% endif %}
+        </td>
+        <td>
+          <a href="{% url 'employees:detail' s.employee.pk %}" class="btn btn-ghost btn-xs">Profile →</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="5" class="text-center py-12 text-base-content/40">
+          No scores yet. Click <strong>Recompute scores</strong> to analyze your workforce.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 </div>
 {% endblock %}

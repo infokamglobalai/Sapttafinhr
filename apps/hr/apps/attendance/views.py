@@ -179,8 +179,15 @@ def attendance_register(request):
             Q(employee__first_name__icontains=search) | Q(employee__last_name__icontains=search)
         )
 
+    from django.db.models import Count
     from apps.employees.models import Department
     departments = Department.objects.filter(tenant=tenant, is_active=True)
+
+    status_counts = {row["status"]: row["c"] for row in records.values("status").annotate(c=Count("id"))}
+    stats_total = records.count()
+    stats_present = status_counts.get("present", 0) + status_counts.get("half_day", 0)
+    stats_absent = status_counts.get("absent", 0)
+    stats_on_leave = status_counts.get("on_leave", 0)
 
     paginator = Paginator(records.order_by("employee__first_name"), 30)
     page_obj = paginator.get_page(request.GET.get("page"))
@@ -196,6 +203,10 @@ def attendance_register(request):
         "departments": departments,
         "selected_dept": dept_id,
         "search": search,
+        "stats_total": stats_total,
+        "stats_present": stats_present,
+        "stats_absent": stats_absent,
+        "stats_on_leave": stats_on_leave,
     })
 
 
@@ -214,11 +225,43 @@ def my_attendance(request):
         employee=employee, attendance_date__year=year, attendance_date__month=month
     ).order_by("attendance_date")
 
+    import calendar
+    from django.db.models import Count, Sum
+
+    stats_qs = records.aggregate(
+        total_hours=Sum("net_working_minutes"),
+    )
+    by_status = dict(
+        records.values("status").annotate(c=Count("id")).values_list("status", "c")
+    )
+    total_mins = stats_qs.get("total_hours") or 0
+
+    if month == 1:
+        prev_year, prev_month = year - 1, 12
+    else:
+        prev_year, prev_month = year, month - 1
+    if month == 12:
+        next_year, next_month = year + 1, 1
+    else:
+        next_year, next_month = year, month + 1
+
     return render(request, "attendance/my_attendance.html", {
         "records": records,
         "year": year,
         "month": month,
+        "month_name": calendar.month_name[month],
+        "prev_year": prev_year,
+        "prev_month": prev_month,
+        "next_year": next_year,
+        "next_month": next_month,
         "employee": employee,
+        "stats": {
+            "present": by_status.get("present", 0),
+            "absent": by_status.get("absent", 0),
+            "on_leave": by_status.get("on_leave", 0),
+            "half_day": by_status.get("half_day", 0),
+            "total_hours": round(total_mins / 60, 1) if total_mins else 0,
+        },
     })
 
 

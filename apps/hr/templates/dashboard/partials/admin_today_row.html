@@ -16,7 +16,7 @@
         </select>
       </label>
     </div>
-    <div class="chart-wrap dash-chart-wrap" style="height: 220px; position: relative;">
+    <div class="chart-wrap dash-chart-wrap dash-chart-wrap--compact" style="height: 150px; position: relative;">
       <canvas id="attendanceTrendChart" aria-label="Attendance trend chart"></canvas>
       <div id="attendanceTrendEmpty" class="dash-chart-empty{% if insights.avg_daily_present %} is-hidden{% endif %}" aria-hidden="{% if insights.avg_daily_present %}true{% else %}false{% endif %}">
         <span class="dash-chart-empty__icon" aria-hidden="true">
@@ -53,12 +53,11 @@
     </div>
 
     <div class="dash-presence-list" x-show="tab === 'present'">
-      {% for emp in today_presence.present %}
+      {% for emp in today_presence.present|slice:":5" %}
       <a href="{% url 'employees:detail' emp.id %}" class="dash-presence-row">
-        <span class="dash-presence-row__avatar">{{ emp.initials }}</span>
         <span class="dash-presence-row__meta">
           <span class="dash-presence-row__name">{{ emp.name }}</span>
-          <span class="dash-presence-row__sub">{{ emp.designation }} · {{ emp.department }}</span>
+          <span class="dash-presence-row__sub">{{ emp.designation }}{% if emp.department %} · {{ emp.department }}{% endif %}</span>
         </span>
         {% if emp.extra %}<span class="dash-presence-row__badge dash-presence-row__badge--green">{{ emp.extra }}</span>{% endif %}
       </a>
@@ -72,15 +71,17 @@
         <a href="{% url 'attendance:register' %}" class="dash-presence-empty__cta">Mark attendance</a>
       </div>
       {% endfor %}
+      {% if today_presence.present_count > 5 %}
+      <a href="{% url 'attendance:register' %}" class="dash-presence-more">View all {{ today_presence.present_count }} in register →</a>
+      {% endif %}
     </div>
 
     <div class="dash-presence-list" x-show="tab === 'absent'" x-cloak>
-      {% for emp in today_presence.absent %}
+      {% for emp in today_presence.absent|slice:":5" %}
       <a href="{% url 'employees:detail' emp.id %}" class="dash-presence-row">
-        <span class="dash-presence-row__avatar dash-presence-row__avatar--muted">{{ emp.initials }}</span>
         <span class="dash-presence-row__meta">
           <span class="dash-presence-row__name">{{ emp.name }}</span>
-          <span class="dash-presence-row__sub">{{ emp.designation }} · {{ emp.department }}</span>
+          <span class="dash-presence-row__sub">{{ emp.designation }}{% if emp.department %} · {{ emp.department }}{% endif %}</span>
         </span>
         <span class="dash-presence-row__badge dash-presence-row__badge--red">Absent</span>
       </a>
@@ -93,20 +94,25 @@
         <p class="dash-presence-empty__sub">No unmarked absences right now.</p>
       </div>
       {% endfor %}
+      {% if today_presence.absent_count > 5 %}
+      <a href="{% url 'attendance:register' %}" class="dash-presence-more">View all {{ today_presence.absent_count }} in register →</a>
+      {% endif %}
     </div>
 
     {% if today_presence.on_leave_count %}
     <div class="dash-presence-list" x-show="tab === 'leave'" x-cloak>
-      {% for emp in today_presence.on_leave %}
+      {% for emp in today_presence.on_leave|slice:":5" %}
       <a href="{% url 'employees:detail' emp.id %}" class="dash-presence-row">
-        <span class="dash-presence-row__avatar dash-presence-row__avatar--amber">{{ emp.initials }}</span>
         <span class="dash-presence-row__meta">
           <span class="dash-presence-row__name">{{ emp.name }}</span>
-          <span class="dash-presence-row__sub">{{ emp.designation }} · {{ emp.department }}</span>
+          <span class="dash-presence-row__sub">{{ emp.designation }}{% if emp.department %} · {{ emp.department }}{% endif %}</span>
         </span>
         <span class="dash-presence-row__badge dash-presence-row__badge--amber">On leave</span>
       </a>
       {% endfor %}
+      {% if today_presence.on_leave_count > 5 %}
+      <a href="{% url 'attendance:register' %}" class="dash-presence-more">View all {{ today_presence.on_leave_count }} on leave →</a>
+      {% endif %}
     </div>
     {% endif %}
   </section>

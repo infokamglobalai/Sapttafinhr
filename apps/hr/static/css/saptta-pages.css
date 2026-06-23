@@ -1,0 +1,151 @@
+/* Unified page + card layout — all roles (HR, manager, employee) */
+
+.hr-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 4px 32px;
+}
+
+/* Alias my-space utilities as global hr patterns */
+.my-space-page,
+.hr-page--hub {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.my-space-kpis,
+.hr-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+/* Unified page + card layout — all roles (HR, manager, employee) */
+
+.hr-kpi,
+.my-space-kpi,
+.hr-kpi-card {
+  padding: 16px;
+  background: var(--hr-surface, #fff);
+  border: 1px solid var(--hr-border, #e2e8f0);
+  border-radius: 12px;
+}
+
+.hr-kpi__label,
+.my-space-kpi__label,
+.hr-kpi-card__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--hr-text-secondary, #64748b);
+  margin-bottom: 6px;
+}
+
+.hr-kpi__value,
+.my-space-kpi__value,
+.hr-kpi-card__value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--hr-primary, #4f46e5);
+}
+
+.my-space-card,
+.hr-panel {
+  background: #fff;
+  border: 1px solid var(--hr-border, #e2e8f0);
+  border-radius: 12px;
+  padding: 18px;
+}
+
+.my-space-card__title,
+.hr-panel__title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  margin: 0 0 12px;
+  color: var(--hr-text, #0f172a);
+}
+
+.my-space-meta,
+.hr-text-muted {
+  font-size: 0.8125rem;
+  color: var(--hr-text-secondary, #64748b);
+}
+
+.my-space-grid,
+.hr-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .my-space-grid,
+  .hr-two-col {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Secondary nav — role hint under section title */
+.secondary-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.secondary-header__hint {
+  font-size: 11px;
+  font-weight: 500;
+  color: #94a3b8;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.secondary-header__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  width: fit-content;
+}
+
+.secondary-header__badge--admin {
+  background: #eef2ff;
+  color: #4f46e5;
+}
+
+.secondary-header__badge--manager {
+  background: #f0fdf4;
+  color: #059669;
+}
+
+.secondary-header__badge--employee {
+  background: #f8fafc;
+  color: #475569;
+}
+
+/* Consistent active nav in secondary panel */
+.sidebar-secondary .nav-item.active {
+  background: rgba(79, 70, 229, 0.1) !important;
+  color: #4f46e5 !important;
+  font-weight: 600 !important;
+}
+
+.sidebar-secondary .nav-item.active svg {
+  color: #4f46e5;
+  opacity: 1;
+}
+
+/* Tables + cards on employee pages match admin */
+.hr-table-wrap,
+.people-table-card {
+  background: #fff;
+  border: 1px solid var(--hr-border, #e2e8f0);
+  border-radius: 12px;
+  overflow: hidden;
+}

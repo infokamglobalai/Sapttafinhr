@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block page_title %}My Onboarding{% endblock %}
+{% block content %}
+<div class="my-space-page">
+  {% if not onboarding %}
+  <div class="my-space-card">
+    <p class="my-space-meta">You do not have an active onboarding checklist.</p>
+  </div>
+  {% else %}
+  <div class="my-space-hero">
+    <div style="flex:1;">
+      <h1 class="my-space-hero__title">Welcome aboard!</h1>
+      <p class="my-space-meta">Complete your onboarding tasks below. HR and your manager will handle the rest.</p>
+    </div>
+    <div style="text-align:right;">
+      <div class="my-space-kpi__value" style="font-size:2rem;">{{ onboarding.completion_percentage }}%</div>
+      <div class="my-space-kpi__label">Complete</div>
+    </div>
+  </div>
+
+  <div style="height:8px;background:#f1f5f9;border-radius:99px;overflow:hidden;margin-bottom:20px;">
+    <div style="height:100%;width:{{ onboarding.completion_percentage }}%;background:linear-gradient(90deg,#6366f1,#4f46e5);"></div>
+  </div>
+
+  <div class="my-space-card" style="padding:0;overflow:hidden;">
+    {% for item in items %}
+    <div style="display:flex;align-items:center;gap:14px;padding:16px 20px;border-bottom:1px solid #f1f5f9;{% if item.status == 'completed' %}opacity:0.75;{% endif %}">
+      <div style="width:28px;height:28px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+        {% if item.status == 'completed' %}background:#10b981;color:#fff;{% else %}border:2px solid #e2e8f0;{% endif %}">
+        {% if item.status == 'completed' %}✓{% endif %}
+      </div>
+      <div style="flex:1;">
+        <div style="font-weight:600;font-size:0.9375rem;">{{ item.task.task_name }}</div>
+        {% if item.task.description %}<div class="my-space-meta">{{ item.task.description }}</div>{% endif %}
+        <div class="my-space-meta" style="margin-top:4px;">
+          Due {{ item.due_date|date:"d M Y" }} · {{ item.task.get_responsible_party_display }}
+        </div>
+      </div>
+      {% if item.status == 'pending' and item.task.responsible_party == 'employee' %}
+      <form method="post" action="{% url 'hr_ops:my_onboarding_item_complete' item.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary btn-sm">Mark done</button>
+      </form>
+      {% elif item.status == 'pending' %}
+      <span class="my-space-meta">Waiting on {{ item.task.get_responsible_party_display }}</span>
+      {% endif %}
+    </div>
+    {% empty %}
+    <p class="my-space-meta" style="padding:24px;">No tasks in your checklist.</p>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

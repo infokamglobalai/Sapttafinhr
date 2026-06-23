@@ -52,6 +52,12 @@ def request_create(request):
             return redirect("hr_ops:my_service_requests")
     else:
         form = ServiceRequestForm(assigned_assets=assigned_assets)
+        asset_pk = request.GET.get("asset")
+        category = request.GET.get("category")
+        if asset_pk and assigned_assets.filter(pk=asset_pk).exists():
+            form.initial["asset"] = int(asset_pk)
+            form.initial["category"] = category or "hardware"
+            form.initial["subject"] = f"Issue with assigned asset"
 
     return render(request, "hr_ops/request_form.html", {"form": form, "assigned_assets": assigned_assets})
 

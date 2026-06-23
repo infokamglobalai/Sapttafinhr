@@ -1,46 +1,99 @@
 {% extends "base.html" %}
 {% block page_title %}Comp-off{% endblock %}
 {% block content %}
-<div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-  <div>
-    <h2 class="text-xl font-bold">Comp-off (Compensatory Leave)</h2>
-    <p class="text-sm text-base-content/60">Request credit for working on a holiday or week-off. {{ available_count }} day(s) available to use.</p>
+<div class="hr-page-header">
+  <div class="hr-page-header__main">
+    <h1 class="hr-page-header__title">Comp-off (Compensatory Leave)</h1>
+    <p class="hr-page-header__sub">
+      Request credit for working on a holiday or week-off. Redeem with leave type <strong>CO</strong> when applying leave.
+    </p>
+  </div>
+  <div class="hr-page-header__actions">
+    <a href="{% url 'leaves:apply' %}" class="btn btn-outline btn-sm">Apply CO Leave</a>
   </div>
 </div>
 
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-  <div class="card">
+<div class="hr-kpi-strip">
+  <div class="hr-kpi hr-kpi--accent">
+    <div class="hr-kpi__label">Available</div>
+    <div class="hr-kpi__value hr-kpi__value--green">{{ stats.available|floatformat:1 }}</div>
+    <div class="hr-kpi__hint">Days to redeem</div>
+  </div>
+  <div class="hr-kpi">
+    <div class="hr-kpi__label">Pending approval</div>
+    <div class="hr-kpi__value hr-kpi__value--amber">{{ stats.pending }}</div>
+  </div>
+  <div class="hr-kpi">
+    <div class="hr-kpi__label">Used</div>
+    <div class="hr-kpi__value hr-kpi__value--indigo">{{ stats.used }}</div>
+  </div>
+  <div class="hr-kpi">
+    <div class="hr-kpi__label">Expiring in 14 days</div>
+    <div class="hr-kpi__value hr-kpi__value--rose">{{ stats.expiring_soon }}</div>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-5 gap-4">
+  <div class="card lg:col-span-2">
     <div class="card-body">
-      <h3 class="font-semibold mb-3">Request comp-off credit</h3>
+      <h2 class="text-sm font-semibold text-base-content/80 mb-1">Request comp-off credit</h2>
+      <p class="text-xs text-base-content/50 mb-4">Your manager or HR will approve before credits become available.</p>
       <form method="post" class="space-y-3">
         {% csrf_token %}
-        <div>
-          <label class="label-text text-xs">Date you worked *</label>
-          <input type="date" name="worked_date" class="input input-bordered input-sm w-full" required>
+        <div class="form-control">
+          <label class="label py-0" for="worked_date">
+            <span class="label-text text-xs font-medium">Date you worked *</span>
+          </label>
+          <input type="date" id="worked_date" name="worked_date" class="input input-bordered input-sm w-full" required max="{{ today|date:'Y-m-d' }}">
         </div>
-        <div>
-          <label class="label-text text-xs">Reason (optional)</label>
-          <textarea name="reason" class="textarea textarea-bordered textarea-sm w-full" rows="2" placeholder="Holiday deployment, client deadline…"></textarea>
+        <div class="form-control">
+          <label class="label py-0" for="reason">
+            <span class="label-text text-xs font-medium">Reason (optional)</span>
+          </label>
+          <textarea id="reason" name="reason" class="textarea textarea-bordered textarea-sm w-full" rows="2" placeholder="Holiday deployment, client deadline…"></textarea>
         </div>
-        <button type="submit" class="btn btn-primary btn-sm">Submit request</button>
+        <button type="submit" class="btn btn-primary btn-sm w-full sm:w-auto">Submit request</button>
       </form>
     </div>
   </div>
 
-  <div class="card hr-table-wrap">
-    <div class="card-body p-0">
+  <div class="card hr-table-wrap lg:col-span-3">
+    <div class="px-4 py-3 border-b border-base-200">
+      <h2 class="text-sm font-semibold">Your comp-off history</h2>
+    </div>
+    <div class="overflow-x-auto">
       <table class="table table-sm">
-        <thead><tr><th>Worked</th><th>Days</th><th>Valid until</th><th>Status</th></tr></thead>
+        <thead>
+          <tr>
+            <th>Worked</th>
+            <th>Days</th>
+            <th>Valid until</th>
+            <th>Status</th>
+          </tr>
+        </thead>
         <tbody>
           {% for c in credits %}
           <tr>
-            <td>{{ c.worked_date|date:"d M Y" }}</td>
+            <td class="font-medium">{{ c.worked_date|date:"d M Y" }}</td>
             <td>{{ c.days_earned }}</td>
-            <td>{{ c.valid_until|date:"d M Y" }}</td>
-            <td><span class="badge badge-sm badge-ghost">{{ c.status|title }}</span></td>
+            <td class="text-sm text-base-content/70">{{ c.valid_until|date:"d M Y" }}</td>
+            <td>
+              <span class="badge badge-sm
+                {% if c.status == 'available' %}badge-success
+                {% elif c.status == 'pending' %}badge-warning
+                {% elif c.status == 'used' %}badge-ghost
+                {% elif c.status == 'rejected' %}badge-error
+                {% else %}badge-ghost{% endif %}">
+                {{ c.status|title }}
+              </span>
+            </td>
           </tr>
           {% empty %}
-          <tr><td colspan="4" class="text-center py-8 text-base-content/40">No comp-off records yet.</td></tr>
+          <tr>
+            <td colspan="4">
+              {% include "partials/empty_state.html" with title="No comp-off records yet" message="Submit a request after working on a holiday or week-off. Credits appear here once approved." %}
+            </td>
+          </tr>
           {% endfor %}
         </tbody>
       </table>

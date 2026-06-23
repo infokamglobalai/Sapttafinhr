@@ -182,6 +182,9 @@ def headcount_report_export(request):
 
     tenant = request.tenant
     employees = Employee.objects.filter(tenant=tenant).select_related("department", "designation")
+    status = request.GET.get("status", "active")
+    if status:
+        employees = employees.filter(employment_status=status)
 
     wb = make_workbook()
     ws = wb.active

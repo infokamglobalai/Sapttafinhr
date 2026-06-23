@@ -26,21 +26,36 @@
   opacity: 1 !important;
 }
 
-/* Mono indigo rail (Finance base): icons rest neutral-slate, turn indigo when
-   active/hovered. Per-module tones intentionally collapsed to one treatment. */
-.dock-item[data-tone] .dock-icon-wrap,
+/* Mono indigo rail — per-module tones on icon chips (active/hover intensify). */
+.dock-item[data-tone="violet"] .dock-icon-wrap { background: rgba(79, 70, 229, 0.1); color: #4f46e5; }
+.dock-item[data-tone="blue"] .dock-icon-wrap { background: rgba(59, 130, 246, 0.12); color: #2563eb; }
+.dock-item[data-tone="cyan"] .dock-icon-wrap { background: rgba(8, 145, 178, 0.12); color: #0891b2; }
+.dock-item[data-tone="green"] .dock-icon-wrap { background: rgba(5, 150, 105, 0.12); color: #059669; }
+.dock-item[data-tone="amber"] .dock-icon-wrap { background: rgba(217, 119, 6, 0.12); color: #d97706; }
+.dock-item[data-tone="rose"] .dock-icon-wrap { background: rgba(225, 29, 72, 0.1); color: #e11d48; }
+.dock-item[data-tone="indigo"] .dock-icon-wrap { background: rgba(99, 102, 241, 0.12); color: #6366f1; }
 .dock-item[data-tone="slate"] .dock-icon-wrap,
-.dock-icon-wrap--muted { background: rgba(100, 116, 139, 0.1); color: #64748B; }
+.dock-icon-wrap--muted { background: rgba(100, 116, 139, 0.1); color: #64748b; }
 
-.dock-item:hover .dock-icon-wrap {
-  background: rgba(79, 70, 229, 0.1);
-  color: #4f46e5;
-}
-
+.dock-item:hover .dock-icon-wrap,
 .dock-item.active .dock-icon-wrap {
-  background: rgba(79, 70, 229, 0.14) !important;
-  color: #4f46e5 !important;
+  filter: saturate(1.1);
 }
+
+.dock-item[data-tone="blue"]:hover .dock-icon-wrap,
+.dock-item[data-tone="blue"].active .dock-icon-wrap { background: rgba(59, 130, 246, 0.2); color: #1d4ed8; }
+.dock-item[data-tone="cyan"]:hover .dock-icon-wrap,
+.dock-item[data-tone="cyan"].active .dock-icon-wrap { background: rgba(8, 145, 178, 0.2); color: #0e7490; }
+.dock-item[data-tone="green"]:hover .dock-icon-wrap,
+.dock-item[data-tone="green"].active .dock-icon-wrap { background: rgba(5, 150, 105, 0.2); color: #047857; }
+.dock-item[data-tone="amber"]:hover .dock-icon-wrap,
+.dock-item[data-tone="amber"].active .dock-icon-wrap { background: rgba(217, 119, 6, 0.2); color: #b45309; }
+.dock-item[data-tone="rose"]:hover .dock-icon-wrap,
+.dock-item[data-tone="rose"].active .dock-icon-wrap { background: rgba(225, 29, 72, 0.16); color: #be123c; }
+.dock-item[data-tone="violet"]:hover .dock-icon-wrap,
+.dock-item[data-tone="violet"].active .dock-icon-wrap,
+.dock-item[data-tone="indigo"]:hover .dock-icon-wrap,
+.dock-item[data-tone="indigo"].active .dock-icon-wrap { background: rgba(79, 70, 229, 0.18); color: #4338ca; }
 
 .brand-logo-fallback {
   width: 38px;
@@ -494,17 +509,25 @@
     white-space: nowrap;
   }
 
+@media (min-width: 1024px) {
+  .sidebar-secondary.is-closed {
+    display: none !important;
+    pointer-events: none !important;
+  }
+}
+
   /* Secondary sub-panel */
   .sidebar-secondary {
     background: #FFFFFF !important;
-    border-right: 1px solid rgba(15, 23, 42, 0.06) !important;
+    border-right: 1px solid rgba(79, 70, 229, 0.08) !important;
+    box-shadow: 1px 0 0 rgba(15, 23, 42, 0.04);
   }
 
   .secondary-header {
     font-size: 15px !important;
     font-weight: 700 !important;
     letter-spacing: -0.02em !important;
-    color: #0F172A !important;
+    color: #4f46e5 !important;
     padding-bottom: 14px !important;
   }
 
@@ -551,27 +574,294 @@
     justify-content: center !important;
     padding: 12px 0 14px !important;
   }
+
+  /* Sub-links always live in the secondary panel — never inline in the rail */
+  .dock-subnav {
+    display: none !important;
+  }
 }
 
-/* Tone accents for secondary panels */
-.sidebar-secondary--dashboard,
+/* Tone accents for secondary panels — per module */
+.sidebar-secondary--people { --panel-accent: #2563eb; --panel-accent-soft: rgba(59, 130, 246, 0.1); }
+.sidebar-secondary--timeLeave { --panel-accent: #0891b2; --panel-accent-soft: rgba(8, 145, 178, 0.1); }
+.sidebar-secondary--payroll { --panel-accent: #059669; --panel-accent-soft: rgba(5, 150, 105, 0.1); }
+.sidebar-secondary--performance { --panel-accent: #d97706; --panel-accent-soft: rgba(217, 119, 6, 0.1); }
+.sidebar-secondary--hrOps { --panel-accent: #e11d48; --panel-accent-soft: rgba(225, 29, 72, 0.08); }
+.sidebar-secondary--reports { --panel-accent: #7c3aed; --panel-accent-soft: rgba(124, 58, 237, 0.1); }
 .sidebar-secondary--mySpace,
-.sidebar-secondary--team,
-.sidebar-secondary--people,
-.sidebar-secondary--timeLeave,
-.sidebar-secondary--payroll,
-.sidebar-secondary--performance,
-.sidebar-secondary--reports,
-.sidebar-secondary--hrOps,
-.sidebar-secondary--settings {
-  --panel-accent: #4f46e5;
-  --panel-accent-soft: rgba(79, 70, 229, 0.08);
+.sidebar-secondary--team { --panel-accent: #4f46e5; --panel-accent-soft: rgba(79, 70, 229, 0.1); }
+.sidebar-secondary--settings { --panel-accent: #475569; --panel-accent-soft: rgba(71, 85, 105, 0.08); }
+.sidebar-secondary--dashboard { --panel-accent: #4f46e5; --panel-accent-soft: rgba(79, 70, 229, 0.08); }
+
+@media (min-width: 1024px) {
+  .sidebar-secondary[class*="sidebar-secondary--"] {
+    border-left: 3px solid var(--panel-accent, #4f46e5) !important;
+    background: linear-gradient(180deg, #fff 0%, #fafbfc 100%) !important;
+  }
+
+  .sidebar-secondary .secondary-header__title {
+    color: var(--panel-accent, #4f46e5) !important;
+    font-size: 1rem !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.02em !important;
+  }
+
+  .sidebar-secondary .nav-item.active {
+    background: var(--panel-accent-soft, rgba(79, 70, 229, 0.1)) !important;
+    color: var(--panel-accent, #4f46e5) !important;
+    box-shadow: inset 3px 0 0 var(--panel-accent, #4f46e5);
+  }
+
+  .sidebar-secondary .nav-item.active svg {
+    color: var(--panel-accent, #4f46e5) !important;
+  }
+
+  .sidebar-desktop-container.has-secondary .sidebar-primary {
+    box-shadow: inset -1px 0 0 rgba(15, 23, 42, 0.04);
+  }
+
+  .sidebar-desktop-container.is-expanded .dock-item--has-sub::after {
+    display: block !important;
+    content: '' !important;
+    position: absolute !important;
+    left: auto !important;
+    right: 10px !important;
+    top: 50% !important;
+    width: 5px !important;
+    height: 5px !important;
+    margin-top: -2px !important;
+    padding: 0 !important;
+    background: transparent !important;
+    color: inherit !important;
+    font-size: inherit !important;
+    font-weight: inherit !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    opacity: 0.65 !important;
+    transform: translateY(-50%) rotate(-45deg) !important;
+    border-right: 1.5px solid #cbd5e1 !important;
+    border-bottom: 1.5px solid #cbd5e1 !important;
+    pointer-events: none !important;
+    white-space: normal !important;
+  }
+
+  .sidebar-desktop-container.is-expanded .dock-item--has-sub.active::after {
+    border-color: #4f46e5 !important;
+    opacity: 1 !important;
+  }
+
+  .dock-section-label {
+    color: #94a3b8 !important;
+    font-weight: 700 !important;
+  }
 }
 
+/* Mobile accordion — module tint when open */
 @media (max-width: 1023px) {
-  .sidebar .nav-item {
-    font-family: var(--font-sans);
-    font-size: 14px;
-    letter-spacing: -0.01em;
+  .sidebar {
+    background: linear-gradient(180deg, #fff 0%, #f8fafc 100%) !important;
+  }
+
+  .nav-section-title {
+    color: #94a3b8 !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.07em !important;
+    padding: 14px 14px 6px !important;
+  }
+
+  .nav-group-header {
+    border-radius: 12px !important;
+    margin: 2px 8px !important;
+    padding: 10px 12px !important;
+    border: 1px solid transparent !important;
+    transition: background 150ms, border-color 150ms, box-shadow 150ms !important;
+  }
+
+  .nav-group-header:hover {
+    background: rgba(15, 23, 42, 0.03) !important;
+  }
+
+  .nav-group-header.open {
+    background: #fff !important;
+    border-color: rgba(15, 23, 42, 0.08) !important;
+    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.05) !important;
+  }
+
+  .nav-group-header.active-group {
+    background: #eef2ff !important;
+    border-color: rgba(79, 70, 229, 0.2) !important;
+  }
+
+  .nav-group-header.active-group span {
+    color: #4f46e5 !important;
+    font-weight: 600 !important;
+  }
+
+  .nav-group-content {
+    padding: 4px 8px 8px 12px !important;
+    margin-left: 8px !important;
+    border-left: 2px solid rgba(79, 70, 229, 0.15) !important;
+  }
+
+  .nav-group-content .nav-item {
+    border-radius: 10px !important;
+    font-size: 13px !important;
+  }
+
+  .sidebar .nav-item.active {
+    background: #eef2ff !important;
+    color: #4f46e5 !important;
+    font-weight: 600 !important;
+  }
+}
+
+/* ============================================================
+   SAPTTA NAV SHELL v4 — stable layout, smooth module switch
+   ============================================================ */
+
+@media (min-width: 1024px) {
+  /* SSR pin state — correct margins before Alpine loads (no blink) */
+  html.saptta-sidebar-pinned .sidebar-desktop-container .sidebar-primary {
+    width: var(--sidebar-rail-expanded) !important;
+    box-shadow: 4px 0 24px rgba(15, 23, 42, 0.04);
+  }
+
+  html.saptta-sidebar-pinned .sidebar-desktop-container .dock-nav {
+    align-items: stretch !important;
+    padding: 0 12px;
+  }
+
+  html.saptta-sidebar-pinned .sidebar-desktop-container .dock-section-label {
+    display: block;
+  }
+
+  html.saptta-sidebar-pinned .sidebar-desktop-container .brand-logo-wordmark--full {
+    display: block;
+  }
+
+  html.saptta-sidebar-pinned .sidebar-desktop-container .brand-logo-wordmark--mark {
+    display: none;
+  }
+
+  html.saptta-sidebar-pinned .sidebar-desktop-container .dock-item {
+    width: 100% !important;
+    justify-content: flex-start !important;
+    padding: 0 8px !important;
+  }
+
+  html.saptta-sidebar-pinned .sidebar-desktop-container .dock-label {
+    display: block !important;
+  }
+
+  html.saptta-sidebar-pinned .app-main {
+    margin-left: var(--sidebar-rail-expanded) !important;
+    width: calc(100% - var(--sidebar-rail-expanded)) !important;
+  }
+
+  html.saptta-sidebar-pinned .app-main.secondary-open,
+  html.saptta-sidebar-pinned .app-main.secondary-open--ssr {
+    margin-left: calc(var(--sidebar-rail-expanded) + var(--sidebar-secondary-width)) !important;
+    width: calc(100% - var(--sidebar-rail-expanded) - var(--sidebar-secondary-width)) !important;
+  }
+
+  /* No layout animation on page load — only when user pins/unpins */
+  .sidebar-primary {
+    transition: width 0s, box-shadow 0.2s ease !important;
+  }
+
+  html.saptta-nav-ready .sidebar-primary {
+    transition: width 240ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 240ms ease !important;
+  }
+
+  .app-main {
+    transition: none !important;
+  }
+
+  /* Secondary panel v4 */
+  .sidebar-secondary--v4 {
+    background: #fff !important;
+    border-right: 1px solid rgba(15, 23, 42, 0.06) !important;
+    box-shadow: none !important;
+  }
+
+  .sidebar-secondary--v4.is-closed {
+    display: none !important;
+    pointer-events: none !important;
+  }
+
+  .secondary-header__title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .secondary-header__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--panel-accent, #4f46e5);
+    box-shadow: 0 0 0 3px var(--panel-accent-soft, rgba(79, 70, 229, 0.12));
+    flex-shrink: 0;
+  }
+
+  .secondary-header__hint {
+    display: block;
+    font-size: 11px;
+    font-weight: 500;
+    color: #94a3b8;
+    margin-top: 4px;
+    padding-left: 18px;
+  }
+
+  /* Stacked panels — CSS grid overlap (stable height, soft crossfade) */
+  .nav-panel-stack {
+    display: grid;
+    grid-template: 1fr / 1fr;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .nav-panel {
+    grid-area: 1 / 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.12s ease, visibility 0.12s ease;
+  }
+
+  .nav-panel.is-active {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    z-index: 1;
+  }
+
+  /* Rail: cleaner module chips */
+  .sidebar-desktop-container .dock-item {
+    border-radius: 11px !important;
+    transition: background 0.12s ease, color 0.12s ease !important;
+  }
+
+  .sidebar-desktop-container .dock-item.active {
+    background: #eef2ff !important;
+    box-shadow: inset 0 0 0 1px rgba(79, 70, 229, 0.1);
+  }
+
+  .sidebar-secondary .nav-item {
+    border-radius: 10px !important;
+    padding: 9px 10px !important;
+    margin-bottom: 1px;
+  }
+
+  .sidebar-secondary .nav-item.active {
+    font-weight: 600 !important;
+    box-shadow: none !important;
   }
 }

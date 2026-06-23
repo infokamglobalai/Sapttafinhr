@@ -1,116 +1,50 @@
-{% load static humanize %}
-
-<section class="dash-simple" aria-label="Dashboard overview">
-  <header class="dash-header">
-    <div>
-      <p class="dash-header__eyebrow">
-        {% if tenant.country == "KW" %}Kuwait workspace{% elif tenant.country == "AE" %}UAE workspace{% elif tenant.country == "SA" %}Saudi Arabia workspace{% elif tenant.country != "IN" %}{{ tenant.country }} workspace{% else %}India workspace{% endif %}
-        · {% now "l, j M Y" %}
-      </p>
-      <h1 class="dash-header__title">
-        Good {% now "H" as hr_now %}{% if hr_now < "12" %}morning{% elif hr_now < "17" %}afternoon{% else %}evening{% endif %}, {{ user.display_name|default:"there" }} 👋
-      </h1>
-      <p class="dash-header__sub">Here's your team's overview for today.</p>
-    </div>
-    <div class="dash-header__actions">
-      <a href="{% url 'employees:create' %}" class="dash-header__btn dash-header__btn--primary">
-        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-        Add employee
-      </a>
-      <a href="{% url 'payroll:run_create' %}" class="dash-header__btn">
-        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-        Run payroll
-      </a>
-      <a href="{% url 'attendance:register' %}" class="dash-header__btn">
-        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-        Attendance
-      </a>
-    </div>
-  </header>
-
-  {% include "dashboard/partials/setup_checklist.html" %}
-  {% include "dashboard/partials/gcc_payroll_banner.html" %}
-
-  <div class="dash-snapshot" aria-label="Today's workforce snapshot">
-    <a href="{% url 'employees:list' %}" class="dash-snapshot__item dash-snapshot__item--blue{% if kpis.total_employees >= tenant.max_employees %} dash-snapshot__item--warn{% endif %}">
-      <div class="dash-snapshot__head">
-        <span class="dash-snapshot__icon dash-snapshot__icon--blue" aria-hidden="true">
-          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-        </span>
-        <span class="dash-snapshot__label">Employees</span>
-      </div>
-      <div class="dash-snapshot__body">
-        <span class="dash-snapshot__value">{{ kpis.total_employees }}<span class="dash-snapshot__cap">/{{ tenant.max_employees }}</span></span>
-        <div class="dash-snapshot__bar" aria-hidden="true">
-          <span class="dash-snapshot__bar-fill" style="width: {% widthratio kpis.total_employees tenant.max_employees 100 %}%;"></span>
-        </div>
-        <span class="dash-snapshot__hint dash-snapshot__hint--blue">+{{ kpis.new_joiners_this_month }} joined this month</span>
-      </div>
-    </a>
-
-    <a href="{% url 'attendance:register' %}" class="dash-snapshot__item dash-snapshot__item--green">
-      <div class="dash-snapshot__head">
-        <span class="dash-snapshot__icon dash-snapshot__icon--green" aria-hidden="true">
-          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        </span>
-        <span class="dash-snapshot__label">Present today</span>
-      </div>
-      <div class="dash-snapshot__body">
-        <span class="dash-snapshot__value">{{ kpis.present_today }}</span>
-        <span class="dash-snapshot__hint">{{ kpis.attendance_rate_pct }}% of team</span>
-      </div>
-    </a>
-
-    <div class="dash-snapshot__item dash-snapshot__item--amber dash-snapshot__item--static">
-      <div class="dash-snapshot__head">
-        <span class="dash-snapshot__icon dash-snapshot__icon--amber" aria-hidden="true">
-          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/></svg>
-        </span>
-        <span class="dash-snapshot__label">On leave</span>
-      </div>
-      <div class="dash-snapshot__body">
-        <span class="dash-snapshot__value">{{ kpis.on_leave_today }}</span>
-        <span class="dash-snapshot__hint">Approved for today</span>
-      </div>
-    </div>
-
-    <div class="dash-snapshot__item dash-snapshot__item--red dash-snapshot__item--static">
-      <div class="dash-snapshot__head">
-        <span class="dash-snapshot__icon dash-snapshot__icon--red" aria-hidden="true">
-          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
-        </span>
-        <span class="dash-snapshot__label">Absent</span>
-      </div>
-      <div class="dash-snapshot__body">
-        <span class="dash-snapshot__value">{{ kpis.absent_today }}</span>
-        <span class="dash-snapshot__hint">Not marked in</span>
-      </div>
-    </div>
-
-    <a href="{% url 'leaves:pending' %}" class="dash-snapshot__item dash-snapshot__item--violet{% if kpis.pending_leave_approvals %} dash-snapshot__item--highlight{% endif %}">
-      <div class="dash-snapshot__head">
-        <span class="dash-snapshot__icon dash-snapshot__icon--violet" aria-hidden="true">
-          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-        </span>
-        <span class="dash-snapshot__label">Leave to approve</span>
-      </div>
-      <div class="dash-snapshot__body">
-        <span class="dash-snapshot__value">{{ kpis.pending_leave_approvals }}</span>
-        <span class="dash-snapshot__hint">{% if kpis.pending_leave_approvals %}Tap to review{% else %}All clear{% endif %}</span>
-      </div>
-    </a>
-
-    <a href="{% url 'attendance:regularizations' %}" class="dash-snapshot__item dash-snapshot__item--orange{% if kpis.pending_regularizations %} dash-snapshot__item--highlight{% endif %}">
-      <div class="dash-snapshot__head">
-        <span class="dash-snapshot__icon dash-snapshot__icon--orange" aria-hidden="true">
-          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        </span>
-        <span class="dash-snapshot__label">Attendance fixes</span>
-      </div>
-      <div class="dash-snapshot__body">
-        <span class="dash-snapshot__value">{{ kpis.pending_regularizations }}</span>
-        <span class="dash-snapshot__hint">{% if kpis.pending_regularizations %}Needs approval{% else %}None pending{% endif %}</span>
-      </div>
-    </a>
-  </div>
-</section>
+{% load static humanize %}
+
+<section class="dash-simple" aria-label="Dashboard overview">
+  <header class="dash-header dash-header--compact">
+    <h1 class="dash-header__title">
+      Good {% now "H" as hr_now %}{% if hr_now < "12" %}morning{% elif hr_now < "17" %}afternoon{% else %}evening{% endif %}, {{ user.display_name|default:"there" }}
+    </h1>
+  </header>
+
+  {% include "dashboard/partials/setup_checklist.html" %}
+  {% include "dashboard/partials/gcc_payroll_banner.html" %}
+
+  <div class="dash-snapshot dash-snapshot--compact dash-snapshot--plain" aria-label="Today's workforce snapshot">
+    <a href="{% url 'employees:list' %}" class="dash-snapshot__item dash-snapshot__item--blue{% if kpis.total_employees >= tenant.max_employees %} dash-snapshot__item--warn{% endif %}">
+      <span class="dash-snapshot__label">Employees</span>
+      <span class="dash-snapshot__value">{{ kpis.total_employees }}<span class="dash-snapshot__cap">/{{ tenant.max_employees }}</span></span>
+      <span class="dash-snapshot__hint">+{{ kpis.new_joiners_this_month }} this month</span>
+    </a>
+
+    <a href="{% url 'attendance:register' %}" class="dash-snapshot__item dash-snapshot__item--green">
+      <span class="dash-snapshot__label">Present today</span>
+      <span class="dash-snapshot__value">{{ kpis.present_today }}</span>
+      <span class="dash-snapshot__hint">{{ kpis.attendance_rate_pct }}% of team</span>
+    </a>
+
+    <div class="dash-snapshot__item dash-snapshot__item--amber dash-snapshot__item--static">
+      <span class="dash-snapshot__label">On leave</span>
+      <span class="dash-snapshot__value">{{ kpis.on_leave_today }}</span>
+      <span class="dash-snapshot__hint">Approved today</span>
+    </div>
+
+    <div class="dash-snapshot__item dash-snapshot__item--red dash-snapshot__item--static">
+      <span class="dash-snapshot__label">Absent</span>
+      <span class="dash-snapshot__value">{{ kpis.absent_today }}</span>
+      <span class="dash-snapshot__hint">Not marked in</span>
+    </div>
+
+    <a href="{% url 'leaves:pending' %}" class="dash-snapshot__item dash-snapshot__item--violet{% if kpis.pending_leave_approvals %} dash-snapshot__item--highlight{% endif %}">
+      <span class="dash-snapshot__label">Leave to approve</span>
+      <span class="dash-snapshot__value">{{ kpis.pending_leave_approvals }}</span>
+      <span class="dash-snapshot__hint">{% if kpis.pending_leave_approvals %}Tap to review{% else %}All clear{% endif %}</span>
+    </a>
+
+    <a href="{% url 'attendance:regularizations' %}" class="dash-snapshot__item dash-snapshot__item--orange{% if kpis.pending_regularizations %} dash-snapshot__item--highlight{% endif %}">
+      <span class="dash-snapshot__label">Attendance fixes</span>
+      <span class="dash-snapshot__value">{{ kpis.pending_regularizations }}</span>
+      <span class="dash-snapshot__hint">{% if kpis.pending_regularizations %}Needs approval{% else %}None pending{% endif %}</span>
+    </a>
+  </div>
+</section>

@@ -65,10 +65,15 @@ def employee_list(request):
     departments = Department.objects.filter(tenant=tenant, is_active=True)
 
     if request.htmx:
-        return render(request, "employees/partials/employee_table.html", {
-            "page_obj": page_obj, "departments": departments
+        return render(request, "employees/partials/employee_results.html", {
+            "page_obj": page_obj,
+            "departments": departments,
+            "search": search,
+            "selected_dept": dept_id,
+            "selected_status": status,
         })
 
+    emp_base = Employee.objects.filter(tenant=tenant)
     return render(request, "employees/list.html", {
         "page_obj": page_obj,
         "departments": departments,
@@ -79,7 +84,50 @@ def employee_list(request):
         "employee_limit": employee_limit(tenant),
         "active_employee_count": active_employee_count(tenant),
         "at_employee_cap": seats_remaining(tenant) == 0,
+        "stats_active": emp_base.filter(employment_status="active").count(),
+        "stats_notice": emp_base.filter(employment_status="notice_period").count(),
+        "stats_departments": departments.count(),
     })
+
+
+@hr_admin_required
+def employee_export(request):
+    """Export filtered employee directory to Excel."""
+    from utils.excel import make_workbook, apply_header_row, auto_fit_columns, workbook_response
+
+    tenant = request.tenant
+    qs = Employee.objects.filter(tenant=tenant).select_related("department", "designation")
+
+    search = request.GET.get("q", "").strip()
+    dept_id = request.GET.get("department")
+    status = request.GET.get("status", "active")
+    if search:
+        qs = qs.filter(
+            Q(first_name__icontains=search)
+            | Q(last_name__icontains=search)
+            | Q(employee_code__icontains=search)
+            | Q(official_email__icontains=search)
+        )
+    if dept_id:
+        qs = qs.filter(department_id=dept_id)
+    if status:
+        qs = qs.filter(employment_status=status)
+
+    headers = ["Code", "Name", "Email", "Department", "Designation", "Joined", "Status"]
+    wb = make_workbook()
+    ws = wb.active
+    ws.title = "Employees"
+    apply_header_row(ws, headers)
+    for row_idx, emp in enumerate(qs.order_by("first_name", "last_name"), start=2):
+        ws.cell(row=row_idx, column=1, value=emp.employee_code)
+        ws.cell(row=row_idx, column=2, value=emp.full_name)
+        ws.cell(row=row_idx, column=3, value=emp.official_email or "")
+        ws.cell(row=row_idx, column=4, value=emp.department.name if emp.department else "")
+        ws.cell(row=row_idx, column=5, value=emp.designation.name if emp.designation else "")
+        ws.cell(row=row_idx, column=6, value=emp.date_of_joining.isoformat() if emp.date_of_joining else "")
+        ws.cell(row=row_idx, column=7, value=emp.get_employment_status_display())
+    auto_fit_columns(ws)
+    return workbook_response(wb, f"employees_{tenant.subdomain}.xlsx")
 
 
 @hr_admin_required
@@ -288,10 +336,24 @@ def team_access(request):
         .order_by("first_name", "last_name")
     )
     rows = []
+    manager_count = hr_admin_count = inactive_count = 0
     for emp in employees:
         access = get_employee_access(emp)
         rows.append({"employee": emp, "access": access})
-    return render(request, "employees/team_access.html", {"rows": rows})
+        roles = access["roles"]
+        if "manager" in roles:
+            manager_count += 1
+        if "hr_admin" in roles:
+            hr_admin_count += 1
+        if not access["is_active"]:
+            inactive_count += 1
+    return render(request, "employees/team_access.html", {
+        "rows": rows,
+        "stats_total": len(rows),
+        "stats_managers": manager_count,
+        "stats_hr_admins": hr_admin_count,
+        "stats_inactive": inactive_count,
+    })
 
 
 @hr_admin_required

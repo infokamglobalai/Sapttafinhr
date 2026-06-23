@@ -1,0 +1,42 @@
+{# Reports section — sidebar links (desktop secondary + mobile accordion) #}
+<a href="{% url 'reports:leave' %}"
+   class="nav-item {% if request.resolver_match.url_name == 'leave' or request.resolver_match.url_name == 'leave_export' %}active{% endif %}">
+  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden>
+    <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+  </svg>
+  Leave Report
+</a>
+<a href="{% url 'reports:attendance' %}"
+   class="nav-item {% if request.resolver_match.url_name == 'attendance' or request.resolver_match.url_name == 'attendance_export' %}active{% endif %}">
+  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden>
+    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+  Attendance MIS
+</a>
+<a href="{% url 'reports:headcount' %}"
+   class="nav-item {% if request.resolver_match.url_name == 'headcount' or request.resolver_match.url_name == 'headcount_export' %}active{% endif %}">
+  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden>
+    <path stroke-linecap="round" stroke-linejoin="round"
+      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+  </svg>
+  Headcount
+</a>
+<a href="{% url 'reports:payroll' %}"
+   class="nav-item {% if request.resolver_match.url_name == 'payroll' or request.resolver_match.url_name == 'payroll_export' %}active{% endif %}">
+  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden>
+    <path stroke-linecap="round" stroke-linejoin="round"
+      d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+  Payroll Summary
+</a>
+
+<div class="nav-section-title mt-2">Downloads</div>
+{% if user.is_hr_admin %}
+<a href="{% url 'reports:monthly_pack' %}"
+   class="nav-item {% if request.resolver_match.url_name == 'monthly_pack' %}active{% endif %}">
+  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden>
+    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+  </svg>
+  Monthly pack (ZIP)
+</a>
+{% endif %}

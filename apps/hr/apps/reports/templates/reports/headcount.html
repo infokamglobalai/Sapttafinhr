@@ -1,40 +1,109 @@
-{% extends "base.html" %}
-{% block page_title %}Headcount Report{% endblock %}
-{% block content %}
-<div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-  <div>
-    <a href="{% url 'reports:index' %}" class="text-sm link link-hover">← Reports</a>
-    <h2 class="text-xl font-bold mt-1">Headcount</h2>
-    <p class="text-sm text-base-content/60">{{ total }} employee(s)</p>
+{% extends "reports/report_page.html" %}
+{% block page_title %}Headcount{% endblock %}
+{% block report_category %}Workforce{% endblock %}
+{% block report_title %}Headcount{% endblock %}
+{% block report_subtitle %}{{ total }} employee(s){% if status %} · {{ status|title }} status{% endif %}{% endblock %}
+
+{% block report_actions %}
+<a href="{% url 'reports:headcount_export' %}{% if status %}?status={{ status }}{% endif %}" class="btn btn-primary btn-sm">Export Excel</a>
+{% endblock %}
+
+{% block report_kpis %}
+<div class="reports-kpi-grid">
+  <div class="reports-kpi">
+    <div class="reports-kpi__label">Headcount</div>
+    <div class="reports-kpi__value">{{ total }}</div>
+    <div class="reports-kpi__hint">Matching filter</div>
   </div>
-  <a href="{% url 'reports:headcount_export' %}" class="btn btn-primary btn-sm">Export Excel</a>
+  <div class="reports-kpi">
+    <div class="reports-kpi__label">Departments</div>
+    <div class="reports-kpi__value">{{ by_dept|length }}</div>
+    <div class="reports-kpi__hint">With employees</div>
+  </div>
+  <div class="reports-kpi">
+    <div class="reports-kpi__label">Top roles</div>
+    <div class="reports-kpi__value">{{ by_desig|length }}</div>
+    <div class="reports-kpi__hint">Designations shown</div>
+  </div>
 </div>
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-  <div class="card"><div class="card-body p-4">
-    <h3 class="font-semibold text-sm mb-2">By department</h3>
-    {% for d in by_dept %}<div class="flex justify-between text-sm py-1"><span>{{ d.department__name|default:"Unassigned" }}</span><span class="font-medium">{{ d.count }}</span></div>{% empty %}<p class="text-base-content/40 text-sm">No data</p>{% endfor %}
-  </div></div>
-  <div class="card"><div class="card-body p-4">
-    <h3 class="font-semibold text-sm mb-2">By designation</h3>
-    {% for d in by_desig %}<div class="flex justify-between text-sm py-1"><span>{{ d.designation__name|default:"—" }}</span><span class="font-medium">{{ d.count }}</span></div>{% empty %}<p class="text-base-content/40 text-sm">No data</p>{% endfor %}
-  </div></div>
+{% endblock %}
+
+{% block report_filters %}
+<div class="reports-filter-card">
+  <form method="get" class="reports-filter-form">
+    <div class="form-control">
+      <label class="label py-0"><span class="label-text">Employment status</span></label>
+      <select name="status" class="select select-bordered select-sm w-44">
+        <option value="active" {% if status == 'active' %}selected{% endif %}>Active</option>
+        <option value="" {% if not status %}selected{% endif %}>All</option>
+        <option value="notice_period" {% if status == 'notice_period' %}selected{% endif %}>Notice period</option>
+        <option value="exited" {% if status == 'exited' %}selected{% endif %}>Exited</option>
+      </select>
+    </div>
+    <button type="submit" class="btn btn-sm btn-primary">Apply filters</button>
+    <a href="{% url 'reports:headcount' %}" class="btn btn-sm btn-ghost">Reset</a>
+  </form>
 </div>
-<div class="card hr-table-wrap">
+{% endblock %}
+
+{% block report_summary %}
+<div class="reports-split-grid">
+  <div class="reports-breakdown-card">
+    <div class="reports-breakdown-card__title">By department</div>
+    {% for d in by_dept %}
+    <div class="reports-breakdown-row">
+      <span>{{ d.department__name|default:"Unassigned" }}</span>
+      <span class="reports-breakdown-row__count">{{ d.count }}</span>
+    </div>
+    {% empty %}
+    <p class="text-sm text-base-content/40">No data</p>
+    {% endfor %}
+  </div>
+  <div class="reports-breakdown-card">
+    <div class="reports-breakdown-card__title">By designation</div>
+    {% for d in by_desig %}
+    <div class="reports-breakdown-row">
+      <span>{{ d.designation__name|default:"—" }}</span>
+      <span class="reports-breakdown-row__count">{{ d.count }}</span>
+    </div>
+    {% empty %}
+    <p class="text-sm text-base-content/40">No data</p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+
+{% block report_content %}
+<div class="reports-table-card">
   <table class="table table-sm">
-    <thead><tr><th>Code</th><th>Name</th><th>Department</th><th>Designation</th><th>Status</th></tr></thead>
+    <thead>
+      <tr>
+        <th>Code</th>
+        <th>Employee</th>
+        <th>Department</th>
+        <th>Designation</th>
+        <th>Status</th>
+      </tr>
+    </thead>
     <tbody>
       {% for emp in employees %}
       <tr>
-        <td>{{ emp.employee_code }}</td>
-        <td>{{ emp.full_name }}</td>
+        <td class="font-mono text-xs">{{ emp.employee_code }}</td>
+        <td class="font-medium">{{ emp.full_name }}</td>
         <td>{{ emp.department.name|default:"—" }}</td>
         <td>{{ emp.designation.name|default:"—" }}</td>
-        <td>{{ emp.employment_status }}</td>
+        <td><span class="badge badge-sm badge-ghost">{{ emp.employment_status }}</span></td>
       </tr>
       {% empty %}
-      <tr><td colspan="5" class="text-center py-8 text-base-content/40">No employees.</td></tr>
+      <tr><td colspan="5" class="text-center py-10 text-base-content/40">No employees.</td></tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
+{% endblock %}
+
+{% block report_footnote %}
+{% if total > 500 %}
+<p class="reports-footnote">Showing first 500 of {{ total }} employees. Export Excel for the full list.</p>
+{% endif %}
 {% endblock %}

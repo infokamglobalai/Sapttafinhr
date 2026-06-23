@@ -1,0 +1,43 @@
+{# Time & Leave — attendance + leave operations #}
+<a href="{% url 'attendance:register' %}"
+   class="nav-item {% if request.resolver_match.url_name == 'register' %}active{% endif %}">
+  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden>
+    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+  Attendance Register
+</a>
+<a href="{% url 'leaves:pending' %}"
+   class="nav-item {% if request.resolver_match.url_name == 'pending' %}active{% endif %}">
+  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden>
+    <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+  </svg>
+  Leave Approvals
+</a>
+<a href="{% url 'leaves:balances' %}"
+   class="nav-item {% if request.resolver_match.url_name == 'balances' %}active{% endif %}">
+  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden>
+    <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+  </svg>
+  Leave Balances
+</a>
+<a href="{% url 'attendance:regularizations' %}"
+   class="nav-item {% if request.resolver_match.url_name == 'regularizations' or request.resolver_match.url_name == 'regularization_action' %}active{% endif %}">
+  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden>
+    <path stroke-linecap="round" stroke-linejoin="round" d="M9 11l3 3 7-7M3 12a9 9 0 0118 0v0a9 9 0 01-18 0z" />
+  </svg>
+  Correction Queue
+</a>
+<a href="{% url 'leaves:comp_off_pending' %}"
+   class="nav-item {% if request.resolver_match.url_name == 'comp_off_pending' %}active{% endif %}">
+  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden>
+    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+  Comp-off Queue
+</a>
+<a href="{% url 'attendance:anomaly' %}"
+   class="nav-item {% if request.resolver_match.url_name == 'anomaly' or request.resolver_match.url_name == 'anomaly_scan' %}active{% endif %}">
+  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden>
+    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+  </svg>
+  Anomaly Scan
+</a>

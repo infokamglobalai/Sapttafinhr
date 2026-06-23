@@ -1,26 +1,56 @@
 {% extends "base.html" %}
 {% block page_title %}Comp-off Approvals{% endblock %}
 {% block content %}
-<h2 class="text-xl font-bold mb-4">Pending comp-off requests</h2>
+<div class="hr-page-header">
+  <div class="hr-page-header__main">
+    <h1 class="hr-page-header__title">Comp-off Approvals</h1>
+    <p class="hr-page-header__sub">Review compensatory leave credits requested by your team after off-day work.</p>
+  </div>
+</div>
+
 <div class="card hr-table-wrap">
-  <table class="table table-sm">
-    <thead><tr><th>Employee</th><th>Worked</th><th>Days</th><th>Requested</th><th></th></tr></thead>
-    <tbody>
-      {% for c in credits %}
-      <tr>
-        <td>{{ c.employee.full_name }}</td>
-        <td>{{ c.worked_date|date:"d M Y" }}</td>
-        <td>{{ c.days_earned }}</td>
-        <td>{{ c.created_at|date:"d M Y" }}</td>
-        <td class="flex gap-1">
-          <form method="post" action="{% url 'leaves:comp_off_action' c.pk %}">{% csrf_token %}<input type="hidden" name="action" value="approve"><button class="btn btn-success btn-xs">Approve</button></form>
-          <form method="post" action="{% url 'leaves:comp_off_action' c.pk %}">{% csrf_token %}<input type="hidden" name="action" value="reject"><button class="btn btn-error btn-xs">Reject</button></form>
-        </td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="5" class="text-center py-8 text-base-content/40">No pending comp-off requests.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="overflow-x-auto">
+    <table class="table table-sm">
+      <thead>
+        <tr>
+          <th>Employee</th>
+          <th>Worked</th>
+          <th>Days</th>
+          <th>Requested</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in credits %}
+        <tr>
+          <td class="font-medium">{{ c.employee.full_name }}</td>
+          <td>{{ c.worked_date|date:"d M Y" }}</td>
+          <td>{{ c.days_earned }}</td>
+          <td class="text-sm text-base-content/60">{{ c.created_at|date:"d M Y" }}</td>
+          <td>
+            <div class="flex flex-wrap gap-1">
+              <form method="post" action="{% url 'leaves:comp_off_action' c.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="approve">
+                <button type="submit" class="btn btn-success btn-xs">Approve</button>
+              </form>
+              <form method="post" action="{% url 'leaves:comp_off_action' c.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="reject">
+                <button type="submit" class="btn btn-outline btn-error btn-xs">Reject</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="5">
+            {% include "partials/empty_state.html" with title="No pending requests" message="Comp-off requests from your team will appear here for approval." %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}

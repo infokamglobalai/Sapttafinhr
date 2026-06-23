@@ -536,7 +536,7 @@
 {% endblock %}
 
 {% block content %}
-<section class="dash-refresh">
+<section class="dash-refresh dash-refresh--admin">
 
 {% if needs_employee_profile %}
 <div class="alert alert-warning mb-4 shadow-sm">
@@ -556,31 +556,16 @@
 </div>
 {% endif %}
 
+{% if not is_hr_admin %}
 {% include "dashboard/partials/role_banner.html" %}
+{% endif %}
 
 {# ════════ HR ADMIN ════════ #}
 {% if is_hr_admin %}
 
 {% include "dashboard/partials/admin_soft_ui_top.html" %}
 
-{% if dashboard_priorities %}
-<section class="dash-priority-strip stagger" aria-label="Today's priorities">
-  <div class="dash-priority-strip__head">
-    <span class="dash-priority-strip__label">Today’s priorities</span>
-    <span class="dash-priority-strip__date">{% now "l, j M Y" %}</span>
-  </div>
-  <div class="dash-priority-strip__items">
-    {% for item in dashboard_priorities %}
-    <a href="{{ item.url }}" class="dash-priority-chip dash-priority-chip--{{ item.kind }}">
-      <span class="dash-priority-chip__title">{{ item.title }}</span>
-      <span class="dash-priority-chip__sub">{{ item.sub }}</span>
-    </a>
-    {% endfor %}
-  </div>
-</section>
-{% endif %}
-
-{% include "dashboard/partials/pending_work.html" %}
+{% include "dashboard/partials/action_inbox.html" %}
 
 {% include "dashboard/partials/admin_today_row.html" %}
 

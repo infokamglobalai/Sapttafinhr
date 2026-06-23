@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block page_title %}Company Overview{% endblock %}
+{% block content %}
+<div class="my-space-page">
+  <div class="hr-page-header" style="margin-bottom:20px;">
+    <div class="hr-page-header__main">
+      <h1 class="hr-page-header__title">Company Overview</h1>
+      <p class="my-space-meta">Org-wide snapshot for leadership — people, issues, payroll, and projects.</p>
+    </div>
+    <div class="hr-page-header__actions">
+      <a href="{% url 'hr_ops:service_request_queue' %}" class="btn btn-outline btn-sm">All requests</a>
+      <a href="{% url 'reports:index' %}" class="btn btn-outline btn-sm">Reports</a>
+    </div>
+  </div>
+
+  <div class="my-space-kpis">
+    <div class="my-space-kpi">
+      <div class="my-space-kpi__label">Active employees</div>
+      <div class="my-space-kpi__value">{{ headcount }}</div>
+    </div>
+    <div class="my-space-kpi">
+      <div class="my-space-kpi__label">Open issues</div>
+      <div class="my-space-kpi__value">{{ open_request_count }}</div>
+    </div>
+    <div class="my-space-kpi">
+      <div class="my-space-kpi__label">Resolved this month</div>
+      <div class="my-space-kpi__value">{{ resolved_month }}</div>
+    </div>
+    <div class="my-space-kpi">
+      <div class="my-space-kpi__label">Pending leave</div>
+      <div class="my-space-kpi__value">{{ pending_leave }}</div>
+    </div>
+    <div class="my-space-kpi">
+      <div class="my-space-kpi__label">Active projects</div>
+      <div class="my-space-kpi__value">{{ active_projects|length }}</div>
+    </div>
+    {% if payroll_total is not None %}
+    <div class="my-space-kpi">
+      <div class="my-space-kpi__label">Last payroll net</div>
+      <div class="my-space-kpi__value" style="font-size:1rem;">{{ payroll_total|floatformat:0 }}</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="my-space-grid">
+    <div class="my-space-card">
+      <h2 class="my-space-card__title">Open employee requests</h2>
+      <ul class="my-space-list">
+        {% for r in open_requests %}
+        <li>
+          <span>{{ r.request_no }} · {{ r.employee.full_name }}{% if r.employee.department %} ({{ r.employee.department.name }}){% endif %}</span>
+          <a href="{% url 'hr_ops:service_request_admin_detail' r.pk %}" class="btn btn-ghost btn-xs">View</a>
+        </li>
+        {% empty %}
+        <li><span class="my-space-meta">No open requests.</span></li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="my-space-card">
+      <h2 class="my-space-card__title">Active projects</h2>
+      {% for p in active_projects %}
+      <a href="{% url 'projects:detail' p.pk %}" class="my-space-project-card">
+        <div style="display:flex;justify-content:space-between;">
+          <strong>{{ p.name }}</strong>
+          <span class="my-space-status my-space-status--{{ p.status }}">{{ p.get_status_display }}</span>
+        </div>
+        <div class="my-space-meta">{{ p.code }}{% if p.lead %} · {{ p.lead.full_name }}{% endif %}</div>
+      </a>
+      {% empty %}
+      <p class="my-space-meta">No active projects.</p>
+      {% endfor %}
+    </div>
+
+    <div class="my-space-card">
+      <h2 class="my-space-card__title">Payroll</h2>
+      {% if last_payroll %}
+      <ul class="my-space-list">
+        <li><span>Last published run</span><span>{{ last_payroll.period_start|date:"M Y" }}</span></li>
+        <li><span>Net payout (approx)</span><span>{{ payroll_total|default:"—" }}</span></li>
+      </ul>
+      <div class="my-space-actions">
+        <a href="{% url 'payroll:run_list' %}" class="btn btn-outline btn-sm">Payroll runs</a>
+        <a href="{% url 'reports:payroll' %}" class="btn btn-outline btn-sm">Payroll report</a>
+      </div>
+      {% else %}
+      <p class="my-space-meta">No published payroll run yet.</p>
+      {% endif %}
+    </div>
+
+    <div class="my-space-card">
+      <h2 class="my-space-card__title">Quick actions</h2>
+      <div class="my-space-actions">
+        <a href="{% url 'employees:list' %}" class="btn btn-outline btn-sm">Employees</a>
+        <a href="{% url 'leaves:pending' %}" class="btn btn-outline btn-sm">Leave approvals</a>
+        <a href="{% url 'hr_ops:people_pulse' %}" class="btn btn-outline btn-sm">People pulse</a>
+        <a href="{% url 'projects:list' %}" class="btn btn-outline btn-sm">Projects</a>
+        <a href="{% url 'hr_ops:assets' %}" class="btn btn-outline btn-sm">Assets</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

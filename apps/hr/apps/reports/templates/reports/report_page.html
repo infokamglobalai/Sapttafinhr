@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% load static %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/reports-hub.css' %}?v=1">
+{% endblock %}
+
+{% block content %}
+<div class="reports-hub">
+  <div class="reports-hub__header">
+    <div>
+      <p class="reports-hub__eyebrow">Reports · {% block report_category %}Analytics{% endblock %}</p>
+      <h1 class="reports-hub__title">{% block report_title %}Report{% endblock %}</h1>
+      <p class="reports-hub__sub">{% block report_subtitle %}{% endblock %}</p>
+    </div>
+    <div class="reports-hub__actions">
+      {% block report_actions %}{% endblock %}
+    </div>
+  </div>
+
+  {% block report_kpis %}{% endblock %}
+  {% block report_filters %}{% endblock %}
+  {% block report_summary %}{% endblock %}
+  {% block report_content %}{% endblock %}
+  {% block report_footnote %}{% endblock %}
+</div>
+{% endblock %}

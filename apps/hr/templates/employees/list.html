@@ -1,69 +1,192 @@
 {% extends "base.html" %}
+
 {% block page_title %}Employees{% endblock %}
 
+
+
 {% block content %}
+
+<div x-data="{ view: localStorage.getItem('saptta-emp-view') || 'table' }" x-init="$watch('view', v => localStorage.setItem('saptta-emp-view', v))">
+
+
+
 <div class="hr-page-header">
+
   <div class="hr-page-header__main">
+
     <h1 class="hr-page-header__title">Employee Directory</h1>
-    <p class="hr-page-header__sub">{{ page_obj.paginator.count }} employee(s)</p>
+
+    <p class="hr-page-header__sub">{{ page_obj.paginator.count }} shown · {{ stats_active }} active · {{ stats_departments }} departments</p>
+
   </div>
+
   <div class="hr-page-header__actions">
+
     {% if at_employee_cap %}
+
     <a href="{{ billing_settings_url }}" class="btn btn-outline btn-sm" target="_blank" rel="noopener">Upgrade seats</a>
-    <span class="btn btn-primary btn-sm btn-disabled" title="Employee limit reached ({{ active_employee_count }}/{{ employee_limit }})">+ Add Employee</span>
-    <span class="btn btn-outline btn-sm btn-disabled" title="Employee limit reached">Bulk Import</span>
+
+    <span class="btn btn-primary btn-sm btn-disabled">+ Add Employee</span>
+
     {% else %}
+
     <a href="{% url 'employees:bulk_import' %}" class="btn btn-outline btn-sm">Bulk Import</a>
+
     <a href="{% url 'employees:create' %}" class="btn btn-primary btn-sm">+ Add Employee</a>
+
     {% endif %}
+
   </div>
+
 </div>
+
+
+
+<div class="people-kpi-grid">
+
+  <a href="?status=active" class="people-kpi {% if selected_status == 'active' %}is-selected{% endif %}">
+
+    <div class="people-kpi__label">Active</div>
+
+    <div class="people-kpi__value">{{ stats_active }}</div>
+
+  </a>
+
+  <a href="?status=notice_period" class="people-kpi people-kpi--warn {% if selected_status == 'notice_period' %}is-selected{% endif %}">
+
+    <div class="people-kpi__label">Notice period</div>
+
+    <div class="people-kpi__value">{{ stats_notice }}</div>
+
+  </a>
+
+  <div class="people-kpi">
+
+    <div class="people-kpi__label">Plan seats</div>
+
+    <div class="people-kpi__value">{{ active_employee_count }}/{{ employee_limit }}</div>
+
+    <div class="people-kpi__hint">{{ seats_remaining }} left</div>
+
+  </div>
+
+  <a href="{% url 'employees:departments' %}" class="people-kpi">
+
+    <div class="people-kpi__label">Departments</div>
+
+    <div class="people-kpi__value">{{ stats_departments }}</div>
+
+  </a>
+
+</div>
+
+
 
 {% if at_employee_cap %}
-<div class="alert alert-warning mb-4 text-sm">
-  <span>Employee limit reached ({{ active_employee_count }}/{{ employee_limit }}). <a href="{{ billing_settings_url }}" class="link font-semibold" target="_blank" rel="noopener">Add seats in Billing</a> to hire more.</span>
+
+<div class="people-seat-banner people-seat-banner--warn">
+
+  Employee limit reached ({{ active_employee_count }}/{{ employee_limit }}).
+
+  <a href="{{ billing_settings_url }}" class="link font-semibold" target="_blank" rel="noopener">Add seats in Billing</a>
+
 </div>
+
 {% elif seats_remaining <= 3 %}
-<div class="alert alert-info mb-4 text-sm">
-  <span>{{ seats_remaining }} employee seat(s) remaining on your plan.</span>
-</div>
+
+<div class="people-seat-banner people-seat-banner--info">{{ seats_remaining }} seat(s) remaining.</div>
+
 {% endif %}
 
-<div class="hr-filter-bar card">
-  <div class="hr-card__body">
-    <form method="get"
-          hx-get="{% url 'employees:list' %}"
-          hx-target="#employee-table"
-          hx-push-url="true"
-          class="hr-filter-form">
-      <div class="form-control">
-        <input type="text" name="q" value="{{ search }}" placeholder="Search name, code, email..."
-               class="input input-bordered input-sm w-64" aria-label="Search employees">
-      </div>
-      <div class="form-control">
-        <select name="department" class="select select-bordered select-sm" aria-label="Department">
-          <option value="">All Departments</option>
-          {% for dept in departments %}
-          <option value="{{ dept.id }}" {% if selected_dept == dept.id|stringformat:"s" %}selected{% endif %}>
-            {{ dept.name }}
-          </option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="form-control">
-        <select name="status" class="select select-bordered select-sm" aria-label="Employment status">
-          <option value="active" {% if selected_status == "active" %}selected{% endif %}>Active</option>
-          <option value="" {% if not selected_status %}selected{% endif %}>All</option>
-          <option value="notice_period" {% if selected_status == "notice_period" %}selected{% endif %}>Notice Period</option>
-          <option value="exited" {% if selected_status == "exited" %}selected{% endif %}>Exited</option>
-        </select>
-      </div>
-      <button type="submit" class="btn btn-sm btn-primary">Apply filters</button>
-    </form>
+
+
+<div class="people-toolbar">
+
+  <div class="people-view-toggle" role="group" aria-label="View mode">
+
+    <button type="button" class="people-view-toggle__btn" :class="{ 'is-active': view === 'table' }" @click="view = 'table'">Table</button>
+
+    <button type="button" class="people-view-toggle__btn" :class="{ 'is-active': view === 'cards' }" @click="view = 'cards'">Cards</button>
+
   </div>
+
+  <a href="{% url 'employees:export' %}?q={{ search|urlencode }}&department={{ selected_dept|default:'' }}&status={{ selected_status|default:'active' }}"
+
+     class="btn btn-outline btn-sm">Export Excel</a>
+
 </div>
 
-<div id="employee-table">
-  {% include "employees/partials/employee_table.html" %}
+
+
+<div class="people-filter-card">
+
+  <form method="get" hx-get="{% url 'employees:list' %}" hx-target="#employee-results" hx-push-url="true" class="hr-filter-form">
+
+    <div class="form-control">
+
+      <label class="label py-0"><span class="label-text text-xs font-semibold">Search</span></label>
+
+      <input type="text" name="q" value="{{ search }}" placeholder="Name, code, email…" class="input input-bordered input-sm w-64">
+
+    </div>
+
+    <div class="form-control">
+
+      <label class="label py-0"><span class="label-text text-xs font-semibold">Department</span></label>
+
+      <select name="department" class="select select-bordered select-sm">
+
+        <option value="">All</option>
+
+        {% for dept in departments %}
+
+        <option value="{{ dept.id }}" {% if selected_dept == dept.id|stringformat:"s" %}selected{% endif %}>{{ dept.name }}</option>
+
+        {% endfor %}
+
+      </select>
+
+    </div>
+
+    <div class="form-control">
+
+      <label class="label py-0"><span class="label-text text-xs font-semibold">Status</span></label>
+
+      <select name="status" class="select select-bordered select-sm">
+
+        <option value="active" {% if selected_status == "active" %}selected{% endif %}>Active</option>
+
+        <option value="" {% if not selected_status %}selected{% endif %}>All</option>
+
+        <option value="notice_period" {% if selected_status == "notice_period" %}selected{% endif %}>Notice</option>
+
+        <option value="exited" {% if selected_status == "exited" %}selected{% endif %}>Exited</option>
+
+      </select>
+
+    </div>
+
+    <button type="submit" class="btn btn-sm btn-primary">Apply</button>
+
+    {% if search or selected_dept or selected_status != 'active' %}
+
+    <a href="{% url 'employees:list' %}" class="btn btn-sm btn-ghost">Clear</a>
+
+    {% endif %}
+
+  </form>
+
 </div>
+
+
+
+<div id="employee-results">
+  {% include "employees/partials/employee_results.html" %}
+</div>
+
+
+
+</div>
+
 {% endblock %}
+

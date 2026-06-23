@@ -1,0 +1,228 @@
+/* My Space hub — employee self-service pages */
+
+.my-space-page {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.my-space-hero {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 24px;
+  background: #fff;
+  border: 1px solid var(--hr-border, #e2e8f0);
+  border-radius: 14px;
+  margin-bottom: 20px;
+}
+
+.my-space-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.my-space-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.my-space-hero__title {
+  font-size: 1.375rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--hr-text, #0f172a);
+  margin: 0 0 4px;
+}
+
+.my-space-hero__sub {
+  font-size: 0.875rem;
+  color: var(--hr-text-secondary, #64748b);
+}
+
+.my-space-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.my-space-kpi {
+  padding: 16px;
+  background: #fff;
+  border: 1px solid var(--hr-border, #e2e8f0);
+  border-radius: 12px;
+}
+
+.my-space-kpi__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--hr-text-secondary, #64748b);
+  margin-bottom: 6px;
+}
+
+.my-space-kpi__value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--hr-primary, #4f46e5);
+}
+
+.my-space-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .my-space-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.my-space-card {
+  background: #fff;
+  border: 1px solid var(--hr-border, #e2e8f0);
+  border-radius: 12px;
+  padding: 18px;
+}
+
+.my-space-card__title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  margin: 0 0 12px;
+  color: var(--hr-text, #0f172a);
+}
+
+.my-space-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.my-space-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--hr-border, #f1f5f9);
+  font-size: 0.875rem;
+}
+
+.my-space-list li:last-child {
+  border-bottom: none;
+}
+
+.my-space-meta {
+  font-size: 0.8125rem;
+  color: var(--hr-text-secondary, #64748b);
+}
+
+.my-space-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.my-space-asset-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px;
+  background: #fff;
+  border: 1px solid var(--hr-border, #e2e8f0);
+  border-radius: 12px;
+  margin-bottom: 10px;
+}
+
+.my-space-asset-card__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #eef2ff;
+  color: #4f46e5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.my-space-project-card {
+  display: block;
+  padding: 16px;
+  background: #fff;
+  border: 1px solid var(--hr-border, #e2e8f0);
+  border-radius: 12px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  margin-bottom: 10px;
+}
+
+.my-space-project-card:hover {
+  border-color: #c7d2fe;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.08);
+}
+
+.my-space-status {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.my-space-status--active { background: #ecfdf5; color: #059669; }
+.my-space-status--planning { background: #eff6ff; color: #2563eb; }
+.my-space-status--on_hold { background: #fffbeb; color: #d97706; }
+.my-space-status--completed { background: #f1f5f9; color: #64748b; }
+
+.my-space-timeline {
+  border-left: 2px solid var(--hr-border, #e2e8f0);
+  margin-left: 8px;
+  padding-left: 18px;
+}
+
+.my-space-timeline__item {
+  position: relative;
+  padding-bottom: 16px;
+}
+
+.my-space-timeline__item::before {
+  content: "";
+  position: absolute;
+  left: -25px;
+  top: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4f46e5;
+}
+
+.my-space-doc-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--hr-border, #f1f5f9);
+  font-size: 0.875rem;
+}
+
+.my-space-doc-row:last-child {
+  border-bottom: none;
+}

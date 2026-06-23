@@ -196,7 +196,7 @@ def start_onboarding(tenant, employee, template=None):
                 "Welcome aboard! Your onboarding is underway",
                 message=f"Hi {employee.first_name},\n\nYour onboarding checklist is ready. "
                         f"Your HR team will guide you through each step over the next few weeks.",
-                action_url=f"/hr/onboarding/{onboarding.pk}/",
+                action_url="/hr/my/onboarding/",
             )
         if employee.reporting_manager and employee.reporting_manager.user:
             notify(

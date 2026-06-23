@@ -1,39 +1,38 @@
 {% extends "base.html" %}
+{% load static %}
 {% block page_title %}Reports{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/reports-hub.css' %}?v=1">
+{% endblock %}
 {% block content %}
-<div class="hr-page-header">
-  <div class="hr-page-header__main">
-    <h1 class="hr-page-header__title">HR Reports</h1>
-    <p class="hr-page-header__sub">Export-ready summaries for leave, attendance, headcount, and payroll</p>
+<div class="reports-hub">
+  <div class="reports-hub__header">
+    <div>
+      <p class="reports-hub__eyebrow">Company · Analytics</p>
+      <h1 class="reports-hub__title">HR Reports</h1>
+      <p class="reports-hub__sub">Export-ready summaries for leave, attendance, headcount, and payroll</p>
+    </div>
+    {% if user.is_hr_admin %}
+    <div class="reports-hub__actions">
+      <a href="{% url 'reports:monthly_pack' %}" class="btn btn-outline btn-sm">Download monthly pack (ZIP)</a>
+    </div>
+    {% endif %}
   </div>
-  <div class="hr-page-header__actions">
-    <a href="{% url 'reports:monthly_pack' %}" class="btn btn-outline btn-sm">Download monthly pack (ZIP)</a>
+
+  <div class="reports-welcome">
+    <div class="reports-welcome__icon" aria-hidden="true">
+      <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+    </div>
+    <h2 class="reports-welcome__title">Choose a report from the sidebar</h2>
+    <p class="reports-welcome__text">Select Leave, Attendance, Headcount, or Payroll on the left. Filters and data appear here, with Excel export when you need a download.</p>
+    <div class="reports-welcome__links">
+      <a href="{% url 'reports:leave' %}" class="btn btn-primary btn-sm">Leave Report</a>
+      <a href="{% url 'reports:attendance' %}" class="btn btn-outline btn-sm">Attendance MIS</a>
+      <a href="{% url 'reports:headcount' %}" class="btn btn-outline btn-sm">Headcount</a>
+      <a href="{% url 'reports:payroll' %}" class="btn btn-outline btn-sm">Payroll Summary</a>
+    </div>
   </div>
-</div>
-<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-  <a href="{% url 'reports:leave' %}" class="card hover:shadow-md transition-shadow">
-    <div class="card-body">
-      <h3 class="font-semibold">Leave Report</h3>
-      <p class="text-sm text-base-content/60">All leave requests by date range and status.</p>
-    </div>
-  </a>
-  <a href="{% url 'reports:attendance' %}" class="card hover:shadow-md transition-shadow">
-    <div class="card-body">
-      <h3 class="font-semibold">Attendance MIS</h3>
-      <p class="text-sm text-base-content/60">Daily attendance records and status breakdown.</p>
-    </div>
-  </a>
-  <a href="{% url 'reports:headcount' %}" class="card hover:shadow-md transition-shadow">
-    <div class="card-body">
-      <h3 class="font-semibold">Headcount</h3>
-      <p class="text-sm text-base-content/60">Active employees by department and designation.</p>
-    </div>
-  </a>
-  <a href="{% url 'reports:payroll' %}" class="card hover:shadow-md transition-shadow">
-    <div class="card-body">
-      <h3 class="font-semibold">Payroll Summary</h3>
-      <p class="text-sm text-base-content/60">{% if tenant_is_india_payroll %}Gross, net, PF, ESI, and TDS by payroll run.{% else %}Gross and net pay by payroll run with GCC statutory and EOS columns.{% endif %}</p>
-    </div>
-  </a>
 </div>
 {% endblock %}

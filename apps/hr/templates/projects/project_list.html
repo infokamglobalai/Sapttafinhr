@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block page_title %}Projects{% endblock %}
+{% block content %}
+<div class="hr-page-header">
+  <div class="hr-page-header__main">
+    <h1 class="hr-page-header__title">Projects</h1>
+    <p class="my-space-meta">Manage team projects, documents, and assignments.</p>
+  </div>
+  <div class="hr-page-header__actions">
+    <a href="{% url 'projects:create' %}" class="btn btn-primary btn-sm">New project</a>
+  </div>
+</div>
+
+<div class="my-space-kpis" style="margin-bottom:16px;">
+  {% for code, label in status_choices %}
+  <a href="?status={{ code }}" class="my-space-kpi" style="text-decoration:none;color:inherit;{% if status == code %}border-color:#4f46e5;{% endif %}">
+    <div class="my-space-kpi__label">{{ label }}</div>
+  </a>
+  {% endfor %}
+  <a href="?" class="my-space-kpi" style="text-decoration:none;color:inherit;{% if not status %}border-color:#4f46e5;{% endif %}">
+    <div class="my-space-kpi__label">All</div>
+  </a>
+</div>
+
+{% for p in projects %}
+<a href="{% url 'projects:detail' p.pk %}" class="my-space-project-card">
+  <div style="display:flex;justify-content:space-between;align-items:center;">
+    <strong>{{ p.name }}</strong>
+    <span class="my-space-status my-space-status--{{ p.status }}">{{ p.get_status_display }}</span>
+  </div>
+  <div class="my-space-meta" style="margin-top:4px;">
+    {{ p.code }}
+    {% if p.department %} · {{ p.department.name }}{% endif %}
+    {% if p.lead %} · Lead: {{ p.lead.full_name }}{% endif %}
+  </div>
+</a>
+{% empty %}
+<div class="my-space-card"><p class="my-space-meta">No projects yet. Create one to get started.</p></div>
+{% endfor %}
+{% endblock %}

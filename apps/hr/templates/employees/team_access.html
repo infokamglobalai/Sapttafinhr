@@ -1,82 +1,98 @@
 {% extends "base.html" %}
 {% block page_title %}Team Access{% endblock %}
 {% block content %}
+
 <div class="hr-page-header">
   <div class="hr-page-header__main">
+    <p class="text-xs font-bold uppercase tracking-wider text-base-content/40 mb-1">People · Security</p>
     <h1 class="hr-page-header__title">Team Access</h1>
-    <p class="hr-page-header__sub">Assign Team Lead / Manager or HR Admin roles and review login status</p>
+    <p class="hr-page-header__sub">Assign Manager / HR Admin roles and review login status for {{ stats_total }} account(s)</p>
   </div>
   <div class="hr-page-header__actions">
-    <a href="{% url 'employees:list' %}" class="btn btn-ghost btn-sm">← Employees</a>
+    <a href="{% url 'employees:bulk_provision' %}" class="btn btn-outline btn-sm">Bulk provision logins</a>
   </div>
 </div>
 
-<div class="card hr-table-wrap">
-  <table class="table table-sm">
-    <thead>
-      <tr>
-        <th>Employee</th>
-        <th>Login email</th>
-        <th>Access</th>
-        <th>Roles</th>
-        <th>Assign roles</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for row in rows %}
-      {% with emp=row.employee access=row.access %}
-      <tr>
-        <td>
-          <a href="{% url 'employees:detail' emp.pk %}" class="font-medium text-sm link link-hover">{{ emp.full_name }}</a>
-          <div class="text-xs text-base-content/50">{{ emp.employee_code }}{% if emp.department %} · {{ emp.department.name }}{% endif %}</div>
-        </td>
-        <td class="font-mono text-xs">{{ access.email }}</td>
-        <td>
-          {% if access.is_active %}
-          <span class="badge badge-success badge-sm">Active</span>
-          {% else %}
-          <span class="badge badge-error badge-sm">Disabled</span>
-          {% endif %}
-        </td>
-        <td>
-          {% for label in access.role_labels %}
-          <span class="badge badge-ghost badge-xs mr-1">{{ label }}</span>
-          {% empty %}
-          <span class="text-base-content/40 text-xs">—</span>
-          {% endfor %}
-        </td>
-        <td>
-          {% if "super_admin" in access.roles %}
-          <span class="text-xs text-base-content/50">Super admin (managed separately)</span>
-          {% else %}
-          <form method="post" action="{% url 'employees:team_access_update' emp.pk %}" class="flex flex-wrap items-center gap-2">
-            {% csrf_token %}
-            <label class="label cursor-pointer gap-1 py-0">
-              <input type="checkbox" name="role_manager" class="checkbox checkbox-xs" {% if "manager" in access.roles %}checked{% endif %}>
-              <span class="label-text text-xs">Team Lead / Manager</span>
-            </label>
-            <label class="label cursor-pointer gap-1 py-0">
-              <input type="checkbox" name="role_hr_admin" class="checkbox checkbox-xs" {% if "hr_admin" in access.roles %}checked{% endif %}>
-              <span class="label-text text-xs">HR Admin</span>
-            </label>
-            <button type="submit" class="btn btn-outline btn-xs">Save</button>
-          </form>
-          {% endif %}
-        </td>
-      </tr>
-      {% endwith %}
-      {% empty %}
-      <tr>
-        <td colspan="5" class="text-center py-8 text-base-content/40">
-          No employees with login accounts yet. Create logins from employee profiles or use bulk provision.
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+<div class="people-kpi-grid">
+  <div class="people-kpi">
+    <div class="people-kpi__label">With login</div>
+    <div class="people-kpi__value">{{ stats_total }}</div>
+    <div class="people-kpi__hint">Employee accounts</div>
+  </div>
+  <div class="people-kpi">
+    <div class="people-kpi__label">Managers</div>
+    <div class="people-kpi__value">{{ stats_managers }}</div>
+    <div class="people-kpi__hint">Team lead / manager role</div>
+  </div>
+  <div class="people-kpi">
+    <div class="people-kpi__label">HR admins</div>
+    <div class="people-kpi__value">{{ stats_hr_admins }}</div>
+    <div class="people-kpi__hint">HR admin role</div>
+  </div>
+  <div class="people-kpi {% if stats_inactive %}people-kpi--warn{% endif %}">
+    <div class="people-kpi__label">Disabled</div>
+    <div class="people-kpi__value">{{ stats_inactive }}</div>
+    <div class="people-kpi__hint">Login revoked</div>
+  </div>
 </div>
 
-<div class="mt-4 text-sm text-base-content/60">
-  <p><strong>Tip:</strong> To disable login when someone leaves, open their profile → Application access → Disable access, or check “Disable login immediately” when creating an exit request.</p>
+<div class="people-quick-actions">
+  <a href="{% url 'employees:bulk_credentials' %}" class="btn btn-ghost btn-sm">Export credentials</a>
+  <a href="{% url 'hr_ops:exit_list' %}" class="btn btn-ghost btn-sm">Exit & revoke access</a>
+</div>
+
+{% for row in rows %}
+{% with emp=row.employee access=row.access %}
+<div class="people-access-card">
+  <div class="people-access-card__head">
+    <div>
+      <a href="{% url 'employees:detail' emp.pk %}" class="people-emp-row__name link link-hover">{{ emp.full_name }}</a>
+      <div class="people-emp-row__email">{{ emp.employee_code }}{% if emp.department %} · {{ emp.department.name }}{% endif %}</div>
+      <div class="font-mono text-xs text-base-content/50 mt-1">{{ access.email }}</div>
+    </div>
+    <div class="flex items-center gap-2">
+      {% if access.is_active %}
+      <span class="badge badge-success badge-sm">Active login</span>
+      {% else %}
+      <span class="badge badge-error badge-sm">Disabled</span>
+      {% endif %}
+    </div>
+  </div>
+  <div class="people-access-card__roles mb-3">
+    {% for label in access.role_labels %}
+    <span class="badge badge-ghost badge-sm">{{ label }}</span>
+    {% empty %}
+    <span class="text-base-content/40 text-xs">Employee only</span>
+    {% endfor %}
+  </div>
+  {% if "super_admin" in access.roles %}
+  <p class="text-xs text-base-content/50">Super admin — managed separately in platform settings.</p>
+  {% else %}
+  <form method="post" action="{% url 'employees:team_access_update' emp.pk %}" class="flex flex-wrap items-center gap-4">
+    {% csrf_token %}
+    <label class="label cursor-pointer gap-2 py-0">
+      <input type="checkbox" name="role_manager" class="checkbox checkbox-sm checkbox-primary" {% if "manager" in access.roles %}checked{% endif %}>
+      <span class="label-text text-sm">Team Lead / Manager</span>
+    </label>
+    <label class="label cursor-pointer gap-2 py-0">
+      <input type="checkbox" name="role_hr_admin" class="checkbox checkbox-sm checkbox-primary" {% if "hr_admin" in access.roles %}checked{% endif %}>
+      <span class="label-text text-sm">HR Admin</span>
+    </label>
+    <button type="submit" class="btn btn-primary btn-xs">Save roles</button>
+    <a href="{% url 'employees:detail' emp.pk %}" class="btn btn-ghost btn-xs">Open profile</a>
+  </form>
+  {% endif %}
+</div>
+{% endwith %}
+{% empty %}
+<div class="people-table-card p-12 text-center text-base-content/40">
+  No employees with login accounts yet.<br>
+  <a href="{% url 'employees:bulk_provision' %}" class="link mt-2 inline-block">Bulk provision logins</a> or create logins from employee profiles.
+</div>
+{% endfor %}
+
+<div class="people-tip">
+  <strong>Tip:</strong> To disable login when someone leaves, open their profile → Application access → Disable access,
+  or check “Disable login immediately” when creating an exit request.
 </div>
 {% endblock %}

@@ -424,6 +424,10 @@ def _calendar_month_data(tenant, today):
                 "is_today": cursor == today,
                 "summary": " · ".join(parts[:3]),
                 "has_holiday": bool(ctx["holidays"]),
+                "holiday_title": ctx["holidays"][0]["title"] if ctx["holidays"] else "",
+                "leave_count": len(ctx["leaves"]),
+                "birthday_count": len(ctx["birthdays"]),
+                "note_count": len(notes),
             }
         )
         cursor += datetime.timedelta(days=1)
@@ -476,9 +480,7 @@ def _attendance_trend_for_days(tenant, today, num_days: int) -> dict:
 
 
 def _dashboard_priorities(today, pending_work, today_calendar_events):
-    """Actionable items only — hidden when everything is clear."""
-    from django.urls import reverse
-
+    """Today's calendar highlights for the action inbox."""
     items = []
 
     for ev in today_calendar_events:
@@ -492,51 +494,6 @@ def _dashboard_priorities(today, pending_work, today_calendar_events):
             }
         )
 
-    if pending_work.get("leaves"):
-        items.append(
-            {
-                "kind": "leave",
-                "title": f"{pending_work['leaves']} leave request(s) waiting",
-                "sub": "Review and approve",
-                "url": reverse("leaves:pending"),
-                "priority": 2,
-            }
-        )
-
-    if pending_work.get("regularizations"):
-        items.append(
-            {
-                "kind": "attendance",
-                "title": f"{pending_work['regularizations']} attendance fix(es)",
-                "sub": "Needs your approval",
-                "url": reverse("attendance:regularizations"),
-                "priority": 3,
-            }
-        )
-
-    if pending_work.get("service_requests"):
-        items.append(
-            {
-                "kind": "request",
-                "title": f"{pending_work['service_requests']} service request(s)",
-                "sub": "Open queue",
-                "url": reverse("hr_ops:service_request_queue"),
-                "priority": 4,
-            }
-        )
-
-    if pending_work.get("expenses"):
-        items.append(
-            {
-                "kind": "expense",
-                "title": f"{pending_work['expenses']} expense claim(s)",
-                "sub": "Pending approval",
-                "url": reverse("payroll:expenses"),
-                "priority": 5,
-            }
-        )
-
-    items.sort(key=lambda row: row["priority"])
     return items[:6]
 
 
@@ -965,3 +922,62 @@ def _employee_analytics(tenant, user, today, month_start):
         "upcoming_holidays": upcoming_holidays,
         "recent_leaves": recent_leaves,
     }
+
+
+@login_required
+def company_overview(request):
+    """Executive / company-head view — org-wide issues, payroll, projects, people."""
+    if not request.user.is_hr_admin:
+        messages.error(request, "HR administrator access required.")
+        return redirect("tenants:dashboard")
+
+    tenant = request.tenant
+    today = timezone.localdate()
+    month_start = today.replace(day=1)
+
+    from apps.employees.models import Employee
+    from apps.hr_ops.models import ServiceRequest
+    from apps.leaves.models import LeaveRequest
+    from apps.projects.models import Project
+    from apps.payroll.models import PayrollRun, Payslip
+
+    open_requests_qs = ServiceRequest.objects.filter(
+        tenant=tenant,
+        status__in=("pending_manager", "pending_it", "in_progress"),
+    ).select_related("employee", "employee__department").order_by("-created_at")
+
+    open_request_count = open_requests_qs.count()
+    open_requests = open_requests_qs[:20]
+
+    resolved_month = ServiceRequest.objects.filter(
+        tenant=tenant,
+        status__in=("resolved", "closed"),
+        updated_at__date__gte=month_start,
+    ).count()
+
+    active_projects = Project.objects.filter(tenant=tenant, status__in=("planning", "active")).select_related(
+        "department", "lead"
+    )[:12]
+
+    last_payroll = PayrollRun.objects.filter(tenant=tenant, status="published").order_by("-period_end").first()
+    payroll_total = None
+    if last_payroll:
+        payroll_total = Payslip.objects.filter(payroll_run=last_payroll).aggregate(
+            total=Sum("net_payable")
+        )["total"]
+
+    pending_leave = LeaveRequest.objects.filter(tenant=tenant, status="pending").count()
+    headcount = Employee.objects.filter(tenant=tenant, employment_status="active", is_active=True).count()
+
+    return render(request, "tenants/company_overview.html", {
+        "today": today,
+        "headcount": headcount,
+        "pending_leave": pending_leave,
+        "open_requests": open_requests,
+        "open_request_count": open_request_count,
+        "resolved_month": resolved_month,
+        "active_projects": active_projects,
+        "last_payroll": last_payroll,
+        "payroll_total": payroll_total,
+    })
+

@@ -7,10 +7,12 @@
 {% endblock %}
 
 {% block content %}
+
 <div class="hr-page-header">
   <div class="hr-page-header__main">
+    <p class="text-xs font-bold uppercase tracking-wider text-base-content/40 mb-1">People · Hiring</p>
     <h1 class="hr-page-header__title">Job Openings</h1>
-    <p class="hr-page-header__sub">Manage published roles and pipeline candidates</p>
+    <p class="hr-page-header__sub">Manage published roles, pipeline candidates, and talent pools</p>
   </div>
   <div class="hr-page-header__actions">
     {% if user.is_hr_admin %}
@@ -50,6 +52,14 @@
     <div class="text-3xl font-bold mt-1 text-success">{{ total_applications }}</div>
     <div class="text-[10px] text-base-content/40 mt-1">Recruitment database records</div>
   </div>
+</div>
+
+<div class="people-quick-actions">
+  <a href="{% url 'recruitment:analytics' %}" class="btn btn-ghost btn-sm">Analytics</a>
+  <a href="{% url 'recruitment:talent_pools' %}" class="btn btn-ghost btn-sm">Talent pools</a>
+  {% if user.is_hr_admin %}
+  <a href="{% url 'recruitment:job_create' %}" class="btn btn-primary btn-sm">+ New opening</a>
+  {% endif %}
 </div>
 
 <div class="card mb-6 border border-base-200/50">

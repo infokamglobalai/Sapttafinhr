@@ -290,6 +290,7 @@ def comp_off_list(request):
     tenant = request.tenant
     credits = CompOffCredit.objects.filter(tenant=tenant, employee=employee).order_by("-worked_date")
     available = available_comp_off_days(tenant, employee)
+    today = timezone.localdate()
 
     if request.method == "POST":
         date_str = request.POST.get("worked_date")
@@ -302,9 +303,23 @@ def comp_off_list(request):
         except (ValueError, TypeError) as exc:
             messages.error(request, str(exc))
 
+    available_total = available_comp_off_total(tenant, employee)
+    stats = {
+        "available": available_total,
+        "pending": credits.filter(status="pending").count(),
+        "used": credits.filter(status="used").count(),
+        "expiring_soon": credits.filter(
+            status="available",
+            valid_until__gte=today,
+            valid_until__lte=today + datetime.timedelta(days=14),
+        ).count(),
+    }
+
     return render(request, "leaves/comp_off.html", {
         "credits": credits,
         "available_count": len(available),
+        "stats": stats,
+        "today": today,
     })
 
 

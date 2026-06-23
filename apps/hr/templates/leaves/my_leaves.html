@@ -4,60 +4,84 @@
 <div class="hr-page-header">
   <div class="hr-page-header__main">
     <h1 class="hr-page-header__title">My Leave</h1>
+    <p class="hr-page-header__sub">Balances and request history for the current year.</p>
   </div>
   <div class="hr-page-header__actions">
+    <a href="{% url 'leaves:comp_off' %}" class="btn btn-outline btn-sm">Comp-off</a>
     <a href="{% url 'leaves:apply' %}" class="btn btn-primary btn-sm">+ Apply Leave</a>
   </div>
 </div>
 
-<!-- Balance cards -->
-<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+{% if balances %}
+<div class="hr-kpi-strip hr-kpi-strip--wrap">
   {% for bal in balances %}
-  <div class="card text-center p-4">
-    <div class="text-3xl font-bold {% if bal.available > 0 %}text-primary{% else %}text-base-content/40{% endif %}">{{ bal.available|floatformat:1 }}</div>
-    <div class="text-xs text-base-content/60 mt-1">{{ bal.leave_type.name }}</div>
-    <div class="text-xs text-base-content/40">{{ bal.taken|floatformat:1 }} taken · {{ bal.credited|floatformat:1 }} credited</div>
+  <div class="hr-kpi{% if forloop.first %} hr-kpi--accent{% endif %}">
+    <div class="hr-kpi__label">{{ bal.leave_type.name }}</div>
+    <div class="hr-kpi__value {% if bal.available > 0 %}hr-kpi__value--green{% endif %}">{{ bal.available|floatformat:1 }}</div>
+    <div class="hr-kpi__hint">{{ bal.taken|floatformat:1 }} taken · {{ bal.credited|floatformat:1 }} credited</div>
   </div>
-  {% empty %}
-  <div class="col-span-4 text-center text-base-content/40 py-4">No leave balances configured yet. Contact HR.</div>
   {% endfor %}
 </div>
+{% else %}
+<div class="card p-6 mb-4">
+  {% include "partials/empty_state.html" with title="No leave balances" message="Leave types and balances are configured by HR. Contact your administrator if you expect balances here." %}
+</div>
+{% endif %}
 
-<!-- Request history -->
 <div class="card hr-table-wrap">
-  <table class="table table-sm">
-    <thead><tr><th>Type</th><th>From</th><th>To</th><th>Days</th><th>Status</th><th>Applied</th><th></th></tr></thead>
-    <tbody>
-      {% for req in leave_requests %}
-      <tr>
-        <td><span class="badge badge-outline badge-sm">{{ req.leave_type.code }}</span></td>
-        <td class="text-sm">{{ req.from_date|date:"d M Y" }}</td>
-        <td class="text-sm">{{ req.to_date|date:"d M Y" }}</td>
-        <td class="font-medium">{{ req.total_days }}</td>
-        <td>
-          <span class="badge badge-sm
-            {% if req.status == 'approved' %}badge-success
-            {% elif req.status == 'rejected' %}badge-error
-            {% elif req.status == 'pending' %}badge-warning
-            {% else %}badge-ghost{% endif %}">
-            {{ req.get_status_display }}
-          </span>
-        </td>
-        <td class="text-xs text-base-content/50">{{ req.applied_at|date:"d M" }}</td>
-        <td>
-          {% if req.status == 'pending' %}
-          <form method="post" action="{% url 'leaves:cancel' req.pk %}">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-ghost btn-xs text-error"
-                    onclick="return confirm('Cancel this leave request?')">Cancel</button>
-          </form>
-          {% endif %}
-        </td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="7" class="text-center py-8 text-base-content/40">No leave requests yet.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="px-4 py-3 border-b border-base-200">
+    <h2 class="text-sm font-semibold">Request history</h2>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="table table-sm">
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>From</th>
+          <th>To</th>
+          <th>Days</th>
+          <th>Status</th>
+          <th>Applied</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for req in leave_requests %}
+        <tr>
+          <td><span class="badge badge-outline badge-sm">{{ req.leave_type.code }}</span></td>
+          <td class="text-sm">{{ req.from_date|date:"d M Y" }}</td>
+          <td class="text-sm">{{ req.to_date|date:"d M Y" }}</td>
+          <td class="font-medium">{{ req.total_days }}</td>
+          <td>
+            <span class="badge badge-sm
+              {% if req.status == 'approved' %}badge-success
+              {% elif req.status == 'rejected' %}badge-error
+              {% elif req.status == 'pending' %}badge-warning
+              {% else %}badge-ghost{% endif %}">
+              {{ req.get_status_display }}
+            </span>
+          </td>
+          <td class="text-xs text-base-content/50">{{ req.applied_at|date:"d M" }}</td>
+          <td>
+            {% if req.status == 'pending' %}
+            <form method="post" action="{% url 'leaves:cancel' req.pk %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-ghost btn-xs text-error"
+                      onclick="return confirm('Cancel this leave request?')">Cancel</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7">
+            {% url 'leaves:apply' as apply_leaves_url %}
+            {% include "partials/empty_state.html" with title="No leave requests yet" message="Apply for time off and track approvals here." cta_url=apply_leaves_url cta_label="Apply leave" %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}

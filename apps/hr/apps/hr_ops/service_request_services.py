@@ -43,10 +43,35 @@ def _notify(user, title, message, action_url):
         logger.exception("Service request notification failed")
 
 
+def _notify_department_managers(tenant, employee, req, title, message):
+    """Notify managers in the same department (dept heads / team leads)."""
+    if not employee.department_id:
+        return
+    from apps.accounts.models import User
+
+    mgr_users = User.objects.filter(
+        tenant=tenant,
+        is_active=True,
+        employee_profile__department_id=employee.department_id,
+        user_roles__role__name__in=("manager", "hr_admin", "super_admin"),
+    ).distinct()
+    for user in mgr_users:
+        if employee.user_id and user.pk == employee.user_id:
+            continue
+        action_url = (
+            f"/hr/requests/queue/{req.pk}/"
+            if user.is_hr_admin
+            else "/hr/requests/team/"
+        )
+        _notify(user, title, message, action_url)
+
+
 def _notify_hr_admins(tenant, title, message, action_url):
     from apps.accounts.models import User
 
-    for user in User.objects.filter(tenant=tenant, is_active=True, role__in=["super_admin", "hr_admin"]):
+    for user in User.objects.filter(
+        tenant=tenant, is_active=True, user_roles__role__name__in=("super_admin", "hr_admin")
+    ).distinct():
         _notify(user, title, message, action_url)
 
 
@@ -93,6 +118,14 @@ def submit_service_request(tenant, employee, *, category, subject, description, 
             f"{employee.full_name} — {label}: {subject}",
             f"/hr/requests/queue/{req.pk}/",
         )
+
+    _notify_department_managers(
+        tenant,
+        employee,
+        req,
+        f"New team request: {req.request_no}",
+        f"{employee.full_name} ({employee.department.name if employee.department else '—'}): {subject}",
+    )
 
     _notify(
         employee.user,

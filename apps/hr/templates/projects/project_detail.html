@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block page_title %}{{ project.name }}{% endblock %}
+{% block content %}
+<div class="my-space-page">
+  <div class="hr-page-header" style="margin-bottom:16px;">
+    <div class="hr-page-header__main">
+      <h1 class="hr-page-header__title">{{ project.name }}</h1>
+      <p class="my-space-meta">{{ project.code }} · <span class="my-space-status my-space-status--{{ project.status }}">{{ project.get_status_display }}</span></p>
+    </div>
+    <div class="hr-page-header__actions">
+      {% if user.is_hr_admin %}
+      <a href="{% url 'projects:edit' project.pk %}" class="btn btn-outline btn-sm">Edit</a>
+      {% endif %}
+      <a href="{% url 'projects:my_projects' %}" class="btn btn-ghost btn-sm">← My projects</a>
+    </div>
+  </div>
+
+  {% if project.description %}
+  <div class="my-space-card" style="margin-bottom:16px;">
+    <p class="my-space-meta">{{ project.description }}</p>
+  </div>
+  {% endif %}
+
+  <div class="my-space-grid">
+    <div class="my-space-card">
+      <h2 class="my-space-card__title">Team ({{ members|length }})</h2>
+      <ul class="my-space-list">
+        {% if project.lead %}
+        <li><span>{{ project.lead.full_name }}</span><span class="my-space-meta">Lead</span></li>
+        {% endif %}
+        {% for m in members %}
+        {% if m.employee_id != project.lead_id %}
+        <li><span>{{ m.employee.full_name }}</span><span class="my-space-meta">{{ m.get_role_display }}</span></li>
+        {% endif %}
+        {% endfor %}
+      </ul>
+      {% if member_form %}
+      <form method="post" action="{% url 'projects:add_member' project.pk %}" style="margin-top:14px;">
+        {% csrf_token %}
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          {{ member_form.employee }}
+          {{ member_form.role }}
+          <button type="submit" class="btn btn-primary btn-sm">Add</button>
+        </div>
+      </form>
+      {% endif %}
+    </div>
+
+    <div class="my-space-card">
+      <h2 class="my-space-card__title">Summary</h2>
+      <ul class="my-space-list">
+        <li><span>Hours logged</span><span>{{ hours_logged }}h</span></li>
+        <li><span>Documents</span><span>{{ documents|length }}</span></li>
+        {% if project.start_date %}<li><span>Start</span><span>{{ project.start_date|date:"d M Y" }}</span></li>{% endif %}
+        {% if project.end_date %}<li><span>End</span><span>{{ project.end_date|date:"d M Y" }}</span></li>{% endif %}
+      </ul>
+    </div>
+  </div>
+
+  <div class="my-space-card" style="margin-top:16px;">
+    <h2 class="my-space-card__title">Documents</h2>
+    {% for doc in documents %}
+    <div class="my-space-doc-row">
+      <div>
+        <strong>{{ doc.title }}</strong>
+        {% if doc.description %}<div class="my-space-meta">{{ doc.description }}</div>{% endif %}
+        <div class="my-space-meta">Uploaded {{ doc.uploaded_at|naturaltime }}</div>
+      </div>
+      <a href="{{ doc.file.url }}" class="btn btn-outline btn-sm" target="_blank" rel="noopener">Download</a>
+    </div>
+    {% empty %}
+    <p class="my-space-meta">No documents yet.</p>
+    {% endfor %}
+
+    {% if doc_form %}
+    <form method="post" action="{% url 'projects:upload_document' project.pk %}" enctype="multipart/form-data" style="margin-top:16px;padding-top:16px;border-top:1px solid #f1f5f9;">
+      {% csrf_token %}
+      <div class="form-control" style="margin-bottom:10px;"><label class="label-text">Title</label>{{ doc_form.title }}</div>
+      <div class="form-control" style="margin-bottom:10px;"><label class="label-text">Description</label>{{ doc_form.description }}</div>
+      <div class="form-control" style="margin-bottom:10px;"><label class="label-text">File</label>{{ doc_form.file }}</div>
+      <button type="submit" class="btn btn-primary btn-sm">Upload document</button>
+    </form>
+    {% endif %}
+  </div>
+
+  <div class="my-space-card" style="margin-top:16px;">
+    <h2 class="my-space-card__title">Team updates</h2>
+    <div class="my-space-timeline">
+      {% for u in updates %}
+      <div class="my-space-timeline__item">
+        <div style="font-size:0.875rem;">{{ u.message }}</div>
+        <div class="my-space-meta">{{ u.author.get_full_name|default:u.author.email }} · {{ u.created_at|naturaltime }}</div>
+      </div>
+      {% empty %}
+      <p class="my-space-meta">No updates yet.</p>
+      {% endfor %}
+    </div>
+    {% if update_form %}
+    <form method="post" action="{% url 'projects:add_update' project.pk %}" style="margin-top:16px;">
+      {% csrf_token %}
+      {{ update_form.message }}
+      <button type="submit" class="btn btn-primary btn-sm" style="margin-top:8px;">Post update</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

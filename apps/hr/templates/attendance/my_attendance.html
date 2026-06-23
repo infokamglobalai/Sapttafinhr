@@ -3,17 +3,56 @@
 {% block content %}
 <div class="hr-page-header">
   <div class="hr-page-header__main">
-    <h1 class="hr-page-header__title">My Attendance — {{ year }}/{{ month }}</h1>
+    <h1 class="hr-page-header__title">My Attendance</h1>
+    <p class="hr-page-header__sub">Your punch and attendance history for {{ month_name }} {{ year }}.</p>
   </div>
   <div class="hr-page-header__actions">
     <a href="{% url 'attendance:regularization' %}" class="btn btn-outline btn-sm">Request Correction</a>
   </div>
 </div>
 
+<div class="hr-period-nav">
+  <a href="?year={{ prev_year }}&month={{ prev_month }}" aria-label="Previous month">←</a>
+  <span class="hr-period-nav__current">{{ month_name }} {{ year }}</span>
+  <a href="?year={{ next_year }}&month={{ next_month }}" aria-label="Next month">→</a>
+</div>
+
+<div class="hr-kpi-strip">
+  <div class="hr-kpi hr-kpi--accent">
+    <div class="hr-kpi__label">Present</div>
+    <div class="hr-kpi__value hr-kpi__value--green">{{ stats.present }}</div>
+  </div>
+  <div class="hr-kpi">
+    <div class="hr-kpi__label">Absent</div>
+    <div class="hr-kpi__value hr-kpi__value--rose">{{ stats.absent }}</div>
+  </div>
+  <div class="hr-kpi">
+    <div class="hr-kpi__label">On leave</div>
+    <div class="hr-kpi__value hr-kpi__value--indigo">{{ stats.on_leave }}</div>
+  </div>
+  <div class="hr-kpi">
+    <div class="hr-kpi__label">Half day</div>
+    <div class="hr-kpi__value hr-kpi__value--amber">{{ stats.half_day }}</div>
+  </div>
+  <div class="hr-kpi">
+    <div class="hr-kpi__label">Total hours</div>
+    <div class="hr-kpi__value">{{ stats.total_hours }}h</div>
+    <div class="hr-kpi__hint">This month</div>
+  </div>
+</div>
+
 <div class="card hr-table-wrap">
   <table class="table table-sm">
     <thead>
-      <tr><th>Date</th><th>Day</th><th>In Time</th><th>Out Time</th><th>Hours</th><th>Status</th><th>Late</th></tr>
+      <tr>
+        <th>Date</th>
+        <th>Day</th>
+        <th>In</th>
+        <th>Out</th>
+        <th>Hours</th>
+        <th>Status</th>
+        <th>Late</th>
+      </tr>
     </thead>
     <tbody>
       {% for rec in records %}
@@ -38,7 +77,11 @@
         </td>
       </tr>
       {% empty %}
-      <tr><td colspan="7" class="text-center py-8 text-base-content/40">No attendance records for this month.</td></tr>
+      <tr>
+        <td colspan="7">
+          {% include "partials/empty_state.html" with title="No attendance this month" message="Records appear after you punch in/out or when HR marks attendance." %}
+        </td>
+      </tr>
       {% endfor %}
     </tbody>
   </table>

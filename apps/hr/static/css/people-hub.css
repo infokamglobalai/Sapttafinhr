@@ -1,0 +1,392 @@
+/* People hub — Employees, Attrition, Team Access, Recruitment */
+
+.people-view-toggle {
+  display: inline-flex;
+  padding: 4px;
+  background: var(--hr-surface-muted, #f8fafc);
+  border: 1px solid var(--hr-border);
+  border-radius: 10px;
+  gap: 4px;
+}
+
+.people-view-toggle__btn {
+  padding: 6px 14px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--hr-text-secondary);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.people-view-toggle__btn.is-active {
+  background: #fff;
+  color: var(--hr-primary);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.people-emp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.people-emp-card {
+  display: block;
+  padding: 18px;
+  background: #fff;
+  border: 1px solid var(--hr-border);
+  border-radius: 12px;
+  text-decoration: none;
+  color: inherit;
+  transition: box-shadow 0.15s, border-color 0.15s, transform 0.1s;
+}
+
+.people-emp-card:hover {
+  border-color: var(--hr-primary-ring);
+  box-shadow: var(--hr-shadow);
+  transform: translateY(-2px);
+}
+
+.people-emp-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.people-emp-card__photo {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+.people-avatar--lg {
+  width: 40px;
+  height: 40px;
+  font-size: 0.875rem;
+}
+
+.people-emp-card__name {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--hr-text);
+}
+
+.people-emp-card__meta {
+  font-size: 0.75rem;
+  color: var(--hr-text-muted);
+  margin-top: 4px;
+}
+
+.people-emp-card__role {
+  font-size: 0.8125rem;
+  color: var(--hr-text-secondary);
+  margin-top: 8px;
+}
+
+.people-emp-card__foot {
+  font-size: 0.75rem;
+  color: var(--hr-text-muted);
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--hr-border);
+}
+
+.people-emp-card--empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: var(--hr-text-muted);
+}
+
+.people-risk-chart__bars {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.people-risk-chart__row {
+  display: grid;
+  grid-template-columns: 72px 1fr 40px;
+  align-items: center;
+  gap: 12px;
+}
+
+.people-risk-chart__label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--hr-text-secondary);
+}
+
+.people-risk-chart__track {
+  height: 12px;
+  background: #f1f5f9;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.people-risk-chart__fill {
+  height: 100%;
+  border-radius: 999px;
+  min-width: 4px;
+  transition: width 0.4s ease;
+}
+
+.people-risk-chart__fill--low { background: #22c55e; }
+.people-risk-chart__fill--medium { background: #f59e0b; }
+.people-risk-chart__fill--high { background: #ef4444; }
+
+.people-risk-chart__count {
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-align: right;
+}
+
+[x-cloak] { display: none !important; }
+
+.people-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 1024px) {
+  .people-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 560px) {
+  .people-kpi-grid { grid-template-columns: 1fr; }
+}
+
+.people-kpi {
+  display: block;
+  padding: 18px 20px;
+  background: #fff;
+  border: 1px solid var(--hr-border);
+  border-radius: var(--hr-radius-sm, 12px);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+}
+
+.people-kpi:hover {
+  border-color: var(--hr-primary-ring);
+  box-shadow: var(--hr-shadow);
+  transform: translateY(-1px);
+}
+
+.people-kpi.is-selected {
+  border-color: var(--hr-primary);
+  box-shadow: 0 0 0 3px var(--hr-primary-soft);
+}
+
+.people-kpi__label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--hr-text-muted);
+}
+
+.people-kpi__value {
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin-top: 4px;
+  color: var(--hr-text);
+  line-height: 1.1;
+}
+
+.people-kpi__hint {
+  font-size: 0.75rem;
+  color: var(--hr-text-secondary);
+  margin-top: 6px;
+}
+
+.people-kpi--danger .people-kpi__value { color: #dc2626; }
+.people-kpi--danger .people-kpi__label { color: #dc2626; }
+.people-kpi--warn .people-kpi__value { color: #d97706; }
+.people-kpi--warn .people-kpi__label { color: #d97706; }
+.people-kpi--success .people-kpi__value { color: #059669; }
+.people-kpi--success .people-kpi__label { color: #059669; }
+
+.people-quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.people-quick-actions .btn {
+  font-size: 0.8125rem;
+}
+
+.people-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.people-filter-card {
+  background: #fff;
+  border: 1px solid var(--hr-border);
+  border-radius: var(--hr-radius-sm);
+  padding: 16px 18px;
+  margin-bottom: 16px;
+}
+
+.people-filter-card .hr-filter-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.people-table-card {
+  background: #fff;
+  border: 1px solid var(--hr-border);
+  border-radius: var(--hr-radius-sm);
+  overflow: hidden;
+  box-shadow: var(--hr-shadow);
+}
+
+.people-table-card .table thead {
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.people-table-card .table thead th {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--hr-text-muted);
+  border-bottom: 1px solid var(--hr-border);
+}
+
+.people-table-card .table tbody tr {
+  transition: background 0.12s;
+}
+
+.people-table-card .table tbody tr:hover {
+  background: rgba(79, 70, 229, 0.04);
+}
+
+.people-emp-row__name {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--hr-text);
+}
+
+.people-emp-row__email {
+  font-size: 0.75rem;
+  color: var(--hr-text-muted);
+}
+
+.people-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: var(--hr-primary-soft);
+  color: var(--hr-primary);
+  flex-shrink: 0;
+}
+
+.people-seat-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  font-size: 0.875rem;
+}
+
+.people-seat-banner--warn {
+  background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+  border: 1px solid #fed7aa;
+  color: #9a3412;
+}
+
+.people-seat-banner--info {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border: 1px solid #bfdbfe;
+  color: #1e40af;
+}
+
+.people-risk-score {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 1rem;
+}
+
+.people-risk-score--high { background: #fee2e2; color: #b91c1c; }
+.people-risk-score--medium { background: #fef3c7; color: #92400e; }
+.people-risk-score--low { background: #dcfce7; color: #166534; }
+
+.people-factor-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 0.8125rem;
+  color: var(--hr-text-secondary);
+}
+
+.people-factor-list li { margin-bottom: 4px; }
+.people-factor-list strong { color: var(--hr-primary); }
+
+.people-access-card {
+  background: #fff;
+  border: 1px solid var(--hr-border);
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-bottom: 12px;
+  transition: box-shadow 0.15s;
+}
+
+.people-access-card:hover {
+  box-shadow: var(--hr-shadow);
+}
+
+.people-access-card__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.people-access-card__roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.people-tip {
+  padding: 14px 16px;
+  background: var(--hr-surface-muted);
+  border-radius: 10px;
+  font-size: 0.8125rem;
+  color: var(--hr-text-secondary);
+  margin-top: 20px;
+}
+
+.people-tip strong { color: var(--hr-text); }

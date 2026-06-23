@@ -1,44 +1,75 @@
-{% extends "base.html" %}
+{% extends "reports/report_page.html" %}
 {% block page_title %}Leave Report{% endblock %}
-{% block content %}
-<div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-  <div>
-    <a href="{% url 'reports:index' %}" class="text-sm link link-hover">← Reports</a>
-    <h2 class="text-xl font-bold mt-1">Leave Report</h2>
-    <p class="text-sm text-base-content/60">{{ total }} record(s)</p>
+{% block report_category %}Leave{% endblock %}
+{% block report_title %}Leave Report{% endblock %}
+{% block report_subtitle %}{{ total }} request(s) · {{ start_date|date:"d M Y" }} – {{ end_date|date:"d M Y" }}{% endblock %}
+
+{% block report_actions %}
+<a href="{% url 'reports:leave_export' %}?from={{ start_date|date:'Y-m-d' }}&to={{ end_date|date:'Y-m-d' }}{% if status %}&status={{ status }}{% endif %}"
+   class="btn btn-primary btn-sm">Export Excel</a>
+{% endblock %}
+
+{% block report_kpis %}
+<div class="reports-kpi-grid">
+  <div class="reports-kpi">
+    <div class="reports-kpi__label">Total records</div>
+    <div class="reports-kpi__value">{{ total }}</div>
+    <div class="reports-kpi__hint">Matching filters</div>
   </div>
-  <a href="{% url 'reports:leave_export' %}?from={{ start_date|date:'Y-m-d' }}&to={{ end_date|date:'Y-m-d' }}{% if status %}&status={{ status }}{% endif %}"
-     class="btn btn-primary btn-sm">Export Excel</a>
+  <div class="reports-kpi">
+    <div class="reports-kpi__label">Date range</div>
+    <div class="reports-kpi__value" style="font-size:1rem;">{{ start_date|date:"d M" }} – {{ end_date|date:"d M Y" }}</div>
+    <div class="reports-kpi__hint">Inclusive period</div>
+  </div>
 </div>
-<form method="get" class="card hr-filter-bar">
-  <div class="card-body p-4 flex flex-wrap gap-3 items-end">
-    <div>
-      <label class="label-text text-xs">From</label>
-      <input type="date" name="from" value="{{ start_date|date:'Y-m-d' }}" class="input input-bordered input-sm">
+{% endblock %}
+
+{% block report_filters %}
+<div class="reports-filter-card">
+  <form method="get" class="reports-filter-form">
+    <div class="form-control">
+      <label class="label py-0"><span class="label-text">From</span></label>
+      <input type="date" name="from" value="{{ start_date|date:'Y-m-d' }}" class="input input-bordered input-sm w-40">
     </div>
-    <div>
-      <label class="label-text text-xs">To</label>
-      <input type="date" name="to" value="{{ end_date|date:'Y-m-d' }}" class="input input-bordered input-sm">
+    <div class="form-control">
+      <label class="label py-0"><span class="label-text">To</span></label>
+      <input type="date" name="to" value="{{ end_date|date:'Y-m-d' }}" class="input input-bordered input-sm w-40">
     </div>
-    <div>
-      <label class="label-text text-xs">Status</label>
-      <select name="status" class="select select-bordered select-sm">
+    <div class="form-control">
+      <label class="label py-0"><span class="label-text">Status</span></label>
+      <select name="status" class="select select-bordered select-sm w-36">
         <option value="">All</option>
         <option value="pending" {% if status == 'pending' %}selected{% endif %}>Pending</option>
         <option value="approved" {% if status == 'approved' %}selected{% endif %}>Approved</option>
         <option value="rejected" {% if status == 'rejected' %}selected{% endif %}>Rejected</option>
       </select>
     </div>
-    <button type="submit" class="btn btn-sm btn-outline">Apply</button>
-  </div>
-</form>
-<div class="card hr-table-wrap">
+    <button type="submit" class="btn btn-sm btn-primary">Apply filters</button>
+    <a href="{% url 'reports:leave' %}" class="btn btn-sm btn-ghost">Reset</a>
+  </form>
+</div>
+{% endblock %}
+
+{% block report_content %}
+<div class="reports-table-card">
   <table class="table table-sm">
-    <thead><tr><th>Employee</th><th>Type</th><th>From</th><th>To</th><th>Days</th><th>Status</th></tr></thead>
+    <thead>
+      <tr>
+        <th>Employee</th>
+        <th>Type</th>
+        <th>From</th>
+        <th>To</th>
+        <th>Days</th>
+        <th>Status</th>
+      </tr>
+    </thead>
     <tbody>
       {% for row in rows %}
       <tr>
-        <td>{{ row.employee.full_name }}</td>
+        <td>
+          <div class="font-medium">{{ row.employee.full_name }}</div>
+          <div class="text-xs text-base-content/50">{{ row.employee.employee_code }}</div>
+        </td>
         <td>{{ row.leave_type.code }}</td>
         <td>{{ row.from_date|date:"d M Y" }}</td>
         <td>{{ row.to_date|date:"d M Y" }}</td>
@@ -46,9 +77,15 @@
         <td><span class="badge badge-sm badge-ghost">{{ row.get_status_display }}</span></td>
       </tr>
       {% empty %}
-      <tr><td colspan="6" class="text-center py-8 text-base-content/40">No records for this filter.</td></tr>
+      <tr><td colspan="6" class="text-center py-10 text-base-content/40">No records for this filter.</td></tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
+{% endblock %}
+
+{% block report_footnote %}
+{% if total > 500 %}
+<p class="reports-footnote">Showing first 500 of {{ total }} records. Export Excel for the full dataset.</p>
+{% endif %}
 {% endblock %}

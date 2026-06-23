@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block page_title %}My Projects{% endblock %}
+{% block content %}
+<div class="my-space-page">
+  <div class="hr-page-header" style="margin-bottom:16px;">
+    <div class="hr-page-header__main">
+      <h1 class="hr-page-header__title">My Projects</h1>
+      <p class="my-space-meta">Projects you are assigned to — view docs, post updates, log time.</p>
+    </div>
+    <div class="hr-page-header__actions">
+      <a href="{% url 'projects:my_timesheet' %}" class="btn btn-outline btn-sm">My timesheet</a>
+    </div>
+  </div>
+
+  {% for p in projects %}
+  <a href="{% url 'projects:detail' p.pk %}" class="my-space-project-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <strong>{{ p.name }}</strong>
+      <span class="my-space-status my-space-status--{{ p.status }}">{{ p.get_status_display }}</span>
+    </div>
+    <div class="my-space-meta" style="margin-top:4px;">
+      {{ p.code }}
+      {% if p.department %} · {{ p.department.name }}{% endif %}
+      {% if p.lead %} · Lead: {{ p.lead.full_name }}{% endif %}
+    </div>
+  </a>
+  {% empty %}
+  <div class="my-space-card">
+    <p class="my-space-meta">You are not on any project teams yet. Ask your manager or HR to add you.</p>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

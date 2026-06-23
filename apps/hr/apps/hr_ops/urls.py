@@ -3,6 +3,7 @@ from . import views
 from . import policy_views
 from . import letter_views
 from . import request_views
+from . import ess_views
 from . import calendar_views
 from .ai_views import AIChatView
 
@@ -70,6 +71,10 @@ urlpatterns = [
     path("requests/team/<int:pk>/", request_views.team_request_detail, name="team_service_request_detail"),
     path("requests/queue/", request_views.admin_queue, name="service_request_queue"),
     path("requests/queue/<int:pk>/", request_views.admin_request_detail, name="service_request_admin_detail"),
+    # Employee self-service
+    path("my/assets/", ess_views.my_assets, name="my_assets"),
+    path("my/onboarding/", ess_views.my_onboarding, name="my_onboarding"),
+    path("my/onboarding/item/<int:item_pk>/complete/", ess_views.my_onboarding_item_complete, name="my_onboarding_item_complete"),
     # Company calendar (dashboard widget)
     path("calendar/events/", calendar_views.calendar_event_create, name="calendar_event_create"),
     path("calendar/events/<int:pk>/delete/", calendar_views.calendar_event_delete, name="calendar_event_delete"),

@@ -1,10 +1,13 @@
 from django.urls import path
 from . import views
+from . import ess_views
 
 app_name = "employees"
 
 urlpatterns = [
+    path("my-work/", ess_views.my_work, name="my_work"),
     path("", views.employee_list, name="list"),
+    path("export/", views.employee_export, name="export"),
     path("create/", views.employee_create, name="create"),
     path("bulk-import/", views.bulk_import, name="bulk_import"),
     path("bulk-provision-logins/", views.bulk_provision_logins, name="bulk_provision"),

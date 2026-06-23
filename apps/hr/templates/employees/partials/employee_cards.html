@@ -1,0 +1,68 @@
+<div class="people-emp-grid">
+
+  {% for emp in page_obj %}
+
+  <a href="{% url 'employees:detail' emp.pk %}" class="people-emp-card">
+
+    <div class="people-emp-card__top">
+
+      {% if emp.profile_photo %}
+
+      <img src="{{ emp.profile_photo.url }}" alt="" class="people-emp-card__photo">
+
+      {% else %}
+
+      <div class="people-avatar people-avatar--lg">{{ emp.first_name|first }}{{ emp.last_name|first }}</div>
+
+      {% endif %}
+
+      <span class="badge badge-sm {% if emp.employment_status == 'active' %}badge-success{% elif emp.employment_status == 'notice_period' %}badge-warning{% else %}badge-ghost{% endif %}">
+
+        {{ emp.get_employment_status_display }}
+
+      </span>
+
+    </div>
+
+    <div class="people-emp-card__name">{{ emp.full_name }}</div>
+
+    <div class="people-emp-card__meta">{{ emp.employee_code }} · {{ emp.department.name|default:"No dept" }}</div>
+
+    <div class="people-emp-card__role">{{ emp.designation.name|default:"—" }}</div>
+
+    <div class="people-emp-card__foot">Joined {{ emp.date_of_joining|date:"d M Y" }}</div>
+
+  </a>
+
+  {% empty %}
+
+  <div class="people-emp-card people-emp-card--empty">No employees match your filters.</div>
+
+  {% endfor %}
+
+</div>
+
+
+
+{% if page_obj.has_other_pages %}
+
+<div class="hr-pagination">
+
+  {% if page_obj.has_previous %}
+
+  <a href="?page={{ page_obj.previous_page_number }}{% if search %}&q={{ search }}{% endif %}{% if selected_dept %}&department={{ selected_dept }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}" class="btn btn-sm btn-ghost">« Prev</a>
+
+  {% endif %}
+
+  <span class="btn btn-sm btn-disabled">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+
+  {% if page_obj.has_next %}
+
+  <a href="?page={{ page_obj.next_page_number }}{% if search %}&q={{ search }}{% endif %}{% if selected_dept %}&department={{ selected_dept }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}" class="btn btn-sm btn-ghost">Next »</a>
+
+  {% endif %}
+
+</div>
+
+{% endif %}
+

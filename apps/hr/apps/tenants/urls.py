@@ -20,4 +20,5 @@ urlpatterns = [
     path("legal/dpa/", views.legal_dpa, name="legal_dpa"),
     path("", views.dashboard, name="dashboard"),
     path("dashboard/", views.dashboard, name="dashboard_explicit"),
+    path("company/", views.company_overview, name="company_overview"),
 ]

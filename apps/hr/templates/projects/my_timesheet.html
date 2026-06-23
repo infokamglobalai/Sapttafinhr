@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block page_title %}My Timesheet{% endblock %}
+{% block content %}
+<div class="my-space-page">
+  <div class="hr-page-header" style="margin-bottom:16px;">
+    <div class="hr-page-header__main">
+      <h1 class="hr-page-header__title">My Timesheet — {{ month }}/{{ year }}</h1>
+      <p class="my-space-meta">Log hours against your active projects.</p>
+    </div>
+    <div class="hr-page-header__actions">
+      <a href="{% url 'projects:my_projects' %}" class="btn btn-outline btn-sm">My projects</a>
+    </div>
+  </div>
+
+  <div class="my-space-kpis" style="margin-bottom:16px;">
+    <div class="my-space-kpi">
+      <div class="my-space-kpi__label">Total hours</div>
+      <div class="my-space-kpi__value">{{ total_hours }}h</div>
+    </div>
+    <div class="my-space-kpi">
+      <div class="my-space-kpi__label">Active projects</div>
+      <div class="my-space-kpi__value">{{ projects.count }}</div>
+    </div>
+  </div>
+
+  <div class="my-space-grid">
+    <div class="my-space-card">
+      <h2 class="my-space-card__title">Log time</h2>
+      {% if projects %}
+      <form method="post">
+        {% csrf_token %}
+        {% for field in form %}
+        <div class="form-control w-full" style="margin-bottom:12px;">
+          <label class="label"><span class="label-text">{{ field.label }}</span></label>
+          {{ field }}
+        </div>
+        {% endfor %}
+        <button type="submit" class="btn btn-primary btn-sm">Save entry</button>
+      </form>
+      {% else %}
+      <p class="my-space-meta">Join a project first to log time.</p>
+      {% endif %}
+    </div>
+
+    <div class="my-space-card">
+      <h2 class="my-space-card__title">This month</h2>
+      <ul class="my-space-list">
+        {% for e in entries %}
+        <li>
+          <span>{{ e.entry_date|date:"d M" }} · {{ e.project.name }}</span>
+          <span><strong>{{ e.hours }}h</strong></span>
+        </li>
+        {% empty %}
+        <li><span class="my-space-meta">No entries this month.</span></li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

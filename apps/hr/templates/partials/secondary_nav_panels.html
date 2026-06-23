@@ -1,0 +1,51 @@
+{# Stacked nav panels — only the active panel is visible (no x-show blink) #}
+{% if user.employee_profile %}
+<div class="nav-panel{% if nav_active_category == 'mySpace' %} is-active{% endif %}"
+     :class="{ 'is-active': effectiveCategory() === 'mySpace' }">
+  {% include "partials/my_space_nav_items.html" %}
+</div>
+{% endif %}
+
+{% if user.is_manager and user.employee_profile %}
+<div class="nav-panel{% if nav_active_category == 'team' %} is-active{% endif %}"
+     :class="{ 'is-active': effectiveCategory() === 'team' }">
+  {% include "partials/team_nav_items.html" %}
+</div>
+{% endif %}
+
+{% if user.is_hr_admin %}
+<div class="nav-panel{% if nav_active_category == 'people' %} is-active{% endif %}"
+     :class="{ 'is-active': effectiveCategory() === 'people' }">
+  {% include "partials/people_nav_items.html" %}
+</div>
+
+<div class="nav-panel{% if nav_active_category == 'timeLeave' %} is-active{% endif %}"
+     :class="{ 'is-active': effectiveCategory() === 'timeLeave' }">
+  {% include "partials/time_leave_nav_items.html" %}
+</div>
+
+<div class="nav-panel{% if nav_active_category == 'payroll' %} is-active{% endif %}"
+     :class="{ 'is-active': effectiveCategory() === 'payroll' }">
+  {% include "partials/payroll_nav_items.html" %}
+</div>
+
+<div class="nav-panel{% if nav_active_category == 'performance' %} is-active{% endif %}"
+     :class="{ 'is-active': effectiveCategory() === 'performance' }">
+  {% include "partials/performance_nav_items.html" %}
+</div>
+
+<div class="nav-panel{% if nav_active_category == 'hrOps' %} is-active{% endif %}"
+     :class="{ 'is-active': effectiveCategory() === 'hrOps' }">
+  {% include "partials/hr_ops_nav_items.html" %}
+</div>
+
+<div class="nav-panel{% if nav_active_category == 'reports' %} is-active{% endif %}"
+     :class="{ 'is-active': effectiveCategory() === 'reports' }">
+  {% include "partials/reports_nav_items.html" %}
+</div>
+
+<div class="nav-panel{% if nav_active_category == 'settings' %} is-active{% endif %}"
+     :class="{ 'is-active': effectiveCategory() === 'settings' }">
+  {% include "partials/settings_nav_items.html" %}
+</div>
+{% endif %}

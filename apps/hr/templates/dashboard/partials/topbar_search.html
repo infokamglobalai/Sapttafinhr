@@ -1,17 +1,19 @@
-{# Role-aware workspace search — GET navigates to the best list view for the user. #}
+{# Single workspace search — top bar only; ⌘K opens quick navigation #}
 <div class="topbar-center-wrap">
   <form class="topbar-search" role="search" method="get" action="{{ workspace_search_url }}">
     <svg class="topbar-search__icon" width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
     <input
-      type="search"
+      type="text"
       name="q"
       id="topbar-search-input"
       class="topbar-search__input"
       placeholder="{{ workspace_search_placeholder }}"
-      aria-label="Search workspace"
+      aria-label="{{ workspace_search_placeholder }}"
       autocomplete="off"
+      inputmode="search"
+      enterkeyhint="search"
       value="{{ request.GET.q|default:'' }}"
     >
-    <kbd class="topbar-search__kbd hidden lg:inline-flex" aria-hidden="true" title="Open command palette (⌘K)">⌘K</kbd>
+    <kbd class="topbar-search__kbd hidden lg:inline-flex" aria-hidden="true" title="Quick jump to any page (⌘K)">⌘K</kbd>
   </form>
 </div>

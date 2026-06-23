@@ -1,0 +1,23 @@
+{# Setup & Config — organization, policies, letters #}
+<div class="nav-section-title">Organization</div>
+<a href="{% url 'employees:departments' %}" class="nav-item {% if request.resolver_match.url_name == 'departments' or request.resolver_match.url_name == 'department_create' %}active{% endif %}">Departments</a>
+<a href="{% url 'employees:designations' %}" class="nav-item {% if request.resolver_match.url_name == 'designations' or request.resolver_match.url_name == 'designation_create' %}active{% endif %}">Designations</a>
+<a href="{% url 'employees:locations' %}" class="nav-item {% if request.resolver_match.url_name == 'locations' or request.resolver_match.url_name == 'location_create' %}active{% endif %}">Locations</a>
+<div class="nav-section-title mt-2">Time &amp; Leave</div>
+<a href="{% url 'leaves:leave_types' %}" class="nav-item {% if 'leave_type' in request.resolver_match.url_name %}active{% endif %}">Leave Types</a>
+<a href="{% url 'leaves:holidays' %}" class="nav-item {% if 'holiday' in request.resolver_match.url_name %}active{% endif %}">Holiday Calendar</a>
+<a href="{% url 'attendance:shifts' %}" class="nav-item {% if 'shift' in request.resolver_match.url_name %}active{% endif %}">Work Shifts</a>
+<div class="nav-section-title mt-2">Payroll</div>
+<a href="{% url 'payroll:structures' %}" class="nav-item {% if 'structure' in request.resolver_match.url_name %}active{% endif %}">Salary Structures</a>
+{% if tenant_is_india_payroll %}
+<a href="{% url 'payroll:statutory' %}" class="nav-item {% if 'statutory' in request.resolver_match.url_name %}active{% endif %}">Statutory (PF/ESI/PT)</a>
+{% endif %}
+<div class="nav-section-title mt-2">Policies &amp; Templates</div>
+<a href="{% url 'hr_ops:policy_list' %}" class="nav-item {% if 'policy' in request.resolver_match.url_name %}active{% endif %}">HR Policies</a>
+<a href="{% url 'hr_ops:announcements' %}" class="nav-item {% if 'announcement' in request.resolver_match.url_name %}active{% endif %}">Announcements</a>
+<a href="{% url 'hr_ops:onboarding_templates' %}" class="nav-item {% if 'onboarding_template' in request.resolver_match.url_name %}active{% endif %}">Onboarding Templates</a>
+<div class="nav-section-title mt-2">Access &amp; Letters</div>
+<a href="{% url 'hr_ops:letter_templates' %}" class="nav-item {% if request.resolver_match.url_name == 'letter_templates' or 'letter_template' in request.resolver_match.url_name %}active{% endif %}">Letter Templates</a>
+<a href="{% url 'hr_ops:letter_company_settings' %}" class="nav-item {% if request.resolver_match.url_name == 'letter_company_settings' %}active{% endif %}">Letterhead &amp; Signatory</a>
+<div class="nav-section-title mt-2">Performance</div>
+<a href="{% url 'performance:cycles' %}" class="nav-item {% if 'cycle' in request.resolver_match.url_name and request.resolver_match.app_name == 'performance' %}active{% endif %}">Review Cycles</a>

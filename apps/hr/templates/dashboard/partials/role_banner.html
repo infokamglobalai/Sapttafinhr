@@ -14,11 +14,9 @@
       {% endif %}
     </span>
   </div>
+  {% if is_manager or not is_hr_admin and user.employee_profile %}
   <div class="dash-role-banner__links">
-    {% if is_hr_admin %}
-    <a href="{% url 'employees:create' %}" class="dash-role-banner__link">Add employee</a>
-    <a href="{% url 'employees:team_access' %}" class="dash-role-banner__link">Team access</a>
-    {% elif is_manager %}
+    {% if is_manager %}
     <a href="{% url 'leaves:pending' %}" class="dash-role-banner__link">Approve leave</a>
     <a href="{% url 'attendance:team_attendance' %}" class="dash-role-banner__link">Team attendance</a>
     {% else %}
@@ -26,4 +24,5 @@
     <a href="{% url 'leaves:apply' %}" class="dash-role-banner__link">Apply leave</a>
     {% endif %}
   </div>
+  {% endif %}
 </div>
