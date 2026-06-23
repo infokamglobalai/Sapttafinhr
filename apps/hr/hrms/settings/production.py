@@ -114,3 +114,9 @@ LOGGING = {
     },
 }
 
+# Ensure internal host headers are always allowed so backend-to-backend requests succeed.
+if "localhost" not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append("localhost")
+if "127.0.0.1" not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append("127.0.0.1")
+
