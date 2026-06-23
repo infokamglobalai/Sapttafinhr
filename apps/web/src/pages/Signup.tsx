@@ -46,6 +46,14 @@ export default function Signup() {
     }
   }, [location.state]);
 
+  // When the step changes (e.g. Choose Plan → Create Account) the SPA keeps the
+  // previous scroll position. Coming off the tall plan grid that drops the user
+  // onto the *bottom* of the shorter form, which looks cut off under the navbar.
+  // Reset to the top on every step change so the form always starts in view.
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }, [step]);
+
   const selectedPlan = PLANS.find(p => p.id === selectedPlanId);
 
   const handlePlanSelect = (planId: string) => {
@@ -55,6 +63,10 @@ export default function Signup() {
 
   const handleSubmit = async (values: { email: string; password: string; firstName: string; lastName: string; companyName: string; country?: string }) => {
     if (!selectedPlanId) return;
+    // Provisioning creates a fresh tenant database schema server-side, which can
+    // take several seconds. Show a persistent status so the form doesn't look
+    // frozen while the button spins.
+    const hideLoading = message.loading('Setting up your workspace — this can take a few seconds…', 0);
     try {
       await signup({
         email: values.email,
@@ -65,9 +77,11 @@ export default function Signup() {
         companyName: values.companyName,
         country: values.country || 'IN',
       });
+      hideLoading();
       message.success('Account created! Welcome to Saptta.');
       navigate(import.meta.env.DEV ? '/app' : '/app/billing');
     } catch (err: unknown) {
+      hideLoading();
       const msg =
         err instanceof Error && err.message
           ? err.message
