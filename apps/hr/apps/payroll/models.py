@@ -151,6 +151,9 @@ class PayrollRun(models.Model):
     approved_at = models.DateTimeField(null=True, blank=True)
     paid_at = models.DateTimeField(null=True, blank=True)
     notes = models.TextField(blank=True)
+    finance_journal_id = models.CharField(max_length=64, blank=True)
+    finance_voucher_no = models.CharField(max_length=40, blank=True)
+    finance_synced_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         db_table = "payroll_runs"
@@ -223,6 +226,83 @@ class PayrollRecord(models.Model):
         return f"{self.employee} | {self.payroll_run}"
 
 
+class PayslipTemplate(models.Model):
+    """Per-tenant payslip layout — built-in regional packs or custom Jinja2 HTML."""
+
+    LAYOUT_CHOICES = [
+        ("builtin_in", "India — Standard"),
+        ("builtin_kw", "Kuwait / GCC — Standard"),
+        ("builtin_gcc", "GCC — Generic"),
+        ("custom", "Custom HTML (Jinja2)"),
+    ]
+
+    FOOTER_MODES = [
+        ("system_generated", "System generated — no signature required"),
+        ("certified", "Certified — authorized signatory"),
+        ("custom", "Custom footer text"),
+        ("none", "No footer"),
+    ]
+
+    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE, related_name="payslip_templates")
+    name = models.CharField(max_length=255)
+    layout = models.CharField(max_length=20, choices=LAYOUT_CHOICES, default="builtin_in")
+    template_html = models.TextField(
+        blank=True,
+        help_text="Jinja2 HTML body — only for Custom layout. Vars: record, employee, tenant, company, run, payslip.",
+    )
+    # Branding overrides (blank = use company letterhead / tenant logo)
+    company_display_name = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Company name on payslip header. Leave blank to use letterhead name.",
+    )
+    company_address_override = models.TextField(
+        blank=True,
+        help_text="Address under company name. Leave blank to use letterhead address.",
+    )
+    payslip_title = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text='Document title. Use {month_year} e.g. "Payslip for the month of {month_year}".',
+    )
+    template_logo = models.ImageField(
+        upload_to="payslip_templates/%Y/",
+        null=True,
+        blank=True,
+        help_text="Optional logo for this template only. Leave blank to use company logo.",
+    )
+    # Footer / certification
+    footer_mode = models.CharField(
+        max_length=20,
+        choices=FOOTER_MODES,
+        default="system_generated",
+    )
+    footer_text = models.TextField(
+        blank=True,
+        help_text="Custom footer line, or certification note when mode is Certified.",
+    )
+    signatory_name_override = models.CharField(max_length=120, blank=True)
+    signatory_title_override = models.CharField(max_length=120, blank=True)
+    is_default = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    created_by = models.ForeignKey("accounts.User", on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "payslip_templates"
+        ordering = ["-is_default", "name"]
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if self.is_default:
+            PayslipTemplate.objects.filter(tenant=self.tenant, is_default=True).exclude(pk=self.pk).update(
+                is_default=False
+            )
+
+
 class Payslip(models.Model):
     tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
     payroll_record = models.OneToOneField(PayrollRecord, on_delete=models.CASCADE, related_name="payslip")
@@ -230,6 +310,10 @@ class Payslip(models.Model):
     year = models.PositiveSmallIntegerField()
     month = models.PositiveSmallIntegerField()
     pdf = models.FileField(upload_to="payslips/%Y/%m/", null=True, blank=True)
+    template = models.ForeignKey(
+        PayslipTemplate, on_delete=models.SET_NULL, null=True, blank=True, related_name="generated_payslips"
+    )
+    layout_key = models.CharField(max_length=20, blank=True)
     generated_at = models.DateTimeField(null=True, blank=True)
     is_published = models.BooleanField(default=False)
     published_at = models.DateTimeField(null=True, blank=True)

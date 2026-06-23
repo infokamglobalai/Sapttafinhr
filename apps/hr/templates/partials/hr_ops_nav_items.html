@@ -78,6 +78,13 @@
   </svg>
   Announcements
 </a>
+<a href="{% url 'hr_ops:celebrations' %}"
+   class="nav-item {% if 'celebration' in request.resolver_match.url_name %}active{% endif %}">
+  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden>
+    <path stroke-linecap="round" stroke-linejoin="round" d="M21 15.546c-.523 0-1.046.151-1.5.454a2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.701 2.701 0 00-1.5-.454M9 6v2m3-2v2m3-2v2M9 3h6a2 2 0 012 2v1H7V5a2 2 0 012-2z" />
+  </svg>
+  Celebrations
+</a>
 
 <div class="nav-section-title mt-2">Insights &amp; support</div>
 <a href="{% url 'hr_ops:people_pulse' %}"

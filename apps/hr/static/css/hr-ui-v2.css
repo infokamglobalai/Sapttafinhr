@@ -422,6 +422,20 @@ table.table {
   margin-top: 20px;
 }
 
+.hr-pagination__status {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #334155;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  line-height: 1.4;
+  letter-spacing: 0.01em;
+}
+
 /* ── Tabs / pills ── */
 .hr-tabs {
   display: flex;
@@ -682,6 +696,101 @@ table.table {
 
 .settings-panel-body {
   padding: 24px;
+}
+
+/* ── Security & trust tab ── */
+.settings-security-highlights {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+}
+
+.settings-security-highlight {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(59, 130, 246, 0.06) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.18);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--hr-text);
+  line-height: 1.45;
+}
+
+.settings-security-highlight svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: #059669;
+}
+
+.settings-security-category {
+  margin-top: 8px;
+}
+
+.settings-security-category__title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--hr-text);
+  margin: 0 0 12px;
+  letter-spacing: -0.02em;
+}
+
+.settings-security-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.settings-security-card {
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--hr-border);
+  background: var(--hr-surface-muted);
+}
+
+.settings-security-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.settings-security-card__title {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--hr-text);
+  margin: 0;
+  line-height: 1.35;
+}
+
+.settings-security-card__detail {
+  font-size: 0.75rem;
+  color: var(--hr-text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.settings-security-badge {
+  flex-shrink: 0;
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 3px 7px;
+  border-radius: 999px;
+}
+
+.settings-security-badge--active {
+  background: rgba(16, 185, 129, 0.14);
+  color: #047857;
+}
+
+.settings-security-badge--configured {
+  background: rgba(100, 116, 139, 0.12);
+  color: #475569;
 }
 
 /* ── Signup pitch (blue) ── */

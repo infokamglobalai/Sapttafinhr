@@ -43,7 +43,7 @@ function getRecommendation(
   if (needsSync || (needsPayroll && needsFinance)) {
     return {
       title: 'Saptta Complete',
-      desc: 'Both HRMS and Finance with single sign-on, unified reporting, and Tally export today (payroll→ledger auto-sync on roadmap).',
+      desc: 'Both HRMS and Finance with single sign-on, unified reporting, Tally export, and payroll→ledger auto-sync on publish.',
       path: '/pricing',
       ctaLabel: 'See pricing',
     };

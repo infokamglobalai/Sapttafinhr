@@ -107,6 +107,7 @@ class Employee(models.Model):
     first_name = models.CharField(max_length=100)
     middle_name = models.CharField(max_length=100, blank=True)
     last_name = models.CharField(max_length=100)
+    name_ar = models.CharField(max_length=255, blank=True, help_text="Arabic name for GCC payslips")
     date_of_birth = models.DateField(null=True, blank=True)
     gender = models.CharField(max_length=20, choices=GENDER_CHOICES, blank=True)
     blood_group = models.CharField(max_length=5, blank=True)
@@ -115,6 +116,11 @@ class Employee(models.Model):
     phone_primary = models.CharField(max_length=15, blank=True)
     phone_alternate = models.CharField(max_length=15, blank=True)
     profile_photo = models.ImageField(upload_to="profile_photos/%Y/", null=True, blank=True)
+    preferred_name = models.CharField(
+        max_length=80,
+        blank=True,
+        help_text="Nickname or display name shown across the company directory (optional).",
+    )
 
     # Encrypted PII — stored as Fernet tokens
     _aadhaar_enc = models.TextField(db_column="aadhaar_number_enc", blank=True)
@@ -184,6 +190,17 @@ class Employee(models.Model):
     def full_name(self):
         parts = [self.first_name, self.middle_name, self.last_name]
         return " ".join(p for p in parts if p)
+
+    @property
+    def directory_name(self) -> str:
+        """Name shown in directory, cards, and search results."""
+        nick = (self.preferred_name or "").strip()
+        return nick or self.full_name
+
+    @property
+    def uses_preferred_name(self) -> bool:
+        nick = (self.preferred_name or "").strip()
+        return bool(nick) and nick.lower() != self.full_name.lower()
 
     # Encrypted field accessors
     @property

@@ -74,6 +74,9 @@ class User(AbstractBaseUser, PermissionsMixin):
         """Short friendly name for nav, chips, and greetings."""
         profile = self._employee_profile_or_none()
         if profile:
+            nick = (profile.preferred_name or "").strip()
+            if nick:
+                return nick
             if profile.first_name:
                 return profile.first_name
             if profile.full_name:

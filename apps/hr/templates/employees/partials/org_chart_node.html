@@ -1,0 +1,31 @@
+{% load static %}
+<li class="org-node">
+  <div class="org-card">
+    <a href="{% if user.is_hr_admin %}{% url 'employees:detail' node.employee.pk %}{% else %}{% url 'employees:colleague' node.employee.pk %}{% endif %}" class="org-card__link">
+      <div class="org-card__avatar">
+        {% if node.employee.profile_photo %}
+        <img src="{{ node.employee.profile_photo.url }}" alt="">
+        {% else %}
+        <span>{{ node.employee.first_name|slice:":1" }}{{ node.employee.last_name|slice:":1" }}</span>
+        {% endif %}
+      </div>
+      <div class="org-card__body">
+        <p class="org-card__name">{{ node.employee.directory_name }}</p>
+        <p class="org-card__role">{{ node.employee.designation.name|default:"—" }}</p>
+        {% if node.employee.department %}
+        <p class="org-card__dept">{{ node.employee.department.name }}</p>
+        {% endif %}
+      </div>
+    </a>
+    {% if node.children %}
+    <span class="org-card__count">{{ node.children|length }} report{{ node.children|length|pluralize }}</span>
+    {% endif %}
+  </div>
+  {% if node.children %}
+  <ul class="org-children">
+    {% for child in node.children %}
+    {% include "employees/partials/org_chart_node.html" with node=child %}
+    {% endfor %}
+  </ul>
+  {% endif %}
+</li>

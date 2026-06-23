@@ -1,6 +1,9 @@
 {% extends "base.html" %}
-{% load humanize %}
+{% load humanize static %}
 {% block page_title %}My Profile{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/attendance-mobile.css' %}?v=1">
+{% endblock %}
 {% block content %}
 <div class="my-space-page">
   <div class="my-space-hero">
@@ -12,7 +15,10 @@
       {% endif %}
     </div>
     <div style="flex:1;">
-      <h1 class="my-space-hero__title">{{ employee.full_name }}</h1>
+      <h1 class="my-space-hero__title">{{ employee.directory_name }}</h1>
+      {% if employee.uses_preferred_name %}
+      <p class="text-sm text-base-content/50">{{ employee.full_name }}</p>
+      {% endif %}
       <p class="my-space-hero__sub">
         {{ employee.designation.name|default:"Employee" }}
         {% if employee.department %} · {{ employee.department.name }}{% endif %}
@@ -24,7 +30,10 @@
         {% if employee.location %} · {{ employee.location.name }}{% endif %}
       </p>
     </div>
-    <a href="{% url 'accounts:settings' %}?tab=profile" class="btn btn-outline btn-sm">Edit personal info</a>
+    <div class="flex flex-wrap gap-2">
+      <a href="{% url 'accounts:settings' %}?tab=profile" class="btn btn-outline btn-sm">{% if employee.profile_photo %}Edit profile{% else %}Add photo &amp; nickname{% endif %}</a>
+      <a href="{% url 'employees:directory' %}" class="btn btn-ghost btn-sm">Company directory</a>
+    </div>
   </div>
 
   <div class="my-space-kpis">
@@ -47,6 +56,8 @@
     </div>
     {% endif %}
   </div>
+
+  {% include "attendance/partials/punch_card.html" %}
 
   <div class="my-space-grid">
     <div class="my-space-card">

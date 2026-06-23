@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Arial, Helvetica, "DejaVu Sans", sans-serif; font-size: 9pt; color: #111; }
+  .sheet { padding: 18px 22px; max-width: 820px; margin: 0 auto; }
+  .top { display: table; width: 100%; margin-bottom: 10px; }
+  .top-left, .top-right { display: table-cell; vertical-align: top; }
+  .top-right { text-align: right; font-size: 8.5pt; color: #333; }
+  .logo { max-height: 52px; max-width: 140px; }
+  .company-title { text-align: center; font-size: 11pt; font-weight: bold; margin: 6px 0 2px; }
+  .company-title-ar { text-align: center; font-size: 11pt; font-weight: bold; margin: 0 0 4px; direction: rtl; font-family: "DejaVu Sans", Arial, sans-serif; }
+  .doc-title { text-align: center; font-size: 10pt; margin-bottom: 2px; }
+  .doc-title-ar { text-align: center; font-size: 10pt; margin-bottom: 8px; direction: rtl; color: #444; }
+  .emp-grid { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 8.5pt; }
+  .emp-grid td { border: 1px solid #999; padding: 4px 6px; vertical-align: top; width: 33.33%; }
+  .emp-grid .lbl { color: #444; font-size: 7pt; display: block; margin-bottom: 1px; }
+  .emp-grid .lbl-ar { color: #666; font-size: 6.5pt; display: block; direction: rtl; text-align: right; }
+  .emp-grid .val { font-weight: 600; font-size: 8.5pt; }
+  .fin { width: 100%; border-collapse: collapse; font-size: 8.5pt; }
+  .fin th, .fin td { border: 1px solid #999; padding: 4px 6px; }
+  .fin th { background: #f3f3f3; font-weight: bold; text-align: left; }
+  .fin th .ar { display: block; font-size: 7pt; font-weight: normal; direction: rtl; color: #555; }
+  .fin .amt { text-align: right; width: 28%; }
+  .fin .sub td { font-weight: bold; background: #fafafa; }
+  .net-row td { font-weight: bold; font-size: 9pt; padding: 6px; }
+  .words { border: 1px solid #999; border-top: none; padding: 6px 8px; font-size: 8.5pt; font-weight: bold; text-align: center; }
+  .payslip-footer { margin-top: 14px; font-size: 8pt; color: #333; }
+  .footer-note { text-align: center; margin-bottom: 8px; }
+  .signature-block { margin-top: 18px; text-align: right; max-width: 260px; margin-left: auto; }
+  .signature-line { border-top: 1px solid #111; height: 28px; margin-bottom: 4px; }
+  .signatory-name { font-weight: bold; font-size: 8.5pt; }
+  .signatory-title { font-size: 8pt; color: #444; margin-top: 2px; }
+</style>
+</head>
+<body>
+<div class="sheet">
+  <div class="top">
+    <div class="top-left">
+      {% if logo_url %}<img src="{{ logo_url }}" alt="" class="logo">{% endif %}
+    </div>
+    <div class="top-right">REF: {{ ref_number }}</div>
+  </div>
+
+  <div class="company-title">{{ company_name_upper|default:company.name }}</div>
+  <div class="company-title-ar">{% if company_name_ar %}{{ company_name_ar }}{% else %}{{ company_name_upper|default:company.name }}{% endif %}</div>
+  <div class="doc-title">{{ payslip_title }}</div>
+  <div class="doc-title-ar">قسيمة الراتب</div>
+
+  <table class="emp-grid">
+    <tr>
+      <td>
+        <span class="lbl">Employee ID <span class="lbl-ar">رقم الموظف</span></span>
+        <span class="val">{{ employee.employee_code }}</span>
+      </td>
+      <td>
+        <span class="lbl">Group <span class="lbl-ar">المجموعة</span></span>
+        <span class="val">{{ group_code|default:"—" }}</span>
+      </td>
+      <td>
+        <span class="lbl">Pay period <span class="lbl-ar">فترة الدفع</span></span>
+        <span class="val">{{ pay_period_short }}</span>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <span class="lbl">Employee Name <span class="lbl-ar">اسم الموظف</span></span>
+        <span class="val">{{ employee.full_name }}</span>
+      </td>
+      <td>
+        <span class="lbl">Position <span class="lbl-ar">المنصب</span></span>
+        <span class="val">{{ position }}</span>
+      </td>
+      <td>
+        <span class="lbl">Join date <span class="lbl-ar">تاريخ الالتحاق</span></span>
+        <span class="val">{{ employee.date_of_joining|date:"d F, Y" }}</span>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <span class="lbl">Name (Arabic) <span class="lbl-ar">الاسم بالعربية</span></span>
+        <span class="val" dir="rtl">{% if employee_name_ar %}{{ employee_name_ar }}{% else %}—{% endif %}</span>
+      </td>
+      <td>
+        <span class="lbl">Basic Salary <span class="lbl-ar">الراتب الأساسي</span></span>
+        <span class="val">{{ basic_salary_fmt }}</span>
+      </td>
+      <td>
+        <span class="lbl">Allowances <span class="lbl-ar">البدلات</span></span>
+        <span class="val">{{ allowances_fmt }}</span>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <span class="lbl">Working Days <span class="lbl-ar">أيام العمل</span></span>
+        <span class="val">{{ record.working_days }}</span>
+      </td>
+      <td>
+        <span class="lbl">Paid Days <span class="lbl-ar">أيام مدفوعة</span></span>
+        <span class="val">{{ record.paid_days }}</span>
+      </td>
+      <td>
+        <span class="lbl">Department <span class="lbl-ar">القسم</span></span>
+        <span class="val">{{ employee.department.name|default:"—" }}</span>
+      </td>
+    </tr>
+  </table>
+
+  <table class="fin">
+    <tr>
+      <th style="width:36%">Earnings <span class="ar">الاستحقاقات</span></th>
+      <th class="amt">{{ currency_code }}</th>
+      <th style="width:36%">Deductions <span class="ar">الاستقطاعات</span></th>
+      <th class="amt">{{ currency_code }}</th>
+    </tr>
+    {% for row in paired_rows %}
+    <tr>
+      <td>{{ row.earning_name }}</td>
+      <td class="amt">{{ row.earning_amount_fmt }}</td>
+      <td>{{ row.deduction_name }}</td>
+      <td class="amt">{{ row.deduction_amount_fmt }}</td>
+    </tr>
+    {% endfor %}
+    <tr class="sub">
+      <td>Total earnings / إجمالي الاستحقاقات</td>
+      <td class="amt">{{ gross_earnings_fmt }}</td>
+      <td>Total deductions / إجمالي الاستقطاعات</td>
+      <td class="amt">{{ total_deductions_fmt }}</td>
+    </tr>
+    <tr class="net-row">
+      <td colspan="2">Net pay / صافي الراتب</td>
+      <td colspan="2" class="amt" style="text-align:center;">{{ net_payable_fmt }}</td>
+    </tr>
+  </table>
+
+  <div class="words">{{ net_payable_words }}</div>
+
+  {% include "payroll/partials/payslip_footer.html" %}
+</div>
+</body>
+</html>

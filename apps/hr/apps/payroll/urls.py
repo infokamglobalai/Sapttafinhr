@@ -9,6 +9,7 @@ urlpatterns = [
     path("run/<int:pk>/", views.payroll_run_detail, name="run_detail"),
     path("run/<int:pk>/approve/", views.payroll_run_approve, name="run_approve"),
     path("run/<int:pk>/publish/", views.payroll_run_publish, name="run_publish"),
+    path("run/<int:pk>/sync-finance/", views.payroll_sync_finance, name="sync_finance"),
     path("run/<int:pk>/recompute/", views.payroll_run_recompute, name="run_recompute"),
     path("run/<int:run_pk>/record/<int:record_pk>/", views.payroll_record_detail, name="record_detail"),
     path("run/<int:run_pk>/record/<int:record_pk>/edit/", views.payroll_record_edit, name="record_edit"),
@@ -26,6 +27,12 @@ urlpatterns = [
     path("statutory/", views.statutory_settings_view, name="statutory"),
     path("statutory/new/", views.statutory_create_or_edit, name="statutory_create"),
     path("statutory/<int:pk>/edit/", views.statutory_create_or_edit, name="statutory_edit"),
+    # Payslip templates
+    path("payslip-templates/", views.payslip_template_list, name="payslip_templates"),
+    path("payslip-templates/seed/", views.payslip_template_seed, name="payslip_template_seed"),
+    path("payslip-templates/new/", views.payslip_template_create_or_edit, name="payslip_template_create"),
+    path("payslip-templates/<int:pk>/edit/", views.payslip_template_create_or_edit, name="payslip_template_edit"),
+    path("payslip-templates/<int:pk>/preview/", views.payslip_template_preview, name="payslip_template_preview"),
     # Loans
     path("loans/", views.loan_list, name="loans"),
     path("loans/new/", views.loan_create_or_edit, name="loan_create"),

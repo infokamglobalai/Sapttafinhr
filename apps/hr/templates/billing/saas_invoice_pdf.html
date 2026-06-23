@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Tax Invoice {{ invoice.number }}</title>
+  <style>
+    body { font-family: DejaVu Sans, Arial, sans-serif; color: #111827; font-size: 11px; margin: 24px; }
+    h1 { margin: 0 0 4px; font-size: 18px; }
+    .muted { color: #4b5563; font-size: 10px; }
+    .grid { width: 100%; margin: 16px 0; }
+    .grid td { width: 50%; vertical-align: top; padding: 0 8px 0 0; }
+    .box { border: 1px solid #d1d5db; padding: 10px; }
+    .box h3 { margin: 0 0 6px; font-size: 9px; text-transform: uppercase; color: #6b7280; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th, td { border: 1px solid #d1d5db; padding: 6px 8px; }
+    th { background: #f3f4f6; }
+    .r { text-align: right; }
+    .total-row td { font-weight: bold; background: #f9fafb; }
+  </style>
+</head>
+<body>
+  <h1>Tax Invoice</h1>
+  <div class="muted">Invoice no. <strong>{{ invoice.number }}</strong> · Status: {{ invoice.status }}</div>
+
+  <table class="grid"><tr>
+    <td>
+      <div class="box">
+        <h3>From (Supplier)</h3>
+        <div><strong>{{ vendor.legal_name }}</strong></div>
+        {% if vendor.gstin %}<div class="muted">GSTIN: {{ vendor.gstin }}</div>{% endif %}
+        {% if vendor.address %}<div class="muted">{{ vendor.address }}</div>{% endif %}
+      </div>
+    </td>
+    <td>
+      <div class="box">
+        <h3>Bill to</h3>
+        <div><strong>{{ company_name }}</strong></div>
+        {% if invoice.customer_gstin %}<div class="muted">GSTIN: {{ invoice.customer_gstin }}</div>{% endif %}
+        {% if plan_name %}<div class="muted">Plan: {{ plan_name }}</div>{% endif %}
+      </div>
+    </td>
+  </tr></table>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Description</th>
+        <th>Period</th>
+        <th class="r">Taxable</th>
+        <th class="r">CGST</th>
+        <th class="r">SGST</th>
+        <th class="r">IGST</th>
+        <th class="r">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Saptta SaaS subscription (SAC {{ invoice.sac_code }})</td>
+        <td>{{ invoice.period_start|date:"d M Y" }} – {{ invoice.period_end|date:"d M Y" }}</td>
+        <td class="r">{{ invoice.taxable_amount|floatformat:2 }}</td>
+        <td class="r">{% if invoice.cgst %}{{ invoice.cgst|floatformat:2 }}{% else %}—{% endif %}</td>
+        <td class="r">{% if invoice.sgst %}{{ invoice.sgst|floatformat:2 }}{% else %}—{% endif %}</td>
+        <td class="r">{% if invoice.igst %}{{ invoice.igst|floatformat:2 }}{% else %}—{% endif %}</td>
+        <td class="r">{{ invoice.amount|floatformat:2 }}</td>
+      </tr>
+      <tr class="total-row">
+        <td colspan="6" class="r">Grand total (incl. GST)</td>
+        <td class="r">₹{{ invoice.amount|floatformat:2 }}</td>
+      </tr>
+    </tbody>
+  </table>
+</body>
+</html>

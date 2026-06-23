@@ -31,6 +31,9 @@
       <a href="{% url 'reports:leave' %}" class="btn btn-primary btn-sm">Leave Report</a>
       <a href="{% url 'reports:attendance' %}" class="btn btn-outline btn-sm">Attendance MIS</a>
       <a href="{% url 'reports:headcount' %}" class="btn btn-outline btn-sm">Headcount</a>
+      {% if tenant_is_gcc_payroll %}
+      <a href="{% url 'reports:manpower' %}" class="btn btn-outline btn-sm">Manpower (GCC)</a>
+      {% endif %}
       <a href="{% url 'reports:payroll' %}" class="btn btn-outline btn-sm">Payroll Summary</a>
     </div>
   </div>

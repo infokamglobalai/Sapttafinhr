@@ -88,22 +88,16 @@ def run_payroll_for_tenant(self, tenant_id, payroll_run_id):
 def generate_payslips_for_run(payroll_run_id):
     """Generate PDF payslips for all records in an approved run."""
     from apps.payroll.models import PayrollRun, PayrollRecord, Payslip
-    from utils.pdf import render_pdf
+    from apps.payroll.payslip_services import render_payslip_pdf
     from django.core.files.base import ContentFile
 
     payroll_run = PayrollRun.objects.get(id=payroll_run_id)
     records = PayrollRecord.objects.filter(payroll_run=payroll_run).select_related(
-        "employee", "employee__tenant", "employee__department", "employee__designation"
-    )
+        "employee", "employee__tenant", "employee__department", "employee__designation", "employee__location"
+    ).prefetch_related("employee__bank_accounts")
 
     for record in records:
-        context = {
-            "record": record,
-            "employee": record.employee,
-            "tenant": record.tenant,
-            "run": payroll_run,
-        }
-        pdf_bytes = render_pdf("payroll/payslip_pdf.html", context)
+        pdf_bytes, layout_key, tmpl = render_payslip_pdf(record, payroll_run, record.tenant)
         filename = f"payslip_{record.employee.employee_code}_{payroll_run.year}_{payroll_run.month:02d}.pdf"
 
         payslip, _ = Payslip.objects.get_or_create(
@@ -114,6 +108,8 @@ def generate_payslips_for_run(payroll_run_id):
             month=payroll_run.month,
         )
         payslip.pdf.save(filename, ContentFile(pdf_bytes), save=False)
+        payslip.template = tmpl
+        payslip.layout_key = layout_key
         payslip.generated_at = timezone.now()
         payslip.save()
 

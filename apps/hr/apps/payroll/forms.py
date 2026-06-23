@@ -2,7 +2,7 @@ import json
 from django import forms
 from decimal import Decimal
 from .models import (StatutorySetting, SalaryStructure, SalaryStructureComponent,
-                     SalaryComponent, EmployeeLoan, ExpenseClaim, TaxDeclaration)
+                     SalaryComponent, EmployeeLoan, ExpenseClaim, TaxDeclaration, PayslipTemplate)
 
 INPUT = "input input-bordered w-full"
 SELECT = "select select-bordered w-full"
@@ -48,15 +48,34 @@ class EmployeeLoanForm(forms.ModelForm):
 
 
 class ExpenseClaimForm(forms.ModelForm):
+    EXPENSE_CATEGORIES = [
+        ("", "Select category"),
+        ("travel", "Travel & conveyance"),
+        ("meals", "Meals & entertainment"),
+        ("internet", "Internet & telecom"),
+        ("software", "Software & subscriptions"),
+        ("office", "Office supplies"),
+        ("training", "Training & certification"),
+        ("medical", "Medical reimbursement"),
+        ("other", "Other"),
+    ]
+
+    category = forms.ChoiceField(choices=EXPENSE_CATEGORIES, widget=forms.Select(attrs={"class": SELECT}))
+
     class Meta:
         model = ExpenseClaim
         fields = ["category", "amount", "description", "expense_date", "receipt"]
         widgets = {
-            "category": forms.TextInput(attrs={"class": INPUT, "placeholder": "Travel · Internet · Meals · Software"}),
             "amount": forms.NumberInput(attrs={"class": INPUT, "step": "0.01"}),
             "description": forms.Textarea(attrs={"class": TEXTAREA, "rows": 3, "placeholder": "What was the expense for?"}),
             "expense_date": forms.DateInput(attrs={"class": INPUT, "type": "date"}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        cat = getattr(self.instance, "category", "")
+        if cat and cat not in dict(self.EXPENSE_CATEGORIES):
+            self.fields["category"].choices = list(self.EXPENSE_CATEGORIES) + [(cat, cat)]
 
 
 class StatutorySettingForm(forms.ModelForm):
@@ -186,3 +205,69 @@ class SalaryStructureForm(forms.ModelForm):
                     defaults={"sequence_order": c.sequence_order},
                 )
         return obj
+
+
+class PayslipTemplateForm(forms.ModelForm):
+    html_file = forms.FileField(
+        required=False,
+        widget=forms.FileInput(attrs={"class": "file-input file-input-bordered w-full", "accept": ".html,.htm,text/html"}),
+        help_text="Upload an HTML file to load into the editor (Custom layout only).",
+    )
+
+    class Meta:
+        model = PayslipTemplate
+        fields = [
+            "name", "layout", "template_html",
+            "company_display_name", "company_address_override", "payslip_title", "template_logo",
+            "footer_mode", "footer_text", "signatory_name_override", "signatory_title_override",
+            "is_default", "is_active",
+        ]
+        widgets = {
+            "name": forms.TextInput(attrs={"class": INPUT, "placeholder": "India Corporate Payslip"}),
+            "layout": forms.Select(attrs={"class": SELECT, "id": "id_layout"}),
+            "template_html": forms.Textarea(attrs={
+                "class": TEXTAREA, "rows": 20, "spellcheck": "false", "id": "id_template_html",
+                "style": "font-family: 'JetBrains Mono', monospace; font-size: 12px;",
+            }),
+            "company_display_name": forms.TextInput(attrs={
+                "class": INPUT, "placeholder": "Leave blank to use letterhead company name",
+            }),
+            "company_address_override": forms.Textarea(attrs={
+                "class": TEXTAREA, "rows": 2, "placeholder": "Registered office address on payslip",
+            }),
+            "payslip_title": forms.TextInput(attrs={
+                "class": INPUT,
+                "placeholder": "Payslip for the month of {month_year}",
+            }),
+            "template_logo": forms.FileInput(attrs={"class": "file-input file-input-bordered w-full", "accept": "image/*"}),
+            "footer_mode": forms.Select(attrs={"class": SELECT, "id": "id_footer_mode"}),
+            "footer_text": forms.Textarea(attrs={
+                "class": TEXTAREA, "rows": 2, "id": "id_footer_text",
+                "placeholder": "System-generated disclaimer or certification note",
+            }),
+            "signatory_name_override": forms.TextInput(attrs={
+                "class": INPUT, "placeholder": "From letterhead if blank",
+            }),
+            "signatory_title_override": forms.TextInput(attrs={
+                "class": INPUT, "placeholder": "e.g. HR Manager / Director",
+            }),
+            "is_default": forms.CheckboxInput(attrs={"class": "checkbox checkbox-sm"}),
+            "is_active": forms.CheckboxInput(attrs={"class": "checkbox checkbox-sm"}),
+        }
+
+    def clean(self):
+        cleaned = super().clean()
+        layout = cleaned.get("layout")
+        html_file = self.files.get("html_file")
+        if layout == "custom":
+            if html_file:
+                try:
+                    cleaned["template_html"] = html_file.read().decode("utf-8")
+                except UnicodeDecodeError:
+                    self.add_error("html_file", "HTML file must be UTF-8 encoded.")
+            if not (cleaned.get("template_html") or "").strip():
+                self.add_error("template_html", "Custom layout requires HTML — paste or upload a file.")
+        footer_mode = cleaned.get("footer_mode")
+        if footer_mode == "custom" and not (cleaned.get("footer_text") or "").strip():
+            self.add_error("footer_text", "Enter custom footer text.")
+        return cleaned

@@ -2,29 +2,35 @@
 
   {% for emp in page_obj %}
 
-  <a href="{% url 'employees:detail' emp.pk %}" class="people-emp-card">
+  <a href="{% if directory_mode %}{% url 'employees:colleague' emp.pk %}{% else %}{% url 'employees:detail' emp.pk %}{% endif %}" class="people-emp-card">
 
     <div class="people-emp-card__top">
 
       {% if emp.profile_photo %}
 
-      <img src="{{ emp.profile_photo.url }}" alt="" class="people-emp-card__photo">
+      <img src="{{ emp.profile_photo.url }}" alt="{{ emp.directory_name }}" class="people-emp-card__photo">
 
       {% else %}
 
-      <div class="people-avatar people-avatar--lg">{{ emp.first_name|first }}{{ emp.last_name|first }}</div>
+      <div class="people-avatar people-avatar--lg" aria-hidden="true">{{ emp.first_name|first }}{{ emp.last_name|first }}</div>
 
       {% endif %}
 
+      {% if not directory_mode %}
       <span class="badge badge-sm {% if emp.employment_status == 'active' %}badge-success{% elif emp.employment_status == 'notice_period' %}badge-warning{% else %}badge-ghost{% endif %}">
 
         {{ emp.get_employment_status_display }}
 
       </span>
+      {% endif %}
 
     </div>
 
-    <div class="people-emp-card__name">{{ emp.full_name }}</div>
+    <div class="people-emp-card__name">{{ emp.directory_name }}</div>
+
+    {% if emp.uses_preferred_name %}
+    <div class="people-emp-card__legal-name">{{ emp.full_name }}</div>
+    {% endif %}
 
     <div class="people-emp-card__meta">{{ emp.employee_code }} · {{ emp.department.name|default:"No dept" }}</div>
 
@@ -54,7 +60,7 @@
 
   {% endif %}
 
-  <span class="btn btn-sm btn-disabled">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+  <span class="hr-pagination__status">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
 
   {% if page_obj.has_next %}
 

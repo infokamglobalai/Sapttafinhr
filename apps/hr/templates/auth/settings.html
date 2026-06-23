@@ -34,6 +34,8 @@
 
     <a href="{% url 'accounts:settings' %}?tab=support" class="settings-tab {% if tab == 'support' %}is-active{% endif %}">Help &amp; Support</a>
 
+    <a href="{% url 'accounts:settings' %}?tab=security" class="settings-tab {% if tab == 'security' %}is-active{% endif %}">Security &amp; Trust</a>
+
   </nav>
 
 
@@ -76,9 +78,16 @@
 
         <div class="alert alert-info text-sm">
 
-          <span><strong>Your photo</strong> is personal (shown in the header). <strong>Company logo</strong> is set by the workspace owner under Company — everyone sees it at the bottom of the sidebar.</span>
+          <span><strong>Profile photo</strong> appears on employee cards and the header. <strong>Preferred name</strong> is the nickname colleagues see in search and directory (e.g. pet name). Legal name stays on payslips.</span>
 
         </div>
+
+        {% if employee and employee.profile_photo %}
+        <div class="flex items-center gap-3 mb-2">
+          <img src="{{ employee.profile_photo.url }}" alt="" class="people-emp-card__photo">
+          <span class="text-sm text-base-content/60">Current photo</span>
+        </div>
+        {% endif %}
 
 
 
@@ -88,6 +97,12 @@
 
           {{ profile_form.profile_photo }}
 
+        </div>
+
+        <div class="form-control">
+          <label class="label"><span class="label-text font-medium">Preferred name (nickname)</span></label>
+          {{ profile_form.preferred_name }}
+          <label class="label"><span class="label-text-alt">Shown in directory &amp; search — leave blank to use your legal first name.</span></label>
         </div>
 
 
@@ -335,9 +350,27 @@
 
         <h2 class="settings-panel-title">Subscription &amp; billing</h2>
 
-        <p class="settings-panel-desc">Only the workspace owner (who purchased the subscription) can change plans and payment methods.</p>
+        <p class="settings-panel-desc">View your plan, renewal date, and past invoices here — no need to leave Saptta HR.</p>
 
       </div>
+
+
+
+      {% if subscription.renewal %}
+
+      <div class="alert {% if subscription.renewal.tone == 'danger' %}alert-error{% elif subscription.renewal.tone == 'warning' %}alert-warning{% else %}alert-info{% endif %} text-sm">
+
+        <div>
+
+          <p class="font-semibold">{{ subscription.renewal.label }}</p>
+
+          <p>{{ subscription.renewal.message }}</p>
+
+        </div>
+
+      </div>
+
+      {% endif %}
 
 
 
@@ -355,9 +388,111 @@
 
 
 
-      {% if subscription.period_end %}
+      {% if subscription.period_start or subscription.period_end %}
 
-      <p class="text-sm text-base-content/60">Current period ends: <strong>{{ subscription.period_end|date:"d M Y" }}</strong></p>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+
+        {% if subscription.period_start %}
+
+        <p class="text-base-content/70">Current period started: <strong>{{ subscription.period_start|date:"d M Y" }}</strong></p>
+
+        {% endif %}
+
+        {% if subscription.period_end %}
+
+        <p class="text-base-content/70">Current period ends: <strong>{{ subscription.period_end|date:"d M Y" }}</strong></p>
+
+        {% endif %}
+
+      </div>
+
+      {% endif %}
+
+
+
+      {% if subscription.products %}
+
+      <p class="text-sm text-base-content/70">Products on your subscription: <strong>{{ subscription.products|join:", " }}</strong></p>
+
+      {% endif %}
+
+
+
+      <div class="divider">Invoices</div>
+
+
+
+      {% if subscription.invoices %}
+
+      <div class="overflow-x-auto rounded-xl border border-base-300">
+
+        <table class="table table-sm">
+
+          <thead>
+
+            <tr>
+
+              <th>Invoice</th>
+
+              <th>Period</th>
+
+              <th>Amount</th>
+
+              <th>Status</th>
+
+              <th class="text-right">Actions</th>
+
+            </tr>
+
+          </thead>
+
+          <tbody>
+
+            {% for inv in subscription.invoices %}
+
+            <tr>
+
+              <td class="font-mono text-xs">{{ inv.number }}</td>
+
+              <td class="text-xs">{{ inv.period_start|date:"d M Y" }} – {{ inv.period_end|date:"d M Y" }}</td>
+
+              <td>₹{{ inv.amount|floatformat:2 }}</td>
+
+              <td><span class="badge badge-sm {% if inv.status == 'PAID' %}badge-success{% elif inv.status == 'OPEN' %}badge-warning{% else %}badge-ghost{% endif %}">{{ inv.status }}</span></td>
+
+              <td class="text-right whitespace-nowrap">
+
+                <a href="{% url 'accounts:invoice_view' invoice_id=inv.id %}" class="link link-primary text-xs" target="_blank" rel="noopener">View</a>
+
+                <span class="text-base-content/30 mx-1">·</span>
+
+                <a href="{% url 'accounts:invoice_pdf' invoice_id=inv.id %}" class="link link-primary text-xs">Download PDF</a>
+
+              </td>
+
+            </tr>
+
+            {% endfor %}
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+      {% else %}
+
+      <div class="rounded-xl border border-dashed border-base-300 p-6 text-sm text-base-content/70">
+
+        <p>No invoices yet. After your first payment, GST invoices will appear here for download.</p>
+
+        {% if not subscription.platform_connected %}
+
+        <p class="mt-2 text-xs">Invoice history syncs from the platform billing service when it is connected.</p>
+
+        {% endif %}
+
+      </div>
 
       {% endif %}
 
@@ -365,9 +500,9 @@
 
       <div class="flex flex-wrap gap-3 pt-2">
 
-        <a href="{{ billing_url }}" class="btn btn-primary" target="_blank" rel="noopener">Manage billing on platform →</a>
+        <a href="{{ billing_url }}" class="btn btn-outline btn-sm" target="_blank" rel="noopener">Change plan or payment method →</a>
 
-        <a href="{{ finance_url }}" class="btn btn-outline btn-sm" target="_blank" rel="noopener">Open fin-saptta</a>
+        <a href="{{ finance_url }}" class="btn btn-ghost btn-sm" target="_blank" rel="noopener">Open fin-saptta</a>
 
       </div>
 
@@ -377,7 +512,7 @@
 
       <ul class="text-sm space-y-2 text-base-content/80">
 
-        <li>✓ <strong>HR + Finance on one login</strong> — Tally payroll export today; ledger auto-sync on Complete roadmap</li>
+        <li>✓ <strong>HR + Finance on one login</strong> — Tally XML export + payroll journal auto-sync to Finance on publish</li>
 
         <li>✓ <strong>India-ready payroll</strong> — PF, ESI, PT, Form 16 built in</li>
 
@@ -485,6 +620,96 @@
 
 
 
+  {% elif tab == 'security' %}
+
+  <div class="settings-panel">
+
+    <div class="settings-panel-body space-y-5">
+
+      <div>
+
+        <h2 class="settings-panel-title">Security &amp; trust</h2>
+
+        <p class="settings-panel-desc">How Saptta protects your workspace, employee data, and payroll information.</p>
+
+      </div>
+
+
+
+      <div class="settings-security-highlights">
+
+        {% for line in security_trust.highlights %}
+
+        <div class="settings-security-highlight">
+
+          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+
+          <span>{{ line }}</span>
+
+        </div>
+
+        {% endfor %}
+
+      </div>
+
+
+
+      {% for category in security_trust.categories %}
+
+      <section class="settings-security-category" aria-labelledby="sec-cat-{{ category.id }}">
+
+        <h3 id="sec-cat-{{ category.id }}" class="settings-security-category__title">{{ category.title }}</h3>
+
+        <div class="settings-security-grid">
+
+          {% for item in category.items %}
+
+          <div class="settings-security-card">
+
+            <div class="settings-security-card__head">
+
+              <p class="settings-security-card__title">{{ item.title }}</p>
+
+              <span class="settings-security-badge settings-security-badge--{{ item.status }}">{% if item.status == 'active' %}Active{% else %}Standard{% endif %}</span>
+
+            </div>
+
+            <p class="settings-security-card__detail">{{ item.detail }}</p>
+
+          </div>
+
+          {% endfor %}
+
+        </div>
+
+      </section>
+
+      {% endfor %}
+
+
+
+      <div class="flex flex-wrap gap-3 pt-2">
+
+        <a href="{% url 'tenants:legal_privacy' %}" class="btn btn-outline btn-sm">Privacy policy</a>
+
+        <a href="{% url 'tenants:legal_terms' %}" class="btn btn-outline btn-sm">Terms of service</a>
+
+        <a href="{% url 'tenants:legal_dpa' %}" class="btn btn-outline btn-sm">Data Processing Addendum</a>
+
+        {% if is_admin %}
+
+        <a href="{% url 'hr_ops:audit_log' %}" class="btn btn-primary btn-sm">View audit log</a>
+
+        {% endif %}
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+
   {% elif tab == 'support' %}
   <div class="settings-panel">
     <div class="settings-panel-body space-y-5">
@@ -536,6 +761,11 @@
         <a href="{% url 'tenants:legal_terms' %}" class="settings-support-card">
           <p class="font-semibold">Terms of service</p>
           <p class="text-sm text-base-content/60 mt-1">Platform terms for your organisation.</p>
+        </a>
+
+        <a href="{% url 'accounts:settings' %}?tab=security" class="settings-support-card">
+          <p class="font-semibold">Security &amp; trust</p>
+          <p class="text-sm text-base-content/60 mt-1">Encryption, access control, audit logging, and compliance.</p>
         </a>
       </div>
 

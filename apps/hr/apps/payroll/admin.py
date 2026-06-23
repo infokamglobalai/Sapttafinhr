@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     SalaryComponent, SalaryStructure, EmployeeSalary,
-    StatutorySetting, PayrollRun, PayrollRecord, Payslip,
+    StatutorySetting, PayrollRun, PayrollRecord, Payslip, PayslipTemplate,
     EmployeeLoan, ExpenseClaim,
 )
 
@@ -40,4 +40,17 @@ class PayrollRunAdmin(admin.ModelAdmin):
 class PayrollRecordAdmin(admin.ModelAdmin):
     list_display = ("employee", "payroll_run", "gross_earnings", "total_deductions", "net_payable", "is_locked")
     list_filter = ("tenant", "is_locked")
+    search_fields = ("employee__first_name", "employee__last_name", "employee__employee_code")
+
+
+@admin.register(PayslipTemplate)
+class PayslipTemplateAdmin(admin.ModelAdmin):
+    list_display = ("name", "tenant", "layout", "footer_mode", "is_default", "is_active")
+    list_filter = ("tenant", "layout", "footer_mode", "is_active")
+
+
+@admin.register(Payslip)
+class PayslipAdmin(admin.ModelAdmin):
+    list_display = ("employee", "year", "month", "is_published", "generated_at")
+    list_filter = ("tenant", "is_published", "year")
     search_fields = ("employee__first_name", "employee__last_name", "employee__employee_code")

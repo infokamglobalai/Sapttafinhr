@@ -1,0 +1,14 @@
+{% if footer_mode != "none" %}
+<div class="payslip-footer">
+  {% if footer_text %}
+  <p class="footer-note">{{ footer_text }}</p>
+  {% endif %}
+  {% if show_signature %}
+  <div class="signature-block">
+    <div class="signature-line"></div>
+    <div class="signatory-name">{{ signatory_name }}</div>
+    {% if signatory_title %}<div class="signatory-title">{{ signatory_title }}</div>{% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endif %}

@@ -8,6 +8,7 @@ from django.views.decorators.http import require_POST
 
 from .models import Employee, Department, Designation, OfficeLocation, EmployeeDocument, AttritionScore
 from .forms import EmployeeForm, DepartmentForm, DesignationForm, OfficeLocationForm, DocumentUploadForm, COMPLIANCE_FIELD_NAMES
+from .search import filter_employees_by_search
 from .services import create_employee, bulk_import_employees, provision_employee_login, email_employee_invite, invite_delivery_message
 from apps.tenants.limits import EmployeeLimitExceeded, seats_remaining, employee_limit, active_employee_count
 from .access_services import (
@@ -20,7 +21,7 @@ from .access_services import (
     restore_employee_access,
     set_employee_roles,
 )
-from utils.access import hr_admin_required
+from utils.access import hr_admin_required, tenant_login_required, tenant_login_required
 from utils.mail import smtp_configured
 from utils.pdf import render_pdf_response
 
@@ -48,12 +49,7 @@ def employee_list(request):
     status = request.GET.get("status", "active")
 
     if search:
-        qs = qs.filter(
-            Q(first_name__icontains=search)
-            | Q(last_name__icontains=search)
-            | Q(employee_code__icontains=search)
-            | Q(official_email__icontains=search)
-        )
+        qs = filter_employees_by_search(qs, search)
     if dept_id:
         qs = qs.filter(department_id=dept_id)
     if status:
@@ -102,12 +98,7 @@ def employee_export(request):
     dept_id = request.GET.get("department")
     status = request.GET.get("status", "active")
     if search:
-        qs = qs.filter(
-            Q(first_name__icontains=search)
-            | Q(last_name__icontains=search)
-            | Q(employee_code__icontains=search)
-            | Q(official_email__icontains=search)
-        )
+        qs = filter_employees_by_search(qs, search)
     if dept_id:
         qs = qs.filter(department_id=dept_id)
     if status:
@@ -128,6 +119,59 @@ def employee_export(request):
         ws.cell(row=row_idx, column=7, value=emp.get_employment_status_display())
     auto_fit_columns(ws)
     return workbook_response(wb, f"employees_{tenant.subdomain}.xlsx")
+
+
+@tenant_login_required
+def company_directory(request):
+    """Company-wide employee lookup — all staff can search by name, email, department."""
+    tenant = request.tenant
+    qs = Employee.objects.filter(
+        tenant=tenant, is_active=True, employment_status="active"
+    ).select_related("department", "designation", "location")
+
+    search = request.GET.get("q", "").strip()
+    dept_id = request.GET.get("department")
+    if search:
+        qs = filter_employees_by_search(qs, search)
+    if dept_id:
+        qs = qs.filter(department_id=dept_id)
+
+    paginator = Paginator(qs.order_by("first_name", "last_name"), 24)
+    page_obj = paginator.get_page(request.GET.get("page"))
+    departments = Department.objects.filter(tenant=tenant, is_active=True)
+
+    return render(request, "employees/directory.html", {
+        "page_obj": page_obj,
+        "departments": departments,
+        "search": search,
+        "selected_dept": dept_id,
+        "directory_mode": True,
+    })
+
+
+@tenant_login_required
+def org_chart(request):
+    """Visual organization chart — all staff can browse reporting structure."""
+    from .org_chart import build_org_chart
+
+    tenant = request.tenant
+    chart = build_org_chart(tenant)
+    return render(request, "employees/org_chart.html", {
+        "chart": chart,
+    })
+
+
+@tenant_login_required
+def colleague_profile(request, pk):
+    """Read-only colleague card for non-admin directory."""
+    tenant = request.tenant
+    employee = get_object_or_404(
+        Employee.objects.select_related("department", "designation", "location", "reporting_manager"),
+        pk=pk,
+        tenant=tenant,
+        is_active=True,
+    )
+    return render(request, "employees/colleague.html", {"employee": employee})
 
 
 @hr_admin_required

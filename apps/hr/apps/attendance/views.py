@@ -230,11 +230,13 @@ def my_attendance(request):
 
     stats_qs = records.aggregate(
         total_hours=Sum("net_working_minutes"),
+        overtime_mins=Sum("overtime_minutes"),
     )
     by_status = dict(
         records.values("status").annotate(c=Count("id")).values_list("status", "c")
     )
     total_mins = stats_qs.get("total_hours") or 0
+    ot_mins = stats_qs.get("overtime_mins") or 0
 
     if month == 1:
         prev_year, prev_month = year - 1, 12
@@ -261,6 +263,7 @@ def my_attendance(request):
             "on_leave": by_status.get("on_leave", 0),
             "half_day": by_status.get("half_day", 0),
             "total_hours": round(total_mins / 60, 1) if total_mins else 0,
+            "overtime_hours": round(ot_mins / 60, 1) if ot_mins else 0,
         },
     })
 

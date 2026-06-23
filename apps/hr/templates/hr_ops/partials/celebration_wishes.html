@@ -1,0 +1,18 @@
+{% if wishes %}
+<div class="space-y-2">
+  {% for wish in wishes %}
+  <div class="flex items-start gap-3 p-3 rounded-lg bg-base-200/60">
+    <div class="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0">
+      {{ wish.author.first_name|first|default:"?" }}{{ wish.author.last_name|first|default:"" }}
+    </div>
+    <div class="min-w-0 flex-1">
+      <p class="text-sm font-medium">{{ wish.author.get_full_name|default:wish.author.email }}</p>
+      <p class="text-sm text-base-content/80 mt-0.5">{{ wish.display_line }}</p>
+      <p class="text-xs text-base-content/40 mt-1">{{ wish.created_at|timesince }} ago</p>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<p class="text-sm text-base-content/50 py-4 text-center">Be the first to wish! 🎉</p>
+{% endif %}

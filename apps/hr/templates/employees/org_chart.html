@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block page_title %}Organization Chart{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/org-chart.css' %}?v=1">
+{% endblock %}
+
+{% block content %}
+<div class="hr-page-header">
+  <div class="hr-page-header__main">
+    <h1 class="hr-page-header__title">Organization Chart</h1>
+    <p class="hr-page-header__sub">{{ chart.total }} active employee{{ chart.total|pluralize }} · {{ chart.roots_count }} top-level leader{{ chart.roots_count|pluralize }}</p>
+  </div>
+  <div class="hr-page-header__actions">
+    <a href="{% url 'employees:directory' %}" class="btn btn-outline btn-sm">Company directory</a>
+    {% if user.is_hr_admin %}
+    <a href="{% url 'employees:list' %}" class="btn btn-ghost btn-sm">HR employee list</a>
+    {% endif %}
+  </div>
+</div>
+
+{% if chart.total == 0 %}
+<div class="rounded-xl border border-dashed border-base-300 p-8 text-center text-sm text-base-content/70">
+  <p class="font-semibold text-base-content mb-2">No active employees yet</p>
+  <p>Add employees and assign reporting managers to build your organization chart.</p>
+  {% if user.is_hr_admin %}
+  <a href="{% url 'employees:create' %}" class="btn btn-primary btn-sm mt-4">Add employee</a>
+  {% endif %}
+</div>
+{% elif chart.tree %}
+<div class="org-chart-shell">
+  <div class="org-chart-scroll">
+    <ul class="org-tree">
+      {% for node in chart.tree %}
+      {% include "employees/partials/org_chart_node.html" with node=node %}
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% else %}
+<div class="alert alert-info text-sm">
+  <p>No reporting structure yet. Assign <strong>Reporting manager</strong> on employee profiles to connect the chart.</p>
+</div>
+{% endif %}
+
+{% if chart.unassigned_count %}
+<div class="org-unassigned mt-6">
+  <h2 class="text-sm font-semibold mb-2">Employees with manager outside active list ({{ chart.unassigned_count }})</h2>
+  <ul class="text-sm text-base-content/70 space-y-1">
+    {% for emp in chart.unassigned %}
+    <li>{{ emp.directory_name }} — manager not in active roster</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+{% endblock %}

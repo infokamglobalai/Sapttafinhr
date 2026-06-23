@@ -183,9 +183,7 @@ def _workspace_search(user):
         return "", "Search…"
     if user.is_hr_admin:
         return reverse("employees:list"), "Search employees…"
-    if user.is_manager and not user.is_hr_admin:
-        return reverse("leaves:pending"), "Search pending leave…"
-    return reverse("attendance:my_attendance"), "Search my attendance…"
+    return reverse("employees:directory"), "Find colleague — name, email, dept…"
 
 
 def _nav_role_hint(user) -> str:
@@ -238,7 +236,7 @@ def tenant_context(request):
         ctx["seats_remaining"] = seats_remaining(tenant)
         ctx["employee_limit"] = employee_limit(tenant)
         ctx["at_employee_cap"] = ctx["seats_remaining"] == 0
-        ctx["billing_settings_url"] = f"{platform_base_for_request(request)}/app/billing"
+        ctx["billing_settings_url"] = "/auth/settings/?tab=billing"
     else:
         ctx["tenant_logo_url"] = ""
         ctx["tenant_is_india_payroll"] = True

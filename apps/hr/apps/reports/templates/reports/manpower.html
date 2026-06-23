@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block page_title %}Manpower Report{% endblock %}
+
+{% block content %}
+{% if tenant_is_gcc_payroll %}
+{% include "dashboard/partials/gcc_payroll_banner.html" %}
+{% endif %}
+
+<div class="hr-page-header">
+  <div class="hr-page-header__main">
+    <h1 class="hr-page-header__title">Manpower &amp; establishment</h1>
+    <p class="hr-page-header__sub">Headcount by nationality — Kuwaiti vs expatriate mix for establishment reporting</p>
+  </div>
+  <div class="hr-page-header__actions">
+    <a href="{% url 'reports:manpower_export' %}" class="btn btn-primary btn-sm">Download Excel</a>
+    <a href="{% url 'payroll:indemnity_liability' %}" class="btn btn-outline btn-sm">EOS liability</a>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+  <div class="stat bg-base-100 border border-base-200 rounded-xl p-4">
+    <div class="stat-title text-xs">Total active</div>
+    <div class="stat-value text-2xl">{{ summary.total }}</div>
+  </div>
+  <div class="stat bg-emerald-50 border border-emerald-100 rounded-xl p-4">
+    <div class="stat-title text-xs text-emerald-800">Kuwaiti nationals</div>
+    <div class="stat-value text-2xl text-emerald-900">{{ summary.kuwaiti_count }}</div>
+    <div class="text-xs text-emerald-700 mt-1">{{ summary.kuwaiti_pct }}% of workforce</div>
+  </div>
+  <div class="stat bg-sky-50 border border-sky-100 rounded-xl p-4">
+    <div class="stat-title text-xs text-sky-800">Expatriates</div>
+    <div class="stat-value text-2xl text-sky-900">{{ summary.expat_count }}</div>
+    <div class="text-xs text-sky-700 mt-1">{{ summary.expat_pct }}% of workforce</div>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+  <div class="card bg-base-100 border border-base-200">
+    <div class="card-body">
+      <h2 class="card-title text-base">By nationality</h2>
+      <div class="overflow-x-auto">
+        <table class="table table-sm">
+          <thead><tr><th>Nationality</th><th class="text-right">Count</th><th class="text-right">%</th></tr></thead>
+          <tbody>
+            {% for row in summary.by_nationality %}
+            <tr>
+              <td>{{ row.label }}</td>
+              <td class="text-right font-mono">{{ row.count }}</td>
+              <td class="text-right">{{ row.pct }}%</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3" class="text-center text-base-content/50">No nationality data — update employee profiles.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card bg-base-100 border border-base-200">
+    <div class="card-body">
+      <h2 class="card-title text-base">By department</h2>
+      <div class="overflow-x-auto">
+        <table class="table table-sm">
+          <thead><tr><th>Department</th><th class="text-right">Count</th></tr></thead>
+          <tbody>
+            {% for row in summary.by_department %}
+            <tr>
+              <td>{{ row.department }}</td>
+              <td class="text-right font-mono">{{ row.count }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="2" class="text-center text-base-content/50">No departments assigned.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="text-xs text-base-content/60 mt-6">
+  Use this report for manpower ministry submissions and internal establishment audits.
+  Validate totals with your local payroll consultant before official filing.
+</p>
+{% endblock %}

@@ -8,7 +8,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from .models import (
-    PayrollRun, PayrollRecord, Payslip,
+    PayrollRun, PayrollRecord, Payslip, PayslipTemplate,
     SalaryStructure, SalaryComponent, EmployeeSalary,
     StatutorySetting, EmployeeLoan, ExpenseClaim,
     TaxDeclaration, Form16,
@@ -66,9 +66,15 @@ def payroll_run_detail(request, pk):
     # Run anomaly detection — pure local rules, no external API
     from .anomaly import detect_for_run, summary
     anomalies = detect_for_run(run)
+    from django.conf import settings
+    finance_sync_available = bool(
+        getattr(settings, "FIN_INTERNAL_BASE_URL", "")
+        and getattr(settings, "SSO_SHARED_SECRET", "")
+    )
     return render(request, "payroll/run_detail.html", {
         "run": run, "records": records,
         "anomalies": anomalies, "anomaly_counts": summary(anomalies),
+        "finance_sync_available": finance_sync_available,
     })
 
 
@@ -117,12 +123,14 @@ def payroll_run_publish(request, pk):
     # Notify every employee whose payslip just went live
     try:
         from apps.hr_ops.services import notify
+        from utils.money import format_money
         for slip in payslips_to_publish:
             if slip.employee and slip.employee.user:
+                net_fmt = format_money(slip.payroll_record.net_payable, tenant.currency)
                 notify(
                     slip.employee.user, "payslip_published",
                     f"Your payslip for {run.year}-{run.month:02d} is ready",
-                    message=f"Net payable: ₹{slip.payroll_record.net_payable:,.0f}\n\nView the breakdown and download the PDF from your dashboard.",
+                    message=f"Net payable: {net_fmt}\n\nView the breakdown and download the PDF from your dashboard.",
                     action_url="/payroll/my-payslips/",
                 )
     except Exception:
@@ -157,10 +165,59 @@ def payroll_run_publish(request, pk):
     except Exception:
         pass
 
+    # Sync payroll journal to Finance (best-effort)
+    finance_msg = ""
+    try:
+        finance_msg = _apply_finance_sync(tenant, run, request)
+    except Exception:
+        pass
+
     messages.success(
         request,
-        f"Published {len(payslips_to_publish)} payslip(s). Email and WhatsApp delivery started.",
+        f"Published {len(payslips_to_publish)} payslip(s). Email and WhatsApp delivery started.{finance_msg}",
     )
+    return redirect("payroll:run_detail", pk=pk)
+
+
+def _apply_finance_sync(tenant, run, request=None) -> str:
+    """Post payroll journal to Finance; returns user-facing suffix message."""
+    from .finance_sync import sync_payroll_to_finance
+
+    if run.finance_synced_at:
+        return " Finance ledger already synced."
+
+    result = sync_payroll_to_finance(tenant, run)
+    if not result.get("ok"):
+        if request:
+            messages.warning(request, f"Finance sync skipped: {result.get('error', 'unknown error')}")
+        return ""
+
+    run.finance_journal_id = str(result.get("journal_entry_id") or "")
+    run.finance_voucher_no = result.get("voucher_no") or ""
+    run.finance_synced_at = timezone.now()
+    run.save(update_fields=["finance_journal_id", "finance_voucher_no", "finance_synced_at"])
+
+    suffix = f" Finance journal {run.finance_voucher_no} posted."
+    if request:
+        messages.info(request, f"Payroll synced to Finance as voucher {run.finance_voucher_no}.")
+    return suffix
+
+
+@hr_admin_required
+@require_POST
+def payroll_sync_finance(request, pk):
+    """Manually sync an approved/paid payroll run to Finance ledger."""
+    tenant = request.tenant
+    run = get_object_or_404(PayrollRun, pk=pk, tenant=tenant)
+    if run.status not in ("approved", "paid"):
+        messages.error(request, "Only approved or paid runs can be synced to Finance.")
+        return redirect("payroll:run_detail", pk=pk)
+
+    if run.finance_synced_at:
+        messages.info(request, f"Already synced as {run.finance_voucher_no or run.finance_journal_id}.")
+        return redirect("payroll:run_detail", pk=pk)
+
+    _apply_finance_sync(tenant, run, request)
     return redirect("payroll:run_detail", pk=pk)
 
 
@@ -579,18 +636,25 @@ def my_payslips(request):
 
 @login_required
 def payslip_view(request, pk):
+    from django.http import HttpResponse
+    from utils.pdf import render_html_to_pdf
+
+    from .payslip_services import render_payslip_html
+
     employee = getattr(request.user, "employee_profile", None)
-    payslip = get_object_or_404(Payslip, pk=pk, employee=employee, is_published=True)
-    return render_pdf_response(
-        "payroll/payslip_pdf.html",
-        {
-            "record": payslip.payroll_record,
-            "employee": employee,
-            "tenant": request.tenant,
-            "run": payslip.payroll_record.payroll_run,
-        },
-        filename=f"payslip_{payslip.year}_{payslip.month:02d}.pdf",
+    payslip = get_object_or_404(
+        Payslip.objects.select_related("payroll_record", "payroll_record__payroll_run", "template"),
+        pk=pk,
+        employee=employee,
+        is_published=True,
     )
+    record = payslip.payroll_record
+    run = record.payroll_run
+    html, _layout = render_payslip_html(record, run, request.tenant, payslip.template)
+    pdf_bytes = render_html_to_pdf(html)
+    response = HttpResponse(pdf_bytes, content_type="application/pdf")
+    response["Content-Disposition"] = f'inline; filename="payslip_{payslip.year}_{payslip.month:02d}.pdf"'
+    return response
 
 
 # ---------------------------------------------------------------------------
@@ -1196,3 +1260,144 @@ def indemnity_liability_export(request):
         ws.append(row)
     auto_fit_columns(ws)
     return workbook_response(wb, f"eos_liability_{tenant.subdomain}.xlsx")
+
+
+# ---------------------------------------------------------------------------
+# Payslip templates (per-company layout)
+# ---------------------------------------------------------------------------
+@hr_admin_required
+def payslip_template_list(request):
+    from apps.hr_ops.letter_company import get_company_profile
+    from apps.tenants.jurisdiction import jurisdiction_label
+    from .payslip_defaults import DEFAULT_TEMPLATE_NAMES
+    from .payslip_services import seed_default_payslip_template
+
+    tenant = request.tenant
+    templates = PayslipTemplate.objects.filter(tenant=tenant).order_by("-is_default", "name")
+    if not templates.exists():
+        seed_default_payslip_template(tenant, created_by=request.user)
+        templates = PayslipTemplate.objects.filter(tenant=tenant).order_by("-is_default", "name")
+    return render(request, "payroll/payslip_templates.html", {
+        "templates": templates,
+        "profile": get_company_profile(tenant),
+        "layout_labels": dict(PayslipTemplate.LAYOUT_CHOICES),
+        "default_names": DEFAULT_TEMPLATE_NAMES,
+        "tenant_jurisdiction_label": jurisdiction_label(tenant.payroll_jurisdiction),
+    })
+
+
+@hr_admin_required
+@require_POST
+def payslip_template_seed(request):
+    from .payslip_services import seed_default_payslip_template
+
+    created, _skipped = seed_default_payslip_template(request.tenant, created_by=request.user)
+    if created:
+        messages.success(request, "Installed default payslip template for your region.")
+    else:
+        messages.info(request, "A payslip template already exists — edit it or add a custom one.")
+    return redirect("payroll:payslip_templates")
+
+
+@hr_admin_required
+def payslip_template_create_or_edit(request, pk=None):
+    from .forms import PayslipTemplateForm
+    from .payslip_defaults import default_layout_for_tenant, default_template_name
+    from .payslip_services import custom_template_starter
+
+    tenant = request.tenant
+    tmpl = get_object_or_404(PayslipTemplate, pk=pk, tenant=tenant) if pk else None
+    if request.method == "POST":
+        form = PayslipTemplateForm(request.POST, request.FILES, instance=tmpl)
+        if form.is_valid():
+            obj = form.save(commit=False)
+            obj.tenant = tenant
+            obj.created_by = obj.created_by or request.user
+            obj.save()
+            messages.success(request, f'Payslip template "{obj.name}" saved.')
+            return redirect("payroll:payslip_templates")
+    else:
+        initial = {}
+        if not tmpl:
+            layout = default_layout_for_tenant(tenant)
+            initial = {
+                "layout": layout,
+                "name": default_template_name(layout),
+                "template_html": custom_template_starter() if layout == "custom" else "",
+                "is_default": True,
+            }
+        form = PayslipTemplateForm(instance=tmpl, initial=initial if not tmpl else None)
+    return render(request, "payroll/payslip_template_form.html", {
+        "form": form,
+        "template": tmpl,
+        "starter_html": custom_template_starter(),
+    })
+
+
+@hr_admin_required
+def payslip_template_preview(request, pk):
+    from decimal import Decimal
+    from types import SimpleNamespace
+    from utils.pdf import render_html_to_pdf
+
+    from types import SimpleNamespace
+
+    from .payslip_services import render_payslip_html
+
+    class _BankQS:
+        def __init__(self, bank):
+            self._bank = bank
+
+        def filter(self, **_kwargs):
+            return self
+
+        def first(self):
+            return self._bank
+
+    tenant = request.tenant
+    tmpl = get_object_or_404(PayslipTemplate, pk=pk, tenant=tenant)
+    sample_bank = SimpleNamespace(
+        bank_name="HDFC Bank",
+        account_number="50100123456789",
+        is_primary=True,
+    )
+    sample_record = SimpleNamespace(
+        working_days=26,
+        paid_days=26,
+        lop_days=0,
+        basic=Decimal("28000"),
+        gross_earnings=Decimal("70000"),
+        total_deductions=Decimal("200"),
+        net_payable=Decimal("69800"),
+        pf_employer=Decimal("0"),
+        esi_employer=Decimal("0"),
+        earnings_detail={
+            "BASIC": {"name": "Basic", "amount": 28000},
+            "HRA": {"name": "House Rent Allowance", "amount": 14000},
+            "CONV": {"name": "Conveyance", "amount": 2000},
+            "OTHER": {"name": "Other Allowance", "amount": 5000},
+            "SPECIAL": {"name": "Special Allowance", "amount": 21000},
+        },
+        deductions_detail={
+            "PF_EMP": {"name": "Provident Fund", "amount": 180},
+            "PT": {"name": "Professional Tax", "amount": 200},
+        },
+        employee=SimpleNamespace(
+            employee_code="EMP001",
+            full_name="Sample Employee",
+            name_ar="",
+            date_of_joining=datetime.date(2026, 2, 9),
+            uan_number="100123456789",
+            pan_number="ABCDE1234F",
+            department=SimpleNamespace(name="Operations", cost_center_code=""),
+            designation=SimpleNamespace(name="Software Engineer", grade=""),
+            location=SimpleNamespace(name="Bengaluru"),
+            bank_accounts=_BankQS(sample_bank),
+        ),
+    )
+    sample_run = SimpleNamespace(year=2026, month=1)
+    html, _ = render_payslip_html(sample_record, sample_run, tenant, tmpl)
+    pdf_bytes = render_html_to_pdf(html)
+    response = HttpResponse(pdf_bytes, content_type="application/pdf")
+    response["Content-Disposition"] = 'inline; filename="payslip_preview.pdf"'
+    return response

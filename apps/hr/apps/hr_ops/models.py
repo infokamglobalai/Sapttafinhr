@@ -356,6 +356,7 @@ class Notification(models.Model):
         ("document_expiring", "Document Expiring"),
         ("probation_ending", "Probation Ending"),
         ("calendar_reminder", "Calendar Reminder"),
+        ("celebration", "Celebration"),
         ("general", "General"),
     ]
 
@@ -541,3 +542,101 @@ class ServiceRequestComment(models.Model):
     class Meta:
         db_table = "service_request_comments"
         ordering = ["created_at"]
+
+
+# ---------------------------------------------------------------------------
+# Celebrations & wishes (birthday wall, anniversaries, team moments)
+# ---------------------------------------------------------------------------
+class CelebrationPost(models.Model):
+    CELEBRATION_TYPES = [
+        ("birthday", "Birthday"),
+        ("work_anniversary", "Work Anniversary"),
+        ("new_joiner", "Welcome / New Joiner"),
+        ("promotion", "Promotion"),
+        ("wedding", "Wedding"),
+        ("new_baby", "New Baby"),
+        ("festival", "Festival / Holiday"),
+        ("achievement", "Achievement"),
+        ("farewell", "Farewell"),
+        ("custom", "Custom"),
+    ]
+
+    TYPE_EMOJI = {
+        "birthday": "🎂",
+        "work_anniversary": "🎉",
+        "new_joiner": "👋",
+        "promotion": "🚀",
+        "wedding": "💍",
+        "new_baby": "👶",
+        "festival": "🪔",
+        "achievement": "🏆",
+        "farewell": "👋",
+        "custom": "✨",
+    }
+
+    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE, related_name="celebration_posts")
+    celebration_type = models.CharField(max_length=30, choices=CELEBRATION_TYPES, default="birthday")
+    subject_employee = models.ForeignKey(
+        "employees.Employee",
+        on_delete=models.CASCADE,
+        related_name="celebration_posts",
+        null=True,
+        blank=True,
+        help_text="Person being celebrated (optional for company-wide festivals).",
+    )
+    title = models.CharField(max_length=255, blank=True)
+    message = models.TextField(help_text="Main wish or announcement from HR / manager.")
+    poster_image = models.ImageField(upload_to="celebrations/%Y/", null=True, blank=True)
+    created_by = models.ForeignKey("accounts.User", on_delete=models.SET_NULL, null=True, related_name="+")
+    is_published = models.BooleanField(default=True)
+    published_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "celebration_posts"
+        ordering = ["-published_at", "-created_at"]
+
+    def __str__(self):
+        return self.display_title
+
+    @property
+    def type_emoji(self) -> str:
+        return self.TYPE_EMOJI.get(self.celebration_type, "✨")
+
+    @property
+    def display_title(self) -> str:
+        if self.title.strip():
+            return self.title.strip()
+        label = dict(self.CELEBRATION_TYPES).get(self.celebration_type, "Celebration")
+        if self.subject_employee:
+            return f"{self.type_emoji} {label} — {self.subject_employee.full_name}"
+        return f"{self.type_emoji} {label}"
+
+    @property
+    def wish_count(self) -> int:
+        return self.wishes.count()
+
+
+class CelebrationWish(models.Model):
+    post = models.ForeignKey(CelebrationPost, on_delete=models.CASCADE, related_name="wishes")
+    author = models.ForeignKey("accounts.User", on_delete=models.CASCADE, related_name="celebration_wishes")
+    message = models.TextField(blank=True)
+    emoji = models.CharField(max_length=16, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "celebration_wishes"
+        ordering = ["created_at"]
+        unique_together = ("post", "author")
+
+    def __str__(self):
+        return f"Wish by {self.author} on {self.post_id}"
+
+    @property
+    def display_line(self) -> str:
+        parts = []
+        if self.emoji:
+            parts.append(self.emoji)
+        if self.message.strip():
+            parts.append(self.message.strip())
+        return " ".join(parts) or self.emoji or "🎉"

@@ -291,6 +291,8 @@ RANK_DEEP_TOP_N = config("RANK_DEEP_TOP_N", default=20, cast=int)
 # ---------------------------------------------------------------------------
 SSO_SHARED_SECRET = config("SSO_SHARED_SECRET", default="")
 SSO_TOKEN_MAX_AGE_SECONDS = config("SSO_TOKEN_MAX_AGE_SECONDS", default=120, cast=int)
+# Finance backend (server-to-server) for in-account billing + invoices.
+FIN_INTERNAL_BASE_URL = config("FIN_INTERNAL_BASE_URL", default="http://fin-backend:8000")
 
 # AI (Anthropic Claude) — get key at https://console.anthropic.com
 ANTHROPIC_API_KEY = config("ANTHROPIC_API_KEY", default="")

@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block page_title %}{% if post %}Edit{% else %}Post{% endif %} Celebration{% endblock %}
+{% block content %}
+<div class="mb-4">
+  <a href="{% url 'hr_ops:celebrations' %}" class="text-sm link">← Celebrations</a>
+  <h2 class="text-xl font-bold mt-2">{% if post %}Edit celebration{% else %}Post a celebration{% endif %}</h2>
+  <p class="text-sm text-base-content/60">Tag an employee, add a poster image, and notify everyone in the company.</p>
+</div>
+
+<form method="post" enctype="multipart/form-data" class="max-w-2xl space-y-4">
+  {% csrf_token %}
+
+  <div class="card">
+    <div class="card-body space-y-4">
+      <div class="form-control">
+        <label class="label"><span class="label-text">Celebration type</span></label>
+        {{ form.celebration_type }}
+        <label class="label"><span class="label-text-alt">
+          {% for key, em in type_emojis.items %}<span class="mr-2">{{ em }} {{ key }}</span>{% endfor %}
+        </span></label>
+      </div>
+      <div class="form-control">
+        <label class="label"><span class="label-text">Celebrate / tag employee</span></label>
+        {{ form.subject_employee }}
+        <label class="label"><span class="label-text-alt">Optional for company-wide festivals (Diwali, etc.)</span></label>
+      </div>
+      <div class="form-control">
+        <label class="label"><span class="label-text">Title</span></label>
+        {{ form.title }}
+      </div>
+      <div class="form-control">
+        <label class="label"><span class="label-text">Your message</span></label>
+        {{ form.message }}
+      </div>
+      <div class="form-control">
+        <label class="label"><span class="label-text">Poster / image (optional)</span></label>
+        {{ form.poster_image }}
+        {% if post and post.poster_image %}
+        <label class="label"><span class="label-text-alt">Current image will be replaced if you upload a new one.</span></label>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="flex gap-2">
+    <button type="submit" class="btn btn-primary">{% if post %}Save changes{% else %}Post & notify company{% endif %}</button>
+    <a href="{% url 'hr_ops:celebrations' %}" class="btn btn-ghost">Cancel</a>
+  </div>
+</form>
+{% endblock %}

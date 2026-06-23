@@ -14,9 +14,11 @@ from .settings_forms import (
     get_subscription_snapshot,
     send_test_invite_email,
 )
+from .billing_services import fetch_platform_billing, merge_billing_snapshot
+from .security_trust import get_security_trust_context
 from .views import _ensure_self_employee
 
-VALID_TABS = ("profile", "company", "billing", "email", "support")
+VALID_TABS = ("profile", "company", "billing", "email", "security", "support")
 
 
 @login_required
@@ -76,7 +78,11 @@ def account_settings(request):
                     )
                 return redirect("/auth/settings/?tab=email")
 
-    subscription = get_subscription_snapshot(tenant) if tenant and is_owner else None
+    subscription = None
+    if tenant and is_owner:
+        local = get_subscription_snapshot(tenant)
+        platform = fetch_platform_billing(tenant)
+        subscription = merge_billing_snapshot(local, platform)
     platform_base = request.build_absolute_uri("/").replace("/auth/settings/", "").rstrip("/")
     from .platform import platform_base_for_request
     platform_url = platform_base_for_request(request)
@@ -96,4 +102,5 @@ def account_settings(request):
         "platform_url": platform_url,
         "billing_url": f"{platform_url}/app/billing",
         "finance_url": f"{platform_url}/launch?to=finance",
+        "security_trust": get_security_trust_context(),
     })

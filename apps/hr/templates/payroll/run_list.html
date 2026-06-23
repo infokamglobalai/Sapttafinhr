@@ -2,6 +2,9 @@
 {% block page_title %}Payroll Runs{% endblock %}
 
 {% block content %}
+{% if tenant_is_gcc_payroll %}
+{% include "dashboard/partials/gcc_payroll_banner.html" %}
+{% endif %}
 <div class="hr-page-header">
   <div class="hr-page-header__main">
     <h1 class="hr-page-header__title">Payroll Runs</h1>

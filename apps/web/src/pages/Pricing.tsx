@@ -48,7 +48,7 @@ const pricingFaqs = [
     key: '3',
     label: 'Why bundle HRMS and Finance on Complete?',
     children:
-      'Bought separately, HRMS (₹4,999) + Finance (₹4,999) = ₹9,998 / month. Saptta Complete gives you both for ₹7,999 — you save ₹1,999 every month, plus Tally XML export today and payroll→ledger auto-sync on the Complete roadmap.',
+      'Bought separately, HRMS (₹4,999) + Finance (₹4,999) = ₹9,998 / month. Saptta Complete gives you both for ₹7,999 — you save ₹1,999 every month, plus Tally XML export and payroll→ledger auto-sync when you run both products.',
   },
   {
     key: '4',

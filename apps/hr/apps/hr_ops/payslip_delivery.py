@@ -106,12 +106,15 @@ def _send_payslip_whatsapp(employee, payslip, period: str, net_pay, tenant) -> b
     if not phone:
         return False
 
+    from utils.money import format_money
+
     portal = getattr(settings, "HR_PORTAL_URL", "").rstrip("/")
     portal_line = f"\n\nView payslip: {portal}/payroll/my-payslips/" if portal else ""
+    net_fmt = format_money(net_pay, tenant.currency)
 
     message = (
         f"*{tenant.name}* — Salary credited\n"
-        f"Hi {employee.first_name}, your net pay for *{period}* is *₹{net_pay:,.2f}*.\n"
+        f"Hi {employee.first_name}, your net pay for *{period}* is *{net_fmt}*.\n"
         f"Your payslip PDF has been sent to your email.{portal_line}"
     )
     return send_whatsapp(phone, message, template_name="payslip_published")

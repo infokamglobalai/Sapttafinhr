@@ -1,0 +1,157 @@
+{# Mobile / ESS punch card — GPS check-in & check-out #}
+<div class="punch-card" id="punch-card" data-punch-url="{% url 'attendance:punch' %}" data-status-url="{% url 'attendance:punch_status' %}">
+  <div class="punch-card__header">
+    <div>
+      <div class="punch-card__title">Today's attendance</div>
+      <div class="punch-card__date" id="punch-date">—</div>
+    </div>
+    <span class="punch-card__badge" id="punch-status-badge">Loading…</span>
+  </div>
+
+  <div class="punch-card__times">
+    <div class="punch-card__time">
+      <span class="punch-card__time-label">Check in</span>
+      <span class="punch-card__time-value" id="punch-in-time">—</span>
+    </div>
+    <div class="punch-card__time">
+      <span class="punch-card__time-label">Check out</span>
+      <span class="punch-card__time-value" id="punch-out-time">—</span>
+    </div>
+    <div class="punch-card__time">
+      <span class="punch-card__time-label">Hours</span>
+      <span class="punch-card__time-value" id="punch-hours">—</span>
+    </div>
+  </div>
+
+  <div class="punch-card__actions">
+    <button type="button" class="btn btn-success punch-card__btn" id="punch-in-btn" disabled>
+      <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      Check in
+    </button>
+    <button type="button" class="btn btn-outline punch-card__btn" id="punch-out-btn" disabled>
+      <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7"/></svg>
+      Check out
+    </button>
+  </div>
+
+  <div class="punch-card__message" id="punch-message" hidden></div>
+  <div class="punch-card__geo" id="punch-geo-hint">Location is used to verify office geo-fence when configured.</div>
+</div>
+
+<script>
+(function () {
+  var card = document.getElementById('punch-card');
+  if (!card) return;
+
+  var punchUrl = card.dataset.punchUrl;
+  var statusUrl = card.dataset.statusUrl;
+  var inBtn = document.getElementById('punch-in-btn');
+  var outBtn = document.getElementById('punch-out-btn');
+  var msgEl = document.getElementById('punch-message');
+  var badge = document.getElementById('punch-status-badge');
+
+  function csrf() {
+    var m = document.cookie.match(/csrftoken=([^;]+)/);
+    return m ? m[1] : '';
+  }
+
+  function showMsg(text, type) {
+    msgEl.hidden = false;
+    msgEl.textContent = text;
+    msgEl.className = 'punch-card__message punch-card__message--' + (type || 'info');
+  }
+
+  function fmtTime(iso) {
+    if (!iso) return '—';
+    try {
+      return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch (e) { return '—'; }
+  }
+
+  function refreshStatus() {
+    fetch(statusUrl, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        document.getElementById('punch-date').textContent = data.today || 'Today';
+        var logs = data.logs || [];
+        var lastIn = null, lastOut = null;
+        logs.forEach(function (l) {
+          if (l.log_type === 'check_in') lastIn = l.log_time;
+          if (l.log_type === 'check_out') lastOut = l.log_time;
+        });
+        document.getElementById('punch-in-time').textContent = fmtTime(lastIn);
+        document.getElementById('punch-out-time').textContent = fmtTime(lastOut);
+        var mins = data.working_minutes || 0;
+        document.getElementById('punch-hours').textContent = mins ? (mins / 60).toFixed(1) + 'h' : '—';
+
+        var last = logs.length ? logs[logs.length - 1].log_type : null;
+        inBtn.disabled = false;
+        outBtn.disabled = false;
+        if (last === 'check_in') {
+          inBtn.disabled = true;
+          badge.textContent = 'Checked in';
+          badge.className = 'punch-card__badge punch-card__badge--in';
+        } else if (last === 'check_out') {
+          outBtn.disabled = true;
+          badge.textContent = 'Checked out';
+          badge.className = 'punch-card__badge punch-card__badge--out';
+        } else {
+          badge.textContent = 'Not punched';
+          badge.className = 'punch-card__badge punch-card__badge--idle';
+        }
+      })
+      .catch(function () { showMsg('Could not load punch status.', 'error'); });
+  }
+
+  function doPunch(logType) {
+    inBtn.disabled = true;
+    outBtn.disabled = true;
+    showMsg('Getting location…', 'info');
+
+    function send(lat, lon, acc) {
+      fetch(punchUrl, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrf(),
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          log_type: logType,
+          latitude: lat,
+          longitude: lon,
+          accuracy_meters: acc,
+          device_info: { ua: navigator.userAgent, standalone: window.matchMedia('(display-mode: standalone)').matches }
+        })
+      })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+        .then(function (res) {
+          if (!res.ok) throw new Error(res.data.error || 'Punch failed');
+          var loc = res.data.location ? ' @ ' + res.data.location : '';
+          var fence = res.data.is_within_fence === false ? ' (outside geo-fence)' : '';
+          showMsg((logType === 'check_in' ? 'Checked in' : 'Checked out') + loc + fence, 'success');
+          refreshStatus();
+        })
+        .catch(function (err) {
+          showMsg(err.message || 'Punch failed. Try again.', 'error');
+          refreshStatus();
+        });
+    }
+
+    if (!navigator.geolocation) {
+      send(null, null, null);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      function (pos) { send(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy); },
+      function () { send(null, null, null); },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 }
+    );
+  }
+
+  inBtn.addEventListener('click', function () { doPunch('check_in'); });
+  outBtn.addEventListener('click', function () { doPunch('check_out'); });
+  refreshStatus();
+})();
+</script>

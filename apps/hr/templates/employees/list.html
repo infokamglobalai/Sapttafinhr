@@ -32,6 +32,8 @@
 
     <a href="{% url 'employees:bulk_import' %}" class="btn btn-outline btn-sm">Bulk Import</a>
 
+    <a href="{% url 'employees:org_chart' %}" class="btn btn-outline btn-sm">Org chart</a>
+
     <a href="{% url 'employees:create' %}" class="btn btn-primary btn-sm">+ Add Employee</a>
 
     {% endif %}
@@ -126,7 +128,7 @@
 
       <label class="label py-0"><span class="label-text text-xs font-semibold">Search</span></label>
 
-      <input type="text" name="q" value="{{ search }}" placeholder="Name, code, email…" class="input input-bordered input-sm w-64">
+      <input type="text" name="q" value="{{ search }}" placeholder="Name, nickname, email, department…" class="input input-bordered input-sm w-64">
 
     </div>
 

@@ -45,9 +45,9 @@
 </div>
 
 {% if page_obj.has_other_pages %}
-<div class="flex justify-center mt-4 gap-1">
-  {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}&date={{ selected_date|date:'Y-m-d' }}" class="btn btn-sm btn-ghost">«</a>{% endif %}
-  <span class="btn btn-sm btn-disabled">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
-  {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}&date={{ selected_date|date:'Y-m-d' }}" class="btn btn-sm btn-ghost">»</a>{% endif %}
+<div class="hr-pagination">
+  {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}&date={{ selected_date|date:'Y-m-d' }}" class="btn btn-sm btn-ghost">« Prev</a>{% endif %}
+  <span class="hr-pagination__status">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+  {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}&date={{ selected_date|date:'Y-m-d' }}" class="btn btn-sm btn-ghost">Next »</a>{% endif %}
 </div>
 {% endif %}

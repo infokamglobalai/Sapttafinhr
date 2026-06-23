@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import LetterTemplate, HRLetter, Asset, AssetAssignment, OnboardingTemplate, ExitRequest, Announcement
+from .models import LetterTemplate, HRLetter, Asset, AssetAssignment, OnboardingTemplate, ExitRequest, Announcement, CelebrationPost, CelebrationWish
 
 
 @admin.register(LetterTemplate)
@@ -25,3 +25,15 @@ class ExitRequestAdmin(admin.ModelAdmin):
 class AnnouncementAdmin(admin.ModelAdmin):
     list_display = ("title", "tenant", "is_published", "published_at")
     list_filter = ("tenant", "is_published")
+
+
+@admin.register(CelebrationPost)
+class CelebrationPostAdmin(admin.ModelAdmin):
+    list_display = ("display_title", "tenant", "celebration_type", "is_published", "published_at")
+    list_filter = ("tenant", "celebration_type", "is_published")
+
+
+@admin.register(CelebrationWish)
+class CelebrationWishAdmin(admin.ModelAdmin):
+    list_display = ("post", "author", "emoji", "created_at")
+    list_filter = ("post__tenant",)

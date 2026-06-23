@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+{% block page_title %}{% if template %}Edit{% else %}New{% endif %} Payslip Template{% endblock %}
+{% block content %}
+<div class="mb-4">
+  <a href="{% url 'payroll:payslip_templates' %}" class="text-sm link">← Payslip templates</a>
+  <h2 class="text-xl font-bold mt-2">{% if template %}Edit template{% else %}New payslip template{% endif %}</h2>
+  <p class="text-sm text-base-content/60 mt-1">
+    Match your company payslip — edit name, letterhead, title, and footer (system-generated or certified signatory).
+  </p>
+</div>
+
+<form method="post" enctype="multipart/form-data" class="max-w-3xl space-y-4">
+  {% csrf_token %}
+
+  <div class="card">
+    <div class="card-body space-y-4">
+      <h3 class="font-semibold text-sm uppercase tracking-wide text-base-content/50">Template</h3>
+      <div class="form-control">
+        <label class="label"><span class="label-text">Template name</span></label>
+        {{ form.name }}
+        <label class="label"><span class="label-text-alt">Internal label — e.g. India Corporate, Kam Global Format</span></label>
+      </div>
+      <div class="form-control">
+        <label class="label"><span class="label-text">Layout</span></label>
+        {{ form.layout }}
+        <label class="label"><span class="label-text-alt">India = standard Indian format with Full/Actual earnings. Custom = upload or paste your HTML.</span></label>
+      </div>
+      <div class="flex flex-wrap gap-6">
+        <label class="label cursor-pointer gap-2">
+          {{ form.is_default }}
+          <span class="label-text">Default for this company</span>
+        </label>
+        <label class="label cursor-pointer gap-2">
+          {{ form.is_active }}
+          <span class="label-text">Active</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body space-y-4">
+      <h3 class="font-semibold text-sm uppercase tracking-wide text-base-content/50">Company on payslip</h3>
+      <p class="text-xs text-base-content/60">
+        Overrides letterhead for this template only.
+        <a href="{% url 'hr_ops:letter_company_settings' %}" class="link">Company letterhead</a> is used when fields are blank.
+      </p>
+      <div class="form-control">
+        <label class="label"><span class="label-text">Company name (header)</span></label>
+        {{ form.company_display_name }}
+      </div>
+      <div class="form-control">
+        <label class="label"><span class="label-text">Company address</span></label>
+        {{ form.company_address_override }}
+      </div>
+      <div class="form-control">
+        <label class="label"><span class="label-text">Payslip title</span></label>
+        {{ form.payslip_title }}
+        <label class="label"><span class="label-text-alt">Use <code>{month_year}</code> — default: Payslip for the month of March 2026</span></label>
+      </div>
+      <div class="form-control">
+        <label class="label"><span class="label-text">Logo (optional)</span></label>
+        {{ form.template_logo }}
+        {% if template and template.template_logo %}
+        <label class="label"><span class="label-text-alt">Current: {{ template.template_logo.name }}</span></label>
+        {% else %}
+        <label class="label"><span class="label-text-alt">Uses company logo from Settings if not uploaded here.</span></label>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body space-y-4">
+      <h3 class="font-semibold text-sm uppercase tracking-wide text-base-content/50">Footer &amp; certification</h3>
+      <div class="form-control">
+        <label class="label"><span class="label-text">Footer type</span></label>
+        {{ form.footer_mode }}
+      </div>
+      <div class="form-control" id="footer-text-block">
+        <label class="label"><span class="label-text" id="footer-text-label">Footer / certification text</span></label>
+        {{ form.footer_text }}
+      </div>
+      <div id="signatory-block" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="form-control">
+          <label class="label"><span class="label-text">Signatory name</span></label>
+          {{ form.signatory_name_override }}
+        </div>
+        <div class="form-control">
+          <label class="label"><span class="label-text">Signatory title</span></label>
+          {{ form.signatory_title_override }}
+        </div>
+      </div>
+      <div class="text-xs text-base-content/60 space-y-1" id="footer-hints">
+        <p><strong>System generated:</strong> “This is a system generated pay slip and does not require signature.” (India standard)</p>
+        <p><strong>Certified:</strong> Certification line + authorized signatory block (name from letterhead if blank).</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="custom-html-block">
+    <div class="card-body space-y-4">
+      <h3 class="font-semibold text-sm uppercase tracking-wide text-base-content/50">Custom HTML</h3>
+      <div class="form-control">
+        <label class="label"><span class="label-text">Upload HTML file</span></label>
+        {{ form.html_file }}
+      </div>
+      <div class="form-control">
+        <label class="label"><span class="label-text">Or paste Jinja2 HTML</span></label>
+        {{ form.template_html }}
+        <label class="label"><span class="label-text-alt">Vars: employee, record, company, earnings_rows, india_paired_rows, payslip_title, footer_text, signatory_name, logo_url.</span></label>
+      </div>
+    </div>
+  </div>
+
+  <div class="flex gap-2">
+    <button type="submit" class="btn btn-primary">Save template</button>
+    <a href="{% url 'payroll:payslip_templates' %}" class="btn btn-ghost">Cancel</a>
+    {% if template %}
+    <a href="{% url 'payroll:payslip_template_preview' template.pk %}" class="btn btn-outline ml-auto" target="_blank">Preview PDF</a>
+    {% endif %}
+  </div>
+</form>
+
+<script>
+(function () {
+  var layout = document.getElementById('id_layout');
+  var customBlock = document.getElementById('custom-html-block');
+  var area = document.getElementById('id_template_html');
+  var starter = "{{ starter_html|escapejs }}";
+  var footerMode = document.getElementById('id_footer_mode');
+  var footerTextBlock = document.getElementById('footer-text-block');
+  var signatoryBlock = document.getElementById('signatory-block');
+  var footerLabel = document.getElementById('footer-text-label');
+
+  function toggleLayout() {
+    var custom = layout && layout.value === 'custom';
+    if (customBlock) customBlock.style.display = custom ? '' : 'none';
+    if (custom && area && !area.value.trim() && starter) area.value = starter;
+  }
+
+  function toggleFooter() {
+    var mode = footerMode ? footerMode.value : 'system_generated';
+    var showSignatory = mode === 'certified';
+    var showFooterText = mode === 'custom' || mode === 'certified' || mode === 'system_generated';
+    if (signatoryBlock) signatoryBlock.style.display = showSignatory ? '' : 'none';
+    if (footerTextBlock) footerTextBlock.style.display = showFooterText ? '' : 'none';
+    if (footerLabel) {
+      if (mode === 'certified') footerLabel.textContent = 'Certification note';
+      else if (mode === 'custom') footerLabel.textContent = 'Custom footer text';
+      else if (mode === 'system_generated') footerLabel.textContent = 'Disclaimer (optional override)';
+      else footerLabel.textContent = 'Footer text';
+    }
+  }
+
+  if (layout) { layout.addEventListener('change', toggleLayout); toggleLayout(); }
+  if (footerMode) { footerMode.addEventListener('change', toggleFooter); toggleFooter(); }
+})();
+</script>
+{% endblock %}

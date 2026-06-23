@@ -60,16 +60,38 @@
 }
 
 .people-emp-card__photo {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
   object-fit: cover;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px var(--hr-border), 0 2px 8px rgba(15, 23, 42, 0.08);
+}
+
+.people-emp-card__photo--profile {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+}
+
+.people-avatar--profile {
+  width: 96px;
+  height: 96px;
+  font-size: 1.75rem;
+  border-radius: 50%;
 }
 
 .people-avatar--lg {
-  width: 40px;
-  height: 40px;
-  font-size: 0.875rem;
+  width: 48px;
+  height: 48px;
+  font-size: 0.9375rem;
+  border-radius: 50%;
+}
+
+.people-emp-card__legal-name {
+  font-size: 0.75rem;
+  color: var(--hr-text-muted);
+  margin-top: 2px;
 }
 
 .people-emp-card__name {

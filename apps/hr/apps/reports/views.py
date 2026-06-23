@@ -1,7 +1,8 @@
 import datetime
 
+from django.contrib import messages
 from django.db.models import Count, Sum
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -202,6 +203,44 @@ def headcount_report_export(request):
         ])
     auto_fit_columns(ws)
     return workbook_response(wb, "headcount_report.xlsx")
+
+
+@perm_required("reports.view")
+def manpower_report(request):
+    from apps.tenants.jurisdiction import is_gcc_payroll
+    from .manpower import build_manpower_summary
+
+    tenant = request.tenant
+    if not is_gcc_payroll(tenant.payroll_jurisdiction):
+        messages.info(request, "Manpower report is available for GCC / Kuwait workspaces.")
+        return redirect("reports:index")
+
+    summary = build_manpower_summary(tenant)
+    return render(request, "reports/manpower.html", {"summary": summary})
+
+
+@perm_required("reports.export")
+def manpower_report_export(request):
+    from apps.tenants.jurisdiction import is_gcc_payroll
+    from .manpower import manpower_export_rows
+
+    tenant = request.tenant
+    if not is_gcc_payroll(tenant.payroll_jurisdiction):
+        messages.info(request, "Manpower export is for GCC workspaces.")
+        return redirect("reports:index")
+
+    from django.utils import timezone
+    rows = manpower_export_rows(tenant)
+    if rows and rows[0][0] == "Manpower / Establishment Report":
+        rows[3] = ["Report date", timezone.localdate().isoformat()]
+
+    wb = make_workbook()
+    ws = wb.active
+    ws.title = "Manpower"
+    for row in rows:
+        ws.append(row)
+    auto_fit_columns(ws)
+    return workbook_response(wb, f"manpower_{tenant.subdomain}.xlsx")
 
 
 @perm_required("reports.view")

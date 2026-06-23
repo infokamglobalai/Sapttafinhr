@@ -699,7 +699,7 @@ table {
 }
 
 /* ── Forms ── */
-input:not([type="checkbox"]):not([type="radio"]),
+input:not([type="checkbox"]):not([type="radio"]):not(.topbar-search__input),
 select,
 textarea,
 .input,
@@ -712,7 +712,7 @@ textarea,
 }
 
 @media (min-width: 768px) {
-  input:not([type="checkbox"]):not([type="radio"]),
+  input:not([type="checkbox"]):not([type="radio"]):not(.topbar-search__input),
   select,
   textarea {
     font-size: 14px;

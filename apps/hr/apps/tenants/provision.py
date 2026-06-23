@@ -171,7 +171,13 @@ def sync_subscription(request):
 
     if data.get("status") == "active":
         tenant.status = "active"
-    tenant.save(update_fields=["max_employees", "status", "updated_at"])
+
+    plan_code = (data.get("plan_code") or "").strip().lower()
+    plan_choices = dict(Tenant.PLAN_CHOICES)
+    if plan_code in plan_choices:
+        tenant.plan = plan_code
+
+    tenant.save(update_fields=["max_employees", "status", "plan", "updated_at"])
 
     ent_defaults = {}
     subscription_id = (data.get("subscription_id") or "").strip()
@@ -182,6 +188,15 @@ def sync_subscription(request):
         ent_defaults["status"] = ent_status
     elif data.get("status") == "active":
         ent_defaults["status"] = ProductEntitlement.Status.ACTIVE
+
+    for field in ("current_period_start", "current_period_end"):
+        raw = data.get(field)
+        if raw:
+            try:
+                from datetime import date
+                ent_defaults[field] = date.fromisoformat(str(raw)[:10])
+            except ValueError:
+                pass
 
     if ent_defaults:
         ProductEntitlement.objects.update_or_create(

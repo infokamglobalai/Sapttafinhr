@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block page_title %}{{ employee.directory_name }}{% endblock %}
+{% block content %}
+<div class="mb-4">
+  <a href="{% url 'employees:directory' %}" class="text-sm link">← Company directory</a>
+</div>
+
+<div class="card max-w-lg mx-auto">
+  <div class="card-body items-center text-center p-8">
+    {% if employee.profile_photo %}
+    <img src="{{ employee.profile_photo.url }}" alt="" class="people-emp-card__photo people-emp-card__photo--profile">
+    {% else %}
+    <div class="people-avatar people-avatar--profile">{{ employee.first_name|first }}{{ employee.last_name|first }}</div>
+    {% endif %}
+
+    <h1 class="text-xl font-bold mt-4">{{ employee.directory_name }}</h1>
+    {% if employee.uses_preferred_name %}
+    <p class="text-sm text-base-content/50">{{ employee.full_name }}</p>
+    {% endif %}
+    <p class="text-sm text-base-content/70 mt-1">
+      {{ employee.designation.name|default:"—" }}
+      {% if employee.department %} · {{ employee.department.name }}{% endif %}
+    </p>
+    <p class="text-xs text-base-content/45 mt-2">{{ employee.employee_code }}</p>
+
+    <div class="w-full mt-6 space-y-2 text-sm text-left">
+      {% if employee.official_email or employee.personal_email %}
+      <p><span class="text-base-content/50">Email</span><br>{{ employee.official_email|default:employee.personal_email }}</p>
+      {% endif %}
+      {% if employee.phone_primary %}
+      <p><span class="text-base-content/50">Phone</span><br>{{ employee.phone_primary }}</p>
+      {% endif %}
+      {% if employee.location %}
+      <p><span class="text-base-content/50">Location</span><br>{{ employee.location.name }}</p>
+      {% endif %}
+      {% if employee.reporting_manager %}
+      <p><span class="text-base-content/50">Reports to</span><br>{{ employee.reporting_manager.directory_name }}</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -16,7 +16,7 @@ class ProfileEditForm(forms.ModelForm):
     class Meta:
         model = Employee
         fields = [
-            "first_name", "middle_name", "last_name",
+            "first_name", "middle_name", "last_name", "preferred_name",
             "date_of_birth", "gender", "blood_group",
             "personal_email", "phone_primary", "phone_alternate",
             "profile_photo",
@@ -25,6 +25,10 @@ class ProfileEditForm(forms.ModelForm):
             "first_name": forms.TextInput(attrs={"class": CSS}),
             "middle_name": forms.TextInput(attrs={"class": CSS}),
             "last_name": forms.TextInput(attrs={"class": CSS}),
+            "preferred_name": forms.TextInput(attrs={
+                "class": CSS,
+                "placeholder": "Nickname shown to colleagues (optional)",
+            }),
             "date_of_birth": forms.DateInput(attrs={"class": CSS, "type": "date"}),
             "gender": forms.Select(attrs={"class": SELECT_CSS}),
             "blood_group": forms.TextInput(attrs={"class": CSS, "placeholder": "e.g. O+"}),

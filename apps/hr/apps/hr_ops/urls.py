@@ -5,6 +5,7 @@ from . import letter_views
 from . import request_views
 from . import ess_views
 from . import calendar_views
+from . import celebration_views
 from .ai_views import AIChatView
 
 app_name = "hr_ops"
@@ -50,6 +51,12 @@ urlpatterns = [
     path("audit/", views.audit_log_list, name="audit_log"),
     path("documents/expiring/", views.document_expiry, name="document_expiry"),
     path("pulse/", views.people_pulse, name="people_pulse"),
+    # Celebrations & wishes
+    path("celebrations/", celebration_views.celebration_feed, name="celebrations"),
+    path("celebrations/new/", celebration_views.celebration_create_or_edit, name="celebration_create"),
+    path("celebrations/<int:pk>/", celebration_views.celebration_detail, name="celebration_detail"),
+    path("celebrations/<int:pk>/edit/", celebration_views.celebration_create_or_edit, name="celebration_edit"),
+    path("celebrations/<int:pk>/wish/", celebration_views.celebration_wish, name="celebration_wish"),
     # AI Chat
     path("ai/chat/", AIChatView.as_view(), name="ai_chat"),
     # HR policies (powers policy bot)

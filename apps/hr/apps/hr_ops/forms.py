@@ -1,6 +1,6 @@
 from django import forms
 from django.forms import inlineformset_factory
-from .models import LetterTemplate, Asset, Announcement, OnboardingTemplate, OnboardingTask
+from .models import LetterTemplate, Asset, Announcement, OnboardingTemplate, OnboardingTask, CelebrationPost, CelebrationWish
 
 INPUT = "input input-bordered w-full"
 SELECT = "select select-bordered w-full"
@@ -174,3 +174,38 @@ class ServiceRequestForm(forms.Form):
         super().__init__(*args, **kwargs)
         if assigned_assets is not None:
             self.fields["asset"].queryset = assigned_assets
+
+
+class CelebrationPostForm(forms.ModelForm):
+    class Meta:
+        model = CelebrationPost
+        fields = [
+            "celebration_type", "subject_employee", "title", "message", "poster_image",
+        ]
+        widgets = {
+            "celebration_type": forms.Select(attrs={"class": SELECT, "id": "id_celebration_type"}),
+            "subject_employee": forms.Select(attrs={"class": SELECT, "id": "id_subject_employee"}),
+            "title": forms.TextInput(attrs={"class": INPUT, "placeholder": "Auto-filled from type & employee"}),
+            "message": forms.Textarea(attrs={"class": TEXTAREA, "rows": 5, "id": "id_message"}),
+            "poster_image": forms.FileInput(attrs={"class": "file-input file-input-bordered w-full", "accept": "image/*"}),
+        }
+
+    def __init__(self, tenant, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from apps.employees.models import Employee
+        self.fields["subject_employee"].queryset = Employee.objects.filter(
+            tenant=tenant, is_active=True
+        ).order_by("first_name", "last_name")
+        self.fields["subject_employee"].required = False
+
+
+class CelebrationWishForm(forms.ModelForm):
+    class Meta:
+        model = CelebrationWish
+        fields = ["message", "emoji"]
+        widgets = {
+            "message": forms.TextInput(attrs={
+                "class": INPUT, "placeholder": "Write your wish…", "maxlength": "500",
+            }),
+            "emoji": forms.HiddenInput(attrs={"id": "id_wish_emoji"}),
+        }

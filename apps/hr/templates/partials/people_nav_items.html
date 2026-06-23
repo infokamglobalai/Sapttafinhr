@@ -7,6 +7,13 @@
   </svg>
   Employees
 </a>
+<a href="{% url 'employees:org_chart' %}"
+   class="nav-item {% if request.resolver_match.url_name == 'org_chart' %}active{% endif %}">
+  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden>
+    <path stroke-linecap="round" stroke-linejoin="round" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v2M7 7h10" />
+  </svg>
+  Org chart
+</a>
 <a href="{% url 'employees:attrition' %}"
    class="nav-item {% if request.resolver_match.url_name == 'attrition' or request.resolver_match.url_name == 'attrition_recompute' %}active{% endif %}">
   <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden>

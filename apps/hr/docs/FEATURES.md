@@ -14,6 +14,8 @@
 
 - Employee master (personal, job, bank, documents)
 - Departments, designations, office locations
+- **Visual org chart** (reporting structure)
+- **Company directory** (all staff search)
 - Bulk CSV import
 - Employee login provisioning + credential email
 - Access revoke / restore on exit
@@ -24,12 +26,14 @@
 ## Attendance
 
 - Web punch in/out with geo optional
+- **Mobile punch card** (My Attendance / My Space) with GPS geo-fence
+- **PWA install prompt** on mobile (add to home screen)
 - Attendance register (HR)
 - My attendance calendar (employee)
 - Regularization requests + approval workflow
 - Shift definitions and assignment
 - Team attendance view (manager)
-- Anomaly detection scan (rule-based)
+- **Overtime** tracking per shift rules + monthly OT summary (ESS)
 
 ## Leaves
 
@@ -49,20 +53,31 @@
 - Payroll run: compute from attendance (LOP, paid days)
 - Per-employee HR adjustments (LOP override, bonus, manual deduction, notes)
 - Approve → Publish workflow
-- Payslip PDF + branded email to employees
+- Payslip PDF + branded email + **WhatsApp summary** (tenant currency) to employees
 - Employee self-service payslips
 - **Exports:** salary register, bank advice, PF statement/ECR, ESI return, Tally XML, statutory ZIP bundle
 - **Gratuity:** monthly employer accrual on payslip + exit settlement estimate (Payment of Gratuity Act)
 - Employee loans with EMI auto-deduction
-- Expense claims + reimbursement in payroll
+- Expense claims with **category picker** + receipt upload + reimbursement in payroll
 - Investment declaration (80C etc.) + HR verification
-- Form 16 Part B generation + issue + email
+- **Payroll → Finance ledger sync** (journal auto-post on publish; India + GCC lines)
+- **In-account billing** (subscription, invoices, renewal in Settings)
+- **Security & Trust** settings tab (session, audit, data handling summary)
+
+## Payroll (GCC / Kuwait — MVP)
+
+- Jurisdiction-aware engine (KW, AE, SA, BH, OM, QA)
+- PIFSS (Kuwaiti nationals), GOSI (Saudi), indemnity/EOS accrual
+- **Bilingual EN/AR payslip PDF**
+- WPS SIF, bank transfer CSV, PIFSS Excel, EOS liability exports
+- GCC payroll readiness banner (consultant validation reminder)
 
 ## Reports
 
 - Leave MIS (filter + Excel)
 - Attendance MIS (filter + Excel)
 - Headcount report (filter + Excel)
+- **Manpower report (GCC)** — Kuwaiti vs expat, nationality mix, establishment Excel
 - Payroll summary (filter + Excel)
 - Monthly report pack (ZIP: PDFs for leave, attendance, payroll)
 

@@ -43,6 +43,11 @@ def sync_hr_subscription(
         "entitlement_status": "active" if status == "active" else status,
         "plan_code": plan_code or (sub.plan.code if sub else ""),
     }
+    if sub:
+        if sub.current_period_start:
+            payload["current_period_start"] = sub.current_period_start.isoformat()
+        if sub.current_period_end:
+            payload["current_period_end"] = sub.current_period_end.isoformat()
 
     try:
         import requests

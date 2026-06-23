@@ -48,7 +48,8 @@
 
             <div>
 
-              <div class="people-emp-row__name">{{ emp.full_name }}</div>
+              <div class="people-emp-row__name">{{ emp.directory_name }}</div>
+              {% if emp.uses_preferred_name %}<div class="text-xs text-base-content/45">{{ emp.full_name }}</div>{% endif %}
 
               <div class="people-emp-row__email">{{ emp.official_email|default:"—" }}</div>
 
@@ -106,7 +107,7 @@
 
   {% endif %}
 
-  <span class="btn btn-sm btn-disabled">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+  <span class="hr-pagination__status">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
 
   {% if page_obj.has_next %}
 

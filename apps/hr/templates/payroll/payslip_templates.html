@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block page_title %}Payslip Templates{% endblock %}
+{% block content %}
+<div class="flex flex-wrap items-start justify-between gap-3 mb-4">
+  <div>
+    <h2 class="text-xl font-bold">Payslip Templates</h2>
+    <p class="text-sm text-base-content/60">
+      Each company gets its own payslip layout — logo, company name, and regional format (GCC Kuwait, India, or custom HTML).
+      HR uses the <strong>default</strong> template when payroll is approved each month.
+    </p>
+  </div>
+  <div class="flex flex-wrap gap-2">
+    <a href="{% url 'hr_ops:letter_company_settings' %}" class="btn btn-outline btn-sm">Company letterhead</a>
+    <form method="post" action="{% url 'payroll:payslip_template_seed' %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-secondary btn-sm">Reset regional default</button>
+    </form>
+    <a href="{% url 'payroll:payslip_template_create' %}" class="btn btn-primary btn-sm">+ New Template</a>
+  </div>
+</div>
+
+<div class="alert alert-info text-sm mb-4">
+  <strong>{{ tenant_jurisdiction_label }}</strong> workspace —
+  upload your company logo under Settings → Company branding.
+  For GCC payslips, add Arabic employee names on the employee profile.
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+  {% for tmpl in templates %}
+  <div class="card {% if tmpl.is_default %}border-primary{% endif %}">
+    <div class="card-body p-4">
+      <div class="flex items-start justify-between gap-2">
+        <div>
+          {% if tmpl.is_default %}<span class="badge badge-primary badge-sm mb-1">Default</span>{% endif %}
+          <h3 class="font-semibold">{{ tmpl.name }}</h3>
+          <p class="text-xs text-base-content/60 mt-1">{{ tmpl.get_layout_display }}</p>
+          <p class="text-xs text-base-content/50">{{ tmpl.get_footer_mode_display }}</p>
+        </div>
+        {% if tmpl.is_active %}<span class="badge badge-success badge-sm">Active</span>{% else %}<span class="badge badge-ghost badge-sm">Inactive</span>{% endif %}
+      </div>
+      <div class="card-actions mt-3 flex-wrap">
+        <a href="{% url 'payroll:payslip_template_preview' tmpl.pk %}" class="btn btn-ghost btn-xs" target="_blank">Preview PDF</a>
+        <a href="{% url 'payroll:payslip_template_edit' tmpl.pk %}" class="btn btn-ghost btn-xs">Edit</a>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="col-span-3 card">
+    <div class="card-body text-center py-10">
+      <p class="text-base-content/60 mb-4">No payslip template yet.</p>
+      <form method="post" action="{% url 'payroll:payslip_template_seed' %}" class="inline">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary btn-sm">Install default for {{ tenant_jurisdiction_label }}</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="premium-glass-card p-5 text-sm">
+  <h3 class="font-semibold mb-2">How it works</h3>
+  <ol class="list-decimal list-inside space-y-1 text-base-content/70">
+    <li>Set company name, logo, and address (letterhead settings) — or override per template.</li>
+    <li>Choose India / GCC built-in layout, or upload custom HTML for your exact company format.</li>
+    <li>Pick footer: <strong>system generated</strong> (no signature), <strong>certified</strong> (signatory), or custom text.</li>
+    <li>Mark one template as <strong>Default</strong> — used when payroll is approved.</li>
+  </ol>
+  <p class="mt-3 text-xs text-base-content/50">
+    Custom HTML uses Jinja2 variables:
+    <code>employee</code>, <code>record</code>, <code>company</code>, <code>earnings_rows</code>, <code>net_payable_fmt</code>, <code>net_payable_words</code>, <code>logo_url</code>.
+  </p>
+</div>
+{% endblock %}

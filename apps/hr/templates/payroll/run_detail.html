@@ -120,6 +120,16 @@
       <button class="btn btn-info btn-sm">Publish Payslips to ESS</button>
     </form>
     {% endif %}
+    {% if finance_sync_available and run.status in 'approved,paid' %}
+      {% if run.finance_synced_at %}
+      <span class="badge badge-success badge-lg">Finance ✓ {{ run.finance_voucher_no }}</span>
+      {% else %}
+      <form method="post" action="{% url 'payroll:sync_finance' run.pk %}">
+        {% csrf_token %}
+        <button class="btn btn-outline btn-sm">Sync to Finance</button>
+      </form>
+      {% endif %}
+    {% endif %}
   </div>
 </div>
 
@@ -130,18 +140,39 @@
     <div class="text-xs text-base-content/60">Employees</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-2xl font-bold text-primary">&#8377;{{ run.total_gross|floatformat:0 }}</div>
+    <div class="text-2xl font-bold text-primary">{{ tenant_currency_symbol }}{{ run.total_gross|floatformat:0 }}</div>
     <div class="text-xs text-base-content/60">Gross</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-2xl font-bold text-error">&#8377;{{ run.total_deductions|floatformat:0 }}</div>
+    <div class="text-2xl font-bold text-error">{{ tenant_currency_symbol }}{{ run.total_deductions|floatformat:0 }}</div>
     <div class="text-xs text-base-content/60">Deductions</div>
   </div>
   <div class="card bg-success/10 shadow p-4 text-center">
-    <div class="text-2xl font-bold text-success">&#8377;{{ run.total_net|floatformat:0 }}</div>
+    <div class="text-2xl font-bold text-success">{{ tenant_currency_symbol }}{{ run.total_net|floatformat:0 }}</div>
     <div class="text-xs text-base-content/60">Net Payable</div>
   </div>
 </div>
+
+{% if finance_sync_available %}
+<div class="card mb-4 p-4 flex flex-wrap items-center justify-between gap-3" style="border-left: 4px solid #4F46E5;">
+  <div>
+    <div class="font-semibold text-sm">Finance ledger sync</div>
+    <div class="text-xs text-base-content/60 mt-1">
+      {% if run.finance_synced_at %}
+      Posted to Saptta Finance as voucher <strong>{{ run.finance_voucher_no }}</strong> on {{ run.finance_synced_at|date:"d M Y, H:i" }}.
+      {% else %}
+      Post payroll journal to your linked Finance workspace when payslips are published, or sync manually.
+      {% endif %}
+    </div>
+  </div>
+  {% if not run.finance_synced_at and run.status in 'approved,paid' %}
+  <form method="post" action="{% url 'payroll:sync_finance' run.pk %}">
+    {% csrf_token %}
+    <button class="btn btn-primary btn-sm">Post journal now</button>
+  </form>
+  {% endif %}
+</div>
+{% endif %}
 
 <!-- ── Anomaly Detection (AI feature #7 — local rules, no external API) ── -->
 {% if anomalies %}

@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block page_title %}{{ post.display_title }}{% endblock %}
+{% block content %}
+<div class="mb-4">
+  <a href="{% url 'hr_ops:celebrations' %}" class="text-sm link">← All celebrations</a>
+</div>
+
+<article class="card max-w-3xl mx-auto overflow-hidden">
+  {% if post.poster_image %}
+  <figure class="max-h-72 overflow-hidden bg-base-200">
+    <img src="{{ post.poster_image.url }}" alt="" class="w-full object-cover">
+  </figure>
+  {% endif %}
+  <div class="card-body p-6 md:p-8">
+    <div class="flex items-start gap-4">
+      <span class="text-4xl">{{ post.type_emoji }}</span>
+      <div class="flex-1 min-w-0">
+        <h1 class="text-xl font-bold">{{ post.display_title }}</h1>
+        {% if post.subject_employee %}
+        <div class="flex items-center gap-3 mt-3">
+          <div class="w-11 h-11 rounded-full bg-primary/15 text-primary flex items-center justify-center font-bold text-sm">
+            {{ post.subject_employee.first_name|first }}{{ post.subject_employee.last_name|first }}
+          </div>
+          <div>
+            <p class="font-semibold">{{ post.subject_employee.full_name }}</p>
+            <p class="text-xs text-base-content/50">
+              {{ post.subject_employee.designation.name|default:"" }}
+              {% if post.subject_employee.department %}· {{ post.subject_employee.department.name }}{% endif %}
+            </p>
+          </div>
+        </div>
+        {% endif %}
+        <p class="text-base text-base-content/80 mt-4 whitespace-pre-line">{{ post.message }}</p>
+        <p class="text-xs text-base-content/40 mt-3">
+          Posted {{ post.published_at|date:"d M Y, g:i A" }}
+          {% if post.created_by %} · {{ post.created_by.get_full_name|default:post.created_by.email }}{% endif %}
+        </p>
+        {% if can_create %}
+        <a href="{% url 'hr_ops:celebration_edit' post.pk %}" class="btn btn-ghost btn-xs mt-2">Edit</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</article>
+
+<section class="max-w-3xl mx-auto mt-6">
+  <h2 class="font-semibold text-sm uppercase tracking-wide text-base-content/50 mb-3">
+    Wishes ({{ post.wish_count }})
+  </h2>
+
+  <div id="celebration-wishes">
+    {% include "hr_ops/partials/celebration_wishes.html" %}
+  </div>
+
+  {% if not already_wished %}
+  <div class="card mt-4">
+    <div class="card-body p-4">
+      <p class="text-sm font-medium mb-3">Add your wish</p>
+      <form method="post" action="{% url 'hr_ops:celebration_wish' post.pk %}">
+        {% csrf_token %}
+        <input type="hidden" name="emoji" id="id_wish_emoji" value="">
+        <div class="flex flex-wrap gap-1.5 mb-3" id="emoji-picker">
+          {% for em in wish_emojis %}
+          <button type="button" class="btn btn-ghost btn-sm text-lg emoji-pick" data-emoji="{{ em }}">{{ em }}</button>
+          {% endfor %}
+        </div>
+        <div class="flex gap-2">
+          <input type="text" name="message" class="input input-bordered flex-1" placeholder="Write your wish…" maxlength="500">
+          <button type="submit" class="btn btn-primary">Post wish</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  {% else %}
+  <p class="text-sm text-base-content/50 mt-3">You already wished on this celebration. 🎉</p>
+  {% endif %}
+</section>
+
+<script>
+(function () {
+  var hidden = document.getElementById('id_wish_emoji');
+  document.querySelectorAll('.emoji-pick').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      if (hidden) hidden.value = btn.getAttribute('data-emoji') || '';
+      document.querySelectorAll('.emoji-pick').forEach(function (b) { b.classList.remove('btn-primary'); });
+      btn.classList.add('btn-primary');
+    });
+  });
+})();
+</script>
+{% endblock %}
