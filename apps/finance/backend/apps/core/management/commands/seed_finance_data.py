@@ -49,6 +49,12 @@ class Command(BaseCommand):
                 base_currency="INR"
             )
 
+        # Ensure Chart of Accounts is seeded
+        if not Account.objects.filter(company=company).exists():
+            self.stdout.write("No Chart of Accounts found! Seeding standard COA...")
+            from apps.masters.coa_template import seed_coa
+            seed_coa(company)
+
         fy = FiscalYear.objects.filter(is_active=True).first()
         if not fy:
             today = datetime.date.today()
@@ -135,9 +141,72 @@ class Command(BaseCommand):
             }
         )
 
-        globex = Party.objects.filter(company=company, name="Globex Industries").first()
-        initech = Party.objects.filter(company=company, name="Initech Pvt Ltd").first()
-        reliable = Party.objects.filter(company=company, name="Reliable Stationers").first()
+        # Get or create HSN codes
+        hsn_8523, _ = HSNCode.objects.get_or_create(
+            company=company, code="8523",
+            defaults={"description": "Software / IT services", "default_tax_rate": 18},
+        )
+        hsn_4901, _ = HSNCode.objects.get_or_create(
+            company=company, code="4901",
+            defaults={"description": "Books, printed", "default_tax_rate": 0},
+        )
+        hsn_8471, _ = HSNCode.objects.get_or_create(
+            company=company, code="8471",
+            defaults={"description": "Computer hardware", "default_tax_rate": 18},
+        )
+
+        # Get or create items
+        consulting_item, _ = Item.objects.get_or_create(
+            company=company, sku="SVC-CONSULT",
+            defaults={
+                "name": "Consulting (per hour)", "kind": Item.Kind.SERVICE,
+                "hsn": hsn_8523, "unit": "Hrs",
+                "sale_price": 2500, "tax_rate": 18,
+            },
+        )
+        laptop_item, _ = Item.objects.get_or_create(
+            company=company, sku="HW-LAPTOP",
+            defaults={
+                "name": "Laptop (14-inch)", "kind": Item.Kind.GOODS,
+                "hsn": hsn_8471, "unit": "Nos",
+                "sale_price": 65000, "purchase_price": 55000, "tax_rate": 18,
+            },
+        )
+        handbook_item, _ = Item.objects.get_or_create(
+            company=company, sku="BOOK-MNGMT",
+            defaults={
+                "name": "Management Handbook", "kind": Item.Kind.GOODS,
+                "hsn": hsn_4901, "unit": "Nos",
+                "sale_price": 750, "tax_rate": 0,
+            },
+        )
+
+        globex, _ = Party.objects.get_or_create(
+            company=company, name="Globex Industries",
+            defaults={
+                "kind": Party.Kind.CUSTOMER, "gstin": "27AAACG1234C1Z5",
+                "email": "billing@globex.test", "state_code": "27",
+                "billing_address": "Plot 12, MIDC, Pune 411019",
+                "credit_limit": 500000,
+            },
+        )
+        initech, _ = Party.objects.get_or_create(
+            company=company, name="Initech Pvt Ltd",
+            defaults={
+                "kind": Party.Kind.CUSTOMER, "gstin": "29AAACI5678D1Z8",
+                "email": "ap@initech.test", "state_code": "29",
+                "billing_address": "5th Floor, Brigade Tower, Bangalore 560001",
+                "credit_limit": 250000,
+            },
+        )
+        reliable, _ = Party.objects.get_or_create(
+            company=company, name="Reliable Stationers",
+            defaults={
+                "kind": Party.Kind.VENDOR, "gstin": "27AAARS9090E1Z2",
+                "email": "sales@reliable.test", "state_code": "27",
+                "billing_address": "Shop 7, FC Road, Pune 411004",
+            },
+        )
 
         power_corp, _ = Party.objects.get_or_create(
             company=company, name="Power Corp Maharashtra",
@@ -155,11 +224,6 @@ class Command(BaseCommand):
                 "billing_address": "Apex Chambers, Pune 411001",
             }
         )
-
-        # Items
-        consulting_item = Item.objects.filter(company=company, sku="SVC-CONSULT").first()
-        laptop_item = Item.objects.filter(company=company, sku="HW-LAPTOP").first()
-        handbook_item = Item.objects.filter(company=company, sku="BOOK-MNGMT").first()
 
         # Seed manual capital investment
         self.stdout.write("Seeding opening balances / owner capital...")
