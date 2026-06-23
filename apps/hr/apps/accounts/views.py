@@ -53,6 +53,7 @@ def employee_login(request):
             return render(request, "auth/employee_login.html", {
                 "form": LoginForm(request),
                 "platform_login_url": platform_login_url("hr", request),
+                "hide_app_chrome": True,
             })
 
         form = LoginForm(request, data=request.POST)
@@ -72,6 +73,7 @@ def employee_login(request):
     return render(request, "auth/employee_login.html", {
         "form": form,
         "platform_login_url": platform_login_url("hr", request),
+        "hide_app_chrome": True,
     })
 
 
@@ -106,7 +108,7 @@ def employee_invite(request, token):
     else:
         form = SetPasswordForm()
 
-    return render(request, "auth/employee_invite.html", {"form": form, "invited_user": user})
+    return render(request, "auth/employee_invite.html", {"form": form, "invited_user": user, "hide_app_chrome": True})
 
 
 @require_http_methods(["POST"])
@@ -217,7 +219,7 @@ def employee_password_reset_request(request):
                 "If an account exists for that email, a reset link has been sent.",
             )
             return redirect("accounts:employee_login")
-    return render(request, "auth/password_reset_request.html")
+    return render(request, "auth/password_reset_request.html", {"hide_app_chrome": True})
 
 
 @require_http_methods(["GET", "POST"])
@@ -243,4 +245,4 @@ def employee_password_reset_confirm(request, uidb64, token):
     else:
         form = SetPasswordForm()
 
-    return render(request, "auth/password_reset_confirm.html", {"form": form, "user_obj": user})
+    return render(request, "auth/password_reset_confirm.html", {"form": form, "user_obj": user, "hide_app_chrome": True})

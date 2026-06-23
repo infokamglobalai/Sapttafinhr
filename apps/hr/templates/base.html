@@ -108,7 +108,7 @@
 
   <div class="htmx-indicator"></div>
 
-  {% if user.is_authenticated %}
+  {% if user.is_authenticated and not hide_app_chrome %}
   <div class="app-shell" x-data="{
   sidebarOpen: false,
   sidebarHover: false,
@@ -1419,14 +1419,14 @@
 
         {% block content %}{% endblock %}
 
-        {% if user.is_authenticated %}
+        {% if user.is_authenticated and not hide_app_chrome %}
         </div>
       </main>
     </div>
   </div>
   {% endif %}
 
-  {% if user.is_authenticated %}
+  {% if user.is_authenticated and not hide_app_chrome %}
   {% include "partials/sahayak_chat.html" %}
   {% if command_palette_links %}
   {% include "dashboard/partials/command_palette.html" %}
