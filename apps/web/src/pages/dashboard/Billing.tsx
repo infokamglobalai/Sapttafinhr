@@ -16,6 +16,7 @@ import { PLANS, planMonthly, INCLUDED_EMPLOYEES, EXTRA_EMPLOYEE_PRICE } from '..
 import { startCheckout } from '../../lib/billing';
 import { useApiResource } from '../../hooks/useApiResource';
 import { devActivateSubscription } from '../../lib/api';
+import { markPostCheckout, waitForActiveProducts } from '../../lib/entitlements';
 import type { MySubscription, SaasInvoiceDTO } from '../../lib/api';
 
 const INR = (v: string | number) => `₹${new Intl.NumberFormat('en-IN').format(Number(v ?? 0) || 0)}`;
@@ -46,15 +47,25 @@ export default function Billing() {
 
   const isPending = !subRes.loading && sub && (sub.status as string) === 'PENDING';
 
+  const goToWorkspace = async () => {
+    markPostCheckout();
+    const slugs = await waitForActiveProducts({ timeoutMs: 20_000 });
+    await refreshProducts();
+    if (slugs.length === 0) {
+      message.warning('Subscription is still activating — try again in a few seconds.');
+      return;
+    }
+    navigate('/app', { replace: true });
+  };
+
   const subscribe = async (planId: string) => {
     setLoadingPlan(planId);
     try {
       if (import.meta.env.DEV) {
         try {
           await devActivateSubscription();
-          await refreshProducts();
           message.success('Subscription activated! Opening your workspace…');
-          navigate('/app', { replace: true });
+          await goToWorkspace();
           return;
         } catch {
           // Fall through to Razorpay or dev modal.
@@ -68,8 +79,7 @@ export default function Billing() {
         name: [user?.firstName, user?.lastName].filter(Boolean).join(' '),
         onPaid: async () => {
           message.success('Payment received! Activating your subscription…');
-          await refreshProducts();
-          navigate('/app', { replace: true });
+          await goToWorkspace();
         },
       });
       if (res.status === 'unavailable') {
@@ -96,7 +106,7 @@ export default function Billing() {
       await new Promise(r => setTimeout(r, 1200));
       setDevModalOpen(false);
       message.success('Subscription activated! Opening your workspace…');
-      navigate('/app', { replace: true });
+      await goToWorkspace();
     } catch {
       setDevStep('form');
       message.error('Activation failed. Check that your account has a workspace.');
@@ -139,7 +149,10 @@ export default function Billing() {
         <Button
           type="link"
           icon={<ArrowLeftOutlined />}
-          onClick={() => navigate(-1)}
+          onClick={() => {
+            if (products.length > 0) navigate('/app', { replace: true });
+            else navigate(-1);
+          }}
           style={{ padding: 0, fontWeight: 600, color: 'var(--color-secondary)', display: 'inline-flex', alignItems: 'center', gap: 4 }}
         >
           Back to Dashboard

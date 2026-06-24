@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Button } from 'antd';
+import { Button, Spin } from 'antd';
 import {
   LogoutOutlined,
   DownloadOutlined,
@@ -13,6 +13,8 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { SapttaLogo } from '../../components/layout/Navbar';
 import { openFinanceApp, openHrApp, installFinanceApp, installHrApp } from '../../lib/products';
+import { isRecentPostCheckout, resolveActiveProducts } from '../../lib/entitlements';
+import type { ProductSlug } from '../../lib/api';
 
 /** PWA install prompt captured from the browser's beforeinstallprompt event. */
 let _deferredInstall: Event | null = null;
@@ -22,18 +24,50 @@ window.addEventListener('beforeinstallprompt', (e) => {
 });
 
 export default function ProductSwitcher() {
-  const { user, logout } = useAuth();
+  const { user, logout, refreshProducts, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const products = user?.products || [];
   const [canInstall, setCanInstall] = useState(!!_deferredInstall);
+  const [entitlementsReady, setEntitlementsReady] = useState(false);
+  const billingRedirectRef = useRef(false);
 
   useEffect(() => {
+    if (authLoading) return;
     if (user?.isSuperAdmin) {
       navigate('/superadmin', { replace: true });
-    } else if (products.length === 0) {
-      navigate('/app/billing', { replace: true });
+      return;
     }
-  }, [user?.isSuperAdmin, products.length, navigate]);
+
+    let cancelled = false;
+    (async () => {
+      const timeoutMs = isRecentPostCheckout() ? 25_000 : 4_000;
+      const deadline = Date.now() + timeoutMs;
+      let slugs: ProductSlug[] = [];
+
+      while (Date.now() < deadline && !cancelled) {
+        slugs = await resolveActiveProducts();
+        if (slugs.length > 0) break;
+        await new Promise((r) => setTimeout(r, 600));
+      }
+
+      if (cancelled) return;
+
+      if (slugs.length > 0) {
+        await refreshProducts();
+        setEntitlementsReady(true);
+        return;
+      }
+
+      if (!billingRedirectRef.current) {
+        billingRedirectRef.current = true;
+        navigate('/app/billing', { replace: true });
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, user?.isSuperAdmin, navigate, refreshProducts]);
 
   useEffect(() => {
     const onPrompt = () => setCanInstall(true);
@@ -65,6 +99,22 @@ export default function ProductSwitcher() {
   }, []);
 
   const displayName = user?.firstName || user?.email?.split('@')[0] || 'there';
+
+  if (!entitlementsReady) {
+    return (
+      <div
+        className="product-switcher"
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '70vh' }}
+      >
+        <div style={{ textAlign: 'center' }}>
+          <Spin size="large" />
+          <p style={{ marginTop: 16, color: 'var(--color-text-secondary)', fontSize: 14 }}>
+            Loading your workspace…
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="product-switcher">

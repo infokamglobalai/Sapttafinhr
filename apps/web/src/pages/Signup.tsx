@@ -125,7 +125,7 @@ export default function Signup() {
       await refreshProducts().catch(() => {});
       hideLoading();
       message.success('Account created! Welcome to Saptta.');
-      navigate(import.meta.env.DEV ? '/app' : '/app/billing');
+      navigate('/app/billing', { replace: true });
     } catch (err: unknown) {
       hideLoading();
       // A network-level "Failed to fetch" means the request was dropped before a

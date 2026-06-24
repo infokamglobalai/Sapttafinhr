@@ -5,6 +5,7 @@ import {
   signup as apiSignup,
   fetchMe,
   fetchProducts,
+  fetchMySubscription,
   devActivateSubscription,
   getAccessToken,
   getWorkspace,
@@ -13,6 +14,7 @@ import {
   type BackendUser,
   type ProductSlug,
 } from '../lib/api';
+import { slugsFromSubscription } from '../lib/entitlements';
 
 /** Map a website plan id → product slugs (mirrors the backend mapping). */
 function productsForPlan(planId: string): ProductSlug[] {
@@ -50,7 +52,7 @@ interface AuthContextValue extends AuthState {
   signup: (data: SignupData) => Promise<SignupResultInfo>;
   logout: () => void;
   updateUser: (updates: Partial<User>) => void;
-  refreshProducts: () => Promise<void>;
+  refreshProducts: () => Promise<ProductSlug[]>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -160,11 +162,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const refreshProducts = async () => {
-    const products = await fetchProducts();
-    if (products && products.length > 0) {
-      setUser(prev => prev ? { ...prev, products } : prev);
+  const refreshProducts = async (): Promise<ProductSlug[]> => {
+    try {
+      const sub = await fetchMySubscription();
+      const slugs = slugsFromSubscription(sub);
+      if (slugs.length > 0) {
+        setUser((prev) => (prev ? { ...prev, products: slugs } : prev));
+        return slugs;
+      }
+    } catch {
+      /* pending workspace */
     }
+    const products = await fetchProducts();
+    const slugs = products ?? [];
+    if (slugs.length > 0) {
+      setUser((prev) => (prev ? { ...prev, products: slugs } : prev));
+    }
+    return slugs;
   };
 
   const logout = () => {
