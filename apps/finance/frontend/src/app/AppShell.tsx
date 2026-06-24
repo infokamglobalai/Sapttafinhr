@@ -4,7 +4,7 @@ import {
   Package, Receipt, Scale, TrendingUp, Users, FileMinus, Wallet, BookText,
   ShoppingCart, Truck, FileInput, Landmark, Calendar, Warehouse, Boxes,
   Building2, ReceiptText, CalendarDays, Settings, FileCheck2,
-  BarChart3, Briefcase, BookCopy, ChevronRight, Plus, Menu, X as XIcon, Webhook, Share2, Hash, UserCircle2,
+  BarChart3, Briefcase, BookCopy, Plus, Menu, X as XIcon, Webhook, Share2, Hash, UserCircle2,
   Search, LayoutGrid, AlertTriangle, Globe,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
