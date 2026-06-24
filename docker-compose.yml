@@ -98,6 +98,11 @@ services:
       POSTGRES_HOST: db
       REDIS_URL: redis://redis:6379/0
       BACKUP_DIR: /backups
+      # The async signup provisioning task (provision_workspace) runs HERE, not in
+      # fin-backend — so the worker needs the HR creds too, or HR provisioning is
+      # silently skipped and new HR signups get no HR workspace (→ SSO loop).
+      SSO_SHARED_SECRET: ${SSO_SHARED_SECRET:-dev-sso-shared-secret-change-me}
+      HR_INTERNAL_BASE_URL: http://hr-backend:8000
     volumes:
       - ./apps/finance/backend:/app
       - backups:/backups
