@@ -88,8 +88,8 @@ export function HomePersonaSection({ isMobile }: SectionProps) {
         <ScrollReveal animation="fade-in-up">
           <HomeSectionHeader
             eyebrow="Who it's for"
-            title="Built for the People Who"
-            titleHighlight="Run Your Business"
+            title="One Platform for People Operations"
+            titleHighlight="and Accounting"
             titleHighlightSameLine
             subtitle="Whether you manage people, books, or both — Saptta fits how Indian teams actually work."
             theme="navy"
@@ -272,10 +272,10 @@ export function HomeFinalCtaSection({ isMobile }: SectionProps) {
             <div className="home-final-cta__copy">
               <p className="home-final-cta__eyebrow">Get started today</p>
               <h2 id="home-final-cta-heading" className="home-final-cta__title">
-                Ready to run HR &amp; finance on one platform?
+                Start with HRMS, Finance, or Both - No Migration Required
               </h2>
               <p className="home-final-cta__subtitle">
-                14-day free trial · No credit card · Indian compliance built in
+                14-day free trial · No credit card · PF ESI compliance &amp; GST accounting software Bangalore
               </p>
 
               <div className="home-final-cta__steps" role="list" aria-label="How to get started">

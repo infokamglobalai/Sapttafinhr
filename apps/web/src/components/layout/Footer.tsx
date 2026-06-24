@@ -63,7 +63,7 @@ const footerColumns = [
     links: [
       { label: 'HRMS', to: '/hrms' },
       { label: 'Payroll', to: '/hrms' },
-      { label: 'Finance & Accounting', to: '/accounts' },
+      { label: 'Finance & Accounting', to: '/finance' },
       { label: 'Attendance', to: '/hrms' },
       { label: 'AI Reports', to: '/features' },
       { label: 'Compliance', to: '/features' },
@@ -327,15 +327,20 @@ export default function Footer() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24, fontSize: 13.5 }}>
               <a href="tel:+919900007072" className="pro-contact-link">
                 <span style={{ display: 'inline-flex', color: '#64748B' }}><PhoneIcon /></span>
-                <span>+919900007072</span>
+                <span>+91 99000 07072</span>
               </a>
               <a href="mailto:info@saptta.com" className="pro-contact-link">
                 <span style={{ display: 'inline-flex', color: '#64748B' }}><MailIcon /></span>
                 <span>info@saptta.com</span>
               </a>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#94A3B8' }}>
-                <span style={{ display: 'inline-flex', color: '#64748B' }}><MapPinIcon /></span>
-                <span>India — Nationwide</span>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, color: '#94A3B8' }}>
+                <span style={{ display: 'inline-flex', color: '#64748B', marginTop: 3 }}><MapPinIcon /></span>
+                <span style={{ lineHeight: 1.4 }}>
+                  No. 45, 3rd Floor, 80 Feet Road, Koramangala 4th Block, Bangalore, Karnataka - 560034
+                </span>
+              </div>
+              <div style={{ fontSize: 12, color: '#475569', marginTop: 4 }}>
+                GSTIN: 29AAFCS7072R1Z5
               </div>
             </div>
           </div>
@@ -386,6 +391,26 @@ export default function Footer() {
                 })}
               </nav>
             </div>
+          ))}
+        </div>
+
+        {/* ── Hyper-local Locations Served for Bangalore Local SEO ── */}
+        <div style={{
+          borderTop: '1px solid rgba(255, 255, 255, 0.04)',
+          paddingTop: 16,
+          paddingBottom: 8,
+          marginBottom: 16,
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: 12,
+          fontSize: 12,
+          color: '#475569',
+        }}>
+          <span style={{ fontWeight: 600, color: '#64748B' }}>Bangalore locations served:</span>
+          {['Koramangala', 'Whitefield', 'Electronic City', 'Indiranagar', 'HSR Layout', 'Mysuru'].map((loc) => (
+            <Link key={loc} to={`/locations/${loc.toLowerCase().replace(' ', '-')}`} style={{ color: '#64748B', textDecoration: 'none' }} className="pro-footer-link">
+              HRMS &amp; Payroll {loc}
+            </Link>
           ))}
         </div>
 

@@ -31,7 +31,7 @@ export const resources: ResourceItem[] = [
   {
     title: 'Accounts & GST billing',
     description: 'Invoicing, ledger, bank reconciliation, and GSTR-ready workflows in Saptta Accounts.',
-    path: '/accounts',
+    path: '/finance',
     category: 'Product',
     readTime: '7 min read',
     imageKey: 'productAccounts',

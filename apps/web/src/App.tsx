@@ -80,15 +80,19 @@ function AppLayout() {
         <Routes>
           {/* Public marketing pages */}
           <Route path="/" element={<Home />} />
+          <Route path="/locations/:area" element={<Home />} />
           <Route path="/about" element={<About />} />
           <Route path="/products" element={<Products />} />
           <Route path="/hrms" element={<HrmsSolutions />} />
           <Route path="/accounts" element={<AccountsSolutions />} />
+          <Route path="/finance" element={<AccountsSolutions />} />
           <Route path="/mobile-app" element={<MobileApp />} />
           <Route path="/features" element={<Features />} />
           <Route path="/solutions" element={<Solutions />} />
           <Route path="/resources" element={<Resources />} />
+          <Route path="/blog" element={<Resources />} />
           <Route path="/pricing" element={<Pricing />} />
+          <Route path="/complete" element={<Pricing />} />
           <Route path="/industries" element={<Industries />} />
           <Route path="/industries/:slug" element={<IndustryDetail />} />
           <Route path="/contact" element={<Contact />} />

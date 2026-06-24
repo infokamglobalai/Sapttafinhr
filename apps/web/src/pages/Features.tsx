@@ -12,7 +12,7 @@ const cross = <span className="marketing-page__table-cross">—</span>;
 
 const featureCategories = [
   {
-    category: 'HRMS — Employee & attendance',
+    category: 'HRMS Software Bangalore — Employee & attendance',
     features: [
       { name: 'Employee master & org chart', s: true, p: true, e: true },
       { name: 'Mobile geofence attendance', s: true, p: true, e: true },
@@ -21,7 +21,7 @@ const featureCategories = [
     ],
   },
   {
-    category: 'HRMS — Payroll & compliance',
+    category: 'HR Payroll Software Karnataka & compliance',
     features: [
       { name: 'Salary processing', s: true, p: true, e: true },
       { name: 'PF & ESI calculations', s: true, p: true, e: true },
@@ -30,7 +30,7 @@ const featureCategories = [
     ],
   },
   {
-    category: 'Accounts — Billing & ledger',
+    category: 'GST Invoicing & GST Accounting Software Bangalore',
     features: [
       { name: 'GST invoicing', s: true, p: true, e: true },
       { name: 'General ledger & journals', s: true, p: true, e: true },
@@ -39,7 +39,7 @@ const featureCategories = [
     ],
   },
   {
-    category: 'Accounts — Tax & scale',
+    category: 'PF ESI Compliance Software Bangalore — Tax & scale',
     features: [
       { name: 'GSTR-1 / GSTR-3B support', s: false, p: true, e: true },
       { name: 'Inventory & stock', s: false, p: true, e: true },

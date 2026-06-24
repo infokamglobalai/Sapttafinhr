@@ -91,6 +91,21 @@ export default function IntegrationPartnersSection() {
           />
         </ScrollReveal>
 
+        <ScrollReveal animation="fade-in-down" delay={40}>
+          <h5 style={{
+            textAlign: 'center',
+            fontSize: '16px',
+            fontWeight: 700,
+            letterSpacing: '0.05em',
+            textTransform: 'uppercase',
+            color: '#FF6D00',
+            marginTop: -20,
+            marginBottom: 30,
+          }}>
+            Razorpay Reconciliation &amp; Tally Payroll Export
+          </h5>
+        </ScrollReveal>
+
         <ScrollReveal animation="fade-in-up" delay={60}>
           <div className="home-integrations-hub" role="list" aria-label="Integration partners">
             {!isMobile && <HubLines />}

@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Button, Row, Col } from 'antd';
-import { useNavigate } from 'react-router-dom';
+import { Button, Row, Col, Collapse } from 'antd';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   UserOutlined,
   WalletOutlined,
@@ -29,11 +29,13 @@ import {
   MedicineBoxOutlined,
   ToolOutlined,
   CodeOutlined,
+  MobileOutlined,
 } from '@ant-design/icons';
 import { useInView, useInViewMulti } from '../hooks/useInView';
 import ScrollReveal from '../components/shared/ScrollReveal';
 import WhySapttaComparison from '../components/marketing/WhySapttaComparison';
 import IntegrationPartnersSection from '../components/marketing/IntegrationPartnersSection';
+import TrustedBySection from '../components/marketing/TrustedBySection';
 import {
   HomePersonaSection,
   HomeBeforeAfterSection,
@@ -73,7 +75,7 @@ const HOME_PRICING_PLANS = (() => {
       note: 'Both products · save ₹1,999/mo',
       annualNote: 'HRMS + Finance in one bundle',
       features: ['Everything in HRMS & Finance', 'Payroll-to-ledger sync', 'Unified reports & portal'],
-      path: '/pricing',
+      path: '/complete',
       featured: true,
       cta: 'Start free trial',
     },
@@ -85,7 +87,7 @@ const HOME_PRICING_PLANS = (() => {
       note: 'Per company · unlimited users',
       annualNote: 'Flat — like Zoho Books / Tally',
       features: ['GST invoicing & GSTR export', 'Ledger & reconciliation', 'Trial balance & P&L'],
-      path: '/accounts',
+      path: '/finance',
       featured: false,
       cta: 'View Finance pricing',
     },
@@ -145,7 +147,7 @@ const AUTOMATION_WORKFLOW: {
 
 const MODULAR_PRODUCTS = [
   {
-    title: 'HRMS',
+    title: 'HRMS: Payroll, Attendance & HR Lifecycle',
     tagline: 'Hire to payslip — people operations in one module.',
     accent: '#FF6D00',
     icon: <UserOutlined />,
@@ -166,11 +168,11 @@ const MODULAR_PRODUCTS = [
     ],
   },
   {
-    title: 'Complete Suite',
+    title: 'Complete Bundle: HRMS + Finance on One Login',
     tagline: 'HR + Finance unified — one login, one source of truth.',
     accent: '#1E2A78',
     icon: <AppstoreOutlined />,
-    path: '/pricing',
+    path: '/complete',
     button: 'Explore Complete',
     featured: true,
     badge: 'Everything Included',
@@ -196,11 +198,11 @@ const MODULAR_PRODUCTS = [
     ],
   },
   {
-    title: 'Finance',
+    title: 'Finance: GST Invoicing, Ledger & Bank Reconciliation',
     tagline: 'Books, GST, and billing — built for Indian businesses.',
     accent: '#1E2A78',
     icon: <WalletOutlined />,
-    path: '/accounts',
+    path: '/finance',
     button: 'View Finance',
     featured: false,
     modules: [
@@ -214,6 +216,27 @@ const MODULAR_PRODUCTS = [
       { label: 'Bank reconciliation', icon: <BankOutlined /> },
       { label: 'Multi-branch books', icon: <GlobalOutlined /> },
       { label: 'Vendor & customer ledger', icon: <WalletOutlined /> },
+    ],
+  },
+  {
+    title: 'Mobile Add-on',
+    tagline: 'Geofenced attendance & expense claims on the go.',
+    accent: '#7C3AED',
+    icon: <MobileOutlined />,
+    path: '/mobile-app',
+    button: 'Explore Mobile',
+    featured: false,
+    modules: [
+      { label: 'GPS Geofencing', icon: <GlobalOutlined /> },
+      { label: 'Mobile Punches', icon: <CalendarOutlined /> },
+      { label: 'Expense Uploads', icon: <CreditCardOutlined /> },
+      { label: 'Team Directory', icon: <TeamOutlined /> },
+    ],
+    highlights: [
+      { label: 'Android & iOS support', icon: <CheckOutlined /> },
+      { label: 'Real-time location sync', icon: <GlobalOutlined /> },
+      { label: 'Receipt photo capture', icon: <FileTextOutlined /> },
+      { label: 'Offline punch buffering', icon: <CheckOutlined /> },
     ],
   },
 ] as const;
@@ -232,6 +255,9 @@ function HeroReferenceVisual() {
 
 function HeroCarousel() {
   const navigate = useNavigate();
+  const { area } = useParams<{ area?: string }>();
+  const formattedArea = area ? area.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : '';
+  const areaSuffix = formattedArea ? ` ${formattedArea}` : '';
   const [isMobile, setIsMobile] = useState(window.innerWidth < 992);
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 992);
@@ -246,20 +272,20 @@ function HeroCarousel() {
         <div className={`home-hero__copy${isMobile ? ' home-hero__copy--center' : ''}`}>
           <div className="home-hero__copy-main">
             <h1 className="home-hero-title home-hero-title--v2">
-              <span className="home-hero-title__line">One Platform</span>
+              <span className="home-hero-title__line">HRMS &amp; Finance Software</span>
               <span className="home-hero-title__line home-hero-title__line--accent">
-                "Every <span className="home-hero-title__mark" style={{textDecoration:'none'}}>Business</span> Needs"
+                Built for <span className="home-hero-title__mark" style={{textDecoration:'none'}}>Bangalore{areaSuffix} SMBs</span>
               </span>
             </h1>
             <p className="home-hero-subtitle">
-              One platform to manage employees, payroll, attendance, accounting, and compliance — so you can focus on growing your business.
+              Saptta - HRMS &amp; Finance Software is a cloud-based HRMS and Finance SaaS platform designed for Indian SMBs of 10–500 employees. Manage payroll, attendance, GST invoicing, and bank reconciliation in one platform. Built for Bangalore{areaSuffix} SMBs. Start free.
             </p>
           </div>
 
           <div className={`home-hero__copy-actions${isMobile ? ' home-hero__copy-actions--center' : ''}`}>
             <div className={`home-hero__ctas${isMobile ? ' home-hero__ctas--center' : ''}`}>
               <button type="button" className="home-hero__cta home-hero__cta--primary" onClick={() => navigate('/signup')}>
-                Start Free Trial <RightOutlined />
+                Start Free <RightOutlined />
               </button>
               <button type="button" className="home-hero__cta home-hero__cta--demo" onClick={() => navigate('/contact')}>
                 <CalendarOutlined /> Book Demo
