@@ -146,32 +146,37 @@
     <priority>0.3</priority>
   </url>
   <url>
-    <loc>https://saptta.com/locations/koramangala</loc>
+    <loc>https://saptta.com/locations/dubai</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://saptta.com/locations/whitefield</loc>
+    <loc>https://saptta.com/locations/riyadh</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://saptta.com/locations/electronic-city</loc>
+    <loc>https://saptta.com/locations/abu-dhabi</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://saptta.com/locations/indiranagar</loc>
+    <loc>https://saptta.com/locations/bengaluru</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://saptta.com/locations/hsr-layout</loc>
+    <loc>https://saptta.com/locations/mumbai</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://saptta.com/locations/mysuru</loc>
+    <loc>https://saptta.com/locations/delhi-ncr</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://saptta.com/locations/chennai</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
