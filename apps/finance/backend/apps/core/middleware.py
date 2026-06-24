@@ -55,7 +55,8 @@ class HeaderTenantMiddleware:
                 parts = hostname.split(".")
                 if len(parts) > 2:
                     sub = parts[0]
-                    if sub not in ["finance", "finance-web"]:
+                    # Skip common platform/infrastructure subdomains to avoid useless DB lookups on custom domains
+                    if sub not in ["app", "www", "finance", "finance-web", "hr", "public", "api"]:
                         workspace = sub
 
         TenantModel = get_tenant_model()
