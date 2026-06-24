@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+Disallow: /app/
+Disallow: /superadmin/
+Disallow: /login
+Disallow: /signup
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /verify-email
+Disallow: /access-denied
+Disallow: /logout
+
+Sitemap: https://saptta.com/sitemap.xml
