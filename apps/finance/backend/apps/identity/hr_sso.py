@@ -28,8 +28,26 @@ class HrSsoTokenView(APIView):
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
 
-        workspace = (request.data.get("workspace") or "").strip()
-        # Payload binds the FIN user's email to the requested workspace.
+        # Resolve the workspace from the authenticated user's identity rather than
+        # blindly trusting the client. A stale or default ('acme') localStorage
+        # workspace would otherwise mint a token for a tenant where this user has
+        # no HR account → HR's SSO can't match → the "Couldn't open Saptta HR"
+        # bounce-back loop. We honour a client-supplied workspace only when the
+        # user actually owns it; otherwise we use the one resolved from identity.
+        from apps.core.models import Tenant
+
+        from .jwt import resolve_workspace_for
+
+        requested = (request.data.get("workspace") or "").strip().lower()
+        resolved = (resolve_workspace_for(request.user) or "").strip().lower()
+        owned = set(
+            Tenant.objects.exclude(schema_name="public")
+            .filter(billing_email__iexact=request.user.email)
+            .values_list("schema_name", flat=True)
+        )
+        workspace = requested if requested in owned else (resolved or requested)
+
+        # Payload binds the FIN user's email to the resolved workspace.
         payload = f"{request.user.email}|{workspace}"
         token = TimestampSigner(key=secret, salt=SSO_SALT).sign(payload)
         return Response({"token": token})
