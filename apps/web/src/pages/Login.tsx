@@ -96,6 +96,76 @@ const REDIRECT_LABEL: Record<string, string> = {
 
 
 
+/**
+
+ * Guard against the SSO bounce-back loop. When a product's SSO can't establish a
+
+ * session it redirects back here (?redirect=hr|finance); because we're still
+
+ * authenticated, the redirect effect would immediately re-open the product — an
+
+ * infinite loop. We stamp each handoff attempt in sessionStorage, so if we land
+
+ * back on this page for the same target within a few seconds we treat it as a
+
+ * failed handoff and show the error instead of re-trying. (handoffOnceRef can't
+
+ * catch this — it resets on every full-page bounce.)
+
+ */
+
+const HANDOFF_MARKER_KEY = 'saptta_handoff_attempt';
+
+const HANDOFF_LOOP_WINDOW_MS = 30000;
+
+
+
+function recentHandoffAttempt(target: string): boolean {
+
+  try {
+
+    const raw = sessionStorage.getItem(HANDOFF_MARKER_KEY);
+
+    if (!raw) return false;
+
+    const { target: t, at } = JSON.parse(raw) as { target: string; at: number };
+
+    return t === target && Date.now() - at < HANDOFF_LOOP_WINDOW_MS;
+
+  } catch {
+
+    return false;
+
+  }
+
+}
+
+
+
+function markHandoffAttempt(target: string): void {
+
+  try {
+
+    sessionStorage.setItem(HANDOFF_MARKER_KEY, JSON.stringify({ target, at: Date.now() }));
+
+  } catch { /* sessionStorage unavailable — loop guard simply no-ops */ }
+
+}
+
+
+
+function clearHandoffMarker(): void {
+
+  try {
+
+    sessionStorage.removeItem(HANDOFF_MARKER_KEY);
+
+  } catch { /* ignore */ }
+
+}
+
+
+
 function OpeningProduct({ target }: { target: string }) {
 
   const label = REDIRECT_LABEL[target] ?? target;
@@ -188,6 +258,27 @@ export default function Login() {
 
 
   const performRedirect = async () => {
+
+    if (redirectTarget === 'hr' || redirectTarget === 'finance') {
+
+      // Bounced straight back here from a failed product SSO? Stop instead of
+      // looping; let the user retry or pick another product.
+
+      if (recentHandoffAttempt(redirectTarget)) {
+
+        clearHandoffMarker();
+
+        setHandoffPending(false);
+
+        setHandoffFailed(redirectTarget);
+
+        return;
+
+      }
+
+      markHandoffAttempt(redirectTarget);
+
+    }
 
     if (redirectTarget === 'finance') {
 
@@ -289,9 +380,9 @@ export default function Login() {
 
               <p className="login-page__subtitle">
 
-                You&apos;re signed in, but {label} isn&apos;t responding. Check that the Finance
+                You&apos;re signed in, but we couldn&apos;t open {label} for this workspace.
 
-                app is running, then try again.
+                It may still be getting set up. Try again, or choose another product.
 
               </p>
 
@@ -304,6 +395,8 @@ export default function Login() {
                 onClick={() => {
 
                   handoffOnceRef.current = false;
+
+                  clearHandoffMarker();
 
                   setHandoffFailed(null);
 
@@ -325,7 +418,7 @@ export default function Login() {
 
                 style={{ marginTop: 12, background: 'none', border: 'none', cursor: 'pointer' }}
 
-                onClick={() => navigate('/app', { replace: true })}
+                onClick={() => { clearHandoffMarker(); navigate('/app', { replace: true }); }}
 
               >
 
