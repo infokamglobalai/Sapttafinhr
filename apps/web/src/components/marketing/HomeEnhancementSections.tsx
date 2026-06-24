@@ -275,7 +275,7 @@ export function HomeFinalCtaSection({ isMobile }: SectionProps) {
                 Start with HRMS, Finance, or Both - No Migration Required
               </h2>
               <p className="home-final-cta__subtitle">
-                14-day free trial · No credit card · PF ESI compliance &amp; GST accounting software Bangalore
+                14-day free trial · No credit card · Compliance &amp; accounting software for GCC &amp; India
               </p>
 
               <div className="home-final-cta__steps" role="list" aria-label="How to get started">

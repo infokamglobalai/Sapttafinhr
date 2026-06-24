@@ -336,7 +336,7 @@ export default function Footer() {
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, color: '#94A3B8' }}>
                 <span style={{ display: 'inline-flex', color: '#64748B', marginTop: 3 }}><MapPinIcon /></span>
                 <span style={{ lineHeight: 1.4 }}>
-                  No. 45, 3rd Floor, 80 Feet Road, Koramangala 4th Block, Bangalore, Karnataka - 560034
+                  India HQ: No. 45, 3rd Floor, 80 Feet Road, Koramangala 4th Block, Bengaluru, Karnataka - 560034
                 </span>
               </div>
               <div style={{ fontSize: 12, color: '#475569', marginTop: 4 }}>
@@ -406,8 +406,8 @@ export default function Footer() {
           fontSize: 12,
           color: '#475569',
         }}>
-          <span style={{ fontWeight: 600, color: '#64748B' }}>Bangalore locations served:</span>
-          {['Koramangala', 'Whitefield', 'Electronic City', 'Indiranagar', 'HSR Layout', 'Mysuru'].map((loc) => (
+          <span style={{ fontWeight: 600, color: '#64748B' }}>GCC &amp; India locations served:</span>
+          {['Dubai', 'Riyadh', 'Abu-Dhabi', 'Bengaluru', 'Mumbai', 'Delhi-NCR', 'Chennai'].map((loc) => (
             <Link key={loc} to={`/locations/${loc.toLowerCase().replace(' ', '-')}`} style={{ color: '#64748B', textDecoration: 'none' }} className="pro-footer-link">
               HRMS &amp; Payroll {loc}
             </Link>

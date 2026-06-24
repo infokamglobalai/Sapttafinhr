@@ -274,11 +274,11 @@ function HeroCarousel() {
             <h1 className="home-hero-title home-hero-title--v2">
               <span className="home-hero-title__line">HRMS &amp; Finance Software</span>
               <span className="home-hero-title__line home-hero-title__line--accent">
-                Built for <span className="home-hero-title__mark" style={{textDecoration:'none'}}>Bangalore{areaSuffix} SMBs</span>
+                Built for <span className="home-hero-title__mark" style={{textDecoration:'none'}}>India &amp; GCC{areaSuffix} SMBs</span>
               </span>
             </h1>
             <p className="home-hero-subtitle">
-              Saptta - HRMS &amp; Finance Software is a cloud-based HRMS and Finance SaaS platform designed for Indian SMBs of 10–500 employees. Manage payroll, attendance, GST invoicing, and bank reconciliation in one platform. Built for Bangalore{areaSuffix} SMBs. Start free.
+              Saptta - HRMS &amp; Finance Software is a cloud-based HRMS and Finance SaaS platform designed for India &amp; GCC SMBs of 10–500 employees. Manage payroll, attendance, GST invoicing, and bank reconciliation in one platform. Built for India &amp; GCC{areaSuffix} SMBs. Start free.
             </p>
           </div>
 
