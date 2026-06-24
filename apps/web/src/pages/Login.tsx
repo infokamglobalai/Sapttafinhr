@@ -166,6 +166,36 @@ function clearHandoffMarker(): void {
 
 
 
+/**
+
+ * True when this page was reached via the browser Back/Forward buttons — e.g. the
+
+ * user opened the product successfully (same-tab) and then navigated back. That
+
+ * must NOT be treated as a failed-handoff bounce (which is a fresh server
+
+ * redirect), or we'd flash a false "Couldn't open" error or re-open the product.
+
+ */
+
+function navigatedBackForward(): boolean {
+
+  try {
+
+    const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
+
+    return nav?.type === 'back_forward';
+
+  } catch {
+
+    return false;
+
+  }
+
+}
+
+
+
 function OpeningProduct({ target }: { target: string }) {
 
   const label = REDIRECT_LABEL[target] ?? target;
@@ -341,6 +371,19 @@ export default function Login() {
     if (handoffOnceRef.current) return;
 
     handoffOnceRef.current = true;
+
+    // Returned here via Back/Forward (e.g. came back from the product we already
+    // opened)? Don't re-open or show a loop error — just go to the switcher.
+
+    if (navigatedBackForward()) {
+
+      clearHandoffMarker();
+
+      navigate('/app', { replace: true });
+
+      return;
+
+    }
 
     void performRedirect();
 
