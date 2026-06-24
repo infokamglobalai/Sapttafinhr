@@ -6,11 +6,26 @@ from django_tenants.models import DomainMixin, TenantMixin
 class Tenant(TenantMixin):
     """A customer organization. Each gets its own Postgres schema."""
 
+    class ProvisionStatus(models.TextChoices):
+        PENDING = "PENDING", "Pending"            # row created, schema not built yet
+        PROVISIONING = "PROVISIONING", "Provisioning"  # worker is building it
+        READY = "READY", "Ready"                  # schema migrated + seeded
+        FAILED = "FAILED", "Failed"               # provisioning errored
+
     name = models.CharField(max_length=200)
     created_on = models.DateField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
     # Where dunning / lifecycle email goes (set to the owner's email at signup).
     billing_email = models.EmailField(blank=True)
+    # Async provisioning state. Tenants created the classic (synchronous) way —
+    # bootstrap command, super-admin console — are born READY. Self-serve signup
+    # inserts the row as PENDING and a Celery task builds the schema in the
+    # background, so the signup request returns instantly (no proxy timeout).
+    provision_status = models.CharField(
+        max_length=16,
+        choices=ProvisionStatus.choices,
+        default=ProvisionStatus.READY,
+    )
 
     auto_create_schema = True
     auto_drop_schema = False  # never silently drop in prod

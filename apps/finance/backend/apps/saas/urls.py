@@ -40,7 +40,7 @@ from .admin_views import AdminCompaniesView, AdminStatsView
 from .billing import ConfirmPaymentView, CreateOrderView, DevActivateView, WebhookView
 from .internal_billing import billing_snapshot, invoice_detail
 from .internal_payroll import payroll_journal
-from .signup_views import SignupView
+from .signup_views import ProvisioningStatusView, SignupView
 from .views import (
     PlanAdminViewSet,
     PlanViewSet,
@@ -58,6 +58,7 @@ router.register("admin/plans", PlanAdminViewSet, basename="admin-plan")
 
 urlpatterns = [
     path("signup/", SignupView.as_view(), name="saas_signup"),
+    path("provisioning-status/", ProvisioningStatusView.as_view(), name="saas_provisioning_status"),
     path("billing/order/", CreateOrderView.as_view(), name="billing_order"),
     path("billing/confirm/", ConfirmPaymentView.as_view(), name="billing_confirm"),
     path("billing/webhook/", WebhookView.as_view(), name="billing_webhook"),

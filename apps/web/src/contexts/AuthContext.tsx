@@ -39,9 +39,15 @@ interface SignupData {
   country?: string;
 }
 
+interface SignupResultInfo {
+  /** True when the workspace is still building in the background — poll before routing in. */
+  provisioning: boolean;
+  workspace: string;
+}
+
 interface AuthContextValue extends AuthState {
   login: (email: string, password: string, workspace?: string) => Promise<User>;
-  signup: (data: SignupData) => Promise<void>;
+  signup: (data: SignupData) => Promise<SignupResultInfo>;
   logout: () => void;
   updateUser: (updates: Partial<User>) => void;
   refreshProducts: () => Promise<void>;
@@ -125,7 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signup = async (data: SignupData) => {
+  const signup = async (data: SignupData): Promise<SignupResultInfo> => {
     setIsLoading(true);
     try {
       const fullName = [data.firstName, data.lastName].filter(Boolean).join(' ');
@@ -138,14 +144,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         products: productsForPlan(data.planId),
         country: data.country || 'IN',
       });
+      // Provisioning runs in the background, so products arrive later (via the
+      // status poll → refreshProducts). Keep them empty until then.
       setUser(
         toAppUser(
           result.user ?? { id: '', email: data.email, full_name: fullName, is_staff: false },
-          result.products ?? productsForPlan(data.planId),
+          result.products ?? [],
           result.workspace,
         ),
       );
       setToken(result.access);
+      return { provisioning: !!result.provisioning, workspace: result.workspace };
     } finally {
       setIsLoading(false);
     }

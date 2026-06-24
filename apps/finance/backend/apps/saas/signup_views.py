@@ -1,36 +1,40 @@
 """Public self-serve signup → provisions a new workspace (tenant).
 
-Creates, for a new customer choosing a plan on the website:
-  - a Tenant (django-tenants auto-creates + migrates its Postgres schema)
-  - a Domain  ({workspace}.localhost)  for subdomain routing
+For a new customer choosing a plan on the website this creates, *synchronously*
+and fast:
   - the owner User (lives in the public/shared schema)
-  - a Subscription + per-product SubscriptionEntitlement(s) (FIN / HR)
-  - a Company (+ Indian COA + current fiscal year) inside the tenant schema
+  - a Tenant ROW (status PENDING) + its Domain ({workspace}.host) for routing
 
-Returns JWT tokens + the workspace slug + the active product slugs, so the SPA
-can sign the user straight in and route them into the app.
+…then hands the slow part — building the tenant's Postgres schema (migrations),
+seeding the finance company/COA/fiscal-year, the Subscription/entitlements, and
+the HR backend call — to a Celery task (apps.saas.tasks.provision_workspace).
 
-This mirrors the `bootstrap_dev` management command. It is intentionally NOT
-wrapped in a single atomic block: django-tenants creates the schema as a side
-effect of saving the Tenant, which does not compose with an outer transaction.
+This keeps the signup request well under any proxy/load-balancer timeout: it
+returns JWT tokens + the workspace slug immediately (HTTP 202) while the worker
+provisions in the background. The SPA polls ``/saas/provisioning-status/`` until
+the schema is READY, then routes the user into the app.
+
+If the broker can't be reached at enqueue time, provisioning falls back to
+running inline (HTTP 201) so signup still works on a misconfigured box.
 """
 from __future__ import annotations
 
+import logging
 import re
-from datetime import date, timedelta
 
-from django.conf import settings
 from django.db import IntegrityError
-from django_tenants.utils import schema_context
 from rest_framework import serializers, status
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.core.models import Domain, Tenant
 from apps.identity.models import User
-from .models import Plan, ProductCode, Subscription, SubscriptionEntitlement
+from .models import ProductCode, Subscription
+from .tasks import provision_workspace, run_provision
+
+log = logging.getLogger(__name__)
 
 # Reserved schema names that must never be used for a customer workspace.
 RESERVED = {"public", "www", "admin", "api", "app", "static", "media", "hr"}
@@ -74,6 +78,17 @@ def _resolve_products(plan_id: str, explicit: list[str] | None) -> list[str]:
     return PLAN_PRODUCTS.get(plan_id, [ProductCode.FIN])
 
 
+def _base_domain_for(request) -> str:
+    """Derive the tenant's domain suffix from the request host."""
+    request_host = request.get_host().split(":")[0].lower()
+    if request_host in ("localhost", "127.0.0.1") or request_host.startswith("192.168."):
+        return "localhost"
+    parts = request_host.split(".")
+    if len(parts) >= 3 and parts[0] in ("app", "www", "platform"):
+        return ".".join(parts[1:])
+    return request_host
+
+
 class SignupSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(min_length=8, write_only=True)
@@ -88,7 +103,7 @@ class SignupSerializer(serializers.Serializer):
 
 
 class SignupView(APIView):
-    """POST /api/v1/saas/signup/ — provision a workspace and return tokens."""
+    """POST /api/v1/saas/signup/ — create the account and kick off provisioning."""
 
     permission_classes = [AllowAny]
     authentication_classes: list = []
@@ -105,164 +120,120 @@ class SignupView(APIView):
             )
 
         products = _resolve_products(data.get("plan_id", ""), data.get("products"))
+        country = data.get("country") or "IN"
+        plan_id = data.get("plan_id") or "saptta-complete"
         schema_name = _unique_schema_name(_slugify_company(data["company_name"]))
 
-        # 1) Tenant (+ schema auto-created & migrated) and its domain.
-        tenant = Tenant.objects.create(
-            schema_name=schema_name,
-            name=data["company_name"],
-            billing_email=data["email"],
-        )
-        
-        request_host = request.get_host().split(":")[0].lower()
-        if request_host in ("localhost", "127.0.0.1") or request_host.startswith("192.168."):
-            base_domain = "localhost"
-        else:
-            parts = request_host.split(".")
-            if len(parts) >= 3 and parts[0] in ("app", "www", "platform"):
-                base_domain = ".".join(parts[1:])
-            else:
-                base_domain = request_host
-
-        Domain.objects.get_or_create(
-            domain=f"{schema_name}.{base_domain}", tenant=tenant, defaults={"is_primary": True}
-        )
-
-        # 2) Owner user (public/shared schema).
+        # 1) Owner user (public/shared schema), created first so an email race
+        #    is rejected before we provision anything.
+        #    Created PRE-VERIFIED: they own (and, in production, pay for) this
+        #    workspace, so they must never be locked out of their own account.
+        #    Without this, REQUIRE_EMAIL_VERIFICATION (True in prod) blocks their
+        #    next login — which the SPA masks as "Invalid email or password",
+        #    stranding the owner if mail delivery is flaky. Verification still
+        #    gates any non-owner users.
         try:
             user = User.objects.create_user(
                 email=data["email"],
                 password=data["password"],
                 full_name=data.get("full_name", ""),
+                is_verified=True,
             )
         except IntegrityError:
-            tenant.delete(force_drop=True)
             return Response(
                 {"detail": "An account with this email already exists. Please sign in."},
                 status=status.HTTP_409_CONFLICT,
             )
 
-        # 3) Subscription + per-product entitlements.
-        #    In DEBUG (dev/test) mode: immediately ACTIVE — no payment required.
-        #    In production: PENDING until the billing webhook activates it.
-        from django.conf import settings as _settings
-        from datetime import date, timedelta
-        _dev = getattr(_settings, "DEBUG", False)
-        _sub_status = Subscription.Status.ACTIVE if _dev else Subscription.Status.PENDING
-        _ent_status = SubscriptionEntitlement.Status.ACTIVE if _dev else SubscriptionEntitlement.Status.PENDING
-
-        plan, _ = Plan.objects.get_or_create(
-            code=data.get("plan_id") or "saptta-complete",
-            defaults={"name": data.get("plan_id") or "Saptta Complete"},
+        # 2) Tenant ROW only — defer the slow schema build to the worker. Setting
+        #    auto_create_schema=False makes save() a plain, fast INSERT.
+        tenant = Tenant(
+            schema_name=schema_name,
+            name=data["company_name"],
+            billing_email=data["email"],
+            provision_status=Tenant.ProvisionStatus.PENDING,
         )
-        sub, _ = Subscription.objects.get_or_create(
-            tenant=tenant,
-            defaults={
-                "plan": plan,
-                "status": _sub_status,
-                "current_period_start": date.today() if _dev else None,
-                "current_period_end": date.today() + timedelta(days=365) if _dev else None,
-            },
-        )
-        # Always grant both FIN and HR in dev so the product switcher shows both.
-        _all_products = list(dict.fromkeys(products + ([ProductCode.FIN, ProductCode.HR] if _dev else [])))
-        for product in _all_products:
-            SubscriptionEntitlement.objects.update_or_create(
-                subscription=sub,
-                product=product,
-                defaults={"status": _ent_status},
-            )
-
-        # 4) Company + COA + fiscal year inside the new tenant schema.
-        if ProductCode.FIN in _all_products:
-            self._seed_finance(schema_name, data["company_name"], data.get("country", "IN"))
-
-        # 4b) Provision the HR workspace (separate backend service).
-        #     In dev mode always provision HR so both products work out of the box.
-        if ProductCode.HR in _all_products:
-            self._provision_hr(
-                name=data["company_name"],
-                subdomain=schema_name,
-                email=data["email"],
-                country=data.get("country") or "IN",
-            )
-
-        # 5) Send the email-verification link (best-effort; never block signup
-        #    if the mail backend is down).
+        tenant.auto_create_schema = False
         try:
-            from apps.identity.auth_views import send_verification_email
+            tenant.save()
+        except Exception:  # noqa: BLE001 — don't leave an orphan user behind
+            user.delete()
+            raise
 
-            send_verification_email(user)
-        except Exception:  # noqa: BLE001
-            pass
+        Domain.objects.get_or_create(
+            domain=f"{schema_name}.{_base_domain_for(request)}",
+            tenant=tenant,
+            defaults={"is_primary": True},
+        )
 
-        # 6) Tokens for immediate sign-in.
+        # 3) Provision in the background. Fall back to inline if the broker is
+        #    unreachable (e.g. a box without a running worker), so signup still
+        #    completes — just synchronously, the old way.
+        product_codes = [str(p) for p in products]
+        provisioning = True
+        try:
+            provision_workspace.delay(tenant.pk, plan_id, product_codes, country)
+        except Exception:  # noqa: BLE001 — broker down: provision inline
+            log.exception("Could not enqueue provisioning for %s; running inline", schema_name)
+            run_provision(tenant.pk, plan_id, product_codes, country)
+            provisioning = False
+
+        tenant.refresh_from_db(fields=["provision_status"])
+
+        # 4) Tokens for immediate sign-in. Products are filled in by the SPA once
+        #    provisioning is READY (poll → refresh), so they're empty here.
         refresh = RefreshToken.for_user(user)
         return Response(
             {
                 "access": str(refresh.access_token),
                 "refresh": str(refresh),
                 "workspace": schema_name,
-                "products": [PRODUCT_TO_SLUG[p] for p in _all_products if p in PRODUCT_TO_SLUG] if getattr(_settings, "DEBUG", False) else [],
+                "provisioning": provisioning,
+                "status": tenant.provision_status,
+                "products": [],
                 "user": {"id": user.id, "email": user.email, "full_name": user.full_name},
             },
-            status=status.HTTP_201_CREATED,
+            status=status.HTTP_202_ACCEPTED if provisioning else status.HTTP_201_CREATED,
         )
 
-    @staticmethod
-    def _provision_hr(*, name: str, subdomain: str, email: str, country: str = "IN") -> None:
-        """Call the HR backend's internal provisioning endpoint (best-effort)."""
-        import logging
 
-        secret = getattr(settings, "SSO_SHARED_SECRET", "")
-        base = getattr(settings, "HR_INTERNAL_BASE_URL", "")
-        if not (secret and base):
-            logging.getLogger(__name__).info(
-                "HR provisioning skipped (SSO_SHARED_SECRET / HR_INTERNAL_BASE_URL unset)"
+class ProvisioningStatusView(APIView):
+    """GET /api/v1/saas/provisioning-status/ — has this user's workspace finished
+    building? Polled by the SPA right after signup."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from apps.identity.jwt import resolve_workspace_for
+
+        schema = resolve_workspace_for(request.user)
+        tenant = Tenant.objects.filter(schema_name=schema).first() if schema else None
+        if not tenant:
+            # No tenant to wait on (e.g. an admin user): treat as ready.
+            return Response({"workspace": schema, "status": "READY", "ready": True,
+                             "failed": False, "products": []})
+
+        ready = tenant.provision_status == Tenant.ProvisionStatus.READY
+        failed = tenant.provision_status == Tenant.ProvisionStatus.FAILED
+
+        products: list[str] = []
+        if ready:
+            sub = (
+                Subscription.objects.filter(tenant=tenant)
+                .prefetch_related("entitlements")
+                .first()
             )
-            return
-        try:
-            import requests
+            if sub:
+                products = [
+                    PRODUCT_TO_SLUG[e.product]
+                    for e in sub.entitlements.all()
+                    if e.is_active and e.product in PRODUCT_TO_SLUG
+                ]
 
-            requests.post(
-                f"{base.rstrip('/')}/internal/provision/",
-                headers={
-                    "Authorization": f"Bearer {secret}",
-                    "Host": "localhost",  # HR's ALLOWED_HOSTS only accepts localhost
-                },
-                json={"name": name, "subdomain": subdomain, "email": email, "country": country},
-                timeout=15,
-            )
-        except Exception:  # noqa: BLE001 — HR outage must not fail FIN signup
-            logging.getLogger(__name__).exception("HR provisioning call failed for %s", subdomain)
-
-    @staticmethod
-    def _seed_finance(schema_name: str, company_name: str, country: str = "IN") -> None:
-        from datetime import date
-        from apps.masters.coa_template import seed_coa
-        from apps.masters.models import Company, FiscalYear
-
-        with schema_context(schema_name):
-            base_currency = "INR" if country == "IN" else ("KWD" if country == "KW" else "AED" if country == "AE" else "SAR" if country == "SA" else "BHD" if country == "BH" else "OMR" if country == "OM" else "QAR" if country == "QA" else "USD")
-            company, created = Company.objects.get_or_create(
-                name=company_name,
-                defaults={"legal_name": company_name, "base_currency": base_currency, "country": country},
-            )
-            if created and country == "IN":
-                seed_coa(company)
-            
-            today = date.today()
-            if country == "IN":
-                if today.month >= 4:
-                    start, end = date(today.year, 4, 1), date(today.year + 1, 3, 31)
-                else:
-                    start, end = date(today.year - 1, 4, 1), date(today.year, 3, 31)
-            else:
-                start, end = date(today.year, 1, 1), date(today.year, 12, 31)
-
-            fy_name = f"FY{str(start.year)[-2:]}-{str(end.year)[-2:]}"
-            FiscalYear.objects.get_or_create(
-                company=company,
-                name=fy_name,
-                defaults={"start_date": start, "end_date": end, "is_active": True},
-            )
+        return Response({
+            "workspace": tenant.schema_name,
+            "status": tenant.provision_status,
+            "ready": ready,
+            "failed": failed,
+            "products": products,
+        })

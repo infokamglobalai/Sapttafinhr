@@ -11,7 +11,28 @@ import {
 } from '@ant-design/icons';
 import ScrollReveal from '../components/shared/ScrollReveal';
 import { useAuth } from '../contexts/AuthContext';
+import { fetchProvisioningStatus } from '../lib/api';
 import { PLANS, planMonthly, extraEmployees, EXTRA_EMPLOYEE_PRICE, GST_RATE } from '../types';
+
+/**
+ * Poll the backend until the new workspace's schema is built. Signup now returns
+ * immediately (HTTP 202) while a worker provisions in the background, so we wait
+ * here before routing the user into the app (which makes tenant-scoped calls).
+ */
+async function pollProvisioning(timeoutMs = 3 * 60 * 1000): Promise<'ready' | 'failed' | 'timeout'> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, 2500));
+    try {
+      const s = await fetchProvisioningStatus();
+      if (s.ready) return 'ready';
+      if (s.failed) return 'failed';
+    } catch {
+      /* transient (network / token) — keep polling until the deadline */
+    }
+  }
+  return 'timeout';
+}
 
 const SIGNUP_COUNTRIES = [
   { value: 'IN', label: 'India' },
@@ -26,7 +47,7 @@ const SIGNUP_COUNTRIES = [
 export default function Signup() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { signup, isLoading } = useAuth();
+  const { signup, isLoading, refreshProducts } = useAuth();
   const [form] = Form.useForm();
 
   const preselectedPlanId = (location.state as { planId?: string })?.planId || 'saptta-complete';
@@ -63,12 +84,12 @@ export default function Signup() {
 
   const handleSubmit = async (values: { email: string; password: string; firstName: string; lastName: string; companyName: string; country?: string }) => {
     if (!selectedPlanId) return;
-    // Provisioning creates a fresh tenant database schema server-side, which can
-    // take several seconds. Show a persistent status so the form doesn't look
-    // frozen while the button spins.
-    const hideLoading = message.loading('Setting up your workspace — this can take a few seconds…', 0);
+    // Signup returns instantly; the tenant schema is then built in the
+    // background. Show a persistent status while we poll for it so the form
+    // doesn't look frozen.
+    const hideLoading = message.loading('Setting up your workspace — this can take a moment…', 0);
     try {
-      await signup({
+      const { provisioning } = await signup({
         email: values.email,
         password: values.password,
         firstName: values.firstName,
@@ -77,11 +98,52 @@ export default function Signup() {
         companyName: values.companyName,
         country: values.country || 'IN',
       });
+
+      if (provisioning) {
+        const result = await pollProvisioning();
+        if (result === 'failed') {
+          hideLoading();
+          message.error(
+            'We hit a snag while setting up your workspace. Our team has been notified — ' +
+            'please try again shortly or contact support.',
+          );
+          return;
+        }
+        if (result === 'timeout') {
+          hideLoading();
+          message.warning({
+            content:
+              'Your workspace is still finishing setup. Give it another minute, then sign in ' +
+              'with the email and password you just entered — no need to sign up again.',
+            duration: 10,
+          });
+          return;
+        }
+      }
+
+      // Workspace is ready — pull the now-active products into the session.
+      await refreshProducts().catch(() => {});
       hideLoading();
       message.success('Account created! Welcome to Saptta.');
       navigate(import.meta.env.DEV ? '/app' : '/app/billing');
     } catch (err: unknown) {
       hideLoading();
+      // A network-level "Failed to fetch" means the request was dropped before a
+      // response came back. The account may still have been created, so steer
+      // the user to sign in instead of showing a raw fetch error.
+      const isNetworkError =
+        err instanceof TypeError ||
+        (err instanceof Error && /failed to fetch|networkerror|load failed/i.test(err.message));
+      if (isNetworkError) {
+        message.warning({
+          content:
+            'Your workspace is taking a little longer to finish setting up. ' +
+            'Give it a minute, then sign in with the email and password you just entered — ' +
+            'no need to sign up again.',
+          duration: 10,
+        });
+        return;
+      }
       const msg =
         err instanceof Error && err.message
           ? err.message

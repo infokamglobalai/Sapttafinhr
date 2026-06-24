@@ -297,6 +297,23 @@ export interface SignupResult {
   workspace: string;
   products: ProductSlug[];
   user: BackendUser;
+  /** True when the workspace is still being built in the background (HTTP 202).
+   *  The caller should poll fetchProvisioningStatus() until ready. */
+  provisioning?: boolean;
+  status?: 'PENDING' | 'PROVISIONING' | 'READY' | 'FAILED';
+}
+
+export interface ProvisioningStatus {
+  workspace: string | null;
+  status: 'PENDING' | 'PROVISIONING' | 'READY' | 'FAILED';
+  ready: boolean;
+  failed: boolean;
+  products: ProductSlug[];
+}
+
+/** Poll whether the signed-in user's workspace has finished provisioning. */
+export function fetchProvisioningStatus(): Promise<ProvisioningStatus> {
+  return request<ProvisioningStatus>('/saas/provisioning-status/', { surface: 'platform' });
 }
 
 /**

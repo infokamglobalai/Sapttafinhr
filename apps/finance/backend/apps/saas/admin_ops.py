@@ -195,7 +195,10 @@ class AdminCompanyUsersView(APIView):
         full_name = (request.data.get("full_name") or "").strip()
         password = request.data.get("password") or None
         make_owner = bool(request.data.get("make_owner"))
-        user = User.objects.create_user(email=email, password=password, full_name=full_name)
+        # Admin-created users are pre-verified (an admin vouches for them); they
+        # set their password via the reset link below. Without this they'd be
+        # blocked from login when REQUIRE_EMAIL_VERIFICATION is on (prod).
+        user = User.objects.create_user(email=email, password=password, full_name=full_name, is_verified=True)
         reset_link = None
         if not password:
             reset_link = _reset_link_for(user)
@@ -324,7 +327,9 @@ class AdminProvisionCompanyView(APIView):
     permission_classes = [IsAuthenticated, IsSuperAdmin]
 
     def post(self, request):
-        from apps.saas.signup_views import SignupView
+        # Operator/sales-led provisioning stays synchronous (not latency-bound
+        # like public signup). Reuse the shared seed/HR helpers from tasks.
+        from apps.saas.tasks import _provision_hr, _seed_finance
 
         name = (request.data.get("company_name") or "").strip()
         email = (request.data.get("email") or "").strip().lower()
@@ -349,7 +354,9 @@ class AdminProvisionCompanyView(APIView):
         )
 
         try:
-            user = User.objects.create_user(email=email, password=password, full_name=request.data.get("full_name", ""))
+            # Pre-verified: admin-provisioned owner sets their password via the
+            # reset link and must not be blocked by REQUIRE_EMAIL_VERIFICATION.
+            user = User.objects.create_user(email=email, password=password, full_name=request.data.get("full_name", ""), is_verified=True)
         except IntegrityError:
             tenant.delete(force_drop=True)
             return Response({"detail": "A user with this email already exists."}, status=409)
@@ -369,12 +376,12 @@ class AdminProvisionCompanyView(APIView):
 
         if ProductCode.FIN in products:
             try:
-                SignupView._seed_finance(schema_name, name, country)
+                _seed_finance(schema_name, name, country)
             except Exception:  # noqa: BLE001 — seeding must not abort provisioning
                 pass
         if ProductCode.HR in products:
             try:
-                SignupView._provision_hr(name=name, subdomain=schema_name, email=email, country=country)
+                _provision_hr(name=name, subdomain=schema_name, email=email, country=country)
             except Exception:  # noqa: BLE001
                 pass
 
