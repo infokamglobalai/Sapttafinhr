@@ -3,9 +3,12 @@ import { Plus, Trash2 } from 'lucide-react';
 import Modal from '@/components/Modal';
 import { useActiveCompany } from '@/hooks/useActiveCompany';
 import { usePostableAccounts, useParties, useItems, peekNumber } from '@/features/masters/api';
+import { api } from '@/lib/api';
 import { useCreateVendorBill } from './api';
-import { D, formatINR, sum } from '@/lib/money';
+import { D, formatMoney, sum } from '@/lib/money';
 import { toast } from '@/components/Toaster';
+
+const CURRENCIES = ['INR', 'USD', 'EUR', 'GBP', 'AED', 'SAR', 'QAR', 'KWD', 'BHD', 'OMR', 'SGD', 'AUD', 'CAD', 'JPY', 'CNY'];
 
 interface DraftLine {
   tmpId: string;
@@ -39,6 +42,7 @@ export interface BillPrefill {
 export default function VendorBillCreateModal({ open, onClose, prefill }: { open: boolean; onClose: () => void; prefill?: BillPrefill }) {
   const { companyId, fyId, companies } = useActiveCompany();
   const seller = companies?.find((c) => c.id === companyId);
+  const baseCcy = seller?.base_currency || 'INR';
   const { data: vendors } = useParties(companyId, 'VENDOR');
   const { data: items } = useItems(companyId);
   const { data: accounts } = usePostableAccounts(companyId);
@@ -55,6 +59,8 @@ export default function VendorBillCreateModal({ open, onClose, prefill }: { open
   const [vendorId, setVendorId] = useState<number | undefined>();
   const [placeOfSupply, setPlaceOfSupply] = useState('');
   const [rcm, setRcm] = useState(false);
+  const [currency, setCurrency] = useState('INR');
+  const [fxRate, setFxRate] = useState('1');
   const [notes, setNotes] = useState('');
   const [lines, setLines] = useState<DraftLine[]>([emptyLine()]);
   const [err, setErr] = useState<string | null>(null);
@@ -63,6 +69,18 @@ export default function VendorBillCreateModal({ open, onClose, prefill }: { open
     const v = vendors?.find((x) => x.id === vendorId);
     if (v?.state_code) setPlaceOfSupply(v.state_code);
   }, [vendorId, vendors]);
+
+  // Default the bill currency to the company base.
+  useEffect(() => { setCurrency(baseCcy); }, [baseCcy]);
+
+  // Auto-lookup the stored exchange rate when currency differs from base
+  // (same endpoint the invoice modal uses).
+  useEffect(() => {
+    if (currency === baseCcy || !companyId) { setFxRate('1'); return; }
+    api.get('/masters/exchange-rates/', { params: { company: companyId, currency } })
+      .then((r) => { const rate = r.data.rates?.[0]?.rate; if (rate) setFxRate(String(rate)); })
+      .catch(() => {});
+  }, [currency, companyId, baseCcy]);
 
   useEffect(() => {
     if (open && companyId && (!prefill || !prefill.billNo)) {
@@ -138,10 +156,10 @@ export default function VendorBillCreateModal({ open, onClose, prefill }: { open
       const created = await create.mutateAsync({
         company: companyId, fiscal_year: fyId, bill_no: billNo, date,
         due_date: dueDate || null, vendor: vendorId, place_of_supply: placeOfSupply,
-        rcm_applicable: rcm, notes,
+        rcm_applicable: rcm, currency, fx_rate: fxRate, notes,
         lines: lines.map(({ tmpId: _t, ...rest }) => rest),
       });
-      toast.success(`Vendor Bill ${created.bill_no} posted`, `Total ${formatINR(totals.total)} · TDS ${formatINR(totals.tds)}`);
+      toast.success(`Vendor Bill ${created.bill_no} posted`, `Total ${formatMoney(totals.total, currency)} · TDS ${formatMoney(totals.tds, currency)}`);
       const m = billNo.match(/(\d+)(?!.*\d)/);
       const next = m ? billNo.replace(/(\d+)(?!.*\d)/, String(Number(m[1]) + 1).padStart(m[1].length, '0')) : 'VB-0001';
       setBillNo(next);
@@ -178,6 +196,16 @@ export default function VendorBillCreateModal({ open, onClose, prefill }: { open
               <input type="checkbox" checked={rcm} onChange={(e) => setRcm(e.target.checked)} />
               Reverse Charge (RCM)
             </label></div>
+          <div><label className="label">Currency</label>
+            <select className="input" value={currency} onChange={(e) => setCurrency(e.target.value)}>
+              {CURRENCIES.map((c) => (<option key={c} value={c}>{c}</option>))}
+            </select></div>
+          {currency !== baseCcy && (
+            <div><label className="label">Exchange Rate (1 {currency} = ? {baseCcy})</label>
+              <input className="input font-mono" type="number" step="0.0001" value={fxRate} onChange={(e) => setFxRate(e.target.value)} />
+              <div className="mt-1 text-xs text-slate-500">Total in {baseCcy}: {formatMoney(totals.total.times(fxRate || 1), baseCcy)}</div>
+            </div>
+          )}
         </div>
 
         <div className="card overflow-hidden p-0">
@@ -227,11 +255,11 @@ export default function VendorBillCreateModal({ open, onClose, prefill }: { open
           <div><label className="label">Notes</label>
             <textarea className="input" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
           <div className="card space-y-1 bg-slate-50 text-sm">
-            <Row label="Taxable" v={totals.taxable} />
-            {!isInterState ? (<><Row label="CGST" v={totals.cgst} muted /><Row label="SGST" v={totals.sgst} muted /></>) : <Row label="IGST" v={totals.igst} muted />}
-            {totals.tds.gt(0) && <Row label="TDS (deducted)" v={totals.tds} muted />}
-            <div className="border-t border-slate-200 pt-2"><Row label="Grand Total" v={totals.total} bold /></div>
-            {totals.tds.gt(0) && <Row label="Net Payable to Vendor" v={totals.total.minus(totals.tds)} bold />}
+            <Row label="Taxable" v={totals.taxable} ccy={currency} />
+            {!isInterState ? (<><Row label="CGST" v={totals.cgst} ccy={currency} muted /><Row label="SGST" v={totals.sgst} ccy={currency} muted /></>) : <Row label="IGST" v={totals.igst} ccy={currency} muted />}
+            {totals.tds.gt(0) && <Row label="TDS (deducted)" v={totals.tds} ccy={currency} muted />}
+            <div className="border-t border-slate-200 pt-2"><Row label="Grand Total" v={totals.total} ccy={currency} bold /></div>
+            {totals.tds.gt(0) && <Row label="Net Payable to Vendor" v={totals.total.minus(totals.tds)} ccy={currency} bold />}
           </div>
         </div>
 
@@ -248,11 +276,11 @@ export default function VendorBillCreateModal({ open, onClose, prefill }: { open
   );
 }
 
-function Row({ label, v, bold, muted }: { label: string; v: import('decimal.js').default; bold?: boolean; muted?: boolean }) {
+function Row({ label, v, ccy = 'INR', bold, muted }: { label: string; v: import('decimal.js').default; ccy?: string; bold?: boolean; muted?: boolean }) {
   return (
     <div className={`flex items-center justify-between ${muted ? 'text-slate-500' : ''}`}>
       <div className={bold ? 'font-semibold' : ''}>{label}</div>
-      <div className={`tabular-nums ${bold ? 'font-semibold' : ''}`}>{formatINR(v)}</div>
+      <div className={`tabular-nums ${bold ? 'font-semibold' : ''}`}>{formatMoney(v, ccy)}</div>
     </div>
   );
 }

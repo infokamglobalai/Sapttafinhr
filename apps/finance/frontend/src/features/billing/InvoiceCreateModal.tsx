@@ -126,6 +126,10 @@ export default function InvoiceCreateModal({ open, onClose }: Props) {
   const submit = async () => {
     setErr(null);
     if (!companyId || !fyId || !customerId) { setErr('Pick customer and ensure company/FY are set'); return; }
+    if (!isVat && !placeOfSupply.trim()) {
+      setErr('Place of supply (buyer state code) is required for GST invoices — it decides CGST+SGST vs IGST');
+      return;
+    }
     if (computed.totals.total.isZero()) { setErr('Total cannot be zero'); return; }
 
     try {
@@ -183,7 +187,7 @@ export default function InvoiceCreateModal({ open, onClose }: Props) {
           </div>
           {!isVat && (
             <div>
-              <label className="label">Place of Supply (state)</label>
+              <label className="label">Place of Supply (state) *</label>
               <input className="input" maxLength={2} value={placeOfSupply} onChange={(e) => setPlaceOfSupply(e.target.value)} />
               <div className="mt-1 text-xs text-slate-500">
                 Seller: {sellerState || '—'} → {isInterState ? <span className="text-amber-700">Inter-state (IGST)</span> : <span className="text-emerald-700">Intra-state (CGST+SGST)</span>}
@@ -319,7 +323,7 @@ export default function InvoiceCreateModal({ open, onClose }: Props) {
 
         <div className="flex justify-end gap-2">
           <button className="btn-ghost" onClick={onClose}>Cancel</button>
-          <button className="btn-primary" disabled={!customerId || computed.totals.total.isZero() || create.isPending} onClick={submit}>
+          <button className="btn-primary" disabled={!customerId || (!isVat && !placeOfSupply.trim()) || computed.totals.total.isZero() || create.isPending} onClick={submit}>
             {create.isPending ? 'Posting…' : 'Post Invoice'}
           </button>
         </div>

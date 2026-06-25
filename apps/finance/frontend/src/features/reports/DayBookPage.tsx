@@ -4,7 +4,7 @@ import SimpleTable from '@/components/SimpleTable';
 import { useActiveCompany } from '@/hooks/useActiveCompany';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import { formatINR } from '@/lib/money';
+import { formatINR, getDisplayCurrency } from '@/lib/money';
 import DownloadMenu from './DownloadMenu';
 import type { DownloadOpts } from './download';
 import { usePostableAccounts } from '@/features/masters/api';
@@ -227,7 +227,7 @@ export default function DayBookPage() {
             </div>
 
             <div className="md:col-span-3">
-              <label className="label">Amount (₹)</label>
+              <label className="label">Amount ({getDisplayCurrency()})</label>
               <input
                 className="input text-xs text-right font-medium"
                 type="number"

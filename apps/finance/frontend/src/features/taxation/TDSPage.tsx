@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useActiveCompany } from '@/hooks/useActiveCompany';
 import PageHeader from '@/components/PageHeader';
-import { formatINR } from '@/lib/money';
+import { formatINR, getDisplayCurrency } from '@/lib/money';
 
 interface TDSSection { code: string; label: string; default_rate: string; }
 interface TDSRecord {
@@ -122,11 +122,11 @@ export default function TDSPage() {
               </select>
             </div>
             <div>
-              <label className="label">Base Amount (₹)</label>
+              <label className="label">Base Amount ({getDisplayCurrency()})</label>
               <input className="input" type="number" placeholder="100000" value={form.base_amount} onChange={e => onBaseChange(e.target.value)} />
             </div>
             <div>
-              <label className="label">TDS Amount (₹) — auto</label>
+              <label className="label">TDS Amount ({getDisplayCurrency()}) — auto</label>
               <input className="input" type="number" value={form.tds_amount} onChange={e => setForm(f => ({ ...f, tds_amount: e.target.value }))} />
             </div>
             <div>

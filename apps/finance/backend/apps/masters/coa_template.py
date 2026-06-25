@@ -38,6 +38,9 @@ INDIAN_COA = [
     ("4100", "Sales", "INCOME", "4000", True),
     ("4200", "Service Revenue", "INCOME", "4000", True),
     ("4900", "Other Income", "INCOME", "4000", True),
+    # Realized FX gain/loss on settling foreign-currency invoices/bills.
+    # Debit for losses, credit for gains — net forex P&L in one account.
+    ("4950", "Foreign Exchange Gain/Loss", "INCOME", "4000", True),
 
     # EXPENSE
     ("5000", "Expenses", "EXPENSE", None, False),
@@ -85,6 +88,7 @@ CODE_GST_OUTPUT_IGST = "2152"
 CODE_VAT_INPUT = "1155"
 CODE_VAT_OUTPUT = "2155"
 CODE_SALES = "4100"
+CODE_FX_GAINLOSS = "4950"
 CODE_RETAINED_EARNINGS = "3200"
 
 

@@ -5,6 +5,7 @@ export interface PO { id: number; po_no: string; date: string; vendor: number; v
 export interface GRN { id: number; grn_no: string; date: string; po_no: string; vendor_name: string; status: string; lines: any[]; }
 export interface VendorBill {
   id: number; bill_no: string; date: string; vendor: number; vendor_name: string;
+  currency: string; fx_rate: string;
   taxable_amount: string; cgst: string; sgst: string; igst: string; tds_amount: string;
   grand_total: string; amount_paid: string; balance_due: string; status: string;
   journal_entry: number | null; lines: any[];
@@ -12,7 +13,7 @@ export interface VendorBill {
 export interface VendorPaymentAllocation { id: number; bill: number; bill_no: string; amount: string; }
 export interface VendorPayment {
   id: number; payment_no: string; date: string; vendor_name: string; mode: string;
-  reference: string; amount: string; status: string; notes?: string;
+  reference: string; amount: string; currency: string; fx_rate: string; status: string; notes?: string;
   paid_from_account?: number; paid_from_code?: string;
   allocations?: VendorPaymentAllocation[];
 }

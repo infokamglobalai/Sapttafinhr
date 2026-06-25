@@ -45,7 +45,7 @@ export default function AIChatWidget() {
       {/* Floating button */}
       <button
         onClick={() => setOpen(v => !v)}
-        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-lg shadow-brand-500/20 bg-gradient-to-r from-brand-600 to-brand-500 text-white ring-4 ring-brand-500/10 cursor-pointer transition-transform hover:scale-105 active:scale-95 duration-350"
+        className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full shadow-lg shadow-brand-500/20 bg-gradient-to-r from-brand-600 to-brand-500 text-white ring-4 ring-brand-500/10 cursor-pointer transition-transform hover:scale-105 active:scale-95 duration-350"
         title="Finance Assistant"
       >
         {open ? <X size={20} color="white" /> : <Bot size={22} color="white" />}
@@ -53,7 +53,7 @@ export default function AIChatWidget() {
 
       {/* Chat panel */}
       {open && (
-        <div className="fixed bottom-24 right-6 z-50 flex w-96 h-[500px] flex-col overflow-hidden rounded-2xl bg-white/95 backdrop-blur-md border border-ink-200 shadow-2xl animate-in slide-in-from-bottom-5 duration-300">
+        <div className="fixed bottom-24 right-6 z-40 flex w-96 h-[500px] flex-col overflow-hidden rounded-2xl bg-white/95 backdrop-blur-md border border-ink-200 shadow-2xl animate-in slide-in-from-bottom-5 duration-300">
           {/* Header */}
           <div className="bg-gradient-to-r from-brand-600 to-brand-500 flex items-center justify-between px-5 py-4 text-white shadow-sm">
             <div className="flex items-center gap-3">

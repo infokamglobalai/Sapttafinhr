@@ -32,7 +32,7 @@ export interface PdfCustomer {
 
 export function downloadInvoicePdf(inv: Invoice, company: PdfCompany, customer: PdfCustomer) {
   const isVat = company.tax_regime === 'GCC_VAT';
-  const ccy = company.base_currency || 'INR';
+  const ccy = inv.currency || company.base_currency || 'INR';
   const money = (n: string | number) => formatMoney(n, ccy);
   const taxIdLabel = isVat ? 'TRN' : 'GSTIN';
   const companyTaxId = isVat ? company.tax_id : company.gstin;

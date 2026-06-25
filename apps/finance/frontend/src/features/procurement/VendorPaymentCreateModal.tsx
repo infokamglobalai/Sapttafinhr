@@ -4,9 +4,11 @@ import Modal from '@/components/Modal';
 import { useActiveCompany } from '@/hooks/useActiveCompany';
 import { useParties, usePostableAccounts, peekNumber } from '@/features/masters/api';
 import { api } from '@/lib/api';
-import { D, formatINR, sum } from '@/lib/money';
+import { D, formatMoney, sum } from '@/lib/money';
 import type { VendorBill } from './api';
 import { toast } from '@/components/Toaster';
+
+const CURRENCIES = ['INR', 'USD', 'EUR', 'GBP', 'AED', 'SAR', 'QAR', 'KWD', 'BHD', 'OMR', 'SGD', 'AUD', 'CAD', 'JPY', 'CNY'];
 
 function useOpenBillsForVendor(company?: number, vendor?: number) {
   return useQuery({
@@ -36,7 +38,8 @@ function useCreateVendorPayment() {
 }
 
 export default function VendorPaymentCreateModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { companyId, fyId } = useActiveCompany();
+  const { companyId, fyId, companies } = useActiveCompany();
+  const baseCcy = companies?.find((c) => c.id === companyId)?.base_currency || 'INR';
   const { data: vendors } = useParties(companyId, 'VENDOR');
   const { data: accounts } = usePostableAccounts(companyId);
   const create = useCreateVendorPayment();
@@ -47,12 +50,34 @@ export default function VendorPaymentCreateModal({ open, onClose }: { open: bool
   const [mode, setMode] = useState('BANK');
   const [reference, setReference] = useState('');
   const [amount, setAmount] = useState('0');
+  const [currency, setCurrency] = useState('INR');
+  const [fxRate, setFxRate] = useState('1');
   const [paidFrom, setPaidFrom] = useState<number | undefined>();
   const [notes, setNotes] = useState('');
   const [allocations, setAllocations] = useState<Record<number, string>>({});
   const [err, setErr] = useState<string | null>(null);
 
   const { data: openBills } = useOpenBillsForVendor(companyId, vendorId);
+  // A payment settles same-currency bills only (so the per-bill balance stays
+  // coherent); the rest are shown as not settleable by this payment.
+  const eligibleBills = useMemo(
+    () => openBills?.filter((b) => (b.currency || 'INR') === currency) ?? [],
+    [openBills, currency],
+  );
+  const fmt = (v: import('decimal.js').default | string | number) => formatMoney(v, currency);
+
+  // Default the payment currency to the company base.
+  useEffect(() => { setCurrency(baseCcy); }, [baseCcy]);
+
+  // Auto-lookup the stored exchange rate when currency differs from base.
+  // Reset allocations on currency change since only same-currency bills settle.
+  useEffect(() => {
+    setAllocations({});
+    if (currency === baseCcy || !companyId) { setFxRate('1'); return; }
+    api.get('/masters/exchange-rates/', { params: { company: companyId, currency } })
+      .then((r) => { const rate = r.data.rates?.[0]?.rate; if (rate) setFxRate(String(rate)); })
+      .catch(() => {});
+  }, [currency, companyId, baseCcy]);
 
   useEffect(() => {
     if (!accounts) return;
@@ -85,10 +110,11 @@ export default function VendorPaymentCreateModal({ open, onClose }: { open: bool
     try {
       const created = await create.mutateAsync({
         company: companyId, fiscal_year: fyId,
-        payment_no: paymentNo, date, vendor: vendorId, mode, reference, amount, notes,
+        payment_no: paymentNo, date, vendor: vendorId, mode, reference, amount,
+        currency, fx_rate: fxRate, notes,
         paid_from_account: paidFrom, allocations: allocs,
       });
-      toast.success(`Payment ${created.payment_no} posted`, `${formatINR(amount)}`);
+      toast.success(`Payment ${created.payment_no} posted`, `${formatMoney(created.amount, created.currency || currency)}`);
       const m = paymentNo.match(/(\d+)(?!.*\d)/);
       const next = m ? paymentNo.replace(/(\d+)(?!.*\d)/, String(Number(m[1]) + 1).padStart(m[1].length, '0')) : 'VP-0001';
       setPaymentNo(next);
@@ -124,8 +150,18 @@ export default function VendorPaymentCreateModal({ open, onClose }: { open: bool
               <option value="">— select —</option>
               {accounts?.filter((a) => a.type === 'ASSET').map((a) => (<option key={a.id} value={a.id}>{a.code} {a.name}</option>))}
             </select></div>
-          <div><label className="label">Amount (₹) *</label>
+          <div><label className="label">Currency</label>
+            <select className="input" value={currency} onChange={(e) => setCurrency(e.target.value)}>
+              {CURRENCIES.map((c) => (<option key={c} value={c}>{c}</option>))}
+            </select></div>
+          <div><label className="label">Amount ({currency}) *</label>
             <input className="input text-right tabular-nums" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
+          {currency !== baseCcy && (
+            <div><label className="label">Exchange Rate (1 {currency} = ? {baseCcy})</label>
+              <input className="input font-mono" type="number" step="0.0001" value={fxRate} onChange={(e) => setFxRate(e.target.value)} />
+              <div className="mt-1 text-xs text-slate-500">≈ {formatMoney(D(amount).times(fxRate || 1), baseCcy)} in {baseCcy}</div>
+            </div>
+          )}
           <div className="md:col-span-2"><label className="label">Notes</label>
             <input className="input" value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
         </div>
@@ -162,7 +198,7 @@ export default function VendorPaymentCreateModal({ open, onClose }: { open: bool
         {vendorId && (
           <div className="card overflow-hidden p-0">
             <div className="border-b border-slate-200 bg-slate-50 px-4 py-2 text-xs uppercase text-slate-500">
-              Allocate to open bills ({openBills?.length ?? 0})
+              Allocate to open {currency} bills ({eligibleBills.length})
             </div>
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
@@ -171,13 +207,13 @@ export default function VendorPaymentCreateModal({ open, onClose }: { open: bool
                   <th className="px-4 py-2 text-right">Allocate</th></tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
-                {openBills?.length === 0 && <tr><td colSpan={5} className="px-4 py-4 text-center text-slate-500">No open bills for this vendor.</td></tr>}
-                {openBills?.map((b) => (
+                {eligibleBills.length === 0 && <tr><td colSpan={5} className="px-4 py-4 text-center text-slate-500">No open {currency} bills for this vendor.</td></tr>}
+                {eligibleBills.map((b) => (
                   <tr key={b.id}>
                     <td className="px-4 py-2 font-medium text-brand-600">{b.bill_no}</td>
                     <td className="px-4 py-2 text-slate-500">{b.date}</td>
-                    <td className="px-4 py-2 text-right tabular-nums">{formatINR(b.grand_total)}</td>
-                    <td className="px-4 py-2 text-right tabular-nums text-amber-700">{formatINR(b.balance_due)}</td>
+                    <td className="px-4 py-2 text-right tabular-nums">{fmt(b.grand_total)}</td>
+                    <td className="px-4 py-2 text-right tabular-nums text-amber-700">{fmt(b.balance_due)}</td>
                     <td className="px-4 py-2"><input className="input text-right tabular-nums" inputMode="decimal" value={allocations[b.id] ?? ''} placeholder="0" onChange={(e) => setAllocations((p) => ({ ...p, [b.id]: e.target.value }))} /></td>
                   </tr>
                 ))}
@@ -186,12 +222,17 @@ export default function VendorPaymentCreateModal({ open, onClose }: { open: bool
                 <tr>
                   <td colSpan={4} className="px-4 py-2 text-right text-slate-500">Allocated / Payment / Unallocated</td>
                   <td className="px-4 py-2 text-right tabular-nums">
-                    {formatINR(totalAllocated)} / {formatINR(amount)} /{' '}
-                    <span className={unallocated.lt(0) ? 'text-red-600' : 'text-emerald-700'}>{formatINR(unallocated)}</span>
+                    {fmt(totalAllocated)} / {fmt(amount)} /{' '}
+                    <span className={unallocated.lt(0) ? 'text-red-600' : 'text-emerald-700'}>{fmt(unallocated)}</span>
                   </td>
                 </tr>
               </tfoot>
             </table>
+            {(openBills?.length ?? 0) > eligibleBills.length && (
+              <div className="border-t border-slate-200 px-4 py-2 text-xs text-slate-500">
+                {(openBills?.length ?? 0) - eligibleBills.length} open bill(s) in another currency are hidden — settle them with a payment in that currency.
+              </div>
+            )}
           </div>
         )}
 

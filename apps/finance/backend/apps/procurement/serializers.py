@@ -127,7 +127,7 @@ class VBillReadSerializer(serializers.ModelSerializer):
         model = VendorBill
         fields = ("id", "company", "fiscal_year", "bill_no", "date", "due_date",
                   "vendor", "vendor_name", "purchase_order", "place_of_supply",
-                  "rcm_applicable", "notes", "status",
+                  "rcm_applicable", "currency", "fx_rate", "notes", "status",
                   "taxable_amount", "cgst", "sgst", "igst", "vat", "tds_amount",
                   "grand_total", "amount_paid", "balance_due",
                   "journal_entry", "lines")
@@ -160,6 +160,10 @@ class VBillCreateSerializer(serializers.Serializer):
                                                         required=False, allow_null=True)
     place_of_supply = serializers.CharField(max_length=2, required=False, allow_blank=True, default="")
     rcm_applicable = serializers.BooleanField(default=False)
+    currency = serializers.CharField(max_length=3, required=False, default="INR")
+    fx_rate = serializers.DecimalField(
+        max_digits=18, decimal_places=6, required=False, default=1,
+        help_text="1 unit of `currency` = this many base-currency units. 1 when currency == base.")
     notes = serializers.CharField(required=False, allow_blank=True, default="")
     lines = VBillLineInput(many=True)
 
@@ -189,7 +193,8 @@ class VPaymentReadSerializer(serializers.ModelSerializer):
     class Meta:
         model = VendorPayment
         fields = ("id", "company", "fiscal_year", "payment_no", "date",
-                  "vendor", "vendor_name", "mode", "reference", "amount", "notes",
+                  "vendor", "vendor_name", "mode", "reference", "amount",
+                  "currency", "fx_rate", "notes",
                   "status", "paid_from_account", "paid_from_code",
                   "journal_entry", "allocations")
 
@@ -208,6 +213,9 @@ class VPaymentCreateSerializer(serializers.Serializer):
     mode = serializers.ChoiceField(choices=VendorPayment.Mode.choices, default=VendorPayment.Mode.BANK)
     reference = serializers.CharField(required=False, allow_blank=True, default="")
     amount = serializers.DecimalField(max_digits=18, decimal_places=4)
+    currency = serializers.CharField(max_length=3, required=False, default="INR")
+    fx_rate = serializers.DecimalField(
+        max_digits=18, decimal_places=6, required=False, default=1)
     notes = serializers.CharField(required=False, allow_blank=True, default="")
     paid_from_account = serializers.PrimaryKeyRelatedField(queryset=Account.objects.all())
     allocations = VPaymentAllocInput(many=True, required=False, default=list)

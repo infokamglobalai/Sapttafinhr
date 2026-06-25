@@ -37,6 +37,13 @@ class Receipt(TimeStampedModel):
     mode = models.CharField(max_length=10, choices=Mode.choices, default=Mode.BANK)
     reference = models.CharField(max_length=80, blank=True, help_text="UTR / cheque #")
     amount = models.DecimalField(max_digits=18, decimal_places=4)
+    # Transaction currency of the receipt. Allocations settle invoices of the
+    # same currency; the GL is posted in base currency using fx_rate, and any
+    # difference vs the invoice's own fx_rate is realized as FX gain/loss.
+    currency = models.CharField(max_length=3, default="INR")
+    fx_rate = models.DecimalField(
+        max_digits=18, decimal_places=6, default=1,
+        help_text="1 unit of `currency` = this many base-currency units. 1 when currency == base.")
     notes = models.CharField(max_length=500, blank=True)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.DRAFT)
 

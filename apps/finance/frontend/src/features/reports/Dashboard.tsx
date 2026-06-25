@@ -12,7 +12,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useActiveCompany } from '@/hooks/useActiveCompany';
 import { useDashboard } from './api';
 import { api } from '@/lib/api';
-import { formatINR } from '@/lib/money';
+import { currencySymbol, formatINR } from '@/lib/money';
 import ProfileBanner from '@/components/ProfileBanner';
 
 interface GSTAlert {
@@ -307,7 +307,7 @@ export default function Dashboard({ onGo }: DashboardProps) {
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.4} />
                 <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#64748b', fontWeight: 550 }} tickLine={false} axisLine={false} />
                 <YAxis tick={{ fontSize: 10, fill: '#64748b', fontWeight: 550 }} tickLine={false} axisLine={false}
-                       tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`} />
+                       tickFormatter={(v) => `${currencySymbol()}${(v / 1000).toFixed(0)}k`} />
                 <Tooltip 
                   contentStyle={{
                     backgroundColor: 'rgba(255, 255, 255, 0.95)',
@@ -350,7 +350,7 @@ export default function Dashboard({ onGo }: DashboardProps) {
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.4} />
                 <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#64748b', fontWeight: 550 }} tickLine={false} axisLine={false} />
                 <YAxis tick={{ fontSize: 10, fill: '#64748b', fontWeight: 550 }} tickLine={false} axisLine={false}
-                       tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`} />
+                       tickFormatter={(v) => `${currencySymbol()}${(v / 1000).toFixed(0)}k`} />
                 <Tooltip 
                   contentStyle={{
                     backgroundColor: 'rgba(255, 255, 255, 0.95)',
@@ -435,7 +435,7 @@ export default function Dashboard({ onGo }: DashboardProps) {
               margin={{ left: 10, right: 10, top: 0, bottom: 0 }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.4} horizontal={false} />
-              <XAxis type="number" tick={{ fontSize: 9, fill: '#64748b', fontWeight: 550 }} tickLine={false} axisLine={false} tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`} />
+              <XAxis type="number" tick={{ fontSize: 9, fill: '#64748b', fontWeight: 550 }} tickLine={false} axisLine={false} tickFormatter={(v) => `${currencySymbol()}${(v / 1000).toFixed(0)}k`} />
               <YAxis dataKey="range" type="category" tick={{ fontSize: 9, fill: '#64748b', fontWeight: 550 }} tickLine={false} axisLine={false} width={80} />
               <Tooltip
                 contentStyle={{
@@ -473,7 +473,7 @@ export default function Dashboard({ onGo }: DashboardProps) {
         <Kpi label="Expense (MTD)" value={formatINR(data.mtd_expense)} icon={ArrowUp} tone="negative" subtitle="Operational expenditures" />
         <Kpi label="Net Profit (MTD)" value={formatINR(data.mtd_net)} icon={BadgeIndianRupee}
              tone={Number(data.mtd_net) >= 0 ? 'positive' : 'negative'} subtitle="Before tax calculations" />
-        <Kpi label="GST Due (MTD)" value={data.gst_dues ? formatINR(data.gst_dues.total) : '₹0'} icon={FileText}
+        <Kpi label="GST Due (MTD)" value={data.gst_dues ? formatINR(data.gst_dues.total) : formatINR(0)} icon={FileText}
              tone="warning" subtitle={data.gst_dues ? `CGST ${formatINR(data.gst_dues.cgst)} · SGST ${formatINR(data.gst_dues.sgst)}` : 'No GST liabilities'} />
       </div>
 

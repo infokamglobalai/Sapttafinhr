@@ -11,19 +11,29 @@ from rest_framework.exceptions import ValidationError
 from apps.billing.models import Invoice
 from apps.core.money import to_money
 from apps.ledger.posting import Cr, Dr, LedgerService
-from apps.masters.coa_template import CODE_AR, account_by_code
+from apps.masters.coa_template import (
+    CODE_AR, CODE_FX_GAINLOSS, account_by_code, ensure_account,
+)
 
 from .models import Receipt, ReceiptAllocation
 
+# FX gain/loss is realized on demand for companies that predate multi-currency.
+_FX_GAINLOSS = (CODE_FX_GAINLOSS, "Foreign Exchange Gain/Loss", "INCOME", "4000")
+
 
 def _auto_allocate_fifo(receipt: Receipt, remaining: Decimal) -> list[dict]:
-    """Yield additional allocations against oldest open invoices of the same customer."""
+    """Yield additional allocations against oldest open invoices of the same customer.
+
+    Only invoices in the receipt's currency are eligible — a receipt settles
+    same-currency invoices so the per-invoice balance stays coherent.
+    """
     open_invoices = (
         Invoice.objects
         .filter(
             company=receipt.company,
             customer_id=receipt.customer_id,
             status=Invoice.Status.POSTED,
+            currency=receipt.currency,
         )
         .order_by("date", "id")
     )
@@ -56,13 +66,24 @@ class ReceiptService:
         if not allocations:
             allocations = _auto_allocate_fifo(receipt, to_money(receipt.amount))
 
-        total_alloc = Decimal("0")
-        for alloc in allocations:
-            invoice = alloc["invoice"]
-            amount = to_money(alloc["amount"])
+        # AR is cleared in base currency at each invoice's own fx_rate, so a
+        # receipt at a different rate realizes an FX gain/loss. Track the
+        # transaction-currency total (for the advance residual) and the
+        # base-currency AR cleared separately.
+        total_alloc = Decimal("0")          # transaction currency
+        ar_base_cleared = Decimal("0")      # base currency
+
+        def settle(invoice, amount):
+            nonlocal total_alloc, ar_base_cleared
             if invoice.customer_id != receipt.customer_id:
                 raise ValidationError(
                     f"Invoice {invoice.invoice_no} belongs to another customer."
+                )
+            if invoice.currency != receipt.currency:
+                raise ValidationError(
+                    f"Invoice {invoice.invoice_no} is in {invoice.currency}; "
+                    f"this receipt is in {receipt.currency}. "
+                    "Settle with a receipt in the invoice's currency."
                 )
             if amount > invoice.balance_due:
                 raise ValidationError(
@@ -72,6 +93,10 @@ class ReceiptService:
             invoice.amount_paid = invoice.amount_paid + amount
             invoice.save(update_fields=["amount_paid", "updated_at"])
             total_alloc += amount
+            ar_base_cleared += to_money(amount * Decimal(invoice.fx_rate or 1))
+
+        for alloc in allocations:
+            settle(alloc["invoice"], to_money(alloc["amount"]))
 
         if total_alloc > to_money(receipt.amount):
             raise ValidationError("Allocations exceed receipt amount.")
@@ -80,28 +105,40 @@ class ReceiptService:
         remaining = to_money(receipt.amount) - total_alloc
         if remaining > 0:
             for extra in _auto_allocate_fifo(receipt, remaining):
-                inv = extra["invoice"]
-                amt = extra["amount"]
-                ReceiptAllocation.objects.create(receipt=receipt, invoice=inv, amount=amt)
-                inv.amount_paid = inv.amount_paid + amt
-                inv.save(update_fields=["amount_paid", "updated_at"])
-                total_alloc += amt
+                settle(extra["invoice"], extra["amount"])
 
-        # Post: Dr Cash/Bank, Cr AR
+        fx = Decimal(receipt.fx_rate or 1)
+        # Cash actually received, valued in base currency at the receipt rate.
+        cash_base = to_money(Decimal(receipt.amount) * fx)
+        # Any unallocated residual (customer advance) sits on AR at the receipt
+        # rate — no FX is realized until it's later applied to an invoice.
+        advance_txn = to_money(receipt.amount) - total_alloc
+        ar_base_advance = to_money(advance_txn * fx)
+        ar_credit = ar_base_cleared + ar_base_advance
+        # Difference between cash received and AR cleared is realized FX.
+        fx_diff = cash_base - ar_credit
+
+        # Post: Dr Cash/Bank, Cr AR, +/- FX gain/loss to balance.
         ar = account_by_code(company, CODE_AR)
+        lines = [
+            Dr(receipt.deposit_account, cash_base,
+               description=f"Receipt {receipt.receipt_no}"),
+            Cr(ar, ar_credit,
+               description=f"Receipt {receipt.receipt_no}",
+               party_id=receipt.customer_id),
+        ]
+        if fx_diff > 0:
+            lines.append(Cr(ensure_account(company, *_FX_GAINLOSS), fx_diff, description="FX gain on settlement"))
+        elif fx_diff < 0:
+            lines.append(Dr(ensure_account(company, *_FX_GAINLOSS), -fx_diff, description="FX loss on settlement"))
+
         je = LedgerService().post_manual(
             company=company,
             fiscal_year=receipt.fiscal_year,
             voucher_no=receipt.receipt_no,
             entry_date=receipt.date,
             narration=f"Receipt from {receipt.customer.name}",
-            lines=[
-                Dr(receipt.deposit_account, receipt.amount,
-                   description=f"Receipt {receipt.receipt_no}"),
-                Cr(ar, receipt.amount,
-                   description=f"Receipt {receipt.receipt_no}",
-                   party_id=receipt.customer_id),
-            ],
+            lines=lines,
             user=user,
         )
         receipt.journal_entry = je

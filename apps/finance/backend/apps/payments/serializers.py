@@ -25,6 +25,7 @@ class ReceiptReadSerializer(serializers.ModelSerializer):
         fields = (
             "id", "company", "fiscal_year", "receipt_no", "date",
             "customer", "customer_name", "mode", "reference", "amount",
+            "currency", "fx_rate",
             "notes", "status", "deposit_account", "deposit_account_code",
             "journal_entry", "allocations",
         )
@@ -44,6 +45,9 @@ class ReceiptCreateSerializer(serializers.Serializer):
     mode = serializers.ChoiceField(choices=Receipt.Mode.choices, default=Receipt.Mode.BANK)
     reference = serializers.CharField(required=False, allow_blank=True, default="")
     amount = serializers.DecimalField(max_digits=18, decimal_places=4)
+    currency = serializers.CharField(max_length=3, required=False, default="INR")
+    fx_rate = serializers.DecimalField(
+        max_digits=18, decimal_places=6, required=False, default=1)
     notes = serializers.CharField(required=False, allow_blank=True, default="")
     deposit_account = serializers.PrimaryKeyRelatedField(queryset=Account.objects.all())
     allocations = AllocationInput(many=True, required=False, default=list)

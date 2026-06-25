@@ -3,7 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 import PageHeader from '@/components/PageHeader';
 import { useActiveCompany } from '@/hooks/useActiveCompany';
 import { usePnL, type AccountRow } from './api';
-import { formatINR } from '@/lib/money';
+import { currencySymbol, formatINR } from '@/lib/money';
 import DownloadMenu from './DownloadMenu';
 import type { DownloadOpts } from './download';
 
@@ -73,7 +73,7 @@ export default function PnLPage() {
             <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
               <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`} />
+              <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${currencySymbol()}${(v / 1000).toFixed(0)}k`} />
               <Tooltip formatter={(v: number) => formatINR(v)} />
               <Bar dataKey="value" radius={[6, 6, 0, 0]}>
                 {chartData.map((d, i) => (

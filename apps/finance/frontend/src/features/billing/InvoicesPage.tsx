@@ -8,7 +8,7 @@ import Modal from '@/components/Modal';
 import { useActiveCompany } from '@/hooks/useActiveCompany';
 import { useInvoices } from './api';
 import { api } from '@/lib/api';
-import { formatINR } from '@/lib/money';
+import { formatINR, formatMoney } from '@/lib/money';
 import InvoiceCreateModal from './InvoiceCreateModal';
 import InvoiceDetailModal from './InvoiceDetailModal';
 
@@ -65,16 +65,17 @@ export default function InvoicesPage() {
               {invoices?.map((inv) => {
                 const totalGst = Number(inv.cgst) + Number(inv.sgst) + Number(inv.igst);
                 const hasBalance = Number(inv.balance_due) > 0;
+                const m = (v: string | number) => formatMoney(v, inv.currency || 'INR');
                 return (
                   <tr key={inv.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setSelectedId(inv.id)}>
                     <td className="px-4 py-2 font-medium text-brand-600">{inv.invoice_no}</td>
                     <td className="px-4 py-2 text-slate-500">{inv.date}</td>
                     <td className="px-4 py-2">{inv.customer_name}</td>
-                    <td className="px-4 py-2 text-right tabular-nums">{formatINR(inv.taxable_amount)}</td>
-                    <td className="px-4 py-2 text-right tabular-nums text-slate-500">{formatINR(totalGst)}</td>
-                    <td className="px-4 py-2 text-right font-medium tabular-nums">{formatINR(inv.grand_total)}</td>
+                    <td className="px-4 py-2 text-right tabular-nums">{m(inv.taxable_amount)}</td>
+                    <td className="px-4 py-2 text-right tabular-nums text-slate-500">{m(totalGst)}</td>
+                    <td className="px-4 py-2 text-right font-medium tabular-nums">{m(inv.grand_total)}</td>
                     <td className={`px-4 py-2 text-right tabular-nums ${hasBalance ? 'text-amber-700' : 'text-emerald-700'}`}>
-                      {formatINR(inv.balance_due)}
+                      {m(inv.balance_due)}
                     </td>
                     <td className="px-4 py-2 text-xs">
                       <span className={`rounded px-2 py-0.5 ${inv.status === 'POSTED' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
@@ -162,7 +163,7 @@ function PaymentReminderModal({ invoiceId, onClose }: { invoiceId: number | null
             </div>
             <div className="rounded-md bg-slate-50 p-3">
               <div className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Amount Due</div>
-              <div className="font-semibold text-amber-700">₹{Number(data.amount_due).toLocaleString('en-IN')}</div>
+              <div className="font-semibold text-amber-700">{formatINR(data.amount_due)}</div>
               {data.days_overdue > 0 && (
                 <div className="text-xs text-red-500 mt-0.5">{data.days_overdue} days overdue</div>
               )}

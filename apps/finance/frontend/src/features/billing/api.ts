@@ -11,7 +11,8 @@ export interface InvoiceLine {
 export interface Invoice {
   id: number; company: number; fiscal_year: number; invoice_no: string;
   date: string; due_date: string | null; customer: number; customer_name: string;
-  place_of_supply: string; notes: string; status: 'DRAFT' | 'POSTED' | 'CANCELLED';
+  place_of_supply: string; currency: string; fx_rate: string;
+  notes: string; status: 'DRAFT' | 'POSTED' | 'CANCELLED';
   taxable_amount: string; cgst: string; sgst: string; igst: string; vat: string; grand_total: string;
   amount_paid: string; balance_due: string; is_paid: boolean;
   journal_entry: number | null; lines: InvoiceLine[];
@@ -126,6 +127,7 @@ export function useCreatePaymentLink() {
 export interface CreditNote {
   id: number; company: number; fiscal_year: number; note_no: string;
   date: string; invoice: number; invoice_no: string; customer_name: string;
+  currency: string;
   reason: string; status: 'DRAFT' | 'POSTED';
   taxable_amount: string; cgst: string; sgst: string; igst: string; grand_total: string;
   journal_entry: number | null;

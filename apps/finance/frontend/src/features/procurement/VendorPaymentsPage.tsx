@@ -4,7 +4,7 @@ import PageHeader from '@/components/PageHeader';
 import RecordDetailModal, { f } from '@/components/RecordDetailModal';
 import { useActiveCompany } from '@/hooks/useActiveCompany';
 import { useVendorPayments, type VendorPayment } from './api';
-import { formatINR } from '@/lib/money';
+import { formatMoney } from '@/lib/money';
 import VendorPaymentCreateModal from './VendorPaymentCreateModal';
 
 export default function VendorPaymentsPage() {
@@ -36,7 +36,7 @@ export default function VendorPaymentsPage() {
                 <td className="px-4 py-2">{p.vendor_name}</td>
                 <td className="px-4 py-2 text-xs">{p.mode}</td>
                 <td className="px-4 py-2 font-mono text-xs">{p.reference || '—'}</td>
-                <td className="px-4 py-2 text-right font-medium tabular-nums">{formatINR(p.amount)}</td>
+                <td className="px-4 py-2 text-right font-medium tabular-nums">{formatMoney(p.amount, p.currency || 'INR')}</td>
               </tr>
             ))}
           </tbody>
@@ -57,7 +57,7 @@ export default function VendorPaymentsPage() {
             f('Vendor', viewing.vendor_name),
             f('Mode', viewing.mode),
             f('Reference', viewing.reference, { mono: true }),
-            f('Amount', formatINR(viewing.amount)),
+            f('Amount', formatMoney(viewing.amount, viewing.currency || 'INR')),
             f('Paid From', viewing.paid_from_code, { mono: true }),
             f('Status', viewing.status),
           ],
@@ -68,7 +68,7 @@ export default function VendorPaymentsPage() {
           emptyText: 'No allocations (unapplied / on-account)',
           columns: [
             { key: 'bill_no', label: 'Bill #', mono: true },
-            { key: 'amount', label: 'Amount', align: 'right', render: (r: any) => formatINR(r.amount) },
+            { key: 'amount', label: 'Amount', align: 'right', render: (r: any) => formatMoney(r.amount, viewing.currency || 'INR') },
           ],
         }] : []}
       />

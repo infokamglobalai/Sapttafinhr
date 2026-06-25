@@ -1,4 +1,5 @@
 import { type PropsWithChildren, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 interface Props {
@@ -24,8 +25,12 @@ export default function Modal({ open, onClose, title, size = 'md', children }: P
   }, [open, onClose]);
 
   if (!open) return null;
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto bg-transparent" onClick={onClose}>
+  // Portal to <body> so the overlay is positioned against the viewport, not a
+  // transformed/will-change ancestor (the app shell's animated route wrapper
+  // would otherwise trap `position: fixed` inside the scrollable <main>, leaving
+  // the modal off-centre and the scrim covering only the content area).
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto bg-slate-900/40 backdrop-blur-sm" onClick={onClose}>
       <div
         className={`w-full ${SIZE[size]} rounded-2xl bg-white shadow-2xl border border-ink-200/80 overflow-hidden animate-in zoom-in-95 duration-200 my-auto`}
         onClick={(e) => e.stopPropagation()}
@@ -38,6 +43,7 @@ export default function Modal({ open, onClose, title, size = 'md', children }: P
         </div>
         <div className="p-6">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

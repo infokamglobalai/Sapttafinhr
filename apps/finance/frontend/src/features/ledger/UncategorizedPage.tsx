@@ -5,7 +5,7 @@ import { api } from '@/lib/api';
 import { usePostableAccounts } from '@/features/masters/api';
 import PageHeader from '@/components/PageHeader';
 import { toast } from '@/components/Toaster';
-import { formatINR, sum } from '@/lib/money';
+import { formatINR, getDisplayCurrency, sum } from '@/lib/money';
 import { Edit2, Save, X, Plus, Trash2, HelpCircle } from 'lucide-react';
 
 interface JournalLine {
@@ -212,8 +212,8 @@ export default function UncategorizedPage() {
                           <tr>
                             <th className="pb-2">Account</th>
                             <th className="pb-2">Line Description</th>
-                            <th className="pb-2 text-right">Debit (₹)</th>
-                            <th className="pb-2 text-right">Credit (₹)</th>
+                            <th className="pb-2 text-right">Debit ({getDisplayCurrency()})</th>
+                            <th className="pb-2 text-right">Credit ({getDisplayCurrency()})</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
@@ -237,8 +237,8 @@ export default function UncategorizedPage() {
                             <tr>
                               <th className="pb-2">Account *</th>
                               <th className="pb-2">Line Description</th>
-                              <th className="pb-2 text-right w-32">Debit (₹)</th>
-                              <th className="pb-2 text-right w-32">Credit (₹)</th>
+                              <th className="pb-2 text-right w-32">Debit ({getDisplayCurrency()})</th>
+                              <th className="pb-2 text-right w-32">Credit ({getDisplayCurrency()})</th>
                               <th className="pb-2 text-center w-12">Action</th>
                             </tr>
                           </thead>

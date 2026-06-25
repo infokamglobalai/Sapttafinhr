@@ -5,7 +5,7 @@ import Modal from '@/components/Modal';
 import { useActiveCompany } from '@/hooks/useActiveCompany';
 import { useCreateCreditNote, useCreditNotes, useInvoices, type CreditNote } from './api';
 import { peekNumber } from '@/features/masters/api';
-import { D, formatINR } from '@/lib/money';
+import { D, formatMoney, getDisplayCurrency } from '@/lib/money';
 import { toast } from '@/components/Toaster';
 import RecordDetailModal, { f } from '@/components/RecordDetailModal';
 
@@ -42,6 +42,7 @@ export default function CreditNotesPage() {
             {notes?.length === 0 && <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-500">No credit notes yet.</td></tr>}
             {notes?.map((n) => {
               const tax = Number(n.cgst) + Number(n.sgst) + Number(n.igst);
+              const m = (v: string | number) => formatMoney(v, n.currency || 'INR');
               return (
                 <tr key={n.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setViewing(n)}>
                   <td className="px-4 py-2 font-medium text-brand-600">{n.note_no}</td>
@@ -49,9 +50,9 @@ export default function CreditNotesPage() {
                   <td className="px-4 py-2">{n.invoice_no}</td>
                   <td className="px-4 py-2">{n.customer_name}</td>
                   <td className="px-4 py-2 text-xs text-slate-500">{n.reason || '—'}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">{formatINR(n.taxable_amount)}</td>
-                  <td className="px-4 py-2 text-right tabular-nums text-slate-500">{formatINR(tax)}</td>
-                  <td className="px-4 py-2 text-right font-medium tabular-nums">{formatINR(n.grand_total)}</td>
+                  <td className="px-4 py-2 text-right tabular-nums">{m(n.taxable_amount)}</td>
+                  <td className="px-4 py-2 text-right tabular-nums text-slate-500">{m(tax)}</td>
+                  <td className="px-4 py-2 text-right font-medium tabular-nums">{m(n.grand_total)}</td>
                 </tr>
               );
             })}
@@ -79,11 +80,11 @@ export default function CreditNotesPage() {
         }, {
           title: 'Amounts',
           fields: [
-            f('Taxable', formatINR(viewing.taxable_amount)),
-            f('CGST', Number(viewing.cgst) ? formatINR(viewing.cgst) : null),
-            f('SGST', Number(viewing.sgst) ? formatINR(viewing.sgst) : null),
-            f('IGST', Number(viewing.igst) ? formatINR(viewing.igst) : null),
-            f('Grand Total', formatINR(viewing.grand_total)),
+            f('Taxable', formatMoney(viewing.taxable_amount, viewing.currency || 'INR')),
+            f('CGST', Number(viewing.cgst) ? formatMoney(viewing.cgst, viewing.currency || 'INR') : null),
+            f('SGST', Number(viewing.sgst) ? formatMoney(viewing.sgst, viewing.currency || 'INR') : null),
+            f('IGST', Number(viewing.igst) ? formatMoney(viewing.igst, viewing.currency || 'INR') : null),
+            f('Grand Total', formatMoney(viewing.grand_total, viewing.currency || 'INR')),
           ],
         }] : []}
       />
@@ -110,6 +111,9 @@ function CreditNoteCreateModal({ open, onClose }: { open: boolean; onClose: () =
   }, [open, companyId]);
 
   const selectedInvoice = invoices?.find((i) => i.id === invoiceId);
+  // A CN is entered in (and posted at) its source invoice's currency; fall back
+  // to the company base until an invoice is picked.
+  const invCcy = selectedInvoice?.currency || getDisplayCurrency();
 
   const submit = async () => {
     setErr(null);
@@ -126,7 +130,7 @@ function CreditNoteCreateModal({ open, onClose }: { open: boolean; onClose: () =
       setNoteNo(next);
       setTaxable('0'); setReason(''); setInvoiceId(undefined);
       onClose();
-      toast.success(`Credit Note ${cn.note_no} posted`, `Total ${formatINR(cn.grand_total)} · JE #${cn.journal_entry}`);
+      toast.success(`Credit Note ${cn.note_no} posted`, `Total ${formatMoney(cn.grand_total, cn.currency || invCcy)} · JE #${cn.journal_entry}`);
     } catch (e: unknown) {
       const er = e as { response?: { data?: unknown } };
       setErr(JSON.stringify(er.response?.data ?? 'Save failed'));
@@ -145,10 +149,10 @@ function CreditNoteCreateModal({ open, onClose }: { open: boolean; onClose: () =
             <select className="input" value={invoiceId ?? ''} onChange={(e) => setInvoiceId(Number(e.target.value) || undefined)}>
               <option value="">— select —</option>
               {invoices?.filter((i) => i.status === 'POSTED').map((i) => (
-                <option key={i.id} value={i.id}>{i.invoice_no} — {i.customer_name} ({formatINR(i.grand_total)})</option>
+                <option key={i.id} value={i.id}>{i.invoice_no} — {i.customer_name} ({formatMoney(i.grand_total, i.currency || 'INR')})</option>
               ))}
             </select></div>
-          <div><label className="label">Taxable Amount (₹) *</label>
+          <div><label className="label">Taxable Amount ({invCcy}) *</label>
             <input className="input text-right tabular-nums" inputMode="decimal" value={taxable} onChange={(e) => setTaxable(e.target.value)} /></div>
           <div><label className="label">Reason</label>
             <input className="input" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Return, discount, etc." /></div>
@@ -156,7 +160,7 @@ function CreditNoteCreateModal({ open, onClose }: { open: boolean; onClose: () =
 
         {selectedInvoice && (
           <div className="rounded bg-slate-50 p-3 text-xs text-slate-600">
-            Invoice taxable: <strong className="tabular-nums">{formatINR(selectedInvoice.taxable_amount)}</strong> ·
+            Invoice taxable: <strong className="tabular-nums">{formatMoney(selectedInvoice.taxable_amount, invCcy)}</strong> ·
             Tax mix will be applied proportionally to CGST/SGST/IGST.
           </div>
         )}

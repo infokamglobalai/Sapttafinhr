@@ -5,6 +5,7 @@ import { useActiveCompany } from '@/hooks/useActiveCompany';
 import { useItems } from '@/features/masters/api';
 import { api } from '@/lib/api';
 import { toast } from '@/components/Toaster';
+import { getDisplayCurrency } from '@/lib/money';
 
 interface WH { id: number; code: string; name: string; }
 
@@ -75,7 +76,7 @@ export default function StockMovementCreateModal({ open, onClose }: { open: bool
           </select></div>
         <div><label className="label">Quantity (+)</label>
           <input className="input text-right tabular-nums" inputMode="decimal" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} /></div>
-        <div><label className="label">Unit Cost (₹)</label>
+        <div><label className="label">Unit Cost ({getDisplayCurrency()})</label>
           <input className="input text-right tabular-nums" inputMode="decimal" value={form.unit_cost} onChange={(e) => setForm({ ...form, unit_cost: e.target.value })} /></div>
         <div className="md:col-span-2"><label className="label">Reference</label>
           <input className="input" value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder="e.g. PO-001, INV-001" /></div>

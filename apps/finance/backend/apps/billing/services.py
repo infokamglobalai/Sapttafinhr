@@ -98,20 +98,34 @@ class InvoiceService:
         ar = account_by_code(company, CODE_AR)
         sales = account_by_code(company, CODE_SALES)
 
-        lines = [
-            Dr(ar, invoice.grand_total, description=f"Inv {invoice.invoice_no}",
-               party_id=invoice.customer_id),
-            Cr(sales, invoice.taxable_amount, description=f"Inv {invoice.invoice_no}"),
-        ]
+        # The ledger is kept in the company's base currency. Invoice amounts are
+        # stored in the transaction currency, so convert each leg by fx_rate
+        # (1 for base-currency invoices, leaving those untouched). The AR debit is
+        # set to the exact sum of the credit legs so the JE always balances after
+        # per-leg rounding.
+        fx = Decimal(invoice.fx_rate or 1)
+
+        def base(amount) -> Decimal:
+            return to_money(Decimal(amount) * fx)
+
+        credits = [Cr(sales, base(invoice.taxable_amount),
+                      description=f"Inv {invoice.invoice_no}")]
         # GST split (India) and VAT (GCC) are mutually exclusive per regime.
         if invoice.cgst:
-            lines.append(Cr(account_by_code(company, CODE_GST_OUTPUT_CGST), invoice.cgst, description="CGST output"))
+            credits.append(Cr(account_by_code(company, CODE_GST_OUTPUT_CGST), base(invoice.cgst), description="CGST output"))
         if invoice.sgst:
-            lines.append(Cr(account_by_code(company, CODE_GST_OUTPUT_SGST), invoice.sgst, description="SGST output"))
+            credits.append(Cr(account_by_code(company, CODE_GST_OUTPUT_SGST), base(invoice.sgst), description="SGST output"))
         if invoice.igst:
-            lines.append(Cr(account_by_code(company, CODE_GST_OUTPUT_IGST), invoice.igst, description="IGST output"))
+            credits.append(Cr(account_by_code(company, CODE_GST_OUTPUT_IGST), base(invoice.igst), description="IGST output"))
         if invoice.vat:
-            lines.append(Cr(ensure_account(company, *_VAT_OUTPUT), invoice.vat, description="VAT output"))
+            credits.append(Cr(ensure_account(company, *_VAT_OUTPUT), base(invoice.vat), description="VAT output"))
+
+        ar_total = sum((c.credit for c in credits), Decimal("0"))
+        lines = [
+            Dr(ar, ar_total, description=f"Inv {invoice.invoice_no}",
+               party_id=invoice.customer_id),
+            *credits,
+        ]
 
         return LedgerService().post_manual(
             company=company,
@@ -161,23 +175,34 @@ class CreditNoteService:
             grand_total=grand_total,
         )
 
-        # Reversal posting: swap Dr/Cr of the invoice's JE
+        # Reversal posting: swap Dr/Cr of the invoice's JE. The ledger is in the
+        # company's base currency, so convert each leg by the source invoice's
+        # fx_rate (1 for base-currency invoices, leaving those untouched). The AR
+        # credit is the exact sum of the converted debit legs so the JE balances
+        # after per-leg rounding — same construction as InvoiceService._post_je.
         ar = account_by_code(company, CODE_AR)
         sales = account_by_code(company, CODE_SALES)
+        fx = Decimal(invoice.fx_rate or 1)
 
+        def base(amount) -> Decimal:
+            return to_money(Decimal(amount) * fx)
+
+        debits = [Dr(sales, base(cn.taxable_amount), description=f"CN {note_no}")]
+        if cn.cgst:
+            debits.append(Dr(account_by_code(company, CODE_GST_OUTPUT_CGST), base(cn.cgst), description="CGST reversal"))
+        if cn.sgst:
+            debits.append(Dr(account_by_code(company, CODE_GST_OUTPUT_SGST), base(cn.sgst), description="SGST reversal"))
+        if cn.igst:
+            debits.append(Dr(account_by_code(company, CODE_GST_OUTPUT_IGST), base(cn.igst), description="IGST reversal"))
+        if cn.vat:
+            debits.append(Dr(ensure_account(company, *_VAT_OUTPUT), base(cn.vat), description="VAT reversal"))
+
+        ar_total = sum((d.debit for d in debits), Decimal("0"))
         lines = [
-            Dr(sales, cn.taxable_amount, description=f"CN {note_no}"),
-            Cr(ar, cn.grand_total, description=f"CN {note_no}",
+            *debits,
+            Cr(ar, ar_total, description=f"CN {note_no}",
                party_id=invoice.customer_id),
         ]
-        if cn.cgst:
-            lines.append(Dr(account_by_code(company, CODE_GST_OUTPUT_CGST), cn.cgst, description="CGST reversal"))
-        if cn.sgst:
-            lines.append(Dr(account_by_code(company, CODE_GST_OUTPUT_SGST), cn.sgst, description="SGST reversal"))
-        if cn.igst:
-            lines.append(Dr(account_by_code(company, CODE_GST_OUTPUT_IGST), cn.igst, description="IGST reversal"))
-        if cn.vat:
-            lines.append(Dr(ensure_account(company, *_VAT_OUTPUT), cn.vat, description="VAT reversal"))
 
         je = LedgerService().post_manual(
             company=company,

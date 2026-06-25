@@ -119,6 +119,12 @@ class VendorBill(TimeStampedModel):
     rcm_applicable = models.BooleanField(default=False, help_text="Reverse charge")
     notes = models.CharField(max_length=500, blank=True)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.DRAFT)
+    # Transaction currency. Line amounts/totals are stored in this currency; the
+    # GL is posted in the company's base currency using fx_rate (see services).
+    currency = models.CharField(max_length=3, default="INR")
+    fx_rate = models.DecimalField(
+        max_digits=18, decimal_places=6, default=1,
+        help_text="1 unit of `currency` = this many base-currency units. 1 when currency == base.")
 
     taxable_amount = models.DecimalField(max_digits=18, decimal_places=4, default=0)
     cgst = models.DecimalField(max_digits=18, decimal_places=4, default=0)
@@ -206,6 +212,13 @@ class VendorPayment(TimeStampedModel):
     mode = models.CharField(max_length=10, choices=Mode.choices, default=Mode.BANK)
     reference = models.CharField(max_length=80, blank=True)
     amount = models.DecimalField(max_digits=18, decimal_places=4)
+    # Transaction currency of the payment. Allocations settle bills of the same
+    # currency; the GL is posted in base currency using fx_rate, and any
+    # difference vs the bill's own fx_rate is realized as FX gain/loss.
+    currency = models.CharField(max_length=3, default="INR")
+    fx_rate = models.DecimalField(
+        max_digits=18, decimal_places=6, default=1,
+        help_text="1 unit of `currency` = this many base-currency units. 1 when currency == base.")
     notes = models.CharField(max_length=500, blank=True)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.DRAFT)
 

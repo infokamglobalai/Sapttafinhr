@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import Modal from '@/components/Modal';
 import { toast } from '@/components/Toaster';
 import { useCreateItem, useUpdateItem, type Item } from './api';
+import { getDisplayCurrency } from '@/lib/money';
 
 interface Props {
   open: boolean;
@@ -66,9 +67,9 @@ export default function ItemFormModal({ open, onClose, companyId, initial }: Pro
           </select></div>
         <div><label className="label">Unit (UoM)</label>
           <input className="input" value={form.unit ?? ''} onChange={(e) => upd({ unit: e.target.value })} /></div>
-        <div><label className="label">Sale Price (₹)</label>
+        <div><label className="label">Sale Price ({getDisplayCurrency()})</label>
           <input className="input text-right" inputMode="decimal" value={form.sale_price ?? '0'} onChange={(e) => upd({ sale_price: e.target.value })} /></div>
-        <div><label className="label">Purchase Price (₹)</label>
+        <div><label className="label">Purchase Price ({getDisplayCurrency()})</label>
           <input className="input text-right" inputMode="decimal" value={form.purchase_price ?? '0'} onChange={(e) => upd({ purchase_price: e.target.value })} /></div>
         <div><label className="label">GST Rate (%)</label>
           <input className="input text-right" inputMode="decimal" value={form.tax_rate ?? '0'} onChange={(e) => upd({ tax_rate: e.target.value })} /></div>

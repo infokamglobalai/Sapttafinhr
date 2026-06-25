@@ -9,6 +9,7 @@ from apps.core.money import to_money
 from apps.ledger.posting import Cr, Dr, LedgerService
 from apps.masters.coa_template import (
     CODE_AP,
+    CODE_FX_GAINLOSS,
     CODE_GST_INPUT_CGST,
     CODE_GST_INPUT_IGST,
     CODE_GST_INPUT_SGST,
@@ -23,6 +24,8 @@ from apps.masters.tax import compute_gst, compute_vat
 # VAT accounts are created on demand for companies that predate GCC localization.
 _VAT_INPUT = (CODE_VAT_INPUT, "VAT Input", "ASSET", "1100")
 _VAT_OUTPUT = (CODE_VAT_OUTPUT, "VAT Output", "LIABILITY", "2100")
+# Realized FX gain/loss on settling foreign-currency bills (created on demand).
+_FX_GAINLOSS = (CODE_FX_GAINLOSS, "Foreign Exchange Gain/Loss", "INCOME", "4000")
 
 from .models import (
     GRN,
@@ -207,36 +210,49 @@ class VendorBillService:
         company = bill.company
         ap = account_by_code(company, CODE_AP)
 
-        je_lines = []
+        # The ledger is kept in the company's base currency. Bill amounts are
+        # stored in the transaction currency, so convert each leg by fx_rate
+        # (1 for base-currency bills, leaving those untouched). The AP credit is
+        # the exact sum of the debit legs minus the other credits so the JE always
+        # balances after per-leg rounding (mirror of InvoiceService._post_je).
+        fx = Decimal(bill.fx_rate or 1)
+
+        def base(amount) -> Decimal:
+            return to_money(Decimal(amount) * fx)
+
+        debits = []
         for l in lines:
-            je_lines.append(Dr(
-                l.expense_account, l.taxable_amount,
+            debits.append(Dr(
+                l.expense_account, base(l.taxable_amount),
                 description=l.description, party_id=bill.vendor_id,
             ))
 
         # India GST input credit (ITC). RCM not modelled for GST — simple path.
         if bill.cgst:
-            je_lines.append(Dr(account_by_code(company, CODE_GST_INPUT_CGST), bill.cgst, description="CGST input"))
+            debits.append(Dr(account_by_code(company, CODE_GST_INPUT_CGST), base(bill.cgst), description="CGST input"))
         if bill.sgst:
-            je_lines.append(Dr(account_by_code(company, CODE_GST_INPUT_SGST), bill.sgst, description="SGST input"))
+            debits.append(Dr(account_by_code(company, CODE_GST_INPUT_SGST), base(bill.sgst), description="SGST input"))
         if bill.igst:
-            je_lines.append(Dr(account_by_code(company, CODE_GST_INPUT_IGST), bill.igst, description="IGST input"))
+            debits.append(Dr(account_by_code(company, CODE_GST_INPUT_IGST), base(bill.igst), description="IGST input"))
 
         # GCC VAT: input VAT is recoverable. Under reverse charge the buyer also
         # self-assesses output VAT (Dr input / Cr output nets to zero cash).
+        other_credits = []
         if bill.vat:
-            je_lines.append(Dr(ensure_account(company, *_VAT_INPUT), bill.vat, description="VAT input"))
+            debits.append(Dr(ensure_account(company, *_VAT_INPUT), base(bill.vat), description="VAT input"))
             if bill.rcm_applicable:
-                je_lines.append(Cr(ensure_account(company, *_VAT_OUTPUT), bill.vat, description="VAT output (RCM)"))
+                other_credits.append(Cr(ensure_account(company, *_VAT_OUTPUT), base(bill.vat), description="VAT output (RCM)"))
 
         if bill.tds_amount:
-            je_lines.append(Cr(account_by_code(company, TDS_PAYABLE_CODE), bill.tds_amount,
-                               description=f"TDS on bill {bill.bill_no}"))
+            other_credits.append(Cr(account_by_code(company, TDS_PAYABLE_CODE), base(bill.tds_amount),
+                                    description=f"TDS on bill {bill.bill_no}"))
 
-        ap_amount = bill.grand_total - bill.tds_amount
-        je_lines.append(Cr(ap, ap_amount,
-                           description=f"Bill {bill.bill_no}",
-                           party_id=bill.vendor_id))
+        ap_amount = sum((d.debit for d in debits), Decimal("0")) - sum((c.credit for c in other_credits), Decimal("0"))
+        je_lines = [
+            *debits,
+            *other_credits,
+            Cr(ap, ap_amount, description=f"Bill {bill.bill_no}", party_id=bill.vendor_id),
+        ]
 
         return LedgerService().post_manual(
             company=company,
@@ -261,12 +277,23 @@ class VendorPaymentService:
         company = payment.company
         payment.save()
 
-        total_alloc = Decimal("0")
+        # AP is cleared in base currency at each bill's own fx_rate, so a payment
+        # at a different rate realizes an FX gain/loss. Track the transaction-
+        # currency total (for the advance residual) and the base-currency AP
+        # cleared separately (mirror of ReceiptService).
+        total_alloc = Decimal("0")          # transaction currency
+        ap_base_cleared = Decimal("0")      # base currency
         for a in allocations:
             bill: VendorBill = a["bill"]
             amount = to_money(a["amount"])
             if bill.vendor_id != payment.vendor_id:
                 raise ValidationError("Bill belongs to another vendor.")
+            if bill.currency != payment.currency:
+                raise ValidationError(
+                    f"Bill {bill.bill_no} is in {bill.currency}; "
+                    f"this payment is in {payment.currency}. "
+                    "Settle with a payment in the bill's currency."
+                )
             if amount > bill.balance_due:
                 raise ValidationError(
                     f"Allocation {amount} exceeds bill {bill.bill_no} balance ({bill.balance_due})."
@@ -275,23 +302,42 @@ class VendorPaymentService:
             bill.amount_paid += amount
             bill.save(update_fields=["amount_paid", "updated_at"])
             total_alloc += amount
+            ap_base_cleared += to_money(amount * Decimal(bill.fx_rate or 1))
 
         if total_alloc > to_money(payment.amount):
             raise ValidationError("Allocations exceed payment amount.")
 
+        fx = Decimal(payment.fx_rate or 1)
+        # Cash actually paid, valued in base currency at the payment rate.
+        cash_base = to_money(Decimal(payment.amount) * fx)
+        # Any unallocated residual (advance to the vendor) sits on AP at the
+        # payment rate — no FX is realized until it's later applied to a bill.
+        advance_txn = to_money(payment.amount) - total_alloc
+        ap_base_advance = to_money(advance_txn * fx)
+        ap_debit = ap_base_cleared + ap_base_advance
+        # Difference between cash paid and AP cleared is realized FX.
+        fx_diff = cash_base - ap_debit
+
         ap = account_by_code(company, CODE_AP)
+        lines = [
+            Dr(ap, ap_debit, description=f"Pmt {payment.payment_no}",
+               party_id=payment.vendor_id),
+            Cr(payment.paid_from_account, cash_base,
+               description=f"Pmt {payment.payment_no}"),
+        ]
+        # Paid more base than AP cleared → loss; less → gain.
+        if fx_diff > 0:
+            lines.append(Dr(ensure_account(company, *_FX_GAINLOSS), fx_diff, description="FX loss on payment"))
+        elif fx_diff < 0:
+            lines.append(Cr(ensure_account(company, *_FX_GAINLOSS), -fx_diff, description="FX gain on payment"))
+
         je = LedgerService().post_manual(
             company=company,
             fiscal_year=payment.fiscal_year,
             voucher_no=payment.payment_no,
             entry_date=payment.date,
             narration=f"Payment to {payment.vendor.name}",
-            lines=[
-                Dr(ap, payment.amount, description=f"Pmt {payment.payment_no}",
-                   party_id=payment.vendor_id),
-                Cr(payment.paid_from_account, payment.amount,
-                   description=f"Pmt {payment.payment_no}"),
-            ],
+            lines=lines,
             user=user,
         )
         payment.journal_entry = je

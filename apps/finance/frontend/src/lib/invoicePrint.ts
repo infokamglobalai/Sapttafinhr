@@ -49,7 +49,7 @@ function esc(s: string): string {
 }
 
 export function printBilingualInvoice(inv: Invoice, company: PrintCompany, customer: PrintCustomer) {
-  const ccy = company.base_currency || 'AED';
+  const ccy = inv.currency || company.base_currency || 'AED';
   const money = (n: string | number) => {
     try {
       return new Intl.NumberFormat('en-US', { style: 'currency', currency: ccy }).format(Number(n));

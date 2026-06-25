@@ -3,6 +3,7 @@ import { Landmark } from 'lucide-react';
 import Modal from '@/components/Modal';
 import { toast } from '@/components/Toaster';
 import { useCreateParty, useUpdateParty, type Party } from './api';
+import { getDisplayCurrency } from '@/lib/money';
 
 interface Props {
   open: boolean;
@@ -113,7 +114,7 @@ export default function PartyFormModal({ open, onClose, companyId, initial }: Pr
             <textarea className="input" rows={2} value={form.billing_address ?? ''} onChange={(e) => update_({ billing_address: e.target.value })} />
           </div>
           <div>
-            <label className="label">Credit Limit (₹)</label>
+            <label className="label">Credit Limit ({getDisplayCurrency()})</label>
             <input className="input" inputMode="decimal" value={form.credit_limit ?? '0'} onChange={(e) => update_({ credit_limit: e.target.value })} />
           </div>
           <div className="flex items-end">

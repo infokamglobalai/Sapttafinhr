@@ -33,7 +33,8 @@ class InvoiceReadSerializer(serializers.ModelSerializer):
         model = Invoice
         fields = (
             "id", "company", "fiscal_year", "invoice_no", "date", "due_date",
-            "customer", "customer_name", "place_of_supply", "notes", "status",
+            "customer", "customer_name", "place_of_supply", "currency", "fx_rate",
+            "notes", "status",
             "taxable_amount", "cgst", "sgst", "igst", "vat", "grand_total",
             "amount_paid", "balance_due", "is_paid",
             "journal_entry", "lines",
@@ -61,6 +62,12 @@ class InvoiceCreateSerializer(serializers.Serializer):
     customer = serializers.PrimaryKeyRelatedField(queryset=Party.objects.all())
     # Buyer state code — required for India GST place-of-supply; blank for GCC VAT.
     place_of_supply = serializers.CharField(max_length=2, required=False, allow_blank=True, default="")
+    # Transaction currency. Line amounts/totals are stored in this currency; the
+    # GL is posted in the company's base currency using fx_rate (see services).
+    currency = serializers.CharField(max_length=3, required=False, default="INR")
+    fx_rate = serializers.DecimalField(
+        max_digits=18, decimal_places=6, required=False, default=1,
+        help_text="1 unit of `currency` = this many base-currency units. 1 when currency == base.")
     notes = serializers.CharField(required=False, allow_blank=True, default="")
     lines = InvoiceLineInput(many=True)
 
@@ -82,12 +89,16 @@ class InvoiceCreateSerializer(serializers.Serializer):
 class CreditNoteReadSerializer(serializers.ModelSerializer):
     invoice_no = serializers.CharField(source="invoice.invoice_no", read_only=True)
     customer_name = serializers.CharField(source="invoice.customer.name", read_only=True)
+    # A credit note is always in its source invoice's transaction currency (the
+    # GL is posted at the invoice's fx_rate). Derived, so the UI can format the
+    # CN's amounts in the right currency without a column on the model.
+    currency = serializers.CharField(source="invoice.currency", read_only=True)
 
     class Meta:
         model = CreditNote
         fields = (
             "id", "company", "fiscal_year", "note_no", "date",
-            "invoice", "invoice_no", "customer_name", "reason", "status",
+            "invoice", "invoice_no", "customer_name", "currency", "reason", "status",
             "taxable_amount", "cgst", "sgst", "igst", "vat", "grand_total",
             "journal_entry",
         )

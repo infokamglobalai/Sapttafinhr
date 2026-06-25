@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { Download, FileSignature, Link as LinkIcon, Printer, Receipt as ReceiptIcon, Truck, XCircle } from 'lucide-react';
+import { Download, FileSignature, Link as LinkIcon, Printer, Receipt as ReceiptIcon, Truck } from 'lucide-react';
 import Modal from '@/components/Modal';
 import { toast } from '@/components/Toaster';
-import { confirm } from '@/components/ConfirmDialog';
 import { useActiveCompany } from '@/hooks/useActiveCompany';
 import { useParties } from '@/features/masters/api';
 import {
@@ -33,7 +32,9 @@ export default function InvoiceDetailModal({ id, onClose, onRecordPayment }: Pro
   const gccEInvoice = useGenerateGccEInvoice();
   const payLink = useCreatePaymentLink();
   const isVat = company?.tax_regime === 'GCC_VAT';
-  const ccy = company?.base_currency || 'INR';
+  // Amounts are stored in the invoice's own transaction currency, so format with
+  // that — falling back to the company base only until the invoice has loaded.
+  const ccy = inv?.currency || company?.base_currency || 'INR';
   const m = (v: string | number) => formatMoney(v, ccy);
 
   const open = id != null;
@@ -94,19 +95,6 @@ export default function InvoiceDetailModal({ id, onClose, onRecordPayment }: Pro
     }
   };
 
-  const onCancel = () => {
-    if (!inv) return;
-    confirm({
-      title: `Cancel invoice ${inv.invoice_no}?`,
-      message: 'For full reversal of the ledger entry, use Credit Notes. This UI cancel is in the roadmap.',
-      danger: true,
-      confirmLabel: 'Got it',
-      onConfirm: async () => {
-        toast.info('Use Credit Notes for now', 'They post the reversal entry automatically.');
-      },
-    });
-  };
-
   return (
     <Modal open={open} onClose={onClose} title={inv ? `Invoice ${inv.invoice_no}` : 'Invoice'} size="xl">
       {isLoading && <div className="py-8 text-center text-slate-500">Loading…</div>}
@@ -145,11 +133,6 @@ export default function InvoiceDetailModal({ id, onClose, onRecordPayment }: Pro
             <button className="btn-ghost inline-flex items-center gap-1 border border-slate-200" onClick={onPaymentLink} disabled={payLink.isPending}>
               <LinkIcon size={14} /> {payLink.isPending ? 'Creating…' : 'Payment Link'}
             </button>
-            {inv.status === 'POSTED' && (
-              <button className="btn-ghost ml-auto inline-flex items-center gap-1 text-red-600 hover:bg-red-50" onClick={onCancel}>
-                <XCircle size={14} /> Cancel
-              </button>
-            )}
           </div>
 
           <div className="grid grid-cols-3 gap-4">

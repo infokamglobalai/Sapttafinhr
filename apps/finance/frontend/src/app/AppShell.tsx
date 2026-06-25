@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   BookOpen, FileText, FilePlus2, LayoutDashboard, LogOut, type LucideIcon,
   Package, Receipt, Scale, TrendingUp, Users, FileMinus, Wallet, BookText,
@@ -9,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { cn } from '@/lib/cn';
+import { setDisplayCurrency } from '@/lib/money';
 import { Toaster } from '@/components/Toaster';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
@@ -238,8 +240,12 @@ export default function AppShell() {
   const [searchQuery, setSearchQuery] = useState('');
 
   const { companyId, companies } = useActiveCompany();
-  const activeRegime: TaxRegime =
-    companies?.find((c) => c.id === companyId)?.tax_regime ?? 'INDIA_GST';
+  const activeCompany = companies?.find((c) => c.id === companyId);
+  const activeRegime: TaxRegime = activeCompany?.tax_regime ?? 'INDIA_GST';
+  // Drive the app-wide money formatter from the active company's base currency.
+  // Set during render (before child pages format their amounts) so the very
+  // first paint already uses the right currency for GCC tenants.
+  setDisplayCurrency(activeCompany?.base_currency);
   const { data: uncategorizedCount = 0 } = useQuery({
     queryKey: ['uncategorized-count', companyId],
     enabled: companyId != null,
@@ -257,7 +263,12 @@ export default function AppShell() {
       const r = readRoute();
       setRoute(r);
       const s = findSectionForRoute(r);
-      if (s) setActiveSectionId(s.id);
+      if (s) {
+        setActiveSectionId((prev) => {
+          if (s.id !== prev) setSearchQuery('');
+          return s.id;
+        });
+      }
     };
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
@@ -315,6 +326,7 @@ export default function AppShell() {
   );
 
   const onSectionClick = (section: Section) => {
+    if (section.id !== activeSectionId) setSearchQuery('');
     setActiveSectionId(section.id);
     if (section.direct) {
       go(section.direct);
@@ -388,16 +400,21 @@ export default function AppShell() {
               Account & Apps
             </span>
           </button>
-          {appMenuOpen && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setAppMenuOpen(false)} />
-              <div className="absolute bottom-0 left-[84px] z-50 w-60 rounded-2xl border border-ink-200 bg-white/95 backdrop-blur-md py-2 shadow-2xl animate-in slide-in-from-left-2 duration-200">
-                {appMenu}
-              </div>
-            </>
-          )}
         </div>
       </aside>
+
+      {/* Products / account menu — portaled to <body> so it isn't clipped by the
+          rail's overflow-hidden or mis-anchored by its hover-expand width.
+          Both the rail button and the secondary-panel user card toggle it. */}
+      {appMenuOpen && createPortal(
+        <>
+          <div className="fixed inset-0 z-40 bg-slate-900/10" onClick={() => setAppMenuOpen(false)} />
+          <div className="fixed bottom-4 left-4 z-50 w-60 rounded-2xl border border-ink-200 bg-white py-2 shadow-2xl animate-in slide-in-from-bottom-2 fade-in duration-200">
+            {appMenu}
+          </div>
+        </>,
+        document.body,
+      )}
 
       {/* SECONDARY: section panel */}
       {showSecondary && (

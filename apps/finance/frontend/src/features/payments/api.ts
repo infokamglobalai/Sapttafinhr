@@ -9,7 +9,7 @@ export interface Receipt {
   id: number; company: number; fiscal_year: number; receipt_no: string;
   date: string; customer: number; customer_name: string;
   mode: 'CASH' | 'BANK' | 'UPI' | 'CHEQUE';
-  reference: string; amount: string; notes: string;
+  reference: string; amount: string; currency: string; fx_rate: string; notes: string;
   status: 'DRAFT' | 'POSTED';
   deposit_account: number; deposit_account_code: string;
   journal_entry: number | null;
@@ -29,7 +29,7 @@ export const useReceipts = (company?: number) =>
 export interface ReceiptCreateInput {
   company: number; fiscal_year: number; receipt_no: string; date: string;
   customer: number; mode: Receipt['mode']; reference?: string;
-  amount: string; notes?: string; deposit_account: number;
+  amount: string; currency?: string; fx_rate?: string; notes?: string; deposit_account: number;
   allocations: { invoice: number; amount: string }[];
 }
 

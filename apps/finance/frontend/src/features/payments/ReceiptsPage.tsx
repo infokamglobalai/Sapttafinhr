@@ -5,10 +5,13 @@ import Modal from '@/components/Modal';
 import { useActiveCompany } from '@/hooks/useActiveCompany';
 import { usePostableAccounts, useParties, peekNumber } from '@/features/masters/api';
 import { useOpenInvoicesForCustomer } from '@/features/billing/api';
+import { api } from '@/lib/api';
 import { useCreateReceipt, useReceipts, type Receipt } from './api';
-import { D, formatINR, sum } from '@/lib/money';
+import { D, formatMoney, sum } from '@/lib/money';
 import { toast } from '@/components/Toaster';
 import RecordDetailModal, { f } from '@/components/RecordDetailModal';
+
+const CURRENCIES = ['INR', 'USD', 'EUR', 'GBP', 'AED', 'SAR', 'QAR', 'KWD', 'BHD', 'OMR', 'SGD', 'AUD', 'CAD', 'JPY', 'CNY'];
 
 export default function ReceiptsPage() {
   const { companyId } = useActiveCompany();
@@ -49,10 +52,10 @@ export default function ReceiptsPage() {
                 <td className="px-4 py-2 text-xs">{r.mode}</td>
                 <td className="px-4 py-2 font-mono text-xs">{r.reference || '—'}</td>
                 <td className="px-4 py-2 font-mono text-xs">{r.deposit_account_code}</td>
-                <td className="px-4 py-2 text-right font-medium tabular-nums">{formatINR(r.amount)}</td>
+                <td className="px-4 py-2 text-right font-medium tabular-nums">{formatMoney(r.amount, r.currency)}</td>
                 <td className="px-4 py-2 text-xs text-slate-500">
                   {r.allocations.length > 0
-                    ? r.allocations.map((a) => `${a.invoice_no}: ${formatINR(a.amount)}`).join(', ')
+                    ? r.allocations.map((a) => `${a.invoice_no}: ${formatMoney(a.amount, r.currency)}`).join(', ')
                     : 'unallocated'}
                 </td>
               </tr>
@@ -76,7 +79,7 @@ export default function ReceiptsPage() {
             f('Customer', viewing.customer_name),
             f('Mode', viewing.mode),
             f('Reference', viewing.reference, { mono: true }),
-            f('Amount', formatINR(viewing.amount)),
+            f('Amount', formatMoney(viewing.amount, viewing.currency)),
             f('Deposited To', viewing.deposit_account_code, { mono: true }),
             f('Status', viewing.status),
             f('Notes', viewing.notes, { fullWidth: true }),
@@ -88,7 +91,7 @@ export default function ReceiptsPage() {
           emptyText: 'Unallocated (sits on customer as advance)',
           columns: [
             { key: 'invoice_no', label: 'Invoice #', mono: true },
-            { key: 'amount', label: 'Amount', align: 'right', render: (r: any) => formatINR(r.amount) },
+            { key: 'amount', label: 'Amount', align: 'right', render: (r: any) => formatMoney(r.amount, viewing.currency) },
           ],
         }] : []}
       />
@@ -97,7 +100,8 @@ export default function ReceiptsPage() {
 }
 
 function ReceiptCreateModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { companyId, fyId } = useActiveCompany();
+  const { companyId, fyId, companies } = useActiveCompany();
+  const baseCcy = companies?.find((c) => c.id === companyId)?.base_currency || 'INR';
   const { data: customers } = useParties(companyId, 'CUSTOMER');
   const { data: accounts } = usePostableAccounts(companyId);
   const create = useCreateReceipt();
@@ -108,10 +112,26 @@ function ReceiptCreateModal({ open, onClose }: { open: boolean; onClose: () => v
   const [mode, setMode] = useState<Receipt['mode']>('BANK');
   const [reference, setReference] = useState('');
   const [amount, setAmount] = useState('0');
+  const [currency, setCurrency] = useState('INR');
+  const [fxRate, setFxRate] = useState('1');
   const [depositAccount, setDepositAccount] = useState<number | undefined>();
   const [notes, setNotes] = useState('');
   const [allocations, setAllocations] = useState<Record<number, string>>({});
   const [err, setErr] = useState<string | null>(null);
+
+  // Default the receipt currency to the company base.
+  useEffect(() => { setCurrency(baseCcy); }, [baseCcy]);
+
+  // Auto-lookup the stored exchange rate when currency differs from base
+  // (same endpoint the invoice modal uses). Reset allocations on currency change
+  // since only same-currency invoices are settleable.
+  useEffect(() => {
+    setAllocations({});
+    if (currency === baseCcy || !companyId) { setFxRate('1'); return; }
+    api.get('/masters/exchange-rates/', { params: { company: companyId, currency } })
+      .then((r) => { const rate = r.data.rates?.[0]?.rate; if (rate) setFxRate(String(rate)); })
+      .catch(() => {});
+  }, [currency, companyId, baseCcy]);
 
   // Default deposit account: bank for BANK/UPI, cash for CASH
   useEffect(() => {
@@ -128,6 +148,13 @@ function ReceiptCreateModal({ open, onClose }: { open: boolean; onClose: () => v
   }, [open, companyId]);
 
   const { data: openInvoices } = useOpenInvoicesForCustomer(companyId, customerId);
+  // A receipt settles same-currency invoices only (so the per-invoice balance
+  // stays coherent); the rest are shown as not settleable by this receipt.
+  const eligibleInvoices = useMemo(
+    () => openInvoices?.filter((inv) => (inv.currency || 'INR') === currency) ?? [],
+    [openInvoices, currency],
+  );
+  const fmt = (v: import('decimal.js').default | string | number) => formatMoney(v, currency);
 
   const totalAllocated = useMemo(
     () => sum(Object.values(allocations).map((v) => v || 0)),
@@ -149,7 +176,7 @@ function ReceiptCreateModal({ open, onClose }: { open: boolean; onClose: () => v
       const r = await create.mutateAsync({
         company: companyId, fiscal_year: fyId,
         receipt_no: receiptNo, date,
-        customer: customerId, mode, reference, amount, notes,
+        customer: customerId, mode, reference, amount, currency, fx_rate: fxRate, notes,
         deposit_account: depositAccount,
         allocations: allocs,
       });
@@ -158,7 +185,7 @@ function ReceiptCreateModal({ open, onClose }: { open: boolean; onClose: () => v
       setReceiptNo(next);
       setAmount('0'); setReference(''); setNotes(''); setAllocations({}); setCustomerId(undefined);
       onClose();
-      toast.success(`Receipt ${r.receipt_no} posted`, `${formatINR(r.amount)} · JE #${r.journal_entry}`);
+      toast.success(`Receipt ${r.receipt_no} posted`, `${formatMoney(r.amount, r.currency)} · JE #${r.journal_entry}`);
     } catch (e: unknown) {
       const er = e as { response?: { data?: unknown } };
       setErr(JSON.stringify(er.response?.data ?? 'Save failed'));
@@ -190,16 +217,26 @@ function ReceiptCreateModal({ open, onClose }: { open: boolean; onClose: () => v
               <option value="">— select —</option>
               {accounts?.filter((a) => a.type === 'ASSET').map((a) => (<option key={a.id} value={a.id}>{a.code} — {a.name}</option>))}
             </select></div>
-          <div><label className="label">Amount (₹) *</label>
+          <div><label className="label">Currency</label>
+            <select className="input" value={currency} onChange={(e) => setCurrency(e.target.value)}>
+              {CURRENCIES.map((c) => (<option key={c} value={c}>{c}</option>))}
+            </select></div>
+          <div><label className="label">Amount ({currency}) *</label>
             <input className="input text-right tabular-nums" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
-          <div className="md:col-span-2"><label className="label">Notes</label>
+          {currency !== baseCcy && (
+            <div><label className="label">Exchange Rate (1 {currency} = ? {baseCcy})</label>
+              <input className="input font-mono" type="number" step="0.0001" value={fxRate} onChange={(e) => setFxRate(e.target.value)} />
+              <div className="mt-1 text-xs text-slate-500">≈ {formatMoney(D(amount).times(fxRate || 1), baseCcy)} in {baseCcy}</div>
+            </div>
+          )}
+          <div className="md:col-span-3"><label className="label">Notes</label>
             <input className="input" value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
         </div>
 
         {customerId && (
           <div className="card overflow-hidden p-0">
             <div className="border-b border-slate-200 bg-slate-50 px-4 py-2 text-xs uppercase text-slate-500">
-              Allocate to open invoices ({openInvoices?.length ?? 0})
+              Allocate to open {currency} invoices ({eligibleInvoices.length})
             </div>
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
@@ -212,13 +249,13 @@ function ReceiptCreateModal({ open, onClose }: { open: boolean; onClose: () => v
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
-                {openInvoices?.length === 0 && <tr><td colSpan={5} className="px-4 py-4 text-center text-slate-500">No open invoices for this customer.</td></tr>}
-                {openInvoices?.map((inv) => (
+                {eligibleInvoices.length === 0 && <tr><td colSpan={5} className="px-4 py-4 text-center text-slate-500">No open {currency} invoices for this customer.</td></tr>}
+                {eligibleInvoices.map((inv) => (
                   <tr key={inv.id}>
                     <td className="px-4 py-2 font-medium text-brand-600">{inv.invoice_no}</td>
                     <td className="px-4 py-2 text-slate-500">{inv.date}</td>
-                    <td className="px-4 py-2 text-right tabular-nums">{formatINR(inv.grand_total)}</td>
-                    <td className="px-4 py-2 text-right tabular-nums text-amber-700">{formatINR(inv.balance_due)}</td>
+                    <td className="px-4 py-2 text-right tabular-nums">{fmt(inv.grand_total)}</td>
+                    <td className="px-4 py-2 text-right tabular-nums text-amber-700">{fmt(inv.balance_due)}</td>
                     <td className="px-4 py-2">
                       <input
                         className="input text-right tabular-nums"
@@ -235,14 +272,19 @@ function ReceiptCreateModal({ open, onClose }: { open: boolean; onClose: () => v
                 <tr>
                   <td colSpan={4} className="px-4 py-2 text-right text-slate-500">Allocated / Receipt / Unallocated</td>
                   <td className="px-4 py-2 text-right tabular-nums">
-                    {formatINR(totalAllocated)} / {formatINR(amount)} /{' '}
+                    {fmt(totalAllocated)} / {fmt(amount)} /{' '}
                     <span className={unallocated.lt(0) ? 'text-red-600' : 'text-emerald-700'}>
-                      {formatINR(unallocated)}
+                      {fmt(unallocated)}
                     </span>
                   </td>
                 </tr>
               </tfoot>
             </table>
+            {(openInvoices?.length ?? 0) > eligibleInvoices.length && (
+              <div className="border-t border-slate-200 px-4 py-2 text-xs text-slate-500">
+                {(openInvoices?.length ?? 0) - eligibleInvoices.length} open invoice(s) in another currency are hidden — settle them with a receipt in that currency.
+              </div>
+            )}
           </div>
         )}
 

@@ -8,7 +8,7 @@ import RecordDetailModal, { f } from '@/components/RecordDetailModal';
 import { useActiveCompany } from '@/hooks/useActiveCompany';
 import { useVendorBills, type VendorBill } from './api';
 import { api } from '@/lib/api';
-import { formatINR } from '@/lib/money';
+import { formatINR, formatMoney } from '@/lib/money';
 import VendorBillCreateModal, { type BillPrefill } from './VendorBillCreateModal';
 
 export default function VendorBillsPage() {
@@ -74,16 +74,17 @@ export default function VendorBillsPage() {
               {isLoading && <tr><td colSpan={9} className="px-4 py-8 text-center text-slate-500">Loading…</td></tr>}
               {data?.map((b) => {
                 const gst = Number(b.cgst) + Number(b.sgst) + Number(b.igst);
+                const m = (v: string | number) => formatMoney(v, b.currency || 'INR');
                 return (
                   <tr key={b.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setViewing(b)}>
                     <td className="px-4 py-2 font-medium text-brand-600">{b.bill_no}</td>
                     <td className="px-4 py-2 text-slate-500">{b.date}</td>
                     <td className="px-4 py-2">{b.vendor_name}</td>
-                    <td className="px-4 py-2 text-right tabular-nums">{formatINR(b.taxable_amount)}</td>
-                    <td className="px-4 py-2 text-right tabular-nums text-slate-500">{formatINR(gst)}</td>
-                    <td className="px-4 py-2 text-right tabular-nums text-slate-500">{Number(b.tds_amount) ? formatINR(b.tds_amount) : '—'}</td>
-                    <td className="px-4 py-2 text-right font-medium tabular-nums">{formatINR(b.grand_total)}</td>
-                    <td className="px-4 py-2 text-right tabular-nums text-amber-700">{Number(b.balance_due) > 0 ? formatINR(b.balance_due) : '—'}</td>
+                    <td className="px-4 py-2 text-right tabular-nums">{m(b.taxable_amount)}</td>
+                    <td className="px-4 py-2 text-right tabular-nums text-slate-500">{m(gst)}</td>
+                    <td className="px-4 py-2 text-right tabular-nums text-slate-500">{Number(b.tds_amount) ? m(b.tds_amount) : '—'}</td>
+                    <td className="px-4 py-2 text-right font-medium tabular-nums">{m(b.grand_total)}</td>
+                    <td className="px-4 py-2 text-right tabular-nums text-amber-700">{Number(b.balance_due) > 0 ? m(b.balance_due) : '—'}</td>
                     <td className="px-4 py-2 text-xs"><span className={`rounded px-2 py-0.5 ${b.status === 'POSTED' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100'}`}>{b.status}</span></td>
                   </tr>
                 );
@@ -111,14 +112,14 @@ export default function VendorBillsPage() {
           },
           { title: 'Amounts',
             fields: [
-              f('Taxable', formatINR(viewing.taxable_amount)),
-              f('CGST', Number(viewing.cgst) ? formatINR(viewing.cgst) : null),
-              f('SGST', Number(viewing.sgst) ? formatINR(viewing.sgst) : null),
-              f('IGST', Number(viewing.igst) ? formatINR(viewing.igst) : null),
-              f('TDS Deducted', Number(viewing.tds_amount) ? formatINR(viewing.tds_amount) : null),
-              f('Grand Total', formatINR(viewing.grand_total)),
-              f('Amount Paid', formatINR(viewing.amount_paid)),
-              f('Balance Due', formatINR(viewing.balance_due)),
+              f('Taxable', formatMoney(viewing.taxable_amount, viewing.currency || 'INR')),
+              f('CGST', Number(viewing.cgst) ? formatMoney(viewing.cgst, viewing.currency || 'INR') : null),
+              f('SGST', Number(viewing.sgst) ? formatMoney(viewing.sgst, viewing.currency || 'INR') : null),
+              f('IGST', Number(viewing.igst) ? formatMoney(viewing.igst, viewing.currency || 'INR') : null),
+              f('TDS Deducted', Number(viewing.tds_amount) ? formatMoney(viewing.tds_amount, viewing.currency || 'INR') : null),
+              f('Grand Total', formatMoney(viewing.grand_total, viewing.currency || 'INR')),
+              f('Amount Paid', formatMoney(viewing.amount_paid, viewing.currency || 'INR')),
+              f('Balance Due', formatMoney(viewing.balance_due, viewing.currency || 'INR')),
             ],
           },
         ] : []}
@@ -130,11 +131,11 @@ export default function VendorBillsPage() {
             { key: 'expense_account_code', label: 'Expense A/C', mono: true },
             { key: 'hsn_code', label: 'HSN', mono: true },
             { key: 'quantity', label: 'Qty', align: 'right' },
-            { key: 'unit_price', label: 'Rate', align: 'right', render: (r: any) => formatINR(r.unit_price) },
+            { key: 'unit_price', label: 'Rate', align: 'right', render: (r: any) => formatMoney(r.unit_price, viewing.currency || 'INR') },
             { key: 'tax_rate', label: 'GST%', align: 'right' },
             { key: 'tds_rate', label: 'TDS%', align: 'right' },
-            { key: 'taxable_amount', label: 'Taxable', align: 'right', render: (r: any) => formatINR(r.taxable_amount) },
-            { key: 'line_total', label: 'Total', align: 'right', render: (r: any) => formatINR(r.line_total) },
+            { key: 'taxable_amount', label: 'Taxable', align: 'right', render: (r: any) => formatMoney(r.taxable_amount, viewing.currency || 'INR') },
+            { key: 'line_total', label: 'Total', align: 'right', render: (r: any) => formatMoney(r.line_total, viewing.currency || 'INR') },
           ],
         }] : []}
       />
@@ -311,9 +312,9 @@ function BillScanModal({
                           <td className="px-3 py-1.5">{l.description}</td>
                           <td className="px-3 py-1.5 font-mono text-slate-500">{l.hsn_code || '—'}</td>
                           <td className="px-3 py-1.5 text-right tabular-nums">{l.quantity}</td>
-                          <td className="px-3 py-1.5 text-right tabular-nums">₹{Number(l.unit_price).toLocaleString('en-IN')}</td>
+                          <td className="px-3 py-1.5 text-right tabular-nums">{formatINR(l.unit_price)}</td>
                           <td className="px-3 py-1.5 text-right tabular-nums">{l.tax_rate}%</td>
-                          <td className="px-3 py-1.5 text-right tabular-nums">₹{Number(l.amount).toLocaleString('en-IN')}</td>
+                          <td className="px-3 py-1.5 text-right tabular-nums">{formatINR(l.amount)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -331,13 +332,13 @@ function BillScanModal({
               ].map(({ label, v }) => v != null && Number(v) > 0 ? (
                 <div key={label} className="rounded-md bg-slate-50 p-2">
                   <div className="text-xs text-slate-400">{label}</div>
-                  <div className="font-medium tabular-nums">₹{Number(v).toLocaleString('en-IN')}</div>
+                  <div className="font-medium tabular-nums">{formatINR(v)}</div>
                 </div>
               ) : null)}
               {result.total != null && (
                 <div className="rounded-md bg-slate-100 p-2 col-span-4 md:col-span-1">
                   <div className="text-xs text-slate-500 font-medium">Total</div>
-                  <div className="font-bold tabular-nums">₹{Number(result.total).toLocaleString('en-IN')}</div>
+                  <div className="font-bold tabular-nums">{formatINR(result.total)}</div>
                 </div>
               )}
             </div>
