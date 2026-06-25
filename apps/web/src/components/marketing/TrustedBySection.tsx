@@ -21,7 +21,7 @@ export default function TrustedBySection() {
     <section className="home-trusted-by" aria-labelledby="trusted-by-heading">
       <div className="home-trusted-by__inner">
         <p id="trusted-by-heading" className="home-trusted-by__label">
-          Trusted by 1000+ growing businesses across India
+          Trusted by 1000+ growing SMBs across India &amp; GCC · Rated <strong>4.9/5</strong> for HRMS &amp; Finance Software
         </p>
         <div className="home-trusted-by__marquee" role="list" aria-label="Trusted partner logos">
           <div className="home-trusted-by__marquee-track">

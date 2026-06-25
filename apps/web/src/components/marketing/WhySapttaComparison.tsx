@@ -4,12 +4,12 @@ import HomeSectionHeader from '../shared/HomeSectionHeader';
 import useBreakpoint from '../../hooks/useBreakpoint';
 
 const ROWS = [
-  { feature: 'HRMS', saptta: true, traditional: false },
-  { feature: 'Finance', saptta: true, traditional: false },
-  { feature: 'Payroll', saptta: true, traditional: false },
-  { feature: 'Compliance', saptta: true, traditional: false },
-  { feature: 'Single login', saptta: true, traditional: false },
-  { feature: 'Unified reporting', saptta: true, traditional: false },
+  { feature: 'HRMS software GCC & India', saptta: true, traditional: false },
+  { feature: 'GST accounting software GCC & India', saptta: true, traditional: false },
+  { feature: 'Payroll software GCC & India', saptta: true, traditional: false },
+  { feature: 'Statutory compliance software GCC & India', saptta: true, traditional: false },
+  { feature: 'SaaS HRMS India & GCC SSO login', saptta: true, traditional: false },
+  { feature: 'HRMS and finance software India & GCC reporting', saptta: true, traditional: false },
 ] as const;
 
 const HIGHLIGHTS = [
@@ -38,10 +38,10 @@ export default function WhySapttaComparison() {
             <ScrollReveal animation="fade-in-up">
               <HomeSectionHeader
                 eyebrow="Why SAPTTA"
-                title="Why Businesses Choose"
-                titleHighlight="SAPTTA"
+                title="Why India & GCC SMBs Choose"
+                titleHighlight="Saptta"
                 titleHighlightSameLine
-                subtitle="One platform replaces disconnected HR, payroll, and finance tools — with compliance built in from day one."
+                subtitle="Why India and GCC SMBs Choose Saptta: unified HRMS and finance, automated compliance, and streamlined operations. Replaces traditional tools on day one."
                 theme="navy"
                 align="left"
                 isMobile={isMobile}
