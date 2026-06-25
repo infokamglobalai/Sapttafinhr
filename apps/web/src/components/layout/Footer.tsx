@@ -104,6 +104,7 @@ const footerColumns = [
       { label: 'Security', to: '/security' },
       { label: 'Status', to: '/status' },
       { label: 'Cookie Settings', to: '/privacy#cookies', isCookieSettings: true },
+      { label: 'Sitemap', to: '/sitemap.xml' },
     ],
   },
 ];
@@ -376,6 +377,20 @@ export default function Footer() {
                       >
                         {content}
                       </button>
+                    );
+                  }
+
+                  if (link.to.endsWith('.xml')) {
+                    return (
+                      <a
+                        key={link.label}
+                        href={link.to}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ textDecoration: 'none', display: 'inline-block' }}
+                      >
+                        {content}
+                      </a>
                     );
                   }
 
