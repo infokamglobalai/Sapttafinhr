@@ -81,7 +81,7 @@ services:
         condition: service_healthy
     command: >
       sh -c "python manage.py migrate_schemas --shared &&
-             python manage.py migrate_schemas --tenant &&
+             python manage.py migrate_tenant_schemas &&
              python manage.py bootstrap_dev &&
              python manage.py runserver 0.0.0.0:8000"
 
@@ -147,12 +147,15 @@ services:
       # Same value as fin-backend so HR can verify FIN-minted SSO tokens.
       SSO_SHARED_SECRET: ${SSO_SHARED_SECRET:-dev-sso-shared-secret-change-me}
       FIN_INTERNAL_BASE_URL: http://fin-backend:8000
+      REDIS_URL: redis://redis:6379/1
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
     volumes:
       - ./apps/hr:/app
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
     # Override the prod gunicorn CMD: migrate, seed the demo tenant/admin
     # (idempotent — needed so FIN's SSO handoff finds a matching HR user), then
     # run the dev server.
@@ -161,6 +164,39 @@ services:
              python manage.py seed_dummy_login &&
              python manage.py seed_demo_data --subdomain acme --skip-login &&
              python manage.py runserver 0.0.0.0:8000"
+
+  # Optional: run async HR jobs locally (payslip email, reminders). Dev settings use
+  # CELERY_TASK_ALWAYS_EAGER on hr-backend; this worker processes the real queue.
+  hr-worker:
+    build:
+      context: ./apps/hr
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      DJANGO_SETTINGS_MODULE: hrms.settings.development
+      SECRET_KEY: ${HR_SECRET_KEY:-insecure-dev-hr-key-change-me}
+      DEBUG: ${DJANGO_DEBUG:-True}
+      ALLOWED_HOSTS: ${HR_ALLOWED_HOSTS:-localhost,127.0.0.1,hr-backend,saptta.com,.saptta.com}
+      DB_NAME: ${POSTGRES_DB:-finsaptta}
+      DB_USER: ${POSTGRES_USER:-finsaptta}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-finsaptta}
+      DB_HOST: db
+      DB_PORT: "5432"
+      REDIS_URL: redis://redis:6379/1
+      CELERY_TASK_ALWAYS_EAGER: "false"
+      FIELD_ENCRYPTION_KEY: ${HR_FIELD_ENCRYPTION_KEY:?set HR_FIELD_ENCRYPTION_KEY in .env (Fernet key)}
+      SSO_SHARED_SECRET: ${SSO_SHARED_SECRET:-dev-sso-shared-secret-change-me}
+      FIN_INTERNAL_BASE_URL: http://fin-backend:8000
+      HR_PUBLIC_BASE_URL: ${HR_PUBLIC_BASE_URL:-http://hr.localhost:8080}
+      PLATFORM_BASE_URL: ${PLATFORM_BASE_URL:-http://localhost:8080}
+    volumes:
+      - ./apps/hr:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: celery -A hrms worker --beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
 
   # ── Marketing site + auth + product switcher (NOT the products) ───────
   web:
@@ -195,6 +231,7 @@ services:
     environment:
       VITE_API_BASE_URL: /api/v1   # same-origin on whatever tenant host
       VITE_PLATFORM_BASE_URL: ${VITE_PLATFORM_BASE_URL:-http://localhost:8080}
+      VITE_HR_BASE_URL: ${VITE_HR_BASE_URL:-http://hr.localhost:8080}
     volumes:
       - ./apps/finance/frontend:/app
       - /app/node_modules

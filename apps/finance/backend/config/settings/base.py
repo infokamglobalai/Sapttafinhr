@@ -180,6 +180,7 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {
         "login": env("THROTTLE_LOGIN", default="10/min"),
         "signup": env("THROTTLE_SIGNUP", default="5/hour"),
+        "billing": env("THROTTLE_BILLING", default="30/min"),
         "password_reset": env("THROTTLE_PASSWORD_RESET", default="5/hour"),
         "email_verify": env("THROTTLE_EMAIL_VERIFY", default="5/hour"),
     },
@@ -207,6 +208,8 @@ SSO_SHARED_SECRET = env("SSO_SHARED_SECRET", default="")
 # Internal base URL of the HR backend (Docker service DNS), for server-to-server
 # HR workspace provisioning at signup. Empty disables auto-provisioning.
 HR_INTERNAL_BASE_URL = env("HR_INTERNAL_BASE_URL", default="http://hr-backend:8000")
+# Finance SPA URL template for HR → Fin handoff ({workspace} = tenant schema).
+FINANCE_APP_BASE_URL = env("FINANCE_APP_BASE_URL", default="http://{workspace}.localhost:8080")
 
 # ===== AI (Anthropic Claude) =====
 # Get your key at https://console.anthropic.com

@@ -6,13 +6,17 @@ from django.db import models
 # ---------------------------------------------------------------------------
 class LetterTemplate(models.Model):
     LETTER_TYPES = [
+        ("offer", "Offer Letter"),
+        ("appointment", "Appointment Letter"),
         ("experience", "Experience Letter"),
         ("relieving", "Relieving Letter"),
-        ("offer", "Offer Letter"),
-        ("increment", "Increment Letter"),
+        ("promotion", "Promotion Letter"),
+        ("increment", "Salary Increment Letter"),
         ("warning", "Warning Letter"),
+        ("confirmation", "Confirmation Letter"),
+        ("termination", "Termination Letter"),
+        ("internship", "Internship Letter"),
         ("appreciation", "Appreciation Letter"),
-        ("appointment", "Appointment Letter"),
         ("custom", "Custom"),
     ]
 
@@ -22,6 +26,10 @@ class LetterTemplate(models.Model):
     # Jinja2 template string. Available vars: employee.*, tenant.*, today, etc.
     template_html = models.TextField()
     variables = models.JSONField(default=list, blank=True)
+    requires_approval = models.BooleanField(
+        default=False,
+        help_text="When enabled, letters must be approved before PDF is issued.",
+    )
     is_active = models.BooleanField(default=True)
     created_by = models.ForeignKey("accounts.User", on_delete=models.SET_NULL, null=True, related_name="+")
     created_at = models.DateTimeField(auto_now_add=True)
@@ -34,23 +42,101 @@ class LetterTemplate(models.Model):
         return f"{self.get_letter_type_display()} — {self.name}"
 
 
+class CompanyLetterBranding(models.Model):
+    """Per-tenant letterhead assets — logo, signature, stamp, footer."""
+    tenant = models.OneToOneField(
+        "tenants.Tenant", on_delete=models.CASCADE, related_name="letter_branding"
+    )
+    logo = models.ImageField(upload_to="letter_branding/%Y/", null=True, blank=True)
+    signature_image = models.ImageField(upload_to="letter_branding/%Y/", null=True, blank=True)
+    stamp_image = models.ImageField(upload_to="letter_branding/%Y/", null=True, blank=True)
+    footer_html = models.TextField(
+        blank=True,
+        help_text="Optional footer text/HTML shown at the bottom of every letter.",
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "company_letter_branding"
+
+    def __str__(self):
+        return f"Letter branding — {self.tenant.name}"
+
+
 class HRLetter(models.Model):
+    STATUS_CHOICES = [
+        ("draft", "Draft"),
+        ("pending_approval", "Pending Approval"),
+        ("approved", "Approved"),
+        ("rejected", "Rejected"),
+        ("issued", "Issued"),
+        ("superseded", "Superseded"),
+    ]
+
     tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
     employee = models.ForeignKey("employees.Employee", on_delete=models.CASCADE, related_name="hr_letters")
     template = models.ForeignKey(LetterTemplate, on_delete=models.SET_NULL, null=True, blank=True)
     letter_type = models.CharField(max_length=30)
+    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default="draft")
+    reference_number = models.CharField(max_length=64, blank=True)
+    version = models.PositiveIntegerField(default=1)
+    parent = models.ForeignKey(
+        "self", on_delete=models.SET_NULL, null=True, blank=True, related_name="revisions"
+    )
+    draft_html = models.TextField(blank=True)
+    extra_context = models.JSONField(default=dict, blank=True)
     generated_by = models.ForeignKey("accounts.User", on_delete=models.SET_NULL, null=True, related_name="+")
     generated_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    submitted_at = models.DateTimeField(null=True, blank=True)
+    approved_by = models.ForeignKey(
+        "accounts.User", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    approved_at = models.DateTimeField(null=True, blank=True)
+    rejected_by = models.ForeignKey(
+        "accounts.User", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    rejected_at = models.DateTimeField(null=True, blank=True)
+    rejection_reason = models.TextField(blank=True)
+    issued_at = models.DateTimeField(null=True, blank=True)
     pdf = models.FileField(upload_to="hr_letters/%Y/", null=True, blank=True)
+    employee_document = models.ForeignKey(
+        "employees.EmployeeDocument",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="hr_letters",
+    )
     is_shared = models.BooleanField(default=False)
     shared_at = models.DateTimeField(null=True, blank=True)
+    emailed_at = models.DateTimeField(null=True, blank=True)
+    is_deleted = models.BooleanField(default=False)
 
     class Meta:
         db_table = "hr_letters"
         ordering = ["-generated_at"]
+        indexes = [
+            models.Index(fields=["tenant", "status", "letter_type"]),
+            models.Index(fields=["tenant", "employee", "letter_type", "status"]),
+        ]
 
     def __str__(self):
-        return f"{self.letter_type} — {self.employee}"
+        return f"{self.letter_type} v{self.version} — {self.employee}"
+
+    @property
+    def is_editable(self) -> bool:
+        return self.status in ("draft", "rejected")
+
+    @property
+    def is_issued(self) -> bool:
+        return self.status == "issued"
+
+    def type_label(self) -> str:
+        return dict(LetterTemplate.LETTER_TYPES).get(self.letter_type, self.letter_type.replace("_", " ").title())
+
+    @property
+    def type_display(self) -> str:
+        return self.type_label()
 
 
 # ---------------------------------------------------------------------------
@@ -436,6 +522,11 @@ class AuditLog(models.Model):
         ("reject", "Rejected"),
         ("publish", "Published"),
         ("submit", "Submitted"),
+        ("issue", "Issued"),
+        ("download", "Downloaded"),
+        ("email", "Emailed"),
+        ("duplicate", "Duplicated"),
+        ("regenerate", "Regenerated"),
         ("login", "Logged in"),
         ("logout", "Logged out"),
         ("export", "Exported"),

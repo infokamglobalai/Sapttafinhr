@@ -7,6 +7,7 @@
     <p class="text-sm text-base-content/60">Offer, appointment, experience, relieving & more — with your company name and signatory auto-filled.</p>
   </div>
   <div class="flex flex-wrap gap-2">
+    <a href="{% url 'hr_ops:letter_history' %}" class="btn btn-outline btn-sm">Letter history</a>
     <a href="{% url 'hr_ops:letter_company_settings' %}" class="btn btn-outline btn-sm">Company letterhead</a>
     {% if has_defaults_available %}
     <form method="post" action="{% url 'hr_ops:letter_seed_defaults' %}">

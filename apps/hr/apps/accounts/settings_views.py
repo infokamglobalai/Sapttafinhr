@@ -15,6 +15,7 @@ from .settings_forms import (
     send_test_invite_email,
 )
 from .billing_services import fetch_platform_billing, merge_billing_snapshot
+from .product_access import tenant_has_finance
 from .security_trust import get_security_trust_context
 from .views import _ensure_self_employee
 
@@ -101,6 +102,11 @@ def account_settings(request):
         "subscription": subscription,
         "platform_url": platform_url,
         "billing_url": f"{platform_url}/app/billing",
-        "finance_url": f"{platform_url}/launch?to=finance",
+        "finance_url": (
+            "/auth/launch/finance/"
+            if tenant_has_finance(tenant)
+            else f"{platform_url}/app/billing"
+        ),
+        "can_access_finance": tenant_has_finance(tenant) if tenant else False,
         "security_trust": get_security_trust_context(),
     })

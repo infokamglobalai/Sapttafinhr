@@ -71,10 +71,15 @@ def payroll_run_detail(request, pk):
         getattr(settings, "FIN_INTERNAL_BASE_URL", "")
         and getattr(settings, "SSO_SHARED_SECRET", "")
     )
+    gcc_export_readiness = None
+    if is_gcc_payroll(tenant):
+        from .gcc_export_validation import assess_gcc_export_readiness
+        gcc_export_readiness = assess_gcc_export_readiness(tenant, run)
     return render(request, "payroll/run_detail.html", {
         "run": run, "records": records,
         "anomalies": anomalies, "anomaly_counts": summary(anomalies),
         "finance_sync_available": finance_sync_available,
+        "gcc_export_readiness": gcc_export_readiness,
     })
 
 
@@ -1208,8 +1213,23 @@ def statutory_bundle_export(request, pk):
 @require_gcc_payroll
 def wps_sif_export(request, pk):
     from .exports_gcc import build_wps_sif_csv
+    from .gcc_export_validation import assess_gcc_export_readiness
     tenant = request.tenant
     run = get_object_or_404(PayrollRun, pk=pk, tenant=tenant)
+    readiness = assess_gcc_export_readiness(tenant, run)
+    if not readiness.can_export:
+        messages.error(
+            request,
+            "Cannot export WPS file — no employees have valid bank IBAN/SWIFT details. "
+            "Fix the issues listed on this page first.",
+        )
+        return redirect("payroll:run_detail", pk=pk)
+    if readiness.issue_count:
+        messages.warning(
+            request,
+            f"WPS export includes {readiness.ready_count} employee(s); "
+            f"{readiness.issue_count} excluded due to validation issues.",
+        )
     csv_text = build_wps_sif_csv(tenant, run)
     resp = HttpResponse(csv_text, content_type="text/csv; charset=utf-8")
     resp["Content-Disposition"] = f'attachment; filename="wps_sif_{run.year}-{run.month:02d}.csv"'
@@ -1220,8 +1240,22 @@ def wps_sif_export(request, pk):
 @require_gcc_payroll
 def gcc_bank_transfer_export(request, pk):
     from .exports_gcc import build_gcc_bank_transfer_csv
+    from .gcc_export_validation import assess_gcc_export_readiness
     tenant = request.tenant
     run = get_object_or_404(PayrollRun, pk=pk, tenant=tenant)
+    readiness = assess_gcc_export_readiness(tenant, run)
+    if not readiness.can_export:
+        messages.error(
+            request,
+            "Cannot export bank transfer file — no employees have valid IBAN details.",
+        )
+        return redirect("payroll:run_detail", pk=pk)
+    if readiness.issue_count:
+        messages.warning(
+            request,
+            f"Bank transfer includes {readiness.ready_count} employee(s); "
+            f"{readiness.issue_count} excluded due to validation issues.",
+        )
     csv_text = build_gcc_bank_transfer_csv(tenant, run)
     resp = HttpResponse(csv_text, content_type="text/csv; charset=utf-8")
     resp["Content-Disposition"] = f'attachment; filename="bank_transfer_{run.year}-{run.month:02d}.csv"'

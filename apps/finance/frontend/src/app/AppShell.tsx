@@ -12,6 +12,7 @@ import { cn } from '@/lib/cn';
 import { Toaster } from '@/components/Toaster';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { fetchOwnedProducts, platformBillingUrl, switchToHrApp } from '@/lib/products';
 import { useActiveCompany } from '@/hooks/useActiveCompany';
 import type { TaxRegime } from '@/features/masters/api';
 
@@ -269,14 +270,18 @@ export default function AppShell() {
 
   const go = (r: RouteId) => { window.location.hash = `/${r}`; setQuickOpen(false); setMobileNavOpen(false); };
 
-  // Cross-product + session actions delegate to the platform (the single auth
-  // authority — it holds the session and entitlements). `/launch` opens the
-  // other product (or upsells if not owned); `/logout` is the one full-logout.
-  const PLATFORM = (import.meta.env.VITE_PLATFORM_BASE_URL || 'http://localhost:8080').replace(/\/+$/, '');
+  const { data: ownedProducts = ['FIN'] } = useQuery({
+    queryKey: ['owned-products'],
+    queryFn: fetchOwnedProducts,
+    staleTime: 60_000,
+  });
+  const hasHrProduct = ownedProducts.includes('HR');
+
   const [appMenuOpen, setAppMenuOpen] = useState(false);
-  const switchToHr = () => window.location.assign(`${PLATFORM}/launch?to=hr`);
-  const openBilling = () => window.location.assign(`${PLATFORM}/app/billing`);
+  const switchToHr = () => { void switchToHrApp(); };
+  const openBilling = () => window.location.assign(platformBillingUrl());
   const signOut = () => {
+    const PLATFORM = (import.meta.env.VITE_PLATFORM_BASE_URL || 'http://localhost:8080').replace(/\/+$/, '');
     // Full logout: drop THIS product's session (its own origin), then end the
     // platform session via /logout. Removing the persisted key directly avoids
     // re-rendering into the "no session → bounce to login" path before we leave.
@@ -295,8 +300,9 @@ export default function AppShell() {
         fin-saptta
         <span className="ml-auto text-[10px] text-ink-500 font-normal">current</span>
       </div>
-      <button onClick={switchToHr} className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-xs font-medium text-ink-700 hover:bg-ink-100 hover:text-ink-950 transition-colors">
+      <button onClick={hasHrProduct ? switchToHr : openBilling} className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-xs font-medium text-ink-700 hover:bg-ink-100 hover:text-ink-950 transition-colors">
         <Users size={14} className="text-ink-500" /> Saptta HR
+        {!hasHrProduct && <span className="ml-auto text-[10px] text-amber-600 font-semibold">Upgrade</span>}
       </button>
       <div className="my-1 border-t border-ink-150" />
       <button onClick={openBilling} className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-xs font-medium text-ink-700 hover:bg-ink-100 hover:text-ink-950 transition-colors">
@@ -614,9 +620,10 @@ export default function AppShell() {
                 );
               })}
               <div className="mt-4 border-t border-slate-200 pt-4 space-y-1">
-                <button onClick={switchToHr}
+                <button onClick={hasHrProduct ? switchToHr : openBilling}
                   className="flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-left text-ink-600 hover:bg-slate-100 hover:text-ink-900">
                   <Users size={14} /> Saptta HR
+                  {!hasHrProduct && <span className="ml-auto text-[10px] text-amber-600 font-semibold">Upgrade</span>}
                 </button>
                 <button onClick={openBilling}
                   className="flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-left text-ink-600 hover:bg-slate-100 hover:text-ink-900">

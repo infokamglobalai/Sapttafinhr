@@ -51,6 +51,37 @@ BULK_EMPLOYEES = [
 class Command(BaseCommand):
     help = "Seed full HR demo data (employees, attendance, leaves, jobs) for the acme workspace"
 
+    @staticmethod
+    def _demo_iban(tenant, employee_code: str) -> str:
+        """WPS-ready Kuwait IBAN or numeric account for India demos."""
+        import hashlib
+
+        if getattr(tenant, "payroll_jurisdiction", None) == "KW":
+            digest = hashlib.md5(employee_code.encode()).hexdigest().upper()
+            account = (digest * 2)[:22]
+            return f"KW81CBKU{account}"
+        digits = "".join(ch for ch in employee_code if ch.isdigit()) or "1234567890"
+        return digits.zfill(12)[:12]
+
+    @staticmethod
+    def _demo_swift(tenant) -> str:
+        return "NBOKKWKW" if getattr(tenant, "payroll_jurisdiction", None) == "KW" else "HDFC0001234"
+
+    def _normalize_demo_bank_accounts(self, tenant):
+        """Refresh primary bank rows so Kuwait demos pass GCC export validation."""
+        from apps.employees.models import EmployeeBankAccount
+
+        for bank in EmployeeBankAccount.objects.filter(
+            employee__tenant=tenant, is_primary=True,
+        ).select_related("employee"):
+            code = bank.employee.employee_code
+            bank.account_number = self._demo_iban(tenant, code)
+            bank.ifsc_code = self._demo_swift(tenant)
+            if tenant.payroll_jurisdiction == "KW":
+                bank.bank_name = bank.bank_name or "National Bank of Kuwait"
+            bank.is_verified = True
+            bank.save()
+
     def add_arguments(self, parser):
         parser.add_argument("--subdomain", default=DEFAULT_SUBDOMAIN, help="Tenant subdomain")
         parser.add_argument(
@@ -115,6 +146,7 @@ class Command(BaseCommand):
             self._seed_attendance(tenant)
             self._seed_leaves(tenant, manager_emp)
             self._seed_recruitment(tenant, org)
+            self._seed_projects(tenant, org, manager_emp, employee_emp)
             tenant.employee_count = tenant.employees.filter(is_active=True).count()
             tenant.setup_complete = True
             tenant.save(update_fields=["employee_count", "setup_complete"])
@@ -128,7 +160,9 @@ class Command(BaseCommand):
                 structure=structure,
             )
         call_command("seed_onboarding", tenant=subdomain)
+        self._seed_letter_module(tenant)
         self._seed_payroll_run(tenant)
+        self._normalize_demo_bank_accounts(tenant)
 
         self._print_summary(tenant, manager_emp, employee_emp)
 
@@ -315,11 +349,11 @@ class Command(BaseCommand):
                     employee=emp, account_holder_name=emp.full_name,
                     bank_name="National Bank of Kuwait" if is_kw else "HDFC Bank",
                     branch_name="Sharq" if is_kw else "Bengaluru Main",
-                    ifsc_code="NBOK0000001" if is_kw else "HDFC0001234",
+                    ifsc_code=self._demo_swift(tenant),
                     account_type="savings",
                     is_primary=True, is_verified=True,
                 )
-                bank.account_number = "50100123456789"
+                bank.account_number = self._demo_iban(tenant, emp.employee_code)
                 bank.save()
 
         return emp
@@ -477,8 +511,7 @@ class Command(BaseCommand):
 
             bank_name = "National Bank of Kuwait" if is_kw else "ICICI Bank"
             branch_name = "Sharq Branch" if is_kw else "Bengaluru"
-            ifsc_code = "NBOK0000001" if is_kw else "ICIC0001234"
-            acc_number = str(random.randint(1000000000, 9999999999))
+            ifsc_code = self._demo_swift(tenant)
 
             bank = EmployeeBankAccount(
                 employee=emp, account_holder_name=emp.full_name,
@@ -486,7 +519,7 @@ class Command(BaseCommand):
                 ifsc_code=ifsc_code, account_type="savings",
                 is_primary=True, is_verified=True,
             )
-            bank.account_number = acc_number
+            bank.account_number = self._demo_iban(tenant, emp.employee_code)
             bank.save()
             created += 1
 
@@ -684,6 +717,68 @@ class Command(BaseCommand):
         published = JobOpening.objects.filter(tenant=tenant, status="published").count()
         self.stdout.write(self.style.SUCCESS(f"Recruitment: {published} published job(s)."))
 
+    def _seed_projects(self, tenant, org, manager_emp, employee_emp):
+        from apps.accounts.models import User
+        from apps.employees.models import Employee
+        from apps.projects.models import Project, ProjectMember
+
+        admin = User.objects.filter(tenant=tenant, email__iexact="demo@saptta.com").first()
+        dept_eng = org["depts"].get("Engineering")
+        dept_prod = org["depts"].get("Product")
+        dept_cs = org["depts"].get("Customer Success")
+        today = timezone.localdate()
+
+        extras = list(
+            Employee.objects.filter(tenant=tenant, department=dept_eng, is_active=True)
+            .exclude(pk__in=[manager_emp.pk, employee_emp.pk])
+            .order_by("first_name", "last_name")[:2]
+        )
+
+        specs = [
+            (
+                "WEB-01", "Website Revamp", "active", dept_eng, manager_emp,
+                [employee_emp, *extras],
+                "Rebuild marketing site and customer self-service portal.",
+            ),
+            (
+                "PROD-Q3", "Q3 Product Launch", "planning", dept_prod, manager_emp,
+                [employee_emp],
+                "Enterprise feature rollout and GTM coordination.",
+            ),
+            (
+                "CS-ONB", "Customer Onboarding Playbook", "completed", dept_cs, manager_emp,
+                [employee_emp],
+                "Standardize onboarding checklists for new accounts.",
+            ),
+        ]
+
+        for code, name, status, dept, lead, members, description in specs:
+            project, _ = Project.objects.update_or_create(
+                tenant=tenant,
+                code=code,
+                defaults={
+                    "name": name,
+                    "status": status,
+                    "department": dept,
+                    "lead": lead,
+                    "description": description,
+                    "created_by": admin,
+                    "start_date": today.replace(day=1),
+                },
+            )
+            ProjectMember.objects.get_or_create(
+                project=project, employee=lead, defaults={"role": "lead"},
+            )
+            for member in members:
+                if member.pk == lead.pk:
+                    continue
+                ProjectMember.objects.get_or_create(
+                    project=project, employee=member, defaults={"role": "member"},
+                )
+
+        count = Project.objects.filter(tenant=tenant).count()
+        self.stdout.write(self.style.SUCCESS(f"Projects: {count} demo project(s)."))
+
     def _seed_payroll_run(self, tenant):
         """Create last 3 months' payroll with records, payslips, and ESS publish."""
         import calendar
@@ -771,10 +866,40 @@ class Command(BaseCommand):
             n += 1
         return f"EMP{n:04d}"
 
+    def _seed_letter_module(self, tenant):
+        """Default letter templates + company letterhead for demo/testing."""
+        from apps.accounts.models import User
+        from apps.hr_ops.letter_company import get_company_profile, save_company_profile
+        from apps.hr_ops.letter_services import seed_default_letter_templates
+
+        admin = (
+            User.objects.filter(tenant=tenant, email__iexact="demo@saptta.com").first()
+            or User.objects.filter(tenant=tenant, email__iexact="kuwit@saptta.com").first()
+            or User.objects.filter(tenant=tenant).order_by("id").first()
+        )
+        created, skipped = seed_default_letter_templates(tenant, created_by=admin)
+        profile = get_company_profile(tenant)
+        if not profile.signatory_name:
+            save_company_profile(tenant, {
+                "display_name": tenant.name,
+                "address": tenant.address or "123 Business Park, Indiranagar",
+                "city": "Kuwait City" if tenant.payroll_jurisdiction == "KW" else "Bengaluru, Karnataka",
+                "signatory_name": "Priya Sharma",
+                "signatory_title": "Director — Human Resources",
+                "contact_email": "hr@saptta.com",
+                "contact_phone": "+91 98765 43210",
+                "ref_prefix": "HR",
+                "footer_text": "Confidential · Official company document",
+            })
+        self.stdout.write(
+            self.style.SUCCESS(f"Letter module: {created} template(s) installed, {skipped} already present.")
+        )
+
     def _print_summary(self, tenant, manager_emp, employee_emp):
         from apps.employees.models import Employee
         from apps.attendance.models import AttendanceRecord
         from apps.leaves.models import LeaveRequest
+        from apps.projects.models import Project
 
         today = timezone.localdate()
         total = Employee.objects.filter(tenant=tenant, is_active=True).count()
@@ -782,6 +907,7 @@ class Command(BaseCommand):
             tenant=tenant, attendance_date=today, status="present",
         ).count()
         pending = LeaveRequest.objects.filter(tenant=tenant, status="pending").count()
+        projects = Project.objects.filter(tenant=tenant).count()
 
         admin_email = "kuwit@saptta.com" if tenant.payroll_jurisdiction == "KW" else "demo@saptta.com"
         admin_pass = "Kuwit@1234" if tenant.payroll_jurisdiction == "KW" else "Demo@1234"
@@ -791,7 +917,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS("  HR demo data ready"))
         self.stdout.write(self.style.SUCCESS("=" * 60))
         self.stdout.write(f"  Workspace:  {tenant.name} ({tenant.subdomain})")
-        self.stdout.write(f"  Employees:  {total} active | {present} present today | {pending} leave pending")
+        self.stdout.write(f"  Employees:  {total} active | {present} present today | {pending} leave pending | {projects} projects")
         self.stdout.write("")
         self.stdout.write("  Log in via platform:")
         self.stdout.write(f"    Admin     {admin_email}      / {admin_pass}")

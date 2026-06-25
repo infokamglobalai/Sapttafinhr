@@ -39,7 +39,7 @@ OnboardingTaskFormSet = inlineformset_factory(
 class LetterTemplateForm(forms.ModelForm):
     class Meta:
         model = LetterTemplate
-        fields = ["letter_type", "name", "template_html", "is_active"]
+        fields = ["letter_type", "name", "template_html", "requires_approval", "is_active"]
         widgets = {
             "letter_type": forms.Select(attrs={"class": SELECT, "id": "id_letter_type"}),
             "name": forms.TextInput(attrs={"class": INPUT, "placeholder": "Offer Letter — Standard"}),
@@ -47,6 +47,7 @@ class LetterTemplateForm(forms.ModelForm):
                 "class": TEXTAREA, "rows": 18, "spellcheck": "false", "id": "id_template_html",
                 "style": "font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.6;",
             }),
+            "requires_approval": forms.CheckboxInput(attrs={"class": "checkbox checkbox-primary"}),
         }
 
 
@@ -67,7 +68,7 @@ class CompanyLetterSettingsForm(forms.Form):
         widget=forms.TextInput(attrs={"class": INPUT, "placeholder": "Bengaluru, Karnataka"}),
     )
     signatory_name = forms.CharField(
-        label="Signatory name (Director / HR head)",
+        label="Authorized signatory name",
         max_length=255,
         required=False,
         widget=forms.TextInput(attrs={"class": INPUT, "placeholder": "Priya Sharma"}),
@@ -92,6 +93,35 @@ class CompanyLetterSettingsForm(forms.Form):
         required=False,
         widget=forms.TextInput(attrs={"class": INPUT, "placeholder": "HR"}),
         help_text="Used in letter refs e.g. HR/OFF/EMP001",
+    )
+    footer_text = forms.CharField(
+        label="Footer text",
+        required=False,
+        widget=forms.Textarea(attrs={"class": TEXTAREA, "rows": 2, "placeholder": "Confidential · www.company.com"}),
+    )
+    logo = forms.ImageField(
+        label="Company logo",
+        required=False,
+        widget=forms.FileInput(attrs={"class": "file-input file-input-bordered w-full", "accept": "image/*"}),
+    )
+    signature_image = forms.ImageField(
+        label="Signature image",
+        required=False,
+        widget=forms.FileInput(attrs={"class": "file-input file-input-bordered w-full", "accept": "image/*"}),
+    )
+    stamp_image = forms.ImageField(
+        label="Company stamp",
+        required=False,
+        widget=forms.FileInput(attrs={"class": "file-input file-input-bordered w-full", "accept": "image/*"}),
+    )
+
+
+class LetterDraftForm(forms.Form):
+    draft_html = forms.CharField(
+        widget=forms.Textarea(attrs={
+            "class": TEXTAREA, "rows": 22, "id": "id_draft_html",
+            "style": "font-family: 'JetBrains Mono', monospace; font-size: 13px;",
+        }),
     )
 
 

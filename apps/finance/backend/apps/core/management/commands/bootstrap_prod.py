@@ -74,6 +74,11 @@ class Command(BaseCommand):
             domain=f"kuwait.{base_domain}", tenant=kuwait, defaults={"is_primary": True}
         )
 
+        from apps.saas.plan_catalog import seed_catalog_plans
+
+        n = seed_catalog_plans()
+        self.stdout.write(self.style.SUCCESS(f"Ensured {n} catalog plans (hrms, finance, saptta-complete)."))
+
         # 3. Create SaaS Plans and Subscription
         plan, _ = Plan.objects.get_or_create(
             code="dev-complete",

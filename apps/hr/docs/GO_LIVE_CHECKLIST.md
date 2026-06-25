@@ -6,8 +6,7 @@ Use this checklist before pointing a customer domain at production.
 
 - [ ] **PostgreSQL** — set `DATABASE_URL` (not SQLite)
 - [ ] **Redis** — set `REDIS_URL` for Celery and caching
-- [ ] **Celery worker** — `celery -A hrms worker -l info`
-- [ ] **Celery beat** — `celery -A hrms beat -l info` (monthly kickoff, report pack, payroll reminders)
+- [ ] **Celery worker + beat** — `docker compose -f docker-compose.prod.yml up -d hr-worker` (payslip delivery, payroll reminders, monthly report pack)
 - [ ] **Static files** — `python manage.py collectstatic` + WhiteNoise or CDN
 - [ ] **Media storage** — S3/Spaces via `django-storages` for documents and payslips
 - [ ] **HTTPS** — TLS certificate on reverse proxy (nginx/Caddy)
@@ -62,6 +61,7 @@ Use this checklist before pointing a customer domain at production.
 
 ```powershell
 python manage.py run_monthly_automation --action all --tenant <subdomain>
+python manage.py check_go_live_readiness --strict
 ```
 
 ## Post go-live

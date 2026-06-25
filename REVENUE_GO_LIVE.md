@@ -8,7 +8,7 @@ Steps to charge customers after HR product is demo-ready.
 |-----|--------|
 | **Razorpay order notes** | Orders now include `schema` / `workspace` so webhooks can activate the right tenant |
 | **POST /saas/billing/confirm/** | SPA verifies payment immediately after checkout (no webhook wait) |
-| **Billing page** | Dev auto-activate only in `DEV`; production uses Razorpay + confirm |
+| **Billing page** | Always uses Razorpay checkout (test keys locally, live keys in production) |
 | **Docker env** | `HR_INTERNAL_BASE_URL`, Razorpay vars passed to `fin-backend` |
 | **`.env.example`** | Documents Razorpay + SMTP settings |
 
@@ -30,6 +30,8 @@ docker compose exec fin-backend pytest apps/saas/tests/test_billing.py apps/saas
 
 ### 1. Razorpay
 - Create merchant account + complete KYC
+- **Local `.env`:** Razorpay dashboard → **Test mode** → generate keys (`rzp_test_…`)
+- **Production server:** switch to **Live mode** → generate keys (`rzp_live_…`)
 - Add to `.env`:
   - `RAZORPAY_KEY_ID`
   - `RAZORPAY_KEY_SECRET`

@@ -77,17 +77,11 @@ def generate_gst_invoice(subscription, *, period_start: date, period_end: date,
 
     rate = Decimal("18")
     gross = Decimal(str(gross_amount))
-    taxable = (gross / (Decimal("1") + rate / Decimal("100"))).quantize(Decimal("0.01"), ROUND_HALF_UP)
-    tax = (gross - taxable).quantize(Decimal("0.01"), ROUND_HALF_UP)
+    from .pricing import split_gst_inclusive
 
-    pos = (place_of_supply or "").strip()
-    intra = bool(pos) and pos == _vendor_state()
-    cgst = sgst = igst = Decimal("0")
-    if not pos or intra:
-        cgst = (tax / 2).quantize(Decimal("0.01"), ROUND_HALF_UP)
-        sgst = tax - cgst
-    else:
-        igst = tax
+    taxable, tax, cgst, sgst, igst = split_gst_inclusive(
+        gross, place_of_supply=place_of_supply, vendor_state=_vendor_state(),
+    )
 
     # Sequential number within the fiscal year.
     fy = _fy_label(period_end)
@@ -103,7 +97,7 @@ def generate_gst_invoice(subscription, *, period_start: date, period_end: date,
         taxable_amount=taxable,
         cgst=cgst, sgst=sgst, igst=igst, tax_rate=rate,
         sac_code="9983",
-        place_of_supply=pos,
+        place_of_supply=place_of_supply,
         customer_gstin=customer_gstin,
         due_date=period_start,
         status=SaasInvoice.Status.PAID,  # generated on successful payment
@@ -146,8 +140,18 @@ def activate_subscription_for_tenant(
 
     # Issue a GST-compliant SaaS invoice for the paid period (idempotent).
     try:
-        gross = sub.plan.monthly_price if period_days <= 31 else sub.plan.annual_price
-        if gross and float(gross) > 0:
+        from .pricing import with_gst
+
+        gross = None
+        if notes:
+            raw_gross = notes.get("gross_inr")
+            if raw_gross not in (None, ""):
+                gross = Decimal(str(raw_gross))
+        if gross is None or gross <= 0:
+            ex = sub.plan.monthly_price if period_days <= 31 else sub.plan.annual_price
+            if ex and float(ex) > 0:
+                gross = with_gst(Decimal(str(ex)))
+        if gross and gross > 0:
             # Place of supply / GSTIN come from the tenant's FIN company if set.
             pos, gstin = _tenant_gst_info(schema_name)
             generate_gst_invoice(
@@ -198,19 +202,12 @@ class CreateOrderView(APIView):
     """
 
     permission_classes = [IsAuthenticated]
-    throttle_scope = "signup"  # reuse a conservative rate
+    throttle_scope = "billing"
 
     def post(self, request):
-        key_id = getattr(settings, "RAZORPAY_KEY_ID", "")
-        key_secret = getattr(settings, "RAZORPAY_KEY_SECRET", "")
-        if not (key_id and key_secret):
-            return Response(
-                {"detail": "Billing is not configured on this server."},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
-
         plan_code = request.data.get("plan_id")
         billing_cycle = request.data.get("cycle", "monthly")
+        coupon_code = (request.data.get("coupon_code") or "").strip()
         employees_raw = request.data.get("employees")
         try:
             employees = int(employees_raw) if employees_raw is not None else None
@@ -218,7 +215,7 @@ class CreateOrderView(APIView):
             employees = None
 
         from .models import Plan
-        from .pricing import INCLUDED_EMPLOYEES, plan_monthly_inr
+        from .pricing import INCLUDED_EMPLOYEES, gst_on_excluding, plan_monthly_inr, with_gst
 
         plan = Plan.objects.filter(code=plan_code, is_active=True).first()
         if not plan:
@@ -241,10 +238,103 @@ class CreateOrderView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        amount_paise = int(round(float(amount) * 100))
+        original_amount = amount
+        discount_amount = 0
+        coupon_obj = None
+        if coupon_code:
+            from .coupons import CouponError, apply_coupon
+
+            try:
+                result = apply_coupon(
+                    coupon_code,
+                    plan_code=plan.code,
+                    billing_cycle=billing_cycle,
+                    amount_inr=amount,
+                    tenant=tenant,
+                )
+            except CouponError as exc:
+                return Response({"detail": exc.message}, status=status.HTTP_400_BAD_REQUEST)
+            amount = result.final_amount
+            original_amount = result.original_amount
+            discount_amount = result.discount_amount
+            coupon_obj = result.coupon
+
+        taxable_ex = amount
+        gst_amount = gst_on_excluding(taxable_ex)
+        gross_inr = with_gst(taxable_ex)
+        amount_paise = int(round(float(gross_inr) * 100))
+
+        if amount_paise <= 0:
+            from .coupons import record_redemption
+            from .models import Subscription
+
+            period_days = 365 if billing_cycle == "annual" else 30
+            _attach_plan_to_subscription(tenant.schema_name, plan.code)
+            notes = {
+                "plan": plan.code,
+                "cycle": billing_cycle,
+                "schema": tenant.schema_name,
+                "coupon": coupon_obj.code if coupon_obj else "",
+            }
+            activated = activate_subscription_for_tenant(
+                tenant.schema_name, period_days=period_days, notes=notes,
+            )
+            if not activated:
+                return Response({"detail": "No subscription found for workspace."}, status=status.HTTP_404_NOT_FOUND)
+            sub = Subscription.objects.filter(tenant=tenant).first()
+            if coupon_obj:
+                record_redemption(
+                    coupon_obj,
+                    tenant=tenant,
+                    subscription=sub,
+                    plan_code=plan.code,
+                    billing_cycle=billing_cycle,
+                    original_amount=original_amount,
+                    discount_amount=discount_amount,
+                    final_amount=taxable_ex,
+                    redeemed_by_email=request.user.email,
+                )
+            return Response(
+                {
+                    "free_activation": True,
+                    "status": "activated",
+                    "workspace": tenant.schema_name,
+                    "original_amount": str(original_amount),
+                    "discount_amount": str(discount_amount),
+                    "taxable_amount": str(taxable_ex),
+                    "gst_amount": str(gst_amount),
+                    "final_amount": "0",
+                    "total_amount": "0",
+                    "coupon": coupon_obj.code if coupon_obj else "",
+                },
+                status=status.HTTP_201_CREATED,
+            )
+
+        key_id = getattr(settings, "RAZORPAY_KEY_ID", "")
+        key_secret = getattr(settings, "RAZORPAY_KEY_SECRET", "")
+        if not (key_id and key_secret):
+            return Response(
+                {"detail": "Billing is not configured on this server."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
 
         try:
             import requests
+
+            notes = {
+                "plan": plan.code,
+                "cycle": billing_cycle,
+                "schema": tenant.schema_name,
+                "workspace": tenant.schema_name,
+                "max_employees": str(headcount),
+                "employees": str(headcount),
+            }
+            if coupon_obj:
+                notes["coupon"] = coupon_obj.code
+                notes["discount_inr"] = str(discount_amount)
+            notes["taxable_inr"] = str(taxable_ex)
+            notes["gst_inr"] = str(gst_amount)
+            notes["gross_inr"] = str(gross_inr)
 
             resp = requests.post(
                 "https://api.razorpay.com/v1/orders",
@@ -252,24 +342,31 @@ class CreateOrderView(APIView):
                 json={
                     "amount": amount_paise,
                     "currency": "INR",
-                    "notes": {
-                        "plan": plan.code,
-                        "cycle": billing_cycle,
-                        "schema": tenant.schema_name,
-                        "workspace": tenant.schema_name,
-                        "max_employees": str(headcount),
-                        "employees": str(headcount),
-                    },
+                    "notes": notes,
                 },
                 timeout=15,
             )
             resp.raise_for_status()
             order = resp.json()
-        except Exception:  # noqa: BLE001
+        except Exception as exc:  # noqa: BLE001
             logger.exception("Razorpay order creation failed")
+            detail = "Could not start checkout. Please try again."
+            try:
+                import requests
+
+                if isinstance(exc, requests.HTTPError) and exc.response is not None:
+                    if exc.response.status_code == 401:
+                        detail = (
+                            "Razorpay API keys are invalid. Regenerate test keys in the "
+                            "Razorpay dashboard, update .env, and restart fin-backend."
+                        )
+            except Exception:  # noqa: BLE001
+                pass
             return Response(
-                {"detail": "Could not start checkout. Please try again."},
-                status=status.HTTP_502_BAD_GATEWAY,
+                {"detail": detail},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE
+                if "invalid" in detail.lower()
+                else status.HTTP_502_BAD_GATEWAY,
             )
 
         return Response(
@@ -280,9 +377,84 @@ class CreateOrderView(APIView):
                 "key_id": key_id,
                 "plan": plan.code,
                 "workspace": tenant.schema_name,
+                "original_amount": str(original_amount),
+                "discount_amount": str(discount_amount),
+                "taxable_amount": str(taxable_ex),
+                "gst_amount": str(gst_amount),
+                "final_amount": str(gross_inr),
+                "total_amount": str(gross_inr),
+                "coupon": coupon_obj.code if coupon_obj else "",
             },
             status=status.HTTP_201_CREATED,
         )
+
+
+class ValidateCouponView(APIView):
+    """POST /api/v1/saas/billing/validate-coupon/ — preview discount without creating order."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        from decimal import Decimal
+
+        from .coupons import CouponError, apply_coupon
+        from .models import Plan
+        from .pricing import INCLUDED_EMPLOYEES, gst_on_excluding, plan_monthly_inr, with_gst
+        from apps.core.models import Tenant
+
+        coupon_code = (request.data.get("coupon_code") or "").strip()
+        plan_code = request.data.get("plan_id")
+        billing_cycle = request.data.get("cycle", "monthly")
+        if not coupon_code:
+            return Response({"detail": "coupon_code is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        plan = Plan.objects.filter(code=plan_code, is_active=True).first()
+        if not plan:
+            return Response({"detail": "Unknown plan."}, status=status.HTTP_400_BAD_REQUEST)
+
+        employees_raw = request.data.get("employees")
+        try:
+            employees = int(employees_raw) if employees_raw is not None else None
+        except (TypeError, ValueError):
+            employees = None
+        headcount = employees or INCLUDED_EMPLOYEES
+        monthly = plan_monthly_inr(plan.code, headcount)
+        amount = monthly * 12 if billing_cycle == "annual" else monthly
+
+        tenant = (
+            Tenant.objects.exclude(schema_name="public")
+            .filter(billing_email__iexact=request.user.email)
+            .order_by("created_on")
+            .first()
+        )
+        try:
+            result = apply_coupon(
+                coupon_code,
+                plan_code=plan.code,
+                billing_cycle=billing_cycle,
+                amount_inr=Decimal(str(amount)),
+                tenant=tenant,
+            )
+        except CouponError as exc:
+            return Response({"valid": False, "detail": exc.message}, status=status.HTTP_400_BAD_REQUEST)
+
+        taxable_ex = result.final_amount
+        gst_amount = gst_on_excluding(taxable_ex)
+        total = with_gst(taxable_ex)
+
+        return Response({
+            "valid": True,
+            "code": result.coupon.code,
+            "discount_type": result.coupon.discount_type,
+            "discount_value": str(result.coupon.discount_value),
+            "original_amount": str(result.original_amount),
+            "discount_amount": str(result.discount_amount),
+            "taxable_amount": str(taxable_ex),
+            "gst_amount": str(gst_amount),
+            "final_amount": str(taxable_ex),
+            "total_amount": str(total),
+            "free_checkout": taxable_ex <= 0,
+        })
 
 
 class ConfirmPaymentView(APIView):
@@ -370,6 +542,41 @@ class ConfirmPaymentView(APIView):
         )
         if not activated:
             return Response({"detail": "No subscription found for workspace."}, status=status.HTTP_404_NOT_FOUND)
+
+        coupon_code = (notes.get("coupon") or "").strip()
+        if coupon_code:
+            from decimal import Decimal
+
+            from apps.core.models import Tenant
+            from .coupons import apply_coupon, record_redemption
+            from .models import CouponCode, CouponRedemption, Subscription
+
+            tenant = Tenant.objects.filter(schema_name=schema_name).first()
+            sub = Subscription.objects.filter(tenant=tenant).first() if tenant else None
+            if tenant and sub and not CouponRedemption.objects.filter(
+                razorpay_order_id=razorpay_order_id, coupon__code__iexact=coupon_code,
+            ).exists():
+                try:
+                    gross = Decimal(str(payment.get("amount", 0))) / Decimal("100")
+                    discount_inr = Decimal(str(notes.get("discount_inr") or "0"))
+                    original = gross + discount_inr
+                    coupon = CouponCode.objects.filter(code__iexact=coupon_code, is_active=True).first()
+                    if coupon:
+                        record_redemption(
+                            coupon,
+                            tenant=tenant,
+                            subscription=sub,
+                            plan_code=plan_code or "",
+                            billing_cycle=billing_cycle,
+                            original_amount=original,
+                            discount_amount=discount_inr,
+                            final_amount=gross,
+                            razorpay_order_id=razorpay_order_id,
+                            razorpay_payment_id=payment_id,
+                            redeemed_by_email=request.user.email,
+                        )
+                except Exception:  # noqa: BLE001
+                    logger.exception("Coupon redemption record failed for %s", coupon_code)
 
         return Response({"status": "activated", "workspace": schema_name})
 

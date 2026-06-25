@@ -97,6 +97,46 @@ DEFAULT_LETTER_TEMPLATES: dict[str, dict] = {
 </div>
 """,
     },
+    "promotion": {
+        "name": "Promotion Letter — Standard",
+        "html": """
+<p style="text-align: right;">Ref: {{ company.ref_prefix }}/PRO/{{ employee.employee_code }}<br>Date: {{ today_formatted }}</p>
+<p>Dear {{ employee.full_name }},</p>
+<p>We are pleased to inform you that you have been promoted to <strong>{{ new_designation|default(employee.designation.name|default("—")) }}</strong>{% if new_department %} in the <strong>{{ new_department }}</strong> department{% endif %}, effective <strong>{{ effective_date|default(today_formatted) }}</strong>.</p>
+<p>This promotion reflects your performance, leadership, and contribution to {{ company.name }}. Your revised compensation and benefits will be communicated separately.</p>
+<p>Congratulations and we wish you continued success in your new role.</p>
+""",
+    },
+    "confirmation": {
+        "name": "Confirmation Letter — Standard",
+        "html": """
+<p style="text-align: right;">Date: {{ today_formatted }}</p>
+<p><strong>Subject: Confirmation of Employment</strong></p>
+<p>Dear {{ employee.full_name }},</p>
+<p>We are pleased to confirm your employment with {{ company.name }} as <strong>{{ employee.designation.name|default("—") }}</strong>, effective <strong>{{ confirmation_date|default(today_formatted) }}</strong>, upon successful completion of your probation period.</p>
+<p>All other terms and conditions of your employment remain unchanged. We look forward to your continued contribution.</p>
+""",
+    },
+    "termination": {
+        "name": "Termination Letter — Standard",
+        "html": """
+<p style="text-align: right;">Ref: {{ company.ref_prefix }}/TER/{{ employee.employee_code }}<br>Date: {{ today_formatted }}</p>
+<p>Dear {{ employee.full_name }},</p>
+<p>This letter is to inform you that your employment with {{ company.name }} is terminated with effect from <strong>{{ last_working_day|default(employee.date_of_exit|default(today_formatted)) }}</strong>.</p>
+<p>Reason: <strong>{{ termination_reason|default("As per company policy and applicable law") }}</strong>.</p>
+<p>Please complete the exit formalities, return company assets, and collect your full &amp; final settlement as per policy.</p>
+""",
+    },
+    "internship": {
+        "name": "Internship Letter — Standard",
+        "html": """
+<p style="text-align: right;">Ref: {{ company.ref_prefix }}/INT/{{ employee.employee_code }}<br>Date: {{ today_formatted }}</p>
+<p>Dear {{ employee.first_name }},</p>
+<p>We are pleased to offer you an internship with <strong>{{ company.name }}</strong> as <strong>{{ employee.designation.name|default("Intern") }}</strong> from <strong>{{ internship_start|default(employee.date_of_joining) }}</strong> to <strong>{{ internship_end|default("—") }}</strong>.</p>
+<p>During this period you will report to {{ employee.reporting_manager.full_name|default("your mentor") }} and abide by company policies applicable to interns.</p>
+<p>Upon successful completion, a certificate of internship may be issued at the company's discretion.</p>
+""",
+    },
     "warning": {
         "name": "Warning Letter — Standard",
         "html": """

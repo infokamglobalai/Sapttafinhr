@@ -1,11 +1,30 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '@/lib/api';
 import { useActiveCompany } from '@/hooks/useActiveCompany';
+import { useIfscLookup } from '@/hooks/useIfscLookup';
 import {
   useUpdateCompany, useFiscalYears, useCreateFiscalYear, useCreateBankAccount,
   usePostableAccounts, useCompleteSetup, type Company,
 } from '@/features/masters/api';
 import { toast } from '@/components/Toaster';
+import {
+  GSTIN_HINT,
+  GSTIN_PLACEHOLDER,
+  gstinPanConsistency,
+  gstinStateConsistency,
+  sanitizeGstinInput,
+  sanitizePanInput,
+  validateGstin,
+  validatePan,
+} from '@/lib/taxValidation';
+import {
+  formatIfscLocation,
+  sanitizeAccountNumber,
+  sanitizeIfscInput,
+  suggestBankLabel,
+  validateAccountNumber,
+  validateIfscFormat,
+} from '@/lib/ifscLookup';
 
 /**
  * Forced first-run setup for the Finance product. Shown by App.tsx until the
@@ -55,29 +74,18 @@ export default function SetupWizard({ onComplete }: { onComplete: () => void }) 
   const hasActiveFY = (fiscalYears?.length ?? 0) > 0;
 
   const [bank, setBank] = useState({ name: '', bank_name: '', account_number: '', ifsc: '', branch: '', opening_balance: '0', ledger_account: '' });
+  const ifscLookup = useIfscLookup(bank.ifsc);
 
   useEffect(() => {
-    if (bank.ifsc.length === 11) {
-      fetch(`https://ifsc.razorpay.com/${bank.ifsc}`)
-        .then((res) => {
-          if (!res.ok) throw new Error('Invalid IFSC');
-          return res.json();
-        })
-        .then((data) => {
-          if (data && data.BRANCH) {
-            setBank((prev) => ({
-              ...prev,
-              branch: data.BRANCH,
-              bank_name: prev.bank_name || data.BANK,
-            }));
-            toast.success('IFSC verified', `${data.BANK}, ${data.BRANCH}`);
-          }
-        })
-        .catch(() => {
-          toast.error('Could not verify IFSC', 'Please check the code or enter branch manually.');
-        });
-    }
-  }, [bank.ifsc]);
+    if (ifscLookup.status !== 'found' || !ifscLookup.details) return;
+    const d = ifscLookup.details;
+    setBank((prev) => ({
+      ...prev,
+      bank_name: prev.bank_name || d.bank,
+      branch: d.branch_text || prev.branch,
+      name: prev.name || suggestBankLabel(d),
+    }));
+  }, [ifscLookup.status, ifscLookup.details]);
 
   // Suggest a bank-type GL account (code starting 112x) for the bank step.
   const bankAccountOptions = useMemo(
@@ -86,20 +94,62 @@ export default function SetupWizard({ onComplete }: { onComplete: () => void }) 
   );
 
   const idx = STEPS.findIndex((s) => s.id === step);
-  const fail = (e: any) => setErr(JSON.stringify(e?.response?.data ?? e?.message ?? 'Failed'));
+  const fail = (e: any) => {
+    const data = e?.response?.data;
+    if (data && typeof data === 'object') {
+      const parts = Object.entries(data).flatMap(([k, v]) => {
+        if (Array.isArray(v)) return v.map((msg) => `${k}: ${msg}`);
+        if (typeof v === 'string') return [`${k}: ${v}`];
+        return [];
+      });
+      if (parts.length) { setErr(parts.join(' ')); return; }
+      if (typeof data.detail === 'string') { setErr(data.detail); return; }
+    }
+    setErr(String(e?.message ?? 'Failed'));
+  };
 
   async function saveCompany() {
     setErr(null);
     if (!companyId) return;
     const isIndia = cForm.base_currency === 'INR' || cForm.country === 'IN';
-    if (!cForm.legal_name || (isIndia && (!cForm.gstin || !cForm.state_code))) {
+    const gstin = sanitizeGstinInput(cForm.gstin ?? '');
+    const pan = sanitizePanInput(cForm.pan ?? '');
+    const stateCode = (cForm.state_code ?? '').trim();
+
+    if (!cForm.legal_name || (isIndia && (!gstin || !stateCode))) {
       setErr(isIndia ? 'Legal name, GSTIN and home state code are required.' : 'Legal name is required.');
       return;
     }
+    if (isIndia) {
+      const gstErr = validateGstin(gstin, true);
+      if (gstErr) { setErr(gstErr); return; }
+      const panErr = validatePan(pan);
+      if (panErr) { setErr(panErr); return; }
+      const stateErr = gstinStateConsistency(gstin, stateCode);
+      if (stateErr) { setErr(stateErr); return; }
+      const panMatchErr = gstinPanConsistency(gstin, pan);
+      if (panMatchErr) { setErr(panMatchErr); return; }
+    }
     try {
-      await updateCompany.mutateAsync({ ...cForm, id: companyId });
+      await updateCompany.mutateAsync({
+        ...cForm,
+        id: companyId,
+        gstin,
+        pan: pan || cForm.pan,
+        state_code: stateCode.padStart(2, '0').slice(-2),
+      });
       setStep('fy');
     } catch (e) { fail(e); }
+  }
+
+  function onGstinChange(raw: string) {
+    const gstin = sanitizeGstinInput(raw);
+    setCForm((p) => {
+      const next: Partial<Company> = { ...p, gstin };
+      if (gstin.length >= 2) next.state_code = gstin.slice(0, 2);
+      if (gstin.length >= 12) next.pan = gstin.slice(2, 12);
+      return next;
+    });
   }
 
   async function saveFY() {
@@ -114,14 +164,31 @@ export default function SetupWizard({ onComplete }: { onComplete: () => void }) 
   async function saveBank(skip: boolean) {
     setErr(null);
     if (!skip) {
-      if (!bank.name || !bank.bank_name || !bank.account_number || !bank.ledger_account) {
+      const ifscErr = validateIfscFormat(bank.ifsc, true);
+      if (ifscErr) { setErr(ifscErr); return; }
+      if (ifscLookup.status === 'loading') {
+        setErr('IFSC lookup in progress — wait a moment or check the code.');
+        return;
+      }
+      if (ifscLookup.status === 'error' || ifscLookup.status === 'invalid') {
+        setErr(ifscLookup.error ?? 'Enter a valid IFSC before continuing.');
+        return;
+      }
+      if (ifscLookup.status !== 'found') {
+        setErr('Enter a valid IFSC to verify the bank branch.');
+        return;
+      }
+      const acErr = validateAccountNumber(bank.account_number);
+      if (acErr) { setErr(acErr); return; }
+      if (!bank.name || !bank.bank_name || !bank.ledger_account) {
         setErr('Fill the bank fields (or Skip for now).');
         return;
       }
       try {
         await createBank.mutateAsync({
           company: companyId, name: bank.name, bank_name: bank.bank_name,
-          account_number: bank.account_number, ifsc: bank.ifsc, branch: bank.branch,
+          account_number: sanitizeAccountNumber(bank.account_number),
+          ifsc: sanitizeIfscInput(bank.ifsc), branch: bank.branch,
           opening_balance: bank.opening_balance || '0', ledger_account: Number(bank.ledger_account),
         });
       } catch (e) { fail(e); return; }
@@ -163,9 +230,35 @@ export default function SetupWizard({ onComplete }: { onComplete: () => void }) 
               <Field label="Display Name *"><input className="input" value={cForm.name ?? ''} onChange={(e) => setCForm((p) => ({ ...p, name: e.target.value }))} /></Field>
               <Field label="Legal Name *"><input className="input" value={cForm.legal_name ?? ''} onChange={(e) => setCForm((p) => ({ ...p, legal_name: e.target.value }))} /></Field>
               <div className="grid grid-cols-2 gap-4">
-                <Field label="GSTIN *"><input className="input font-mono" maxLength={15} value={cForm.gstin ?? ''} onChange={(e) => setCForm((p) => ({ ...p, gstin: e.target.value.toUpperCase() }))} /></Field>
-                <Field label="PAN"><input className="input font-mono" maxLength={10} value={cForm.pan ?? ''} onChange={(e) => setCForm((p) => ({ ...p, pan: e.target.value.toUpperCase() }))} /></Field>
-                <Field label="Home State Code *"><input className="input" maxLength={2} placeholder="27" value={cForm.state_code ?? ''} onChange={(e) => setCForm((p) => ({ ...p, state_code: e.target.value }))} /></Field>
+                <Field label="GSTIN *">
+                  <input
+                    className="input font-mono"
+                    maxLength={15}
+                    placeholder={GSTIN_PLACEHOLDER}
+                    aria-describedby="gstin-hint"
+                    value={cForm.gstin ?? ''}
+                    onChange={(e) => onGstinChange(e.target.value)}
+                  />
+                  <p id="gstin-hint" className="mt-1 text-[11px] leading-snug text-slate-500">{GSTIN_HINT}</p>
+                </Field>
+                <Field label="PAN">
+                  <input
+                    className="input font-mono"
+                    maxLength={10}
+                    placeholder="AAACS1234D"
+                    value={cForm.pan ?? ''}
+                    onChange={(e) => setCForm((p) => ({ ...p, pan: sanitizePanInput(e.target.value) }))}
+                  />
+                </Field>
+                <Field label="Home State Code *">
+                  <input
+                    className="input"
+                    maxLength={2}
+                    placeholder="27"
+                    value={cForm.state_code ?? ''}
+                    onChange={(e) => setCForm((p) => ({ ...p, state_code: e.target.value.replace(/\D/g, '').slice(0, 2) }))}
+                  />
+                </Field>
                 <Field label="Base Currency"><input className="input" maxLength={3} value={cForm.base_currency ?? 'INR'} onChange={(e) => setCForm((p) => ({ ...p, base_currency: e.target.value.toUpperCase() }))} /></Field>
               </div>
               <Nav onNext={saveCompany} nextLabel={updateCompany.isPending ? 'Saving…' : 'Continue'} disabled={updateCompany.isPending} />
@@ -189,12 +282,58 @@ export default function SetupWizard({ onComplete }: { onComplete: () => void }) 
 
           {step === 'bank' && (
             <div className="space-y-4">
-              <p className="text-sm text-slate-500">Add a bank account now, or skip and add it later.</p>
+              <p className="text-sm text-slate-500">Add a bank account now, or skip and add it later. Enter IFSC first — bank and branch details are filled automatically.</p>
               <div className="grid grid-cols-2 gap-4">
-                <Field label="Label"><input className="input" placeholder="HDFC Current" value={bank.name} onChange={(e) => setBank((p) => ({ ...p, name: e.target.value }))} /></Field>
-                <Field label="Bank name"><input className="input" value={bank.bank_name} onChange={(e) => setBank((p) => ({ ...p, bank_name: e.target.value }))} /></Field>
-                <Field label="Account number"><input className="input font-mono" value={bank.account_number} onChange={(e) => setBank((p) => ({ ...p, account_number: e.target.value }))} /></Field>
-                <Field label="IFSC"><input className="input font-mono" value={bank.ifsc} onChange={(e) => setBank((p) => ({ ...p, ifsc: e.target.value.toUpperCase() }))} /></Field>
+                <Field label="IFSC *">
+                  <div className="relative">
+                    <input
+                      className={`input font-mono pr-9 ${ifscLookup.status === 'invalid' || ifscLookup.status === 'error' ? 'border-red-300 focus:border-red-400' : ifscLookup.status === 'found' ? 'border-emerald-300' : ''}`}
+                      maxLength={11}
+                      placeholder="HDFC0001234"
+                      value={bank.ifsc}
+                      onChange={(e) => setBank((p) => ({ ...p, ifsc: sanitizeIfscInput(e.target.value) }))}
+                    />
+                    {ifscLookup.status === 'loading' && (
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">…</span>
+                    )}
+                    {ifscLookup.status === 'found' && (
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-600" aria-hidden>✓</span>
+                    )}
+                  </div>
+                  <p className="mt-1 text-[11px] leading-snug text-slate-500">11 characters — 4 letters, 0, then 6 alphanumeric (e.g. HDFC0001234).</p>
+                  {(ifscLookup.status === 'invalid' || ifscLookup.status === 'error') && ifscLookup.error && (
+                    <p className="mt-1 text-[11px] text-red-600">{ifscLookup.error}</p>
+                  )}
+                </Field>
+                <Field label="Bank name *">
+                  <input
+                    className="input"
+                    placeholder="Filled from IFSC"
+                    value={bank.bank_name}
+                    onChange={(e) => setBank((p) => ({ ...p, bank_name: e.target.value }))}
+                  />
+                </Field>
+                {ifscLookup.details && (
+                  <div className="md:col-span-2 rounded-lg border border-emerald-100 bg-emerald-50/60 px-3 py-2 text-xs text-emerald-900">
+                    <div className="font-medium">{ifscLookup.details.bank}</div>
+                    <div className="mt-0.5 text-emerald-800">{formatIfscLocation(ifscLookup.details)}</div>
+                    {ifscLookup.details.address && (
+                      <div className="mt-1 text-emerald-700/90">{ifscLookup.details.address}</div>
+                    )}
+                  </div>
+                )}
+                <Field label="Account number *">
+                  <input
+                    className="input font-mono"
+                    inputMode="numeric"
+                    placeholder="9–18 digits"
+                    value={bank.account_number}
+                    onChange={(e) => setBank((p) => ({ ...p, account_number: sanitizeAccountNumber(e.target.value) }))}
+                  />
+                </Field>
+                <Field label="Label">
+                  <input className="input" placeholder="HDFC Current" value={bank.name} onChange={(e) => setBank((p) => ({ ...p, name: e.target.value }))} />
+                </Field>
                 <Field label="Opening balance"><input className="input" value={bank.opening_balance} onChange={(e) => setBank((p) => ({ ...p, opening_balance: e.target.value }))} /></Field>
                 <Field label="GL account">
                   <div className="flex flex-col gap-2 w-full">

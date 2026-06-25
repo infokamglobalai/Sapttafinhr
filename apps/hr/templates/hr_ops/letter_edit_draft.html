@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block page_title %}Edit letter draft{% endblock %}
+{% block content %}
+<div style="max-width: 900px; margin: 0 auto;">
+  <a href="{% url 'hr_ops:letter_detail' letter.pk %}" class="text-sm link mb-3 inline-block">← Back to letter</a>
+  <h2 class="text-xl font-bold mb-1">Edit draft — {{ letter.type_display }}</h2>
+  <p class="text-sm text-base-content/60 mb-4">{{ letter.employee.full_name }} · HTML content with placeholders already filled</p>
+
+  <form method="post" class="card">
+    <div class="card-body gap-4">
+      {% csrf_token %}
+      <label class="form-control">
+        <span class="label-text font-medium">Letter body (HTML)</span>
+        {{ form.draft_html }}
+        {% if form.draft_html.errors %}<span class="text-error text-xs">{{ form.draft_html.errors.0 }}</span>{% endif %}
+      </label>
+      <div class="card-actions justify-end gap-2">
+        <button type="submit" name="action" value="save" class="btn btn-primary">Save draft</button>
+        <button type="submit" name="action" value="preview" class="btn btn-outline">Save &amp; preview</button>
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock %}

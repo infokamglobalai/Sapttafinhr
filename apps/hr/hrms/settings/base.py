@@ -293,6 +293,8 @@ SSO_SHARED_SECRET = config("SSO_SHARED_SECRET", default="")
 SSO_TOKEN_MAX_AGE_SECONDS = config("SSO_TOKEN_MAX_AGE_SECONDS", default=120, cast=int)
 # Finance backend (server-to-server) for in-account billing + invoices.
 FIN_INTERNAL_BASE_URL = config("FIN_INTERNAL_BASE_URL", default="http://fin-backend:8000")
+# Finance SPA origin for HR → Fin handoff URLs ({workspace} replaced per tenant).
+FINANCE_APP_BASE_URL = config("FINANCE_APP_BASE_URL", default="http://{workspace}.localhost:8080")
 
 # AI (Anthropic Claude) — get key at https://console.anthropic.com
 ANTHROPIC_API_KEY = config("ANTHROPIC_API_KEY", default="")

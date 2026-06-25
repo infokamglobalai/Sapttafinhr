@@ -502,7 +502,9 @@
 
         <a href="{{ billing_url }}" class="btn btn-outline btn-sm" target="_blank" rel="noopener">Change plan or payment method →</a>
 
-        <a href="{{ finance_url }}" class="btn btn-ghost btn-sm" target="_blank" rel="noopener">Open fin-saptta</a>
+        {% if can_access_finance %}
+        <a href="{{ finance_url }}" class="btn btn-ghost btn-sm">Open fin-saptta</a>
+        {% endif %}
 
       </div>
 

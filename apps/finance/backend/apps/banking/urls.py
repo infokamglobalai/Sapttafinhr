@@ -9,6 +9,7 @@ from .views import (
     BankStatementViewSet,
     CreatePaymentLinkView,
     FXRateViewSet,
+    IfscLookupView,
     ImportStatementView,
     PDCViewSet,
     RazorpayWebhookView,
@@ -24,6 +25,7 @@ router.register("advances", AdvanceViewSet)
 router.register("fx-rates", FXRateViewSet)
 
 urlpatterns = [
+    path("ifsc/<str:ifsc>/", IfscLookupView.as_view()),
     path("statements/import/", ImportStatementView.as_view()),
     path("bank-accounts/<int:bank_id>/reconcile/", ReconcileView.as_view()),
     path("bank-accounts/<int:bank_id>/ai-reconcile/", AIReconcileView.as_view()),

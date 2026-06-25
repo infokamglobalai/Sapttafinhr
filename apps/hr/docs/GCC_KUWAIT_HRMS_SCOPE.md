@@ -45,14 +45,14 @@
 | End-of-service indemnity accrual | ✅ |
 | EOS settlement on exit | ✅ estimate |
 
-### D. Statutory exports — Kuwait — ⚠️ Validate with consultant
+### D. Statutory exports — Kuwait — ⚠️ Pre-validate in app + consultant sign-off
 
 | Export | Status |
 |--------|--------|
 | Salary register | ✅ Excel |
-| Bank transfer file | ✅ CSV stub |
+| Bank transfer file | ✅ CSV with IBAN/SWIFT validation |
 | PIFSS contribution report | ✅ Excel |
-| WPS SIF | ✅ CSV stub |
+| WPS SIF | ✅ CSV with IBAN/SWIFT validation + readiness panel on payroll run |
 | EOS liability snapshot | ✅ Excel |
 | Manpower / establishment | ✅ Excel + UI report |
 

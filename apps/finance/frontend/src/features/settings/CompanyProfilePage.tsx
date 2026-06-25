@@ -3,6 +3,16 @@ import PageHeader from '@/components/PageHeader';
 import { toast } from '@/components/Toaster';
 import { useActiveCompany } from '@/hooks/useActiveCompany';
 import { useUpdateCompany, type Company } from '@/features/masters/api';
+import {
+  GSTIN_HINT,
+  GSTIN_PLACEHOLDER,
+  gstinPanConsistency,
+  gstinStateConsistency,
+  sanitizeGstinInput,
+  sanitizePanInput,
+  validateGstin,
+  validatePan,
+} from '@/lib/taxValidation';
 
 export default function CompanyProfilePage() {
   const { companyId, companies } = useActiveCompany();
@@ -18,11 +28,32 @@ export default function CompanyProfilePage() {
   const save = async () => {
     setErr(null);
     if (!companyId) return;
+    const isIndia = form.base_currency === 'INR' || form.country === 'IN';
+    const gstin = sanitizeGstinInput(form.gstin ?? '');
+    const pan = sanitizePanInput(form.pan ?? '');
+    const stateCode = (form.state_code ?? '').trim();
+    if (isIndia && gstin) {
+      const gstErr = validateGstin(gstin, true);
+      if (gstErr) { setErr(gstErr); return; }
+      const panErr = validatePan(pan);
+      if (panErr) { setErr(panErr); return; }
+      const stateErr = gstinStateConsistency(gstin, stateCode);
+      if (stateErr) { setErr(stateErr); return; }
+      const panMatchErr = gstinPanConsistency(gstin, pan);
+      if (panMatchErr) { setErr(panMatchErr); return; }
+    }
     try {
-      await update.mutateAsync({ ...form, id: companyId });
+      await update.mutateAsync({
+        ...form,
+        id: companyId,
+        gstin,
+        pan: pan || form.pan,
+        state_code: stateCode ? stateCode.padStart(2, '0').slice(-2) : form.state_code,
+      });
       toast.success('Company profile saved');
     } catch (e: any) {
-      setErr(JSON.stringify(e?.response?.data ?? 'Failed'));
+      const data = e?.response?.data;
+      setErr(typeof data?.gstin === 'string' ? data.gstin : JSON.stringify(data ?? 'Failed'));
     }
   };
 
@@ -39,9 +70,19 @@ export default function CompanyProfilePage() {
           <div><label className="label">Legal Name</label>
             <input className="input" value={form.legal_name ?? ''} onChange={(e) => upd({ legal_name: e.target.value })} /></div>
           <div><label className="label">GSTIN</label>
-            <input className="input font-mono" value={form.gstin ?? ''} onChange={(e) => upd({ gstin: e.target.value.toUpperCase() })} maxLength={15} /></div>
+            <input className="input font-mono" value={form.gstin ?? ''} maxLength={15} placeholder={GSTIN_PLACEHOLDER}
+              onChange={(e) => {
+                const gstin = sanitizeGstinInput(e.target.value);
+                upd({
+                  gstin,
+                  ...(gstin.length >= 2 ? { state_code: gstin.slice(0, 2) } : {}),
+                  ...(gstin.length >= 12 ? { pan: gstin.slice(2, 12) } : {}),
+                });
+              }} />
+            <p className="mt-1 text-[11px] text-slate-500">{GSTIN_HINT}</p></div>
           <div><label className="label">PAN</label>
-            <input className="input font-mono" value={form.pan ?? ''} onChange={(e) => upd({ pan: e.target.value.toUpperCase() })} maxLength={10} /></div>
+            <input className="input font-mono" value={form.pan ?? ''} maxLength={10}
+              onChange={(e) => upd({ pan: sanitizePanInput(e.target.value) })} /></div>
           <div><label className="label">Home State Code</label>
             <input className="input" value={form.state_code ?? ''} onChange={(e) => upd({ state_code: e.target.value })} maxLength={2}
               placeholder="e.g. 27 (Maharashtra), 29 (Karnataka)" /></div>

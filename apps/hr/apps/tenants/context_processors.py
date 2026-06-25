@@ -19,7 +19,7 @@ SETTINGS_URL_NAMES = frozenset({
     "onboarding_templates", "onboarding_template_create", "onboarding_template_edit",
     "team_access", "team_access_update",
     "letter_templates", "letter_template_create", "letter_template_edit",
-    "letter_company_settings",
+    "letter_company_settings", "letter_history", "letter_detail", "letter_edit_draft",
 })
 
 
@@ -62,6 +62,12 @@ def _nav_active_category(request) -> str:
         "my_service_requests", "my_service_request_detail", "request_create",
         "my_projects", "my_timesheet",
     } or (app_name == "projects" and url_name in ("detail", "upload_document", "add_update")):
+        return "mySpace"
+    if app_name == "hr_ops" and url_name in ("notifications", "notification_open", "notification_dropdown"):
+        return "mySpace"
+    if app_name == "hr_ops" and "celebration" in url_name:
+        if url_name in ("celebration_create", "celebration_edit") or is_hr:
+            return "hrOps"
         return "mySpace"
     if app_name == "hr_ops" and url_name == "announcements" and not is_hr:
         return "mySpace"
@@ -108,9 +114,11 @@ def _nav_active_category(request) -> str:
     if (
         url_name in (
             "onboarding", "people_pulse", "document_expiry", "audit_log",
-            "letter_templates", "assets", "exit_list", "letter_company_settings",
+            "letter_templates", "letter_history", "letter_detail", "letter_edit_draft",
+            "assets", "exit_list", "letter_company_settings",
             "policy_list", "announcements", "company_overview",
         )
+        or (app_name == "hr_ops" and "celebration" in url_name and is_hr)
         or app_name == "recruitment"
         or ("service_request" in url_name and app_name == "hr_ops" and is_hr)
         or "letter_template" in url_name
@@ -282,4 +290,24 @@ def tenant_context(request):
             ).count()
         except Exception:
             pass
+    # Product entitlements for cross-product menu (owner billing is authoritative).
+    tenant = ctx.get("tenant")
+    if user and user.is_authenticated and tenant:
+        from apps.accounts.product_access import (
+            product_menu_label,
+            tenant_has_finance,
+            tenant_has_hr,
+        )
+
+        ctx["can_access_finance"] = tenant_has_finance(tenant)
+        ctx["can_access_hr"] = tenant_has_hr(tenant)
+        ctx["product_menu_label"] = product_menu_label(tenant)
+        ctx["is_workspace_owner"] = user.is_company_owner
+        ctx["platform_billing_url"] = f"{ctx['PLATFORM_BASE_URL']}/app/billing"
+    else:
+        ctx["can_access_finance"] = False
+        ctx["can_access_hr"] = False
+        ctx["product_menu_label"] = "Saptta products"
+        ctx["is_workspace_owner"] = False
+        ctx["platform_billing_url"] = ""
     return ctx

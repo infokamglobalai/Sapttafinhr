@@ -145,6 +145,31 @@
       </div>
     </div>
 
+    {# ── Pending offer letters ── #}
+    {% if pending_offer_count %}
+    <div class="premium-glass-card p-6 dash-panel dash-panel--alert" :class="panelClass('offer_pending')" :style="{ order: panelOrder('offer_pending') }">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="ch-title" style="margin: 0;">Offer letter pending <span class="badge badge-warning badge-sm ml-1">{{ pending_offer_count }}</span></h3>
+        <a href="{% url 'hr_ops:letter_history' %}" class="btn btn-ghost btn-xs text-indigo-600 font-extrabold">Letters</a>
+      </div>
+      <p class="text-xs text-slate-500 mb-3">Joined employees without an issued offer letter — disappears once HR issues it.</p>
+      <div class="flex flex-col gap-2 mt-2">
+        {% for row in pending_offer_letters|slice:":5" %}
+        <div class="list-row">
+          <div class="flex items-center gap-3 min-width-0">
+            <div class="w-9 h-9 rounded-xl grad-avatar text-xs font-bold">{{ row.employee.first_name|first }}{{ row.employee.last_name|first }}</div>
+            <div style="min-width: 0;">
+              <div class="row-title font-bold" style="font-size:13.5px;">{{ row.employee.full_name }}</div>
+              <div class="row-sub text-xs">{{ row.join_status_label }} · {{ row.documentation_label }}</div>
+            </div>
+          </div>
+          <a href="{% url 'hr_ops:employee_letter_picker' row.employee.pk %}" class="btn btn-primary btn-xs">Issue</a>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
     {# ── Recent Joiners ── #}
     <div class="premium-glass-card p-6 dash-panel" :class="panelClass('joiners')" :style="{ order: panelOrder('joiners') }">
       <div class="dash-panel-toolbar" x-show="editMode" x-cloak>

@@ -342,26 +342,66 @@ export async function signup(payload: {
 
 // ─── Billing (subscription checkout) ──────────────────────────────────────
 export interface BillingOrder {
-  order_id: string;
-  amount: number; // paise
-  currency: string;
-  key_id: string;
-  plan: string;
+  order_id?: string;
+  amount?: number; // paise (GST-inclusive total)
+  currency?: string;
+  key_id?: string;
+  plan?: string;
+  free_activation?: boolean;
+  status?: string;
+  workspace?: string;
+  original_amount?: string;
+  discount_amount?: string;
+  taxable_amount?: string;
+  gst_amount?: string;
+  final_amount?: string;
+  total_amount?: string;
+  coupon?: string;
+}
+
+export interface CouponPreview {
+  valid: boolean;
+  code?: string;
+  discount_type?: string;
+  discount_value?: string;
+  original_amount?: string;
+  discount_amount?: string;
+  taxable_amount?: string;
+  gst_amount?: string;
+  final_amount?: string;
+  total_amount?: string;
+  free_checkout?: boolean;
+  detail?: string;
 }
 
 /**
  * Create a payment-gateway order for a plan. Throws ApiError(503) when billing
- * isn't configured on the server — callers should surface a friendly message.
+ * isn't configured on the server — unless a 100% coupon makes checkout free.
  */
 export function createBillingOrder(
   planId: string,
   cycle: 'monthly' | 'annual' = 'monthly',
   employees?: number,
+  couponCode?: string,
 ): Promise<BillingOrder> {
   return request<BillingOrder>('/saas/billing/order/', {
     surface: 'platform',
     method: 'POST',
-    body: { plan_id: planId, cycle, employees },
+    body: { plan_id: planId, cycle, employees, coupon_code: couponCode || undefined },
+  });
+}
+
+/** Preview coupon discount without creating an order. */
+export function validateBillingCoupon(
+  planId: string,
+  couponCode: string,
+  cycle: 'monthly' | 'annual' = 'monthly',
+  employees?: number,
+): Promise<CouponPreview> {
+  return request<CouponPreview>('/saas/billing/validate-coupon/', {
+    surface: 'platform',
+    method: 'POST',
+    body: { plan_id: planId, coupon_code: couponCode, cycle, employees },
   });
 }
 
@@ -408,9 +448,9 @@ export interface MySubscription {
   invoices: SaasInvoiceDTO[];
 }
 
-/** The signed-in workspace's subscription (resolved from the tenant subdomain). */
+/** The signed-in workspace's subscription (platform API — works on localhost:8080). */
 export function fetchMySubscription(): Promise<MySubscription> {
-  return request<MySubscription>('/saas/my-subscription/', { surface: 'tenant' });
+  return request<MySubscription>('/saas/my-subscription/', { surface: 'platform' });
 }
 
 // ─── HR stats (proxied by FIN from the HR backend) ────────────────────────
@@ -719,6 +759,58 @@ export function updatePlan(id: number, payload: Partial<AdminPlanFull>): Promise
 
 export function deletePlan(id: number): Promise<unknown> {
   return request(`/saas/admin/plans/${id}/`, { surface: 'platform', method: 'DELETE' });
+}
+
+// ─── Super-admin: coupon codes ────────────────────────────────────────────
+export interface AdminCoupon {
+  id: number;
+  code: string;
+  description: string;
+  discount_type: 'percent' | 'fixed_inr';
+  discount_value: string;
+  applies_to_plans: string[];
+  applies_to_cycles: string[];
+  max_redemptions: number | null;
+  redemptions_used: number;
+  valid_from: string | null;
+  valid_until: string | null;
+  first_time_only: boolean;
+  is_active: boolean;
+  created_by: string;
+  created_at: string | null;
+}
+
+export interface AdminCouponRedemption {
+  id: number;
+  plan_code: string;
+  billing_cycle: string;
+  original_amount: string;
+  discount_amount: string;
+  final_amount: string;
+  redeemed_by_email: string;
+  created_at: string;
+  tenant__schema_name: string;
+}
+
+export function fetchAdminCoupons(activeOnly = false): Promise<AdminCoupon[]> {
+  const qs = activeOnly ? '?active=1' : '';
+  return request<AdminCoupon[]>(`/saas/admin/coupons/${qs}`, { surface: 'platform' });
+}
+
+export function createAdminCoupon(payload: Partial<AdminCoupon>): Promise<AdminCoupon> {
+  return request<AdminCoupon>('/saas/admin/coupons/', { surface: 'platform', method: 'POST', body: payload });
+}
+
+export function updateAdminCoupon(id: number, payload: Partial<AdminCoupon>): Promise<AdminCoupon> {
+  return request<AdminCoupon>(`/saas/admin/coupons/${id}/`, { surface: 'platform', method: 'PATCH', body: payload });
+}
+
+export function deactivateAdminCoupon(id: number): Promise<unknown> {
+  return request(`/saas/admin/coupons/${id}/`, { surface: 'platform', method: 'DELETE' });
+}
+
+export function fetchAdminCouponDetail(id: number): Promise<{ coupon: AdminCoupon; redemptions: AdminCouponRedemption[] }> {
+  return request(`/saas/admin/coupons/${id}/`, { surface: 'platform' });
 }
 
 // ─── Super-admin: directory scaling + tenant detail (Phase 7) ─────────────

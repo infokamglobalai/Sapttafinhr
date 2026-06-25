@@ -29,7 +29,7 @@ def letter_template_list(request):
     return render(request, "hr_ops/letter_templates.html", {
         "templates": templates,
         "profile": profile,
-        "has_defaults_available": templates.count() < 7,
+        "has_defaults_available": templates.count() < len(LetterTemplate.LETTER_TYPES) - 1,
         "letter_type_choices": LetterTemplate.LETTER_TYPES,
     })
 
@@ -77,19 +77,26 @@ def letter_template_create_or_edit(request, pk=None):
 @login_required
 def letter_download(request, pk):
     tenant = request.tenant
-    # HR can download any letter; employee can only download their own shared letters
     employee = getattr(request.user, "employee_profile", None)
-    qs = HRLetter.objects.filter(tenant=tenant)
+    qs = HRLetter.objects.filter(tenant=tenant, is_deleted=False)
     if not request.user.has_perm_code("hr_ops.view_all_letters"):
         qs = qs.filter(employee=employee, is_shared=True)
     letter = get_object_or_404(qs, pk=pk)
 
     if not letter.pdf:
         messages.error(request, "PDF not yet generated.")
-        return redirect("hr_ops:letters")
+        return redirect("hr_ops:letter_history")
+
+    from .services import audit_log
+    audit_log(
+        tenant, request.user, "download", "HRLetter", letter,
+        f"Downloaded {letter.letter_type} PDF",
+        ip_address=request.META.get("HTTP_X_FORWARDED_FOR", "").split(",")[0].strip()
+        or request.META.get("REMOTE_ADDR"),
+    )
 
     response = HttpResponse(letter.pdf.read(), content_type="application/pdf")
-    response["Content-Disposition"] = f'inline; filename="{letter.pdf.name}"'
+    response["Content-Disposition"] = f'inline; filename="{letter.pdf.name.split("/")[-1]}"'
     return response
 
 
@@ -102,7 +109,7 @@ def share_letter(request, pk):
     letter.shared_at = timezone.now()
     letter.save(update_fields=["is_shared", "shared_at"])
     messages.success(request, "Letter shared with employee.")
-    return redirect("hr_ops:letter_templates")
+    return redirect("hr_ops:letter_history")
 
 
 # ---------------------------------------------------------------------------

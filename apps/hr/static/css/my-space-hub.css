@@ -176,6 +176,91 @@
   box-shadow: 0 2px 8px rgba(79, 70, 229, 0.08);
 }
 
+.my-space-project-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+}
+
+.my-space-project-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.my-space-project-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 0.8125rem;
+  color: var(--hr-text-secondary, #64748b);
+}
+
+.my-space-role-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.my-space-role-badge--lead { background: #ecfdf5; color: #047857; }
+.my-space-role-badge--viewer { background: #f8fafc; color: #64748b; }
+
+.my-space-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.my-space-filter {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--hr-border, #e2e8f0);
+  background: #fff;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--hr-text-secondary, #64748b);
+  text-decoration: none;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.my-space-filter:hover {
+  border-color: #c7d2fe;
+  color: #4338ca;
+}
+
+.my-space-filter.is-active {
+  border-color: #4f46e5;
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.my-space-empty {
+  text-align: center;
+  padding: 32px 24px;
+}
+
+.my-space-empty__icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 14px;
+  border-radius: 16px;
+  background: #eef2ff;
+  color: #4f46e5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .my-space-status {
   display: inline-block;
   padding: 2px 8px;

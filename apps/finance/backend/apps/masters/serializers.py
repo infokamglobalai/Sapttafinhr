@@ -22,6 +22,60 @@ class CompanySerializer(serializers.ModelSerializer):
         """The full rule set for this company's country (read-only reference)."""
         return get_jurisdiction(obj.country)
 
+    def validate(self, attrs):
+        from .tax_validation import (
+            gstin_pan_consistency,
+            gstin_state_consistency,
+            is_india_company,
+            normalise_tax_id,
+            validate_gcc_tax_id,
+            validate_gstin,
+            validate_pan,
+        )
+
+        instance = getattr(self, "instance", None)
+        country = attrs.get("country", getattr(instance, "country", "IN"))
+        base_currency = attrs.get("base_currency", getattr(instance, "base_currency", "INR"))
+        gstin = attrs.get("gstin", getattr(instance, "gstin", ""))
+        pan = attrs.get("pan", getattr(instance, "pan", ""))
+        state_code = attrs.get("state_code", getattr(instance, "state_code", ""))
+        tax_id = attrs.get("tax_id", getattr(instance, "tax_id", ""))
+
+        if "gstin" in attrs and attrs["gstin"]:
+            attrs["gstin"] = normalise_tax_id(attrs["gstin"])
+        if "pan" in attrs and attrs["pan"]:
+            attrs["pan"] = normalise_tax_id(attrs["pan"])
+        if "tax_id" in attrs and attrs["tax_id"]:
+            attrs["tax_id"] = normalise_tax_id(attrs["tax_id"])
+
+        gstin = attrs.get("gstin", gstin)
+        pan = attrs.get("pan", pan)
+        state_code = attrs.get("state_code", state_code)
+        tax_id = attrs.get("tax_id", tax_id)
+
+        if is_india_company(country, base_currency):
+            if gstin:
+                err = validate_gstin(gstin)
+                if err:
+                    raise serializers.ValidationError({"gstin": err})
+                err = gstin_state_consistency(gstin, state_code)
+                if err:
+                    raise serializers.ValidationError({"gstin": err})
+            if pan:
+                err = validate_pan(pan)
+                if err:
+                    raise serializers.ValidationError({"pan": err})
+            if gstin and pan:
+                err = gstin_pan_consistency(gstin, pan)
+                if err:
+                    raise serializers.ValidationError({"gstin": err})
+        elif tax_id:
+            err = validate_gcc_tax_id(country, tax_id)
+            if err:
+                raise serializers.ValidationError({"tax_id": err})
+
+        return attrs
+
 
 class BranchSerializer(serializers.ModelSerializer):
     class Meta:

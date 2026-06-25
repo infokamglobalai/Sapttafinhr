@@ -1,149 +1,281 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Set up {{ tenant.name }} · HRMS</title>
-  <style>
-    :root { --primary:#4f46e5; --primary-hover:#4338ca; --ink:#0F172A; --muted:#64748B; }
-    * { box-sizing: border-box; }
-    body { margin:0; font-family: "Plus Jakarta Sans", Inter, system-ui, sans-serif; background: linear-gradient(160deg, #F8FAFC 0%, #eef2ff 50%, #F1F5F9 100%); color:#0F172A; min-height: 100vh; }
-    .wrap { max-width: 760px; margin: 40px auto; padding: 0 16px; }
-    .head { text-align:center; margin-bottom: 28px; }
-    .head h1 { font-size: 1.75rem; font-weight: 800; margin: 0 0 6px; letter-spacing: -0.03em; }
-    .head p { color:var(--muted); font-size: 0.875rem; margin: 0; }
-    .card { background:#fff; border:1px solid rgba(15,23,42,0.08); border-radius:16px; padding: 24px; margin-bottom: 18px; box-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 8px 24px rgba(15,23,42,0.04); }
-    .card h2 { font-size: 15px; font-weight: 700; margin: 0 0 4px; }
-    .card .hint { color:var(--muted); font-size: 12px; margin: 0 0 14px; }
-    label { display:block; font-size: 12px; font-weight: 600; color:#334155; margin-bottom: 4px; }
-    input, textarea { width:100%; padding: 10px 12px; border:1px solid rgba(15,23,42,0.12); border-radius:10px; font-size: 14px; font-family: inherit; transition: border-color 0.15s, box-shadow 0.15s; }
-    input:focus, textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229,0.2); }
-    .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-    .grid-emp { display:grid; grid-template-columns: 1fr 1fr 1fr 1fr 1.2fr; gap: 8px; align-items:end; margin-bottom: 8px; }
-    .row { display:flex; gap: 8px; align-items:end; margin-bottom: 8px; }
-    .btn { background: var(--primary); color:#fff; border:none; padding: 12px 22px; border-radius:10px; font-weight:700; font-size:15px; cursor:pointer; box-shadow: 0 1px 2px rgba(79, 70, 229,0.2); }
-    .btn:hover { background: var(--primary-hover); }
-    .btn-add { background:rgba(79, 70, 229,0.1); color:var(--primary); border:none; padding: 7px 12px; border-radius:8px; font-weight:600; font-size:12px; cursor:pointer; }
-    .steplbl { font-size: 11px; font-weight:700; color:var(--primary); text-transform:uppercase; letter-spacing:.5px; }
-    .msgs { margin-bottom: 14px; }
-    .msg { background:#fef2f2; color:#b91c1c; padding:8px 12px; border-radius:10px; font-size:13px; }
-    .foot { display:flex; justify-content:flex-end; }
-  </style>
+  <title>Set up {{ tenant.name }} · Saptta HR</title>
+  <link rel="stylesheet" href="{% static 'css/setup-wizard.css' %}" />
 </head>
-<body>
-  <div class="wrap">
-    <div class="head">
-      <h1>Set up {{ tenant.name }}</h1>
-      <p>Add the essentials so your HR workspace is ready to use.</p>
+<body class="setup-wizard" data-jurisdiction="{{ tenant.payroll_jurisdiction }}">
+  <div class="setup-wizard__bg" aria-hidden="true"></div>
+
+  <div class="setup-wizard__shell">
+    <header class="setup-wizard__topbar">
+      <a href="/" class="setup-wizard__brand" aria-label="Saptta">
+        <img src="{% static 'images/saptta-hr-brand.png' %}" alt="Saptta HR" />
+      </a>
+      <a class="setup-wizard__back" href="{{ PLATFORM_BASE_URL }}/app">← Back to products</a>
+    </header>
+
+    <div class="setup-wizard__hero">
+      <div class="setup-wizard__step-pill">Workspace setup</div>
+      <h1 class="setup-wizard__title">Set up <span>{{ tenant.name }}</span></h1>
+      <p class="setup-wizard__subtitle">Add the essentials so your HR workspace is ready to use.</p>
     </div>
 
-    {% if messages %}<div class="msgs">{% for m in messages %}<div class="msg">{{ m }}</div>{% endfor %}</div>{% endif %}
+    {% if messages %}
+    <div class="setup-wizard__msgs">
+      {% for m in messages %}
+      <div class="setup-wizard__msg setup-wizard__msg--error">{{ m }}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
 
-    <form method="post" action="">
+    <form method="post" action="" id="setup-form" novalidate>
       {% csrf_token %}
 
-      <div class="card">
-        <span class="steplbl">Step 1</span>
-        <h2>Company information</h2>
-        <p class="hint">{% if tenant_is_india_payroll %}Appears on payslips and statutory documents.{% else %}Appears on payslips and HR letters.{% endif %}</p>
-        <div style="margin-bottom:14px"><label>Company name</label>
-          <input name="company_name" value="{{ tenant.name }}" required /></div>
+      {# ── Step 1: Company ── #}
+      <section class="setup-wizard__card">
+        <div class="setup-wizard__card-head">
+          <div class="setup-wizard__card-step">Step 1</div>
+          <h2 class="setup-wizard__card-title">Company information</h2>
+          <p class="setup-wizard__card-hint">
+            {% if tenant_is_india_payroll %}
+            Appears on payslips and statutory documents (GSTIN format as per Indian law).
+            {% else %}
+            Appears on payslips and HR letters for {{ tenant_jurisdiction_label }}.
+            {% endif %}
+          </p>
+        </div>
+
+        <div class="setup-wizard__field">
+          <label class="setup-wizard__label" for="company_name">Company name *</label>
+          <input class="setup-wizard__input{% if field_errors.company_name %} is-invalid{% endif %}"
+            id="company_name" name="company_name" value="{{ form.company_name }}" required minlength="2" maxlength="255" />
+          {% if field_errors.company_name %}<p class="setup-wizard__error">{{ field_errors.company_name }}</p>{% endif %}
+        </div>
+
         {% if tenant_is_india_payroll %}
-        <div class="grid2">
-          <div><label>GSTIN</label><input name="gstin" value="{{ tenant.gstin }}" maxlength="15" /></div>
-          <div><label>PAN</label><input name="pan" value="{{ tenant.pan }}" maxlength="10" /></div>
+        <div class="setup-wizard__grid2">
+          <div class="setup-wizard__field">
+            <label class="setup-wizard__label" for="gstin">GSTIN</label>
+            <input class="setup-wizard__input setup-wizard__input--mono{% if field_errors.gstin %} is-invalid{% endif %}"
+              id="gstin" name="gstin" value="{{ form.gstin }}" maxlength="15"
+              placeholder="{{ tax_id_placeholder }}" autocomplete="off"
+              pattern="[0-9]{2}[A-Za-z]{5}[0-9]{4}[A-Za-z][1-9A-Za-z]Z[0-9A-Za-z]" />
+            <span class="setup-wizard__hint">{{ tax_id_hint }}</span>
+            <div class="setup-wizard__gst-format" aria-hidden="true">
+              <span class="setup-wizard__gst-seg"><em>22</em> State</span>
+              <span class="setup-wizard__gst-seg"><em>AAAAA0000A</em> PAN</span>
+              <span class="setup-wizard__gst-seg"><em>1</em> Entity</span>
+              <span class="setup-wizard__gst-seg"><em>Z</em></span>
+              <span class="setup-wizard__gst-seg"><em>5</em> Check</span>
+            </div>
+            {% if field_errors.gstin %}<p class="setup-wizard__error">{{ field_errors.gstin }}</p>{% endif %}
+          </div>
+          <div class="setup-wizard__field">
+            <label class="setup-wizard__label" for="pan">PAN</label>
+            <input class="setup-wizard__input setup-wizard__input--mono{% if field_errors.pan %} is-invalid{% endif %}"
+              id="pan" name="pan" value="{{ form.pan }}" maxlength="10"
+              placeholder="AAAAA0000A" pattern="[A-Za-z]{5}[0-9]{4}[A-Za-z]" autocomplete="off" />
+            <span class="setup-wizard__hint">10 characters — 5 letters + 4 digits + 1 letter</span>
+            {% if field_errors.pan %}<p class="setup-wizard__error">{{ field_errors.pan }}</p>{% endif %}
+          </div>
         </div>
         {% else %}
-        <div class="grid2">
-          <div><label>Region</label><input value="{{ tenant_jurisdiction_label }}" readonly disabled /></div>
-          <div><label>Currency</label><input value="{{ tenant.currency }}" readonly disabled /></div>
+        <div class="setup-wizard__grid2">
+          <div class="setup-wizard__field">
+            <label class="setup-wizard__label">Region</label>
+            <input class="setup-wizard__input setup-wizard__readonly" value="{{ tenant_jurisdiction_label }}" readonly disabled />
+          </div>
+          <div class="setup-wizard__field">
+            <label class="setup-wizard__label">Currency</label>
+            <input class="setup-wizard__input setup-wizard__readonly" value="{{ tenant.currency }}" readonly disabled />
+          </div>
+        </div>
+        <div class="setup-wizard__field">
+          <label class="setup-wizard__label" for="gstin">{{ tax_id_label }}</label>
+          <input class="setup-wizard__input setup-wizard__input--mono{% if field_errors.tax_id %} is-invalid{% endif %}"
+            id="gstin" name="gstin" value="{{ form.gstin }}" maxlength="20"
+            placeholder="{{ tax_id_placeholder }}" autocomplete="off" />
+          <span class="setup-wizard__hint">{{ tax_id_hint }}</span>
+          {% if field_errors.tax_id %}<p class="setup-wizard__error">{{ field_errors.tax_id }}</p>{% endif %}
         </div>
         {% endif %}
-        <div style="margin-top:14px"><label>Registered address</label>
-          <textarea name="address" rows="2">{{ tenant.address }}</textarea></div>
-      </div>
 
-      <div class="card">
-        <span class="steplbl">Step 2</span>
-        <h2>Departments</h2>
-        <p class="hint">One per line. Edit these starter departments or add your own.</p>
-        <textarea name="departments" rows="4">Engineering
-Sales
-Human Resources
-Finance
-Operations</textarea>
-      </div>
-
-      <div class="card">
-        <span class="steplbl">Step 3</span>
-        <h2>Leave types</h2>
-        <p class="hint">Name + short code (CL, EL, SL…).</p>
-        <div id="leaves">
-          <div class="row"><div style="flex:2"><label>Name</label><input name="leave_name[]" value="Casual Leave" /></div>
-            <div style="flex:1"><label>Code</label><input name="leave_code[]" value="CL" maxlength="10" /></div></div>
-          <div class="row"><div style="flex:2"><label>Name</label><input name="leave_name[]" value="Earned Leave" /></div>
-            <div style="flex:1"><label>Code</label><input name="leave_code[]" value="EL" maxlength="10" /></div></div>
-          <div class="row"><div style="flex:2"><label>Name</label><input name="leave_name[]" value="Sick Leave" /></div>
-            <div style="flex:1"><label>Code</label><input name="leave_code[]" value="SL" maxlength="10" /></div></div>
+        <div class="setup-wizard__field" style="margin-top:14px">
+          <label class="setup-wizard__label" for="address">Registered address</label>
+          <textarea class="setup-wizard__textarea{% if field_errors.address %} is-invalid{% endif %}"
+            id="address" name="address" rows="3" minlength="10">{{ form.address }}</textarea>
+          {% if field_errors.address %}<p class="setup-wizard__error">{{ field_errors.address }}</p>{% endif %}
         </div>
-        <button type="button" class="btn-add" onclick="addLeave()">+ Add leave type</button>
-      </div>
+      </section>
 
-      <div class="card">
-        <span class="steplbl">Step 4</span>
-        <h2>Add employees &amp; create login accounts</h2>
-        <p class="hint">Add your team now. <strong>Email is required</strong> — a login account will be created for each employee so they can access HR self-service. You can bulk-import more later.</p>
-        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 14px;font-size:12px;color:#166534;margin-bottom:14px">
-          🔑 Login credentials (email + temporary password) will be displayed on the next page for you to share with employees.
+      {# ── Step 2: Departments ── #}
+      <section class="setup-wizard__card">
+        <div class="setup-wizard__card-head">
+          <div class="setup-wizard__card-step">Step 2</div>
+          <h2 class="setup-wizard__card-title">Departments</h2>
+          <p class="setup-wizard__card-hint">One per line. Edit these starter departments or add your own.</p>
+        </div>
+        <div class="setup-wizard__field">
+          <textarea class="setup-wizard__textarea{% if field_errors.departments %} is-invalid{% endif %}"
+            name="departments" rows="5" required>{{ form.departments }}</textarea>
+          {% if field_errors.departments %}<p class="setup-wizard__error">{{ field_errors.departments }}</p>{% endif %}
+        </div>
+      </section>
+
+      {# ── Step 3: Leave types ── #}
+      <section class="setup-wizard__card">
+        <div class="setup-wizard__card-head">
+          <div class="setup-wizard__card-step">Step 3</div>
+          <h2 class="setup-wizard__card-title">Leave types</h2>
+          <p class="setup-wizard__card-hint">Name + short code (CL, EL, SL…).</p>
+        </div>
+        {% if field_errors.leaves %}<p class="setup-wizard__error">{{ field_errors.leaves }}</p>{% endif %}
+        <div id="leaves">
+          {% for name, code in form.leave_rows %}
+          <div class="setup-wizard__row leave-row">
+            <div>
+              <label class="setup-wizard__label">Name</label>
+              <input class="setup-wizard__input" name="leave_name[]" value="{{ name }}" />
+            </div>
+            <div>
+              <label class="setup-wizard__label">Code</label>
+              <input class="setup-wizard__input setup-wizard__input--mono" name="leave_code[]"
+                value="{{ code }}" maxlength="10" pattern="[A-Za-z0-9]{1,10}" />
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        <button type="button" class="setup-wizard__btn-add" onclick="addLeave()">+ Add leave type</button>
+      </section>
+
+      {# ── Step 4: Employees ── #}
+      <section class="setup-wizard__card">
+        <div class="setup-wizard__card-head">
+          <div class="setup-wizard__card-step">Step 4</div>
+          <h2 class="setup-wizard__card-title">Add employees &amp; create login accounts</h2>
+          <p class="setup-wizard__card-hint">Email is required for each employee you want to invite to self-service.</p>
+        </div>
+        <div class="setup-wizard__notice">
+          Login invites will be emailed when possible. Credentials are also shown on the next screen.
         </div>
         <div id="emps">
-          <div class="grid-emp">
-            <div><label>Emp code</label><input name="emp_code[]" placeholder="EMP001" /></div>
-            <div><label>First name *</label><input name="emp_first[]" required /></div>
-            <div><label>Last name</label><input name="emp_last[]" /></div>
-            <div><label>Joining date *</label><input name="emp_doj[]" type="date" required /></div>
+          {% for emp in form.emp_rows %}
+          <div class="setup-wizard__emp-grid emp-row">
             <div>
-              <label>Department</label><input name="emp_dept[]" placeholder="Engineering" />
-              <label style="margin-top:6px">Email * (for login)</label>
-              <input name="emp_email[]" type="email" placeholder="ravi@company.com" style="margin-top:2px" />
-              <label style="margin-top:6px">Role</label>
-              <select name="emp_role[]" style="margin-top:2px">
-                <option value="employee">Employee</option>
-                <option value="manager">Team Lead / Manager</option>
-                <option value="hr_admin">HR Admin</option>
+              <label class="setup-wizard__label">Emp code</label>
+              <input class="setup-wizard__input setup-wizard__input--mono" name="emp_code[]"
+                value="{{ emp.code }}" placeholder="EMP001" pattern="[A-Za-z0-9][A-Za-z0-9\-_/]{1,19}" />
+            </div>
+            <div>
+              <label class="setup-wizard__label">First name *</label>
+              <input class="setup-wizard__input" name="emp_first[]" value="{{ emp.first }}" />
+            </div>
+            <div>
+              <label class="setup-wizard__label">Last name</label>
+              <input class="setup-wizard__input" name="emp_last[]" value="{{ emp.last }}" />
+            </div>
+            <div>
+              <label class="setup-wizard__label">Joining date *</label>
+              <input class="setup-wizard__input" name="emp_doj[]" type="date" value="{{ emp.doj }}" />
+            </div>
+            <div>
+              <label class="setup-wizard__label">Department</label>
+              <input class="setup-wizard__input" name="emp_dept[]" value="{{ emp.dept }}" placeholder="Engineering" />
+              <label class="setup-wizard__label" style="margin-top:8px">Email (for login)</label>
+              <input class="setup-wizard__input" name="emp_email[]" type="email" value="{{ emp.email }}" placeholder="name@company.com" />
+              <label class="setup-wizard__label" style="margin-top:8px">Role</label>
+              <select class="setup-wizard__select" name="emp_role[]">
+                <option value="employee"{% if emp.role == 'employee' %} selected{% endif %}>Employee</option>
+                <option value="manager"{% if emp.role == 'manager' %} selected{% endif %}>Team Lead / Manager</option>
+                <option value="hr_admin"{% if emp.role == 'hr_admin' %} selected{% endif %}>HR Admin</option>
               </select>
             </div>
           </div>
+          {% endfor %}
         </div>
-        <button type="button" class="btn-add" onclick="addEmp()">+ Add another employee</button>
-      </div>
+        <button type="button" class="setup-wizard__btn-add" onclick="addEmp()">+ Add another employee</button>
+      </section>
 
-      <div class="foot">
-        <button type="submit" class="btn">Finish setup &amp; enter HR →</button>
+      <div class="setup-wizard__foot">
+        <button type="submit" class="setup-wizard__submit">Finish setup &amp; enter HR →</button>
       </div>
     </form>
   </div>
 
   <script>
+    const GSTIN_RE = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
+    const PAN_RE = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
+    const GCC_PATTERNS = {
+      AE: /^[0-9]{15}$/,
+      SA: /^3[0-9]{14}$/,
+      BH: /^[0-9]{15}$/,
+      OM: /^[A-Z0-9]{10,15}$/,
+      KW: /^[0-9A-Z]{5,20}$/,
+      QA: /^[0-9A-Z]{5,20}$/,
+    };
+
+    function upper(el) {
+      if (el) el.value = el.value.toUpperCase().replace(/\s/g, '');
+    }
+
+    document.getElementById('gstin')?.addEventListener('input', function () { upper(this); });
+    document.getElementById('pan')?.addEventListener('input', function () { upper(this); });
+
+    document.getElementById('setup-form')?.addEventListener('submit', function (e) {
+      const jurisdiction = document.body.dataset.jurisdiction || 'IN';
+      const gstin = (document.getElementById('gstin')?.value || '').trim().toUpperCase();
+      const pan = (document.getElementById('pan')?.value || '').trim().toUpperCase();
+
+      if (jurisdiction === 'IN') {
+        if (gstin && !GSTIN_RE.test(gstin)) {
+          e.preventDefault();
+          alert('Invalid GSTIN. Use format: 22AAAAA0000A1Z5 (15 characters).');
+          return;
+        }
+        if (pan && !PAN_RE.test(pan)) {
+          e.preventDefault();
+          alert('Invalid PAN. Use format: AAAAA0000A (10 characters).');
+          return;
+        }
+        if (gstin && pan && gstin.substring(2, 12) !== pan) {
+          e.preventDefault();
+          alert('GSTIN must contain the same PAN in positions 3–12.');
+          return;
+        }
+      } else if (gstin) {
+        const pat = GCC_PATTERNS[jurisdiction] || /^[0-9A-Z]{5,20}$/;
+        if (!pat.test(gstin)) {
+          e.preventDefault();
+          alert('Invalid tax registration number for your region.');
+        }
+      }
+    });
+
     function addLeave() {
       const w = document.getElementById('leaves');
-      const d = document.createElement('div'); d.className = 'row';
-      d.innerHTML = '<div style="flex:2"><label>Name</label><input name="leave_name[]"/></div>'
-        + '<div style="flex:1"><label>Code</label><input name="leave_code[]" maxlength="10"/></div>';
+      const d = document.createElement('div');
+      d.className = 'setup-wizard__row leave-row';
+      d.innerHTML = '<div><label class="setup-wizard__label">Name</label><input class="setup-wizard__input" name="leave_name[]"/></div>'
+        + '<div><label class="setup-wizard__label">Code</label><input class="setup-wizard__input setup-wizard__input--mono" name="leave_code[]" maxlength="10"/></div>';
       w.appendChild(d);
     }
+
     function addEmp() {
       const w = document.getElementById('emps');
-      const d = document.createElement('div'); d.className = 'grid-emp';
-      d.innerHTML = '<div><label>Emp code</label><input name="emp_code[]"/></div>'
-        + '<div><label>First name *</label><input name="emp_first[]"/></div>'
-        + '<div><label>Last name</label><input name="emp_last[]"/></div>'
-        + '<div><label>Joining date *</label><input name="emp_doj[]" type="date"/></div>'
-        + '<div><label>Department</label><input name="emp_dept[]" placeholder="Engineering"/>'
-        + '<label style="margin-top:6px">Email * (for login)</label>'
-        + '<input name="emp_email[]" type="email" placeholder="name@company.com" style="margin-top:2px"/>'
-        + '<label style="margin-top:6px">Role</label>'
-        + '<select name="emp_role[]" style="margin-top:2px"><option value="employee">Employee</option>'
+      const d = document.createElement('div');
+      d.className = 'setup-wizard__emp-grid emp-row';
+      d.innerHTML = '<div><label class="setup-wizard__label">Emp code</label><input class="setup-wizard__input setup-wizard__input--mono" name="emp_code[]" placeholder="EMP001"/></div>'
+        + '<div><label class="setup-wizard__label">First name *</label><input class="setup-wizard__input" name="emp_first[]"/></div>'
+        + '<div><label class="setup-wizard__label">Last name</label><input class="setup-wizard__input" name="emp_last[]"/></div>'
+        + '<div><label class="setup-wizard__label">Joining date *</label><input class="setup-wizard__input" name="emp_doj[]" type="date"/></div>'
+        + '<div><label class="setup-wizard__label">Department</label><input class="setup-wizard__input" name="emp_dept[]" placeholder="Engineering"/>'
+        + '<label class="setup-wizard__label" style="margin-top:8px">Email</label><input class="setup-wizard__input" name="emp_email[]" type="email"/>'
+        + '<label class="setup-wizard__label" style="margin-top:8px">Role</label>'
+        + '<select class="setup-wizard__select" name="emp_role[]"><option value="employee">Employee</option>'
         + '<option value="manager">Team Lead / Manager</option><option value="hr_admin">HR Admin</option></select></div>';
       w.appendChild(d);
     }

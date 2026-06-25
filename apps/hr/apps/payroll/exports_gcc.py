@@ -7,6 +7,8 @@ from decimal import Decimal
 
 from utils.money import currency_decimal_places, format_money
 
+from .gcc_export_validation import normalize_iban, primary_bank_for_export
+
 
 def build_wps_sif_csv(tenant, payroll_run) -> str:
     """
@@ -37,8 +39,8 @@ def build_wps_sif_csv(tenant, payroll_run) -> str:
 
     for rec in records:
         emp = rec.employee
-        bank = emp.bank_accounts.filter(is_primary=True).first()
-        iban = bank.account_number if bank else ""
+        bank = primary_bank_for_export(emp)
+        iban = normalize_iban(bank.account_number) if bank else ""
         fixed = rec.basic + rec.hra
         variable = rec.gross_earnings - fixed
         writer.writerow([
@@ -75,13 +77,13 @@ def build_gcc_bank_transfer_csv(tenant, payroll_run) -> str:
 
     for rec in records:
         emp = rec.employee
-        bank = emp.bank_accounts.filter(is_primary=True).first()
-        if not bank or not bank.account_number:
+        bank = primary_bank_for_export(emp)
+        if not bank:
             continue
         ref = f"SAL-{payroll_run.year}{payroll_run.month:02d}-{emp.employee_code}"
         writer.writerow([
             bank.account_holder_name or emp.full_name,
-            bank.account_number,
+            normalize_iban(bank.account_number),
             bank.ifsc_code or "",
             f"{rec.net_payable:.{places}f}",
             currency,

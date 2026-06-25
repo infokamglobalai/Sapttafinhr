@@ -36,9 +36,11 @@ from .admin_observability import (
     AdminJobsView,
     AdminPaymentsView,
 )
+from .admin_coupons import AdminCouponDetailView, AdminCouponsView
 from .admin_views import AdminCompaniesView, AdminStatsView
-from .billing import ConfirmPaymentView, CreateOrderView, DevActivateView, WebhookView
+from .billing import ConfirmPaymentView, CreateOrderView, DevActivateView, ValidateCouponView, WebhookView
 from .internal_billing import billing_snapshot, invoice_detail
+from .internal_handoff import finance_handoff
 from .internal_payroll import payroll_journal
 from .signup_views import ProvisioningStatusView, SignupView
 from .views import (
@@ -60,16 +62,20 @@ urlpatterns = [
     path("signup/", SignupView.as_view(), name="saas_signup"),
     path("provisioning-status/", ProvisioningStatusView.as_view(), name="saas_provisioning_status"),
     path("billing/order/", CreateOrderView.as_view(), name="billing_order"),
+    path("billing/validate-coupon/", ValidateCouponView.as_view(), name="billing_validate_coupon"),
     path("billing/confirm/", ConfirmPaymentView.as_view(), name="billing_confirm"),
     path("billing/webhook/", WebhookView.as_view(), name="billing_webhook"),
     path("dev/activate/", DevActivateView.as_view(), name="dev_activate"),
 
     # ── Super-admin platform console (web SPA /superadmin) ──
     # Read
+    path("admin/coupons/", AdminCouponsView.as_view(), name="admin_coupons"),
+    path("admin/coupons/<int:pk>/", AdminCouponDetailView.as_view(), name="admin_coupon_detail"),
     path("admin/companies/", AdminCompaniesView.as_view(), name="admin_companies"),
     path("admin/stats/", AdminStatsView.as_view(), name="admin_stats"),
     # Server-to-server billing for embedded HR (Bearer SSO_SHARED_SECRET).
     path("internal/billing-snapshot/", billing_snapshot, name="internal_billing_snapshot"),
+    path("internal/finance-handoff/", finance_handoff, name="internal_finance_handoff"),
     path("internal/invoices/<int:invoice_id>/", invoice_detail, name="internal_invoice_detail"),
     path("internal/payroll-journal/", payroll_journal, name="internal_payroll_journal"),
     path("admin/analytics/", AdminAnalyticsView.as_view(), name="admin_analytics"),

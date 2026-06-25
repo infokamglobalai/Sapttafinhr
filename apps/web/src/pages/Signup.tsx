@@ -19,16 +19,18 @@ import { PLANS, planMonthly, extraEmployees, EXTRA_EMPLOYEE_PRICE, GST_RATE } fr
  * immediately (HTTP 202) while a worker provisions in the background, so we wait
  * here before routing the user into the app (which makes tenant-scoped calls).
  */
-async function pollProvisioning(timeoutMs = 3 * 60 * 1000): Promise<'ready' | 'failed' | 'timeout'> {
+async function pollProvisioning(timeoutMs = 90_000): Promise<'ready' | 'failed' | 'timeout'> {
   const deadline = Date.now() + timeoutMs;
+  let delay = 800;
   while (Date.now() < deadline) {
-    await new Promise((r) => setTimeout(r, 2500));
+    await new Promise((r) => setTimeout(r, delay));
+    delay = Math.min(delay + 200, 2000);
     try {
       const s = await fetchProvisioningStatus();
       if (s.ready) return 'ready';
       if (s.failed) return 'failed';
     } catch {
-      /* transient (network / token) — keep polling until the deadline */
+      /* transient — keep polling */
     }
   }
   return 'timeout';
@@ -87,7 +89,7 @@ export default function Signup() {
     // Signup returns instantly; the tenant schema is then built in the
     // background. Show a persistent status while we poll for it so the form
     // doesn't look frozen.
-    const hideLoading = message.loading('Setting up your workspace — this can take a moment…', 0);
+    const hideLoading = message.loading('Creating your account…', 0);
     try {
       const { provisioning } = await signup({
         email: values.email,
@@ -99,32 +101,19 @@ export default function Signup() {
         country: values.country || 'IN',
       });
 
+      hideLoading();
+      message.success('Account created! Choose a plan to activate your workspace.');
+
+      // Checkout only needs the tenant row (created instantly). Schema build runs
+      // in the background — don't block the user on a 3-minute poll here.
       if (provisioning) {
-        const result = await pollProvisioning();
-        if (result === 'failed') {
-          hideLoading();
-          message.error(
-            'We hit a snag while setting up your workspace. Our team has been notified — ' +
-            'please try again shortly or contact support.',
-          );
-          return;
-        }
-        if (result === 'timeout') {
-          hideLoading();
-          message.warning({
-            content:
-              'Your workspace is still finishing setup. Give it another minute, then sign in ' +
-              'with the email and password you just entered — no need to sign up again.',
-            duration: 10,
-          });
-          return;
-        }
+        void pollProvisioning().then(async (result) => {
+          if (result === 'ready') await refreshProducts().catch(() => {});
+        });
+      } else {
+        await refreshProducts().catch(() => {});
       }
 
-      // Workspace is ready — pull the now-active products into the session.
-      await refreshProducts().catch(() => {});
-      hideLoading();
-      message.success('Account created! Welcome to Saptta.');
       navigate('/app/billing', { replace: true });
     } catch (err: unknown) {
       hideLoading();

@@ -76,6 +76,11 @@ class Command(BaseCommand):
             domain="kuwait.localhost", tenant=kuwait, defaults={"is_primary": True}
         )
 
+        from apps.saas.plan_catalog import seed_catalog_plans
+
+        n = seed_catalog_plans()
+        self.stdout.write(self.style.SUCCESS(f"Ensured {n} catalog plans (hrms, finance, saptta-complete)."))
+
         plan, _ = Plan.objects.get_or_create(
             code="dev-complete",
             defaults={
@@ -255,6 +260,31 @@ class Command(BaseCommand):
                 defaults={"start_date": start, "end_date": end, "is_active": True},
             )
             self.stdout.write(self.style.SUCCESS(f"Ensured fiscal year {fy_name} for Kuwait."))
+
+        # 6. Demo coupon codes (billing page / superadmin coupons)
+        from apps.saas.models import CouponCode
+
+        CouponCode.objects.get_or_create(
+            code="DEMO100",
+            defaults={
+                "description": "100% off — demo / QA checkout without Razorpay",
+                "discount_type": CouponCode.DiscountType.PERCENT,
+                "discount_value": 100,
+                "is_active": True,
+                "created_by": "bootstrap_dev",
+            },
+        )
+        CouponCode.objects.get_or_create(
+            code="LAUNCH50",
+            defaults={
+                "description": "50% launch discount — all plans",
+                "discount_type": CouponCode.DiscountType.PERCENT,
+                "discount_value": 50,
+                "is_active": True,
+                "created_by": "bootstrap_dev",
+            },
+        )
+        self.stdout.write(self.style.SUCCESS("Ensured demo coupons DEMO100 and LAUNCH50."))
 
         self.stdout.write(self.style.SUCCESS("Bootstrap complete."))
         self.stdout.write("Login at http://acme.localhost:8000/admin/  (sp@saptta.com / Saptta@2026)")

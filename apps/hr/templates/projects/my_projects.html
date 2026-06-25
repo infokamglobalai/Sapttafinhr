@@ -5,29 +5,84 @@
   <div class="hr-page-header" style="margin-bottom:16px;">
     <div class="hr-page-header__main">
       <h1 class="hr-page-header__title">My Projects</h1>
-      <p class="my-space-meta">Projects you are assigned to — view docs, post updates, log time.</p>
+      <p class="my-space-meta">Projects you lead or are assigned to — open docs, post updates, and log time.</p>
     </div>
     <div class="hr-page-header__actions">
       <a href="{% url 'projects:my_timesheet' %}" class="btn btn-outline btn-sm">My timesheet</a>
+      <a href="{% url 'employees:my_work' %}" class="btn btn-ghost btn-sm">My profile</a>
     </div>
   </div>
 
-  {% for p in projects %}
-  <a href="{% url 'projects:detail' p.pk %}" class="my-space-project-card">
-    <div style="display:flex;justify-content:space-between;align-items:center;">
-      <strong>{{ p.name }}</strong>
-      <span class="my-space-status my-space-status--{{ p.status }}">{{ p.get_status_display }}</span>
+  <div class="my-space-kpis">
+    <div class="my-space-kpi">
+      <div class="my-space-kpi__label">All projects</div>
+      <div class="my-space-kpi__value">{{ total_count }}</div>
     </div>
-    <div class="my-space-meta" style="margin-top:4px;">
-      {{ p.code }}
-      {% if p.department %} · {{ p.department.name }}{% endif %}
-      {% if p.lead %} · Lead: {{ p.lead.full_name }}{% endif %}
+    <div class="my-space-kpi">
+      <div class="my-space-kpi__label">Active</div>
+      <div class="my-space-kpi__value">{{ active_count }}</div>
     </div>
-  </a>
-  {% empty %}
-  <div class="my-space-card">
-    <p class="my-space-meta">You are not on any project teams yet. Ask your manager or HR to add you.</p>
+    <div class="my-space-kpi">
+      <div class="my-space-kpi__label">Hours this month</div>
+      <div class="my-space-kpi__value">{{ total_hours_month }}h</div>
+    </div>
   </div>
-  {% endfor %}
+
+  <div class="my-space-filters" style="margin-bottom:16px;">
+    <a href="{% url 'projects:my_projects' %}" class="my-space-filter{% if not status %} is-active{% endif %}">All</a>
+    {% for code, label in status_choices %}
+    <a href="?status={{ code }}" class="my-space-filter{% if status == code %} is-active{% endif %}">{{ label }}</a>
+    {% endfor %}
+  </div>
+
+  {% if projects %}
+  <div class="my-space-project-grid">
+    {% for p in projects %}
+    <a href="{% url 'projects:detail' p.pk %}" class="my-space-project-card">
+      <div class="my-space-project-card__head">
+        <div>
+          <strong>{{ p.name }}</strong>
+          <div class="my-space-meta" style="margin-top:4px;">{{ p.code }}</div>
+        </div>
+        <span class="my-space-status my-space-status--{{ p.status }}">{{ p.get_status_display }}</span>
+      </div>
+      <div class="my-space-project-card__meta">
+        <span class="my-space-role-badge my-space-role-badge--{{ p.my_role }}">{{ p.my_role_label }}</span>
+        {% if p.department %}<span>{{ p.department.name }}</span>{% endif %}
+        {% if p.lead and p.lead_id != user.employee_profile.id %}
+        <span>Lead: {{ p.lead.full_name }}</span>
+        {% endif %}
+        {% if p.start_date or p.end_date %}
+        <span>
+          {% if p.start_date %}{{ p.start_date|date:"M Y" }}{% endif %}
+          {% if p.start_date and p.end_date %} – {% endif %}
+          {% if p.end_date %}{{ p.end_date|date:"M Y" }}{% endif %}
+        </span>
+        {% endif %}
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="my-space-card my-space-empty">
+    <div class="my-space-empty__icon" aria-hidden="true">
+      <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+      </svg>
+    </div>
+    <h2 class="my-space-card__title" style="margin-bottom:6px;">No projects yet</h2>
+    <p class="my-space-meta" style="max-width:36rem;margin:0 auto 16px;">
+      {% if status %}
+      No projects match this filter. Try “All” or check back after HR adds you to a team.
+      {% else %}
+      You are not on any project teams yet. Your manager or HR can create a project and add you as a member or lead.
+      {% endif %}
+    </p>
+    <div class="my-space-actions" style="justify-content:center;">
+      <a href="{% url 'hr_ops:request_create' %}" class="btn btn-primary btn-sm">Request HR help</a>
+      <a href="{% url 'employees:my_work' %}" class="btn btn-outline btn-sm">Back to My Profile</a>
+    </div>
+  </div>
+  {% endif %}
 </div>
 {% endblock %}

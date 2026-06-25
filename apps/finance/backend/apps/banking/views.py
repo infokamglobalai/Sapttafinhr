@@ -7,6 +7,7 @@ from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from .ifsc import lookup_ifsc
 from .integrations.razorpay import get_razorpay
 from .models import Advance, BankAccount, BankStatement, BankStatementLine, FXRate, PostDatedCheque
 from .serializers import (
@@ -18,6 +19,13 @@ from .serializers import (
     PDCSerializer,
 )
 from . import services
+
+
+class IfscLookupView(APIView):
+    """GET /api/v1/banking/ifsc/<code>/ — resolve bank/branch from IFSC."""
+
+    def get(self, request, ifsc: str):
+        return Response(lookup_ifsc(ifsc))
 
 
 class BankAccountViewSet(viewsets.ModelViewSet):

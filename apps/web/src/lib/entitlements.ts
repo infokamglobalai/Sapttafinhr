@@ -34,13 +34,10 @@ export function slugsFromSubscription(sub: MySubscription | null | undefined): P
 export async function resolveActiveProducts(): Promise<ProductSlug[]> {
   try {
     const sub = await fetchMySubscription();
-    const fromSub = slugsFromSubscription(sub);
-    if (fromSub.length > 0) return fromSub;
+    return slugsFromSubscription(sub);
   } catch {
-    /* provisioning / pending — fall through */
+    return [];
   }
-  const list = await fetchProducts();
-  return list ?? [];
 }
 
 /**

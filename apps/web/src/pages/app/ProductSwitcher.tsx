@@ -47,7 +47,7 @@ export default function ProductSwitcher() {
       while (Date.now() < deadline && !cancelled) {
         slugs = await resolveActiveProducts();
         if (slugs.length > 0) break;
-        await new Promise((r) => setTimeout(r, 600));
+        await new Promise((r) => setTimeout(r, 1200));
       }
 
       if (cancelled) return;
@@ -102,15 +102,17 @@ export default function ProductSwitcher() {
 
   if (!entitlementsReady) {
     return (
-      <div
-        className="product-switcher"
-        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '70vh' }}
-      >
-        <div style={{ textAlign: 'center' }}>
-          <Spin size="large" />
-          <p style={{ marginTop: 16, color: 'var(--color-text-secondary)', fontSize: 14 }}>
-            Loading your workspace…
-          </p>
+      <div className="product-switcher">
+        <div
+          className="product-switcher__scroll"
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <div style={{ textAlign: 'center' }}>
+            <Spin size="large" />
+            <p style={{ marginTop: 16, color: 'var(--color-text-secondary)', fontSize: 14 }}>
+              Loading your workspace…
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -147,89 +149,97 @@ export default function ProductSwitcher() {
         </div>
       </header>
 
-      <main className="product-switcher__main">
-        <div className="product-switcher__hero ps-rise">
-          <div className="product-switcher__badge">
-            <span className="product-switcher__badge-dot" aria-hidden />
-            Your workspace is ready
+      <div className="product-switcher__scroll">
+        <main className="product-switcher__main">
+          <div className="product-switcher__hero ps-rise">
+            <div className="product-switcher__badge">
+              <span className="product-switcher__badge-dot" aria-hidden />
+              Your workspace is ready
+            </div>
+            <h1 className="product-switcher__title">
+              {greeting}, {displayName} 👋
+            </h1>
+            <p className="product-switcher__subtitle">Pick a product to jump back in.</p>
           </div>
-          <h1 className="product-switcher__title">
-            {greeting}, {displayName} 👋
-          </h1>
-          <p className="product-switcher__subtitle">Pick a product to jump back in.</p>
-        </div>
 
-        <div className="product-switcher__cards">
-          <ProductCard
-            index={0}
-            variant="finance"
-            name="fin-saptta"
-            headline="Accounts & Finance"
-            description="GST invoicing, ledger, banking, vendor bills, GSTR returns & financial reports."
-            features={[
-              'GST / Tax Invoicing',
-              'Double-Entry Ledger',
-              'Bank Reconciliation',
-              'P&L, Balance Sheet, GSTR',
-            ]}
-            logo="/saptta-fin.png"
-            locked={!products.includes('finance')}
-            onOpen={() => openFinanceApp(user?.tenantId, true)}
-            onInstall={() => installFinanceApp(user?.tenantId)}
-            onUpgrade={() => navigate('/pricing')}
-          />
-          <ProductCard
-            index={1}
-            variant="hr"
-            name="Saptta HR"
-            headline="HR & Workforce"
-            description="Manage employees, attendance, leave, payroll, recruitment & performance."
-            features={[
-              'Employee Management',
-              'Geofenced Attendance',
-              'Payroll & Compliance',
-              'Recruitment & ATS',
-            ]}
-            logo="/saptta-hr.png"
-            locked={!products.includes('hrms')}
-            onOpen={() => openHrApp(true)}
-            onInstall={() => installHrApp()}
-            onUpgrade={() => navigate('/pricing')}
-          />
-        </div>
+          <div className="product-switcher__cards">
+            <ProductCard
+              index={0}
+              variant="finance"
+              name="fin-saptta"
+              headline="Accounts & Finance"
+              description="GST invoicing, ledger, banking, vendor bills, GSTR returns & financial reports."
+              features={[
+                'GST / Tax Invoicing',
+                'Double-Entry Ledger',
+                'Bank Reconciliation',
+                'P&L, Balance Sheet, GSTR',
+              ]}
+              logo="/saptta-fin.png"
+              locked={!products.includes('finance')}
+              onOpen={() => openFinanceApp(user?.tenantId, true)}
+              onInstall={() => installFinanceApp(user?.tenantId)}
+              onUpgrade={() => navigate('/pricing')}
+            />
+            <ProductCard
+              index={1}
+              variant="hr"
+              name="Saptta HR"
+              headline="HR & Workforce"
+              description="Manage employees, attendance, leave, payroll, recruitment & performance."
+              features={[
+                'Employee Management',
+                'Geofenced Attendance',
+                'Payroll & Compliance',
+                'Recruitment & ATS',
+              ]}
+              logo="/saptta-hr.png"
+              locked={!products.includes('hrms')}
+              onOpen={() => openHrApp(true)}
+              onInstall={() => installHrApp()}
+              onUpgrade={() => navigate('/pricing')}
+            />
+          </div>
+        </main>
+      </div>
 
-        <div className="product-switcher__feature-bar ps-rise" style={{ animationDelay: '0.2s' }}>
-          <div className="product-switcher__feature-bar-item">
-            <div className="product-switcher__feature-bar-icon product-switcher__feature-bar-icon--green">
-              <SafetyOutlined />
-            </div>
-            <div className="product-switcher__feature-bar-text">
-              <div className="product-switcher__feature-bar-title">One login</div>
-              <div className="product-switcher__feature-bar-sub">Secure &amp; private</div>
-            </div>
-          </div>
-          <div className="product-switcher__feature-bar-divider" aria-hidden />
-          <div className="product-switcher__feature-bar-item">
-            <div className="product-switcher__feature-bar-icon product-switcher__feature-bar-icon--blue">
-              <AppstoreOutlined />
-            </div>
-            <div className="product-switcher__feature-bar-text">
-              <div className="product-switcher__feature-bar-title">One workspace</div>
-              <div className="product-switcher__feature-bar-sub">Everything in one place</div>
-            </div>
-          </div>
-          <div className="product-switcher__feature-bar-divider" aria-hidden />
-          <div className="product-switcher__feature-bar-item">
-            <div className="product-switcher__feature-bar-icon product-switcher__feature-bar-icon--purple">
-              <SwapOutlined />
-            </div>
-            <div className="product-switcher__feature-bar-text">
-              <div className="product-switcher__feature-bar-title">Switch anytime</div>
-              <div className="product-switcher__feature-bar-sub">Seamlessly move between products</div>
-            </div>
-          </div>
+      <ProductSwitcherFeatureBar />
+    </div>
+  );
+}
+
+function ProductSwitcherFeatureBar() {
+  return (
+    <div className="product-switcher__feature-bar ps-rise" style={{ animationDelay: '0.2s' }}>
+      <div className="product-switcher__feature-bar-item">
+        <div className="product-switcher__feature-bar-icon product-switcher__feature-bar-icon--green">
+          <SafetyOutlined />
         </div>
-      </main>
+        <div className="product-switcher__feature-bar-text">
+          <div className="product-switcher__feature-bar-title">One login</div>
+          <div className="product-switcher__feature-bar-sub">Secure &amp; private</div>
+        </div>
+      </div>
+      <div className="product-switcher__feature-bar-divider" aria-hidden />
+      <div className="product-switcher__feature-bar-item">
+        <div className="product-switcher__feature-bar-icon product-switcher__feature-bar-icon--blue">
+          <AppstoreOutlined />
+        </div>
+        <div className="product-switcher__feature-bar-text">
+          <div className="product-switcher__feature-bar-title">One workspace</div>
+          <div className="product-switcher__feature-bar-sub">Everything in one place</div>
+        </div>
+      </div>
+      <div className="product-switcher__feature-bar-divider" aria-hidden />
+      <div className="product-switcher__feature-bar-item">
+        <div className="product-switcher__feature-bar-icon product-switcher__feature-bar-icon--purple">
+          <SwapOutlined />
+        </div>
+        <div className="product-switcher__feature-bar-text">
+          <div className="product-switcher__feature-bar-title">Switch anytime</div>
+          <div className="product-switcher__feature-bar-sub">Seamlessly move between products</div>
+        </div>
+      </div>
     </div>
   );
 }

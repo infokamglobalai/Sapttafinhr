@@ -697,6 +697,19 @@ table.table tbody tr:hover td {
   flex-shrink: 0;
 }
 
+.user-menu-product-row--locked {
+  opacity: 0.72;
+  cursor: pointer;
+}
+
+.user-menu-product-row--locked:hover {
+  background: rgba(255, 109, 0, 0.06);
+}
+
+.user-menu-product-row--locked .user-menu-product-row__text span {
+  color: #ff6d00;
+}
+
 .user-menu .user-menu-dropdown {
   z-index: 220;
 }

@@ -1,10 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import Modal from '@/components/Modal';
 import { useActiveCompany } from '@/hooks/useActiveCompany';
+import { useIfscLookup } from '@/hooks/useIfscLookup';
 import { usePostableAccounts, useSeedAccounts } from '@/features/masters/api';
 import { api } from '@/lib/api';
 import { toast } from '@/components/Toaster';
+import {
+  formatIfscLocation,
+  sanitizeAccountNumber,
+  sanitizeIfscInput,
+  suggestBankLabel,
+  validateAccountNumber,
+  validateIfscFormat,
+} from '@/lib/ifscLookup';
 
 export default function BankAccountCreateModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { companyId } = useActiveCompany();
@@ -22,50 +31,55 @@ export default function BankAccountCreateModal({ open, onClose }: { open: boolea
   });
   const [ledger, setLedger] = useState<number | undefined>();
   const [err, setErr] = useState<string | null>(null);
+  const ifscLookup = useIfscLookup(form.ifsc);
 
   useEffect(() => {
-    if (form.ifsc.length === 11) {
-      fetch(`https://ifsc.razorpay.com/${form.ifsc}`)
-        .then((res) => {
-          if (!res.ok) throw new Error('Invalid IFSC');
-          return res.json();
-        })
-        .then((data) => {
-          if (data && data.BANK) {
-            setForm((prev) => {
-              let fullBranch = data.BRANCH || '';
-              if (data.ADDRESS) {
-                fullBranch += fullBranch ? `, ${data.ADDRESS}` : data.ADDRESS;
-              }
-              // Truncate to fit the 200 char limit of the backend branch field
-              if (fullBranch.length > 200) {
-                fullBranch = fullBranch.substring(0, 197) + '...';
-              }
+    if (!open) return;
+    setForm({
+      name: '', bank_name: '', account_number: '', ifsc: '', branch: '',
+      currency: 'INR', is_active: true, opening_balance: '0',
+    });
+    setLedger(undefined);
+    setErr(null);
+  }, [open]);
 
-              return {
-                ...prev,
-                branch: fullBranch,
-                bank_name: prev.bank_name || data.BANK,
-                name: prev.name || `${data.BANK} - ${data.CITY || data.BRANCH || 'Account'}`,
-              };
-            });
-            toast.success('IFSC verified', `${data.BANK}, ${data.CITY || data.BRANCH}`);
-          }
-        })
-        .catch(() => {
-          toast.error('Could not verify IFSC', 'Please check the code or enter branch manually.');
-        });
-    }
-  }, [form.ifsc]);
+  useEffect(() => {
+    if (ifscLookup.status !== 'found' || !ifscLookup.details) return;
+    const d = ifscLookup.details;
+    setForm((prev) => ({
+      ...prev,
+      branch: d.branch_text || prev.branch,
+      bank_name: prev.bank_name || d.bank,
+      name: prev.name || suggestBankLabel(d),
+    }));
+    toast.success('IFSC verified', `${d.bank}, ${d.city || d.branch}`);
+  }, [ifscLookup.status, ifscLookup.details]);
 
   const submit = async () => {
     setErr(null);
+    const ifscErr = validateIfscFormat(form.ifsc, true);
+    if (ifscErr) { setErr(ifscErr); return; }
+    if (ifscLookup.status === 'loading') {
+      setErr('IFSC lookup in progress — wait a moment.');
+      return;
+    }
+    if (ifscLookup.status !== 'found') {
+      setErr(ifscLookup.error ?? 'Enter a valid IFSC to verify the bank branch.');
+      return;
+    }
+    const acErr = validateAccountNumber(form.account_number);
+    if (acErr) { setErr(acErr); return; }
     if (!form.name) { setErr('Name is required'); return; }
     if (!form.bank_name) { setErr('Bank Name is required'); return; }
-    if (!form.account_number) { setErr('A/C Number is required'); return; }
     if (!companyId || !ledger) { setErr('Pick GL account'); return; }
     try {
-      await create.mutateAsync({ ...form, company: companyId, ledger_account: ledger });
+      await create.mutateAsync({
+        ...form,
+        account_number: sanitizeAccountNumber(form.account_number),
+        ifsc: sanitizeIfscInput(form.ifsc),
+        company: companyId,
+        ledger_account: ledger,
+      });
       toast.success(`Bank account ${form.name} added`);
       onClose();
     } catch (e: any) { setErr(JSON.stringify(e?.response?.data ?? 'Failed')); }
@@ -74,16 +88,44 @@ export default function BankAccountCreateModal({ open, onClose }: { open: boolea
   return (
     <Modal open={open} onClose={onClose} title="New Bank Account" size="md">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div><label className="label">Name *</label>
-          <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
+        <div>
+          <label className="label">IFSC *</label>
+          <div className="relative">
+            <input
+              className={`input font-mono pr-9 ${ifscLookup.status === 'invalid' || ifscLookup.status === 'error' ? 'border-red-300' : ifscLookup.status === 'found' ? 'border-emerald-300' : ''}`}
+              maxLength={11}
+              placeholder="HDFC0001234"
+              value={form.ifsc}
+              onChange={(e) => setForm({ ...form, ifsc: sanitizeIfscInput(e.target.value) })}
+            />
+            {ifscLookup.status === 'loading' && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">…</span>
+            )}
+            {ifscLookup.status === 'found' && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-600">✓</span>
+            )}
+          </div>
+          {(ifscLookup.status === 'invalid' || ifscLookup.status === 'error') && ifscLookup.error && (
+            <p className="mt-1 text-[11px] text-red-600">{ifscLookup.error}</p>
+          )}
+        </div>
         <div><label className="label">Bank Name *</label>
           <input className="input" value={form.bank_name} onChange={(e) => setForm({ ...form, bank_name: e.target.value })} /></div>
+        {ifscLookup.details && (
+          <div className="md:col-span-2 rounded-lg border border-emerald-100 bg-emerald-50/60 px-3 py-2 text-xs text-emerald-900">
+            <div className="font-medium">{ifscLookup.details.bank}</div>
+            <div className="mt-0.5">{formatIfscLocation(ifscLookup.details)}</div>
+          </div>
+        )}
+        <div><label className="label">Name *</label>
+          <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
         <div><label className="label">A/C Number *</label>
-          <input className="input font-mono" value={form.account_number} onChange={(e) => setForm({ ...form, account_number: e.target.value })} /></div>
-        <div><label className="label">IFSC</label>
-          <input className="input font-mono" value={form.ifsc} onChange={(e) => setForm({ ...form, ifsc: e.target.value.toUpperCase() })} /></div>
-        <div><label className="label">Branch</label>
-          <input className="input" value={form.branch} onChange={(e) => setForm({ ...form, branch: e.target.value })} /></div>
+          <input
+            className="input font-mono"
+            inputMode="numeric"
+            value={form.account_number}
+            onChange={(e) => setForm({ ...form, account_number: sanitizeAccountNumber(e.target.value) })}
+          /></div>
         <div><label className="label">Currency</label>
           <input className="input" value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value.toUpperCase() })} /></div>
         <div className="md:col-span-2"><label className="label">GL Account *</label>

@@ -170,6 +170,39 @@ h1, h2, h3, h4, h5, h6, .page-header h1, .gradient-text {
   flex-direction: column;
 }
 
+/* Locked shells: superadmin, launch, billing, product switcher */
+.app-shell--locked,
+.app-shell--billing,
+.app-shell--switcher {
+  height: 100dvh;
+  max-height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+html:has(.app-shell--billing),
+html:has(.app-shell--billing) body,
+html:has(.app-shell--switcher),
+html:has(.app-shell--switcher) body {
+  height: 100%;
+  overflow: hidden;
+}
+
+html:has(.app-shell--switcher) #root {
+  height: 100%;
+  min-height: 100%;
+  overflow: hidden;
+}
+
+.app-shell:not(.app-shell--locked):not(.app-shell--billing):not(.app-shell--switcher) {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
 /* ─── Keyframe Animations ─── */
 
 @keyframes fadeInUp {
@@ -705,6 +738,90 @@ section.responsive-padding {
 .main-content--auth > * {
   flex: 1;
   min-height: 0;
+}
+
+/* Product switcher — header fixed, body scrolls (desktop + mobile) */
+.main-content--switcher {
+  padding-top: 0 !important;
+  overflow: hidden !important;
+  min-height: 0 !important;
+  flex: 1 1 auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.main-content--switcher .product-switcher {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  width: 100%;
+}
+
+/* Billing / subscription picker — scrollable (not locked like product switcher) */
+.main-content--billing {
+  padding-top: 0 !important;
+  overflow: hidden;
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-content--billing > .billing-scroll-shell {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+}
+
+.main-content--billing > .auth-footer {
+  flex-shrink: 0;
+}
+
+.billing-scroll-shell {
+  overflow-x: clip;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  background: #fafafc;
+}
+
+.billing-page {
+  width: 100%;
+  min-height: min-content;
+  padding-top: 8px;
+  padding-bottom: 80px;
+}
+
+.billing-page__topbar {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px 24px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.billing-page__step {
+  font-size: 12px;
+  font-weight: 700;
+  color: #ff6d00;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.billing-scroll-shell .auth-footer {
+  flex-shrink: 0;
+  margin-top: 0;
+}
+
+.main-content--billing > .auth-footer {
+  border-top: 1px solid #e2e8f0;
+  box-shadow: 0 -4px 24px rgba(15, 23, 42, 0.04);
+  background: #fff;
+  z-index: 2;
 }
 
 /* Login / forgot-password / signup with site navbar */
@@ -13375,12 +13492,25 @@ section.home-hero.home-hero--reference.home-hero--v2.responsive-padding {
 
 /* Product switcher */
 .product-switcher {
-  min-height: 100vh;
   background: #f5f6f8;
   display: flex;
   flex-direction: column;
   position: relative;
   overflow: hidden;
+  min-height: 0;
+}
+
+.product-switcher__scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: clip;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  position: relative;
+  z-index: 1;
+  width: 100%;
 }
 
 .product-switcher__bg {
@@ -13439,7 +13569,7 @@ section.home-hero.home-hero--reference.home-hero--v2.responsive-padding {
   background: #fff;
   border-bottom: 1px solid rgba(10, 17, 40, 0.06);
   position: relative;
-  z-index: 10;
+  z-index: 20;
   flex-shrink: 0;
 }
 
@@ -13493,19 +13623,21 @@ section.home-hero.home-hero--reference.home-hero--v2.responsive-padding {
 }
 
 .product-switcher__main {
-  flex: 1;
+  flex: 1 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 32px 24px 40px;
+  justify-content: flex-start;
+  padding: clamp(16px, 2.5vw, 28px) clamp(16px, 3vw, 24px) clamp(12px, 2vw, 20px);
   position: relative;
   z-index: 1;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .product-switcher__hero {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: clamp(16px, 2.5vw, 28px);
 }
 
 .product-switcher__badge {
@@ -13547,22 +13679,26 @@ section.home-hero.home-hero--reference.home-hero--v2.responsive-padding {
   margin: 0;
 }
 
+.product-switcher__scroll-hint {
+  display: none;
+}
+
 .product-switcher__cards {
-  display: flex;
-  gap: 28px;
-  flex-wrap: wrap;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(16px, 2.2vw, 24px);
   width: 100%;
-  max-width: 860px;
-  margin-bottom: 36px;
+  max-width: min(920px, 100%);
+  margin-bottom: 0;
+  align-items: stretch;
 }
 
 .product-switcher__card {
   width: 100%;
-  max-width: 380px;
-  flex: 1 1 320px;
-  border-radius: 22px;
-  padding: 24px 26px;
+  max-width: none;
+  min-width: 0;
+  border-radius: clamp(16px, 2vw, 22px);
+  padding: clamp(16px, 2vw, 22px) clamp(18px, 2.2vw, 24px);
   position: relative;
   overflow: hidden;
   background: #fff;
@@ -13703,8 +13839,8 @@ section.home-hero.home-hero--reference.home-hero--v2.responsive-padding {
 .product-switcher__features {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 20px;
+  gap: clamp(5px, 0.8vw, 8px);
+  margin-bottom: clamp(12px, 1.8vw, 18px);
   position: relative;
 }
 
@@ -13757,9 +13893,9 @@ section.home-hero.home-hero--reference.home-hero--v2.responsive-padding {
 }
 
 .product-switcher__open-btn.ant-btn-primary {
-  height: 46px;
+  height: clamp(40px, 5vw, 46px);
   border-radius: 12px;
-  font-size: 14px;
+  font-size: clamp(13px, 1.4vw, 14px);
   font-weight: 700;
   border: none;
 }
@@ -13799,38 +13935,44 @@ section.home-hero.home-hero--reference.home-hero--v2.responsive-padding {
   font-weight: 700;
 }
 
+/* Docked footer — always visible on every viewport */
 .product-switcher__feature-bar {
   display: flex;
   align-items: stretch;
   justify-content: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 0;
-  width: 100%;
-  max-width: 720px;
-  padding: 18px 28px;
+  flex-shrink: 0;
+  width: calc(100% - clamp(24px, 4vw, 48px));
+  max-width: min(920px, 100%);
+  margin: 0 auto clamp(10px, 1.5vw, 16px);
+  padding: clamp(12px, 1.8vw, 16px) clamp(14px, 2.5vw, 24px);
   background: #fff;
-  border-radius: 18px;
+  border-radius: clamp(14px, 2vw, 18px);
   border: 1px solid rgba(10, 17, 40, 0.07);
-  box-shadow: 0 10px 32px rgba(10, 17, 40, 0.06);
+  box-shadow: 0 8px 28px rgba(10, 17, 40, 0.06);
+  position: relative;
+  z-index: 2;
 }
 
 .product-switcher__feature-bar-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  flex: 1 1 180px;
+  gap: clamp(8px, 1.2vw, 12px);
+  flex: 1 1 0;
+  min-width: 0;
   justify-content: center;
-  padding: 4px 16px;
+  padding: 2px clamp(6px, 1.2vw, 12px);
 }
 
 .product-switcher__feature-bar-icon {
-  width: 38px;
-  height: 38px;
-  border-radius: 11px;
+  width: clamp(32px, 4vw, 38px);
+  height: clamp(32px, 4vw, 38px);
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 17px;
+  font-size: clamp(14px, 1.8vw, 17px);
   flex-shrink: 0;
 }
 
@@ -13854,14 +13996,14 @@ section.home-hero.home-hero--reference.home-hero--v2.responsive-padding {
 }
 
 .product-switcher__feature-bar-title {
-  font-size: 13px;
+  font-size: clamp(11.5px, 1.3vw, 13px);
   font-weight: 700;
   color: #0a1128;
   line-height: 1.2;
 }
 
 .product-switcher__feature-bar-sub {
-  font-size: 11.5px;
+  font-size: clamp(10px, 1.1vw, 11.5px);
   color: rgba(10, 17, 40, 0.45);
   margin-top: 2px;
 }
@@ -13872,6 +14014,67 @@ section.home-hero.home-hero--reference.home-hero--v2.responsive-padding {
   min-height: 36px;
   background: rgba(10, 17, 40, 0.08);
   flex-shrink: 0;
+}
+
+/* Laptop / short viewport — tighter layout at 100% zoom */
+@media (max-height: 860px) {
+  .product-switcher__header {
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  .product-switcher__hero {
+    margin-bottom: 14px;
+  }
+
+  .product-switcher__badge {
+    margin-bottom: 10px;
+    padding: 5px 12px;
+  }
+
+  .product-switcher__title {
+    font-size: clamp(1.45rem, 2.8vw, 1.85rem);
+    margin-bottom: 4px;
+  }
+
+  .product-switcher__subtitle {
+    font-size: 14px;
+  }
+
+  .product-switcher__card-logo {
+    height: 30px;
+  }
+
+  .product-switcher__card-desc {
+    margin-bottom: 10px;
+    font-size: 12.5px;
+  }
+
+  .product-switcher__features {
+    margin-bottom: 12px;
+    gap: 5px;
+  }
+
+  .product-switcher__feature-row {
+    font-size: 12px;
+  }
+
+  .product-switcher__desktop-btn.ant-btn {
+    height: 36px;
+  }
+}
+
+/* Narrow laptop / tablet — stack cards */
+@media (max-width: 1024px) {
+  .product-switcher__header {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .product-switcher__cards {
+    grid-template-columns: 1fr;
+    max-width: min(440px, 100%);
+  }
 }
 
 @media (max-width: 767px) {
@@ -13895,24 +14098,31 @@ section.home-hero.home-hero--reference.home-hero--v2.responsive-padding {
   }
 
   .product-switcher__main {
-    padding: 28px 16px 32px;
-    justify-content: flex-start;
+    padding: 20px 16px 12px;
+  }
+
+  .product-switcher__hero {
+    margin-bottom: 18px;
+  }
+
+  .product-switcher__title {
+    font-size: 1.45rem;
   }
 
   .product-switcher__cards {
-    gap: 16px;
-    margin-bottom: 24px;
+    gap: 14px;
   }
 
   .product-switcher__card {
-    max-width: none;
-    flex: 1 1 100%;
+    padding: 18px 16px;
   }
 
   .product-switcher__feature-bar {
     flex-direction: column;
-    gap: 16px;
-    padding: 20px;
+    gap: 12px;
+    width: calc(100% - 24px);
+    padding: 16px;
+    margin-bottom: 10px;
   }
 
   .product-switcher__feature-bar-divider {
@@ -13924,6 +14134,27 @@ section.home-hero.home-hero--reference.home-hero--v2.responsive-padding {
   .product-switcher__feature-bar-item {
     justify-content: flex-start;
     padding: 0;
+  }
+}
+
+/* Very small phones */
+@media (max-width: 380px) {
+  .product-switcher__header-actions {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .product-switcher__signout.ant-btn {
+    padding: 0 12px;
+    font-size: 12px;
+  }
+
+  .product-switcher__feature-bar-text {
+    min-width: 0;
+  }
+
+  .product-switcher__feature-bar-sub {
+    font-size: 10px;
   }
 }
 

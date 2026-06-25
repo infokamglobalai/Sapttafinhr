@@ -1,11 +1,26 @@
 from django.contrib import admin
-from .models import LetterTemplate, HRLetter, Asset, AssetAssignment, OnboardingTemplate, ExitRequest, Announcement, CelebrationPost, CelebrationWish
+from .models import (
+    LetterTemplate, HRLetter, CompanyLetterBranding, Asset, AssetAssignment,
+    OnboardingTemplate, ExitRequest, Announcement, CelebrationPost, CelebrationWish,
+)
 
 
 @admin.register(LetterTemplate)
 class LetterTemplateAdmin(admin.ModelAdmin):
-    list_display = ("name", "letter_type", "tenant", "is_active")
-    list_filter = ("tenant", "letter_type", "is_active")
+    list_display = ("name", "letter_type", "tenant", "requires_approval", "is_active")
+    list_filter = ("tenant", "letter_type", "is_active", "requires_approval")
+
+
+@admin.register(HRLetter)
+class HRLetterAdmin(admin.ModelAdmin):
+    list_display = ("employee", "letter_type", "status", "version", "reference_number", "generated_at")
+    list_filter = ("tenant", "letter_type", "status")
+    search_fields = ("employee__first_name", "employee__last_name", "reference_number")
+
+
+@admin.register(CompanyLetterBranding)
+class CompanyLetterBrandingAdmin(admin.ModelAdmin):
+    list_display = ("tenant", "updated_at")
 
 
 @admin.register(Asset)

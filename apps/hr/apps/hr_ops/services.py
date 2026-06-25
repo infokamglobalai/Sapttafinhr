@@ -116,49 +116,11 @@ from .models import LetterTemplate, HRLetter
 
 
 def generate_letter(tenant, employee, template: LetterTemplate, generated_by, extra_context: dict = None) -> HRLetter:
-    """
-    Render a LetterTemplate for an employee and save as PDF.
-    template_html is a Jinja2 string with access to employee, tenant, company, today.
-    """
-    from jinja2 import Environment
-    from utils.pdf import render_html_to_pdf
-    from .letter_services import build_letter_context
+    """Backward-compatible: create draft and issue immediately."""
+    from .letter_workflow import create_draft_letter, issue_letter
 
-    env = Environment(autoescape=True)
-    tmpl = env.from_string(template.template_html)
-    context = build_letter_context(tenant, employee, extra_context)
-    html_content = tmpl.render(**context)
-
-    full_html = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <style>
-        body {{ font-family: Arial, sans-serif; font-size: 12pt; margin: 40px; color: #111; }}
-        .header {{ text-align: center; margin-bottom: 30px; }}
-        .content {{ line-height: 1.6; }}
-        .signature {{ margin-top: 60px; }}
-        table {{ width: 100%; }}
-      </style>
-    </head>
-    <body>{html_content}</body>
-    </html>
-    """
-
-    pdf_bytes = render_html_to_pdf(full_html)
-
-    letter = HRLetter(
-        tenant=tenant,
-        employee=employee,
-        template=template,
-        letter_type=template.letter_type,
-        generated_by=generated_by,
-    )
-    filename = f"{template.letter_type}_{employee.employee_code}_{datetime.date.today()}.pdf"
-    letter.pdf.save(filename, ContentFile(pdf_bytes), save=False)
-    letter.save()
-    return letter
+    letter = create_draft_letter(tenant, employee, template, generated_by, extra_context)
+    return issue_letter(letter, generated_by, skip_approval_check=True)
 
 
 def start_onboarding(tenant, employee, template=None):

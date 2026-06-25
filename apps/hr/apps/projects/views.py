@@ -4,10 +4,14 @@ from django.db.models import Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
-from apps.employees.models import Employee
-from utils.access import hr_admin_required
+from utils.access import employee_profile_required, hr_admin_required
 
-from .access import projects_for_employee, user_can_access_project, user_can_edit_project
+from .access import (
+    attach_project_roles,
+    projects_for_employee,
+    user_can_access_project,
+    user_can_edit_project,
+)
 from .forms import (
     ProjectDocumentForm,
     ProjectForm,
@@ -16,10 +20,6 @@ from .forms import (
     TimeEntryForm,
 )
 from .models import Project, ProjectDocument, ProjectMember, ProjectUpdate, TimeEntry
-
-
-def _employee_required(request):
-    return getattr(request.user, "employee_profile", None)
 
 
 @hr_admin_required
@@ -153,20 +153,42 @@ def project_add_update(request, pk):
     return redirect("projects:detail", pk=pk)
 
 
-@login_required
+@employee_profile_required
 def my_projects(request):
-    employee = _employee_required(request)
-    if not employee:
-        return redirect("tenants:dashboard")
-    projects = projects_for_employee(employee).select_related("department", "lead")
-    return render(request, "projects/my_projects.html", {"projects": projects})
+    employee = request.user.employee_profile
+    status = request.GET.get("status", "").strip()
+
+    base_qs = projects_for_employee(employee).select_related("department", "lead")
+    active_count = base_qs.filter(status__in=("planning", "active")).count()
+    total_count = base_qs.count()
+
+    qs = base_qs
+    if status:
+        qs = qs.filter(status=status)
+    projects = attach_project_roles(employee, qs.order_by("-updated_at"))
+
+    today = timezone.localdate()
+    total_hours_month = (
+        TimeEntry.objects.filter(
+            employee=employee,
+            entry_date__year=today.year,
+            entry_date__month=today.month,
+        ).aggregate(total=Sum("hours"))["total"] or 0
+    )
+
+    return render(request, "projects/my_projects.html", {
+        "projects": projects,
+        "status": status,
+        "status_choices": Project.STATUS_CHOICES,
+        "active_count": active_count,
+        "total_count": total_count,
+        "total_hours_month": total_hours_month,
+    })
 
 
-@login_required
+@employee_profile_required
 def my_timesheet(request):
-    employee = _employee_required(request)
-    if not employee:
-        return redirect("tenants:dashboard")
+    employee = request.user.employee_profile
 
     projects = projects_for_employee(employee).filter(status__in=("planning", "active"))
     year = int(request.GET.get("year", timezone.localdate().year))

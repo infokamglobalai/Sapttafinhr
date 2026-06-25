@@ -622,6 +622,7 @@ def _hr_admin_analytics(tenant, today, month_start):
     ).order_by("-date_of_joining")[:5]
 
     from apps.hr_ops.models import ServiceRequest
+    from apps.hr_ops.letter_compliance import employees_pending_offer_letter, pending_offer_letter_count
     from apps.payroll.models import ExpenseClaim
     from apps.recruitment.models import JobOpening, JobApplication
     from .setup_checklist import get_setup_checklist
@@ -638,6 +639,8 @@ def _hr_admin_analytics(tenant, today, month_start):
         "expenses": pending_expenses,
     }
     pending_total = sum(pending_work.values())
+    pending_offer_letters = employees_pending_offer_letter(tenant, today=today)
+    pending_offer_count = pending_offer_letter_count(tenant, today=today)
 
     week_end = today + datetime.timedelta(days=7)
     upcoming_leaves = list(
@@ -751,6 +754,8 @@ def _hr_admin_analytics(tenant, today, month_start):
         "birthdays_soon": birthdays_soon,
         "setup_checklist": setup_checklist,
         "pending_work": pending_work,
+        "pending_offer_letters": pending_offer_letters,
+        "pending_offer_count": pending_offer_count,
         "today_presence": today_presence,
         "calendar_month": calendar_month,
         "dashboard_priorities": dashboard_priorities,
@@ -939,7 +944,7 @@ def company_overview(request):
     from apps.hr_ops.models import ServiceRequest
     from apps.leaves.models import LeaveRequest
     from apps.projects.models import Project
-    from apps.payroll.models import PayrollRun, Payslip
+    from apps.payroll.models import PayrollRun
 
     open_requests_qs = ServiceRequest.objects.filter(
         tenant=tenant,
@@ -959,15 +964,30 @@ def company_overview(request):
         "department", "lead"
     )[:12]
 
-    last_payroll = PayrollRun.objects.filter(tenant=tenant, status="published").order_by("-period_end").first()
-    payroll_total = None
-    if last_payroll:
-        payroll_total = Payslip.objects.filter(payroll_run=last_payroll).aggregate(
-            total=Sum("net_payable")
-        )["total"]
+    last_payroll = (
+        PayrollRun.objects.filter(tenant=tenant)
+        .filter(records__payslip__is_published=True)
+        .distinct()
+        .order_by("-year", "-month")
+        .first()
+    )
+    if not last_payroll:
+        last_payroll = PayrollRun.objects.filter(
+            tenant=tenant, status__in=("approved", "paid")
+        ).order_by("-year", "-month").first()
+
+    payroll_total = last_payroll.total_net if last_payroll else None
+    payroll_period_label = (
+        datetime.date(last_payroll.year, last_payroll.month, 1).strftime("%b %Y")
+        if last_payroll else None
+    )
 
     pending_leave = LeaveRequest.objects.filter(tenant=tenant, status="pending").count()
     headcount = Employee.objects.filter(tenant=tenant, employment_status="active", is_active=True).count()
+
+    from apps.hr_ops.letter_compliance import employees_pending_offer_letter, pending_offer_letter_count
+    pending_offer_letters = employees_pending_offer_letter(tenant, today=today)
+    pending_offer_count = pending_offer_letter_count(tenant, today=today)
 
     return render(request, "tenants/company_overview.html", {
         "today": today,
@@ -979,5 +999,8 @@ def company_overview(request):
         "active_projects": active_projects,
         "last_payroll": last_payroll,
         "payroll_total": payroll_total,
+        "payroll_period_label": payroll_period_label,
+        "pending_offer_letters": pending_offer_letters,
+        "pending_offer_count": pending_offer_count,
     })
 

@@ -1,23 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Tag, message, Card, Table, Alert, Spin, Modal, Form, Input, Divider, InputNumber } from 'antd';
+import { Button, Tag, message, Card, Table, Divider, InputNumber, Input } from 'antd';
 import {
   ArrowLeftOutlined,
   CheckCircleFilled,
-  CreditCardOutlined,
-  LockOutlined,
-  SafetyOutlined,
   StarFilled,
   ThunderboltOutlined,
   CheckOutlined
 } from '@ant-design/icons';
 import { useAuth } from '../../contexts/AuthContext';
-import { PLANS, planMonthly, INCLUDED_EMPLOYEES, EXTRA_EMPLOYEE_PRICE } from '../../types';
+import { PLANS, planMonthly, withGst, GST_RATE, INCLUDED_EMPLOYEES, EXTRA_EMPLOYEE_PRICE } from '../../types';
 import { startCheckout } from '../../lib/billing';
-import { useApiResource } from '../../hooks/useApiResource';
-import { devActivateSubscription } from '../../lib/api';
-import { markPostCheckout, waitForActiveProducts } from '../../lib/entitlements';
-import type { MySubscription, SaasInvoiceDTO } from '../../lib/api';
+import { validateBillingCoupon, fetchMySubscription, type MySubscription } from '../../lib/api';
+import type { SaasInvoiceDTO } from '../../lib/api';
+import AuthFooter from '../../components/layout/AuthFooter';
 
 const INR = (v: string | number) => `₹${new Intl.NumberFormat('en-IN').format(Number(v ?? 0) || 0)}`;
 const statusColor: Record<string, string> = { TRIAL: 'blue', ACTIVE: 'green', PAST_DUE: 'orange', CANCELLED: 'red' };
@@ -26,100 +22,115 @@ const statusColor: Record<string, string> = { TRIAL: 'blue', ACTIVE: 'green', PA
  * Customer billing surface: current products + plan picker that opens checkout.
  */
 export default function Billing() {
-  const { user, refreshProducts } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
-  const [devModalOpen, setDevModalOpen] = useState(false);
-  const [devModalPlan, setDevModalPlan] = useState<string>('');
-  const [devPaying, setDevPaying] = useState(false);
-  const [devStep, setDevStep] = useState<'form' | 'processing' | 'done'>('form');
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
   const [employees, setEmployees] = useState(INCLUDED_EMPLOYEES);
+  const [couponCode, setCouponCode] = useState('');
+  const [couponApplied, setCouponApplied] = useState('');
+  const [couponPreview, setCouponPreview] = useState<{
+    discount_amount?: string;
+    taxable_amount?: string;
+    gst_amount?: string;
+    total_amount?: string;
+    free_checkout?: boolean;
+  } | null>(null);
+  const [couponBusy, setCouponBusy] = useState(false);
 
-  // Live subscription for the current workspace (tenant-scoped endpoint).
-  const subRes = useApiResource<MySubscription>('/saas/my-subscription/');
-  const sub = subRes.data;
+  // Live subscription via platform API (works on localhost:8080 without tenant subdomain).
+  const [sub, setSub] = useState<MySubscription | null>(null);
+  const [subLoading, setSubLoading] = useState(true);
+  useEffect(() => {
+    let cancelled = false;
+    setSubLoading(true);
+    fetchMySubscription()
+      .then((data) => { if (!cancelled) setSub(data); })
+      .catch(() => { if (!cancelled) setSub(null); })
+      .finally(() => { if (!cancelled) setSubLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
   
   // Prefer live entitlement products; fall back to the auth context.
   const products = sub
     ? sub.products.map(p => (p === 'HR' ? 'hrms' : 'finance'))
     : user?.products ?? [];
 
-  const isPending = !subRes.loading && sub && (sub.status as string) === 'PENDING';
-
-  const goToWorkspace = async () => {
-    markPostCheckout();
-    const slugs = await waitForActiveProducts({ timeoutMs: 20_000 });
-    await refreshProducts();
-    if (slugs.length === 0) {
-      message.warning('Subscription is still activating — try again in a few seconds.');
-      return;
-    }
-    navigate('/app', { replace: true });
-  };
+  const isPending = !subLoading && sub && (sub.status as string) === 'PENDING';
 
   const subscribe = async (planId: string) => {
     setLoadingPlan(planId);
     try {
-      if (import.meta.env.DEV) {
-        try {
-          await devActivateSubscription();
-          message.success('Subscription activated! Opening your workspace…');
-          await goToWorkspace();
-          return;
-        } catch {
-          // Fall through to Razorpay or dev modal.
-        }
-      }
-
       const res = await startCheckout(planId, {
         cycle: billingCycle,
         employees,
+        couponCode: couponApplied || undefined,
         email: user?.email,
         name: [user?.firstName, user?.lastName].filter(Boolean).join(' '),
-        onPaid: async () => {
-          message.success('Payment received! Activating your subscription…');
-          await goToWorkspace();
-        },
       });
-      if (res.status === 'unavailable') {
-        setDevModalPlan(planId);
-        setDevModalOpen(true);
-      } else if (res.status === 'error') {
+
+      if (res.status === 'success' || res.status === 'activated') {
+        navigate('/app/billing/success', { replace: true, state: { planId } });
+      } else if (res.status === 'failed') {
+        navigate('/app/billing/failed', { replace: true, state: { message: res.message } });
+      } else if (res.status === 'cancelled') {
+        navigate('/app/billing/failed', { replace: true, state: { message: res.message, cancelled: true } });
+      } else if (res.status === 'unavailable' || res.status === 'error') {
         message.error(res.message);
       }
     } catch (e: unknown) {
-      message.error(e instanceof Error ? e.message : 'Could not activate. Please try again.');
+      message.error(e instanceof Error ? e.message : 'Could not start checkout. Please try again.');
     } finally {
       setLoadingPlan(null);
     }
   };
 
-  const handleDevPay = async () => {
-    setDevPaying(true);
-    setDevStep('processing');
-    // Simulate network delay for realism.
-    await new Promise(r => setTimeout(r, 1800));
+  const applyCoupon = async (planId: string) => {
+    const code = couponCode.trim();
+    if (!code) {
+      setCouponApplied('');
+      setCouponPreview(null);
+      return;
+    }
+    setCouponBusy(true);
     try {
-      await devActivateSubscription();
-      setDevStep('done');
-      await new Promise(r => setTimeout(r, 1200));
-      setDevModalOpen(false);
-      message.success('Subscription activated! Opening your workspace…');
-      await goToWorkspace();
-    } catch {
-      setDevStep('form');
-      message.error('Activation failed. Check that your account has a workspace.');
+      const preview = await validateBillingCoupon(planId, code, billingCycle, employees);
+      if (preview.valid) {
+        setCouponApplied(code.toUpperCase());
+        setCouponPreview({
+          discount_amount: preview.discount_amount,
+          taxable_amount: preview.taxable_amount,
+          gst_amount: preview.gst_amount,
+          total_amount: preview.total_amount,
+          free_checkout: preview.free_checkout,
+        });
+        message.success(
+          `Coupon applied — pay ₹${Number(preview.total_amount || 0).toLocaleString('en-IN')} incl. ${Math.round(GST_RATE * 100)}% GST`,
+        );
+      }
+    } catch (e: unknown) {
+      setCouponApplied('');
+      setCouponPreview(null);
+      message.error(e instanceof Error ? e.message : 'Invalid coupon.');
     } finally {
-      setDevPaying(false);
+      setCouponBusy(false);
     }
   };
 
   const formatPrice = (n: number) => new Intl.NumberFormat('en-IN').format(n);
 
-  const selectedPlan = PLANS.find(p => p.id === devModalPlan);
-
   return (
+    <>
+    <div className="billing-scroll-shell">
+    <div className="billing-page">
+      <div className="billing-page__topbar">
+        <span className="billing-page__step">Step 2 of 2 · Activate your workspace</span>
+        {products.length > 0 && (
+          <Button type="link" onClick={() => navigate('/app', { replace: true })} style={{ fontWeight: 600 }}>
+            Open product switcher →
+          </Button>
+        )}
+      </div>
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px 64px', position: 'relative' }}>
       
       {/* Background Orbs for Premium Aesthetics */}
@@ -159,128 +170,13 @@ export default function Billing() {
         </Button>
       </div>
 
-      {/* Dev fake-payment modal */}
-      <Modal
-        open={devModalOpen}
-        onCancel={() => { if (!devPaying) { setDevModalOpen(false); setDevStep('form'); } }}
-        footer={null}
-        width={440}
-        closable={!devPaying}
-        styles={{
-          content: {
-            borderRadius: 20,
-            padding: '28px 24px',
-            boxShadow: '0 20px 50px rgba(0,0,0,0.15)',
-            border: '1px solid rgba(255,109,0,0.15)',
-            overflow: 'hidden'
-          }
-        }}
-        title={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 8 }}>
-            <CreditCardOutlined style={{ color: '#FF6D00', fontSize: 20 }} />
-            <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--color-text-primary)' }}>Secure Checkout</span>
-            <Tag color="orange" style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 700, borderRadius: 4 }}>DEV MODE</Tag>
-          </div>
-        }
-      >
-        {devStep === 'done' ? (
-          <div style={{ textAlign: 'center', padding: '32px 0' }}>
-            <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 72,
-              height: 72,
-              borderRadius: '50%',
-              background: 'rgba(16, 185, 129, 0.1)',
-              color: '#10B981',
-              fontSize: 32,
-              marginBottom: 16
-            }}>
-              ✓
-            </div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: '#10B981' }}>Payment Successful!</div>
-            <div style={{ color: 'var(--color-text-secondary)', marginTop: 8 }}>Activating your subscription…</div>
-          </div>
-        ) : devStep === 'processing' ? (
-          <div style={{ textAlign: 'center', padding: '32px 0' }}>
-            <Spin size="large" />
-            <div style={{ marginTop: 20, fontWeight: 700, fontSize: 16, color: 'var(--color-text-primary)' }}>Processing payment…</div>
-            <div style={{ color: 'var(--color-text-secondary)', fontSize: 13, marginTop: 6 }}>Please wait, do not close or refresh this window.</div>
-          </div>
-        ) : (
-          <div>
-            <Alert
-              type="warning"
-              showIcon
-              message="Developer Sandbox"
-              description="No real charges will be applied. Use this to test subscription flows."
-              style={{ marginBottom: 20, borderRadius: 12, fontSize: 12, border: '1px solid rgba(255, 152, 0, 0.25)', background: 'rgba(255, 152, 0, 0.05)' }}
-            />
-            {selectedPlan && (
-              <div style={{
-                background: 'linear-gradient(135deg, rgba(255,109,0,0.02) 0%, rgba(255,109,0,0.06) 100%)',
-                borderRadius: 12,
-                padding: '16px',
-                marginBottom: 20,
-                border: '1px solid rgba(255,109,0,0.12)'
-              }}>
-                <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px' }}>Selected Plan</div>
-                <div style={{ fontWeight: 800, fontSize: 16, marginTop: 2, color: 'var(--color-text-primary)' }}>{selectedPlan.name}</div>
-                <div style={{ fontSize: 24, fontWeight: 900, color: '#FF6D00', marginTop: 6 }}>
-                  ₹{new Intl.NumberFormat('en-IN').format(
-                    billingCycle === 'monthly'
-                      ? planMonthly(selectedPlan, employees)
-                      : planMonthly(selectedPlan, employees) * 12,
-                  )}
-                  <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text-muted)' }}> + GST /{billingCycle === 'monthly' ? 'mo' : 'yr'}</span>
-                </div>
-                <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 2 }}>
-                  {selectedPlan.includedEmployees != null
-                    ? `Up to ${selectedPlan.includedEmployees} employees · +₹${EXTRA_EMPLOYEE_PRICE} each after`
-                    : 'Flat per company · unlimited users'}
-                </div>
-              </div>
-            )}
-            <Form layout="vertical" requiredMark={false}>
-              <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: 'var(--color-text-muted)' }}>CARD NUMBER</span>}>
-                <Input prefix={<CreditCardOutlined style={{ color: '#aaa' }} />} value="4111 1111 1111 1111" readOnly style={{ fontFamily: 'monospace', background: '#f8fafc', borderRadius: 8 }} size="large" />
-              </Form.Item>
-              <div style={{ display: 'flex', gap: 12 }}>
-                <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: 'var(--color-text-muted)' }}>EXPIRY</span>} style={{ flex: 1 }}>
-                  <Input value="12 / 28" readOnly style={{ background: '#f8fafc', borderRadius: 8, textAlign: 'center' }} size="large" />
-                </Form.Item>
-                <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: 'var(--color-text-muted)' }}>CVV</span>} style={{ flex: 1 }}>
-                  <Input prefix={<LockOutlined style={{ color: '#aaa' }} />} value="•••" readOnly style={{ background: '#f8fafc', borderRadius: 8, textAlign: 'center' }} size="large" />
-                </Form.Item>
-              </div>
-              <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: 'var(--color-text-muted)' }}>CARDHOLDER NAME</span>}>
-                <Input value={[user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Demo User'} readOnly style={{ background: '#f8fafc', borderRadius: 8 }} size="large" />
-              </Form.Item>
-            </Form>
-            <Divider style={{ margin: '16px 0' }} />
-            <Button
-              type="primary" block size="large"
-              icon={<SafetyOutlined />}
-              onClick={handleDevPay}
-              style={{ height: 48, fontWeight: 700, fontSize: 15, background: 'linear-gradient(135deg, #FF9800, #FF6D00)', border: 'none', borderRadius: 10, boxShadow: '0 4px 12px rgba(255,109,0,0.2)' }}
-            >
-              Pay Now (Simulated)
-            </Button>
-            <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--color-text-muted)', marginTop: 12 }}>
-              🔒 Secured Dev Checkout · Powered by Saptta
-            </div>
-          </div>
-        )}
-      </Modal>
-
       {/* Redesigned Premium Header */}
       <div style={{ marginBottom: 40, textAlign: 'center', zIndex: 1, position: 'relative' }} className="anim-fadeInUp">
         <h1 style={{ fontSize: 'clamp(28px, 4vw, 42px)', fontWeight: 900, color: 'var(--color-text-primary)', marginBottom: 8, letterSpacing: '-0.03em' }}>
           Flexible Plans for <span className="gradient-text">Growing Businesses</span>
         </h1>
         <p style={{ color: 'var(--color-text-secondary)', fontSize: 15, maxWidth: 560, margin: '0 auto' }}>
-          Select the optimal plan to scale your operations. Switch, upgrade, or cancel at any time.
+          Select a plan below to unlock HR &amp; Finance. Scroll to compare all options — Saptta Complete is at the bottom.
         </p>
       </div>
 
@@ -353,7 +249,7 @@ export default function Billing() {
         </Card>
 
         {/* Live Subscription Status */}
-        {!subRes.loading && sub && (
+        {!subLoading && sub && (
           <Card style={{
             borderRadius: 16,
             boxShadow: 'var(--shadow-secondary)',
@@ -392,7 +288,7 @@ export default function Billing() {
       </div>
 
       {/* Invoice History Details if present */}
-      {!subRes.loading && sub && sub.invoices && sub.invoices.length > 0 && (
+      {!subLoading && sub && sub.invoices && sub.invoices.length > 0 && (
         <Card style={{ borderRadius: 16, marginBottom: 40, border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-secondary)' }}
           title={<span style={{ fontWeight: 800, fontSize: 15 }}>Billing History & Invoices</span>}
           styles={{ body: { padding: 0 } }}>
@@ -404,12 +300,17 @@ export default function Billing() {
             columns={[
               { title: 'Invoice #', dataIndex: 'number', key: 'number', render: (v: string) => <span style={{ fontFamily: 'monospace', fontSize: 12, fontWeight: 600 }}>{v || '—'}</span> },
               { title: 'Billing Period', key: 'period', render: (_: unknown, r: SaasInvoiceDTO) => `${new Date(r.period_start).toLocaleDateString('en-IN')} – ${new Date(r.period_end).toLocaleDateString('en-IN')}` },
-              { title: 'Taxable Amount', key: 'taxable', render: (_: unknown, r: SaasInvoiceDTO) => INR(r.taxable_amount) },
+              { title: 'Taxable (ex-GST)', key: 'taxable', render: (_: unknown, r: SaasInvoiceDTO) => INR(r.taxable_amount) },
+              { title: 'GST @ 18%', key: 'gst_total', render: (_: unknown, r: SaasInvoiceDTO) => {
+                const igst = Number(r.igst) || 0;
+                const gstTotal = igst > 0 ? igst : (Number(r.cgst) || 0) + (Number(r.sgst) || 0);
+                return INR(gstTotal);
+              } },
               { title: 'Tax Breakup', key: 'gst', render: (_: unknown, r: SaasInvoiceDTO) => {
                 const igst = Number(r.igst) || 0;
-                return igst > 0 ? `IGST ${INR(r.igst)}` : `CGST+SGST ${INR((Number(r.cgst) || 0) + (Number(r.sgst) || 0))}`;
+                return igst > 0 ? `IGST ${INR(r.igst)}` : `CGST ${INR(r.cgst)} + SGST ${INR(r.sgst)}`;
               } },
-              { title: 'Total Paid', key: 'amount', render: (_: unknown, r: SaasInvoiceDTO) => <strong style={{ color: 'var(--color-text-primary)' }}>{INR(r.amount)}</strong> },
+              { title: 'Total (incl. GST)', key: 'amount', render: (_: unknown, r: SaasInvoiceDTO) => <strong style={{ color: 'var(--color-text-primary)' }}>{INR(r.amount)}</strong> },
               { title: 'Status', key: 'status', render: (_: unknown, r: SaasInvoiceDTO) => <Tag color={r.status === 'PAID' ? 'green' : r.status === 'OPEN' ? 'orange' : 'default'} style={{ borderRadius: 6, fontWeight: 700 }}>{r.status}</Tag> },
             ]}
           />
@@ -472,6 +373,27 @@ export default function Billing() {
         </div>
       </div>
 
+      {/* Coupon code — use DEMO100 for demo without Razorpay */}
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, marginBottom: 24, flexWrap: 'wrap' }} className="anim-fadeInUp delay-2">
+        <Input
+          placeholder="Coupon code (e.g. DEMO100)"
+          value={couponCode}
+          onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+          style={{ width: 200, textTransform: 'uppercase' }}
+          onPressEnter={() => applyCoupon(PLANS[0]?.id ?? 'saptta-complete')}
+        />
+        <Button loading={couponBusy} onClick={() => applyCoupon(PLANS[0]?.id ?? 'saptta-complete')}>
+          Apply coupon
+        </Button>
+        {couponApplied && couponPreview && (
+          <Tag color="green" style={{ fontWeight: 700, padding: '4px 10px' }}>
+            {couponApplied} — {couponPreview.free_checkout
+              ? 'Free checkout'
+              : `₹${Number(couponPreview.taxable_amount || 0).toLocaleString('en-IN')} + GST ₹${Number(couponPreview.gst_amount || 0).toLocaleString('en-IN')} = ₹${Number(couponPreview.total_amount || 0).toLocaleString('en-IN')}`}
+          </Tag>
+        )}
+      </div>
+
       {/* Headcount selector — HRMS & Complete include 30 employees, +₹111 each after */}
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, marginBottom: 40, flexWrap: 'wrap' }} className="anim-fadeInUp delay-2">
         <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)' }}>Number of employees</span>
@@ -483,7 +405,7 @@ export default function Billing() {
           style={{ width: 110 }}
         />
         <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
-          HRMS &amp; Complete include {INCLUDED_EMPLOYEES} employees · +₹{EXTRA_EMPLOYEE_PRICE} each after · all prices + GST
+          HRMS &amp; Complete include {INCLUDED_EMPLOYEES} employees · +₹{EXTRA_EMPLOYEE_PRICE} each after · prices ex-GST, {Math.round(GST_RATE * 100)}% GST added at checkout
         </span>
       </div>
 
@@ -518,7 +440,9 @@ export default function Billing() {
           }
 
           const displayPrice = planMonthly(plan, employees);
-          const annualTotal = displayPrice * 12;
+          const monthlyPayable = withGst(displayPrice);
+          const annualEx = displayPrice * 12;
+          const annualPayable = withGst(annualEx);
           const unitLabel =
             plan.includedEmployees != null
               ? `Up to ${plan.includedEmployees} employees · +₹${EXTRA_EMPLOYEE_PRICE} each`
@@ -580,13 +504,16 @@ export default function Billing() {
                 <span style={{ fontSize: 32, fontWeight: 900, color: themeColor, letterSpacing: '-0.02em' }}>
                   ₹{formatPrice(displayPrice)}
                 </span>
-                <span style={{ color: 'var(--color-text-muted)', fontSize: 13, fontWeight: 600 }}>/mo + GST</span>
+                <span style={{ color: 'var(--color-text-muted)', fontSize: 13, fontWeight: 600 }}>/mo ex-GST</span>
+                <div style={{ fontSize: 12, color: themeColor, fontWeight: 700, marginTop: 6 }}>
+                  + {Math.round(GST_RATE * 100)}% GST = ₹{formatPrice(monthlyPayable)}/mo payable
+                </div>
                 <div style={{ fontSize: 11, color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 4 }}>
                   {unitLabel}
                 </div>
                 {billingCycle === 'annual' && (
-                  <div style={{ fontSize: 11, color: '#FF6D00', fontWeight: 700, marginTop: 2 }}>
-                    Billed annually (₹{formatPrice(annualTotal)}/yr + GST)
+                  <div style={{ fontSize: 11, color: '#FF6D00', fontWeight: 700, marginTop: 4 }}>
+                    Billed annually: ₹{formatPrice(annualEx)} + GST = ₹{formatPrice(annualPayable)}/yr payable
                   </div>
                 )}
               </div>
@@ -658,5 +585,9 @@ export default function Billing() {
         </span>
       </div>
     </div>
+    </div>
+    </div>
+    <AuthFooter />
+    </>
   );
 }

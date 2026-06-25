@@ -2,6 +2,7 @@ from django.urls import path
 from . import views
 from . import settings_views
 from . import billing_views
+from . import product_launch
 from .sso import sso_login
 
 app_name = "accounts"
@@ -14,6 +15,7 @@ urlpatterns = [
     path("logout/", views.logout_view, name="logout"),
     path("change-password/", views.change_password, name="change_password"),
     path("settings/", settings_views.account_settings, name="settings"),
+    path("launch/finance/", product_launch.launch_finance, name="launch_finance"),
     path("billing/invoices/<int:invoice_id>/", billing_views.invoice_view, name="invoice_view"),
     path("billing/invoices/<int:invoice_id>/pdf/", billing_views.invoice_pdf, name="invoice_pdf"),
     path("profile/", views.profile, name="profile"),

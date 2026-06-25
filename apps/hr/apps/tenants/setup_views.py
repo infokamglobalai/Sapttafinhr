@@ -16,6 +16,75 @@ from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods, require_GET
 
+from .setup_validation import validate_setup_post
+from .tax_validation import tax_id_hint, tax_id_label, tax_id_placeholder
+
+
+def _default_form_data(tenant) -> dict:
+    return {
+        "company_name": tenant.name,
+        "gstin": tenant.gstin or "",
+        "pan": tenant.pan or "",
+        "address": tenant.address or "",
+        "departments": "Engineering\nSales\nHuman Resources\nFinance\nOperations",
+        "leave_rows": [
+            ("Casual Leave", "CL"),
+            ("Earned Leave", "EL"),
+            ("Sick Leave", "SL"),
+        ],
+        "emp_rows": [{
+            "code": "",
+            "first": "",
+            "last": "",
+            "doj": "",
+            "dept": "",
+            "email": "",
+            "role": "employee",
+        }],
+    }
+
+
+def _form_data_from_post(post) -> dict:
+    leave_rows = []
+    for name, code in zip(post.getlist("leave_name[]"), post.getlist("leave_code[]")):
+        leave_rows.append((name.strip(), code.strip().upper()))
+
+    emp_rows = []
+    for i, code in enumerate(post.getlist("emp_code[]")):
+        emp_rows.append({
+            "code": (code or "").strip(),
+            "first": (post.getlist("emp_first[]")[i] if i < len(post.getlist("emp_first[]")) else "").strip(),
+            "last": (post.getlist("emp_last[]")[i] if i < len(post.getlist("emp_last[]")) else "").strip(),
+            "doj": (post.getlist("emp_doj[]")[i] if i < len(post.getlist("emp_doj[]")) else "").strip(),
+            "dept": (post.getlist("emp_dept[]")[i] if i < len(post.getlist("emp_dept[]")) else "").strip(),
+            "email": (post.getlist("emp_email[]")[i] if i < len(post.getlist("emp_email[]")) else "").strip(),
+            "role": (post.getlist("emp_role[]")[i] if i < len(post.getlist("emp_role[]")) else "employee").strip(),
+        })
+    if not emp_rows:
+        emp_rows = _default_form_data(None)["emp_rows"]
+
+    return {
+        "company_name": (post.get("company_name") or "").strip(),
+        "gstin": (post.get("gstin") or "").strip(),
+        "pan": (post.get("pan") or "").strip(),
+        "address": (post.get("address") or "").strip(),
+        "departments": post.get("departments") or "",
+        "leave_rows": leave_rows or _default_form_data(None)["leave_rows"],
+        "emp_rows": emp_rows,
+    }
+
+
+def _setup_context(tenant, *, form_data=None, field_errors=None):
+    jurisdiction = tenant.payroll_jurisdiction
+    return {
+        "tenant": tenant,
+        "form": form_data or _default_form_data(tenant),
+        "field_errors": field_errors or {},
+        "tax_id_label": tax_id_label(jurisdiction),
+        "tax_id_hint": tax_id_hint(jurisdiction),
+        "tax_id_placeholder": tax_id_placeholder(jurisdiction),
+    }
+
 
 @login_required
 @require_http_methods(["GET", "POST"])
@@ -29,7 +98,7 @@ def setup(request):
     if request.method == "POST":
         return _handle_submit(request, tenant)
 
-    return render(request, "tenants/setup.html", {"tenant": tenant})
+    return render(request, "tenants/setup.html", _setup_context(tenant))
 
 
 @login_required
@@ -53,84 +122,81 @@ def _handle_submit(request, tenant):
     from apps.employees.services import provision_employee_login
     from apps.leaves.models import LeaveType
 
-    p = request.POST
+    cleaned, field_errors = validate_setup_post(tenant, request.POST)
+    form_data = _form_data_from_post(request.POST)
+    if field_errors:
+        for key, msg in field_errors.items():
+            if key == "__all__":
+                messages.error(request, msg)
+            else:
+                messages.error(request, msg)
+        return render(
+            request,
+            "tenants/setup.html",
+            _setup_context(tenant, form_data=form_data, field_errors=field_errors),
+        )
 
-    # 1) Company info
-    tenant.name    = (p.get("company_name") or tenant.name).strip()
-    tenant.gstin   = (p.get("gstin") or "").strip()
-    tenant.pan     = (p.get("pan") or "").strip()
-    tenant.address = (p.get("address") or "").strip()
+    assert cleaned is not None
+
+    tenant.name = cleaned["company_name"]
+    tenant.gstin = cleaned["gstin"]
+    tenant.pan = cleaned["pan"]
+    tenant.address = cleaned["address"]
     tenant.save(update_fields=["name", "gstin", "pan", "address"])
 
-    # 2) Departments (newline-separated)
-    dept_names = [d.strip() for d in (p.get("departments") or "").splitlines() if d.strip()]
     dept_by_name = {}
-    for name in dept_names:
+    for name in cleaned["departments"]:
         dept, _ = Department.objects.get_or_create(tenant=tenant, name=name)
         dept_by_name[name.lower()] = dept
 
-    # 3) Leave types
-    for name, code in zip(p.getlist("leave_name[]"), p.getlist("leave_code[]")):
-        name, code = name.strip(), code.strip().upper()
-        if name and code:
-            LeaveType.objects.get_or_create(tenant=tenant, code=code, defaults={"name": name})
-
-    # 4) Employees — collect newly created ones for login provisioning
-    emp_codes  = p.getlist("emp_code[]")
-    emp_first  = p.getlist("emp_first[]")
-    emp_last   = p.getlist("emp_last[]")
-    emp_doj    = p.getlist("emp_doj[]")
-    emp_dept   = p.getlist("emp_dept[]")
-    emp_email  = p.getlist("emp_email[]")
-    emp_role   = p.getlist("emp_role[]")
+    for name, code in cleaned["leave_rows"]:
+        LeaveType.objects.get_or_create(tenant=tenant, code=code, defaults={"name": name})
 
     new_employees = []
-    for i, code in enumerate(emp_codes):
-        code  = (code or "").strip()
-        first = (emp_first[i]  if i < len(emp_first)  else "").strip()
-        last  = (emp_last[i]   if i < len(emp_last)   else "").strip()
-        doj   = (emp_doj[i]    if i < len(emp_doj)    else "").strip()
-        if not (code and first and doj):
-            continue
-        dept  = dept_by_name.get((emp_dept[i]  if i < len(emp_dept)  else "").strip().lower())
-        email = (emp_email[i]  if i < len(emp_email)  else "").strip()
-        role  = (emp_role[i]   if i < len(emp_role)   else "employee").strip() or "employee"
+    for row in cleaned["emp_rows"]:
+        dept = dept_by_name.get(row["dept"].lower()) if row["dept"] else None
 
         from apps.employees.services import create_employee, _parse_date
         from apps.tenants.limits import check_employee_capacity, EmployeeLimitExceeded
 
-        emp, created = None, False
         try:
             check_employee_capacity(tenant, additional=1)
         except EmployeeLimitExceeded as exc:
             messages.error(request, str(exc))
-            return redirect("tenants:setup")
+            return render(
+                request,
+                "tenants/setup.html",
+                _setup_context(tenant, form_data=form_data, field_errors={"__all__": str(exc)}),
+            )
 
         try:
-            doj_parsed = _parse_date(doj)
+            doj_parsed = _parse_date(row["doj"])
         except ValueError as exc:
-            messages.error(request, f"Invalid date for {code}: {exc}")
-            return redirect("tenants:setup")
+            messages.error(request, f"Invalid date for {row['code']}: {exc}")
+            return render(
+                request,
+                "tenants/setup.html",
+                _setup_context(tenant, form_data=form_data),
+            )
 
         emp, _ = create_employee(
             tenant,
             {
-                "employee_code": code,
-                "first_name": first,
-                "last_name": last,
+                "employee_code": row["code"],
+                "first_name": row["first"],
+                "last_name": row["last"],
                 "date_of_joining": doj_parsed,
                 "department": dept,
-                "official_email": email,
+                "official_email": row["email"],
                 "employment_status": "active",
             },
             created_by=request.user,
         )
-        new_employees.append((emp, email, role))
+        new_employees.append((emp, row["email"], row["role"]))
 
-    # 5) Provision login accounts + assign roles for every new employee with email
     from apps.employees.access_services import build_invite_url, set_employee_roles
-    from apps.employees.services import provision_employee_login, email_employee_invite, invite_delivery_message
     from apps.employees.access_services import get_login_url
+    from apps.employees.services import email_employee_invite, invite_delivery_message
 
     credentials = []
     for emp, email, role_name in new_employees:

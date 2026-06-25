@@ -19,7 +19,7 @@
   </div>
   <div class="hr-page-header__actions">
     {# Excel exports available from review onwards — HR needs to verify before approving #}
-    {% if run.status in 'review,approved,paid' %}
+    {% if run.status == 'review' or run.status == 'approved' or run.status == 'paid' %}
     <div class="dropdown dropdown-end">
       <button tabindex="0" class="btn btn-outline btn-sm">
         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
@@ -102,7 +102,7 @@
       </ul>
     </div>
     {% endif %}
-    {% if run.status in 'review,draft' %}
+    {% if run.status == 'review' or run.status == 'draft' %}
     <form method="post" action="{% url 'payroll:run_recompute' run.pk %}">
       {% csrf_token %}
       <button class="btn btn-outline btn-sm">Recompute all</button>
@@ -120,7 +120,7 @@
       <button class="btn btn-info btn-sm">Publish Payslips to ESS</button>
     </form>
     {% endif %}
-    {% if finance_sync_available and run.status in 'approved,paid' %}
+    {% if finance_sync_available and run.status == 'approved' or finance_sync_available and run.status == 'paid' %}
       {% if run.finance_synced_at %}
       <span class="badge badge-success badge-lg">Finance ✓ {{ run.finance_voucher_no }}</span>
       {% else %}
@@ -153,6 +153,8 @@
   </div>
 </div>
 
+{% include "payroll/partials/gcc_export_readiness.html" %}
+
 {% if finance_sync_available %}
 <div class="card mb-4 p-4 flex flex-wrap items-center justify-between gap-3" style="border-left: 4px solid #4F46E5;">
   <div>
@@ -165,7 +167,7 @@
       {% endif %}
     </div>
   </div>
-  {% if not run.finance_synced_at and run.status in 'approved,paid' %}
+  {% if not run.finance_synced_at and run.status == 'approved' or not run.finance_synced_at and run.status == 'paid' %}
   <form method="post" action="{% url 'payroll:sync_finance' run.pk %}">
     {% csrf_token %}
     <button class="btn btn-primary btn-sm">Post journal now</button>

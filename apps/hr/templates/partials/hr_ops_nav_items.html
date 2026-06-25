@@ -50,6 +50,13 @@
 </a>
 
 <div class="nav-section-title mt-2">Documents &amp; assets</div>
+<a href="{% url 'hr_ops:letter_history' %}"
+   class="nav-item {% if request.resolver_match.url_name == 'letter_history' or request.resolver_match.url_name == 'letter_detail' or request.resolver_match.url_name == 'letter_edit_draft' %}active{% endif %}">
+  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden>
+    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+  </svg>
+  Letter history
+</a>
 <a href="{% url 'hr_ops:letter_templates' %}"
    class="nav-item {% if request.resolver_match.url_name == 'letter_templates' or 'letter_template' in request.resolver_match.url_name or request.resolver_match.url_name == 'letter_company_settings' %}active{% endif %}">
   <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden>

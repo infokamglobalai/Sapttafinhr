@@ -21,12 +21,11 @@ class HeaderTenantMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        # Log incoming request info for debugging
-        logger.info(
-            f"[DEBUG MIDDLEWARE] Incoming request path: {request.path}, "
-            f"host: {request.get_host()}, "
-            f"urlconf_before: {getattr(request, 'urlconf', None)}, "
-            f"X-Workspace: {request.headers.get('X-Workspace')}"
+        logger.debug(
+            "Tenant resolve path=%s host=%s X-Workspace=%s",
+            request.path,
+            request.get_host(),
+            request.headers.get("X-Workspace"),
         )
 
         connection.set_schema_to_public()
@@ -81,17 +80,10 @@ class HeaderTenantMiddleware:
         else:
             request.tenant = None
 
-        logger.info(
-            f"[DEBUG MIDDLEWARE] Tenant set: {tenant.schema_name if tenant else None}, "
-            f"urlconf_after: {getattr(request, 'urlconf', None)}, "
-            f"schema_name: {connection.schema_name}"
+        logger.debug(
+            "Tenant set schema=%s path=%s",
+            tenant.schema_name if tenant else None,
+            request.path,
         )
-
-        from django.urls import resolve, Resolver404
-        try:
-            match = resolve(request.path)
-            logger.info(f"[DEBUG MIDDLEWARE] Successfully resolved path {request.path} to view {match.view_name}")
-        except Resolver404 as e:
-            logger.warning(f"[DEBUG MIDDLEWARE] Resolver404 for path {request.path}: {e}")
 
         return self.get_response(request)

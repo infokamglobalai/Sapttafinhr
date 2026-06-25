@@ -227,3 +227,62 @@ class ProcessedWebhookEvent(models.Model):
 
     def __str__(self) -> str:
         return self.event_id
+
+
+class CouponCode(TimeStampedModel):
+    """Platform promo / discount codes for SaaS checkout."""
+
+    class DiscountType(models.TextChoices):
+        PERCENT = "percent", "Percentage off"
+        FIXED = "fixed_inr", "Fixed INR off"
+
+    code = models.CharField(max_length=40, unique=True, db_index=True)
+    description = models.CharField(max_length=255, blank=True)
+    discount_type = models.CharField(max_length=20, choices=DiscountType.choices, default=DiscountType.PERCENT)
+    discount_value = models.DecimalField(max_digits=10, decimal_places=2)
+    applies_to_plans = models.JSONField(
+        default=list, blank=True,
+        help_text="Empty = all plans. Else list of plan codes e.g. ['saptta-hr','saptta-complete']",
+    )
+    applies_to_cycles = models.JSONField(
+        default=list, blank=True,
+        help_text="Empty = monthly+annual. Else ['monthly'] or ['annual']",
+    )
+    max_redemptions = models.PositiveIntegerField(null=True, blank=True)
+    redemptions_used = models.PositiveIntegerField(default=0)
+    valid_from = models.DateField(null=True, blank=True)
+    valid_until = models.DateField(null=True, blank=True)
+    first_time_only = models.BooleanField(
+        default=False,
+        help_text="Only tenants with no prior PAID invoice / redemption",
+    )
+    is_active = models.BooleanField(default=True)
+    created_by = models.CharField(max_length=254, blank=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+
+    def __str__(self) -> str:
+        return self.code
+
+
+class CouponRedemption(TimeStampedModel):
+    coupon = models.ForeignKey(CouponCode, on_delete=models.CASCADE, related_name="redemptions")
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name="coupon_redemptions")
+    subscription = models.ForeignKey(
+        Subscription, on_delete=models.SET_NULL, null=True, blank=True, related_name="coupon_redemptions",
+    )
+    plan_code = models.CharField(max_length=40, blank=True)
+    billing_cycle = models.CharField(max_length=20, blank=True)
+    original_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    final_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    razorpay_order_id = models.CharField(max_length=100, blank=True)
+    razorpay_payment_id = models.CharField(max_length=100, blank=True)
+    redeemed_by_email = models.CharField(max_length=254, blank=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+
+    def __str__(self) -> str:
+        return f"{self.coupon.code} → {self.tenant_id}"

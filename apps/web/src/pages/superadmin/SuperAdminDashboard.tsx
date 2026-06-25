@@ -211,6 +211,7 @@ export default function SuperAdminDashboard() {
           <Button onClick={() => navigate('/superadmin/revenue')} style={{ borderRadius: 8 }}>Revenue</Button>
           <Button onClick={() => navigate('/superadmin/users')} style={{ borderRadius: 8 }}>Users</Button>
           <Button onClick={() => navigate('/superadmin/announcements')} style={{ borderRadius: 8 }}>Announce</Button>
+          <Button onClick={() => navigate('/superadmin/coupons')} style={{ borderRadius: 8 }}>Coupons</Button>
           <Button icon={<AppstoreOutlined />} onClick={() => navigate('/superadmin/plans')} style={{ borderRadius: 8 }}>Plans</Button>
           <Button icon={<ReloadOutlined />} onClick={load} style={{ borderRadius: 8 }}>Refresh</Button>
           <span style={{ fontSize: 13, color: 'rgba(10,17,40,0.5)' }}>{user?.email}</span>

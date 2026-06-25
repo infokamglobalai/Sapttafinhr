@@ -136,6 +136,37 @@ services:
       redis: { condition: service_healthy }
     command: sh -c "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn hrms.wsgi:application --bind 0.0.0.0:8000 --workers 4 --timeout 120 --access-logfile -"
 
+  hr-worker:
+    build:
+      context: ./apps/hr
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      DJANGO_SETTINGS_MODULE: hrms.settings.production
+      SECRET_KEY: ${HR_SECRET_KEY}
+      DEBUG: "False"
+      ALLOWED_HOSTS: ${HR_ALLOWED_HOSTS}
+      DB_NAME: ${HR_POSTGRES_DB:-saptta_hr}
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_HOST: db
+      DB_PORT: "5432"
+      REDIS_URL: redis://redis:6379/1
+      FIELD_ENCRYPTION_KEY: ${HR_FIELD_ENCRYPTION_KEY}
+      SUPERADMIN_DOMAIN: ${HR_SUPERADMIN_DOMAIN}
+      TENANT_DOMAIN: ${HR_TENANT_DOMAIN}
+      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL}
+      EMAIL_BACKEND: ${EMAIL_BACKEND:-anymail.backends.amazon_ses.EmailBackend}
+      SSO_SHARED_SECRET: ${SSO_SHARED_SECRET}
+      SENTRY_DSN: ${HR_SENTRY_DSN:-}
+      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
+      HR_PUBLIC_BASE_URL: https://${HR_SUPERADMIN_DOMAIN:-hr.saptta.com}
+      PLATFORM_BASE_URL: ${FRONTEND_BASE_URL:-https://app.saptta.com}
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    command: celery -A hrms worker --beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+
   finance-web:
     build:
       context: ./apps/finance/frontend

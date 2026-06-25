@@ -39,6 +39,8 @@ import ChatbotWidget from './components/chatbot/ChatbotWidget';
 // Product switcher (hands off to the real standalone products) + account billing.
 import ProductSwitcher from './pages/app/ProductSwitcher';
 import Billing from './pages/dashboard/Billing';
+import PaymentSuccess from './pages/dashboard/PaymentSuccess';
+import PaymentFailed from './pages/dashboard/PaymentFailed';
 import AccessDenied from './pages/AccessDenied';
 import Launch from './pages/Launch';
 import Logout from './pages/Logout';
@@ -49,34 +51,65 @@ import Operations from './pages/superadmin/Operations';
 import Revenue from './pages/superadmin/Revenue';
 import UsersAdmin from './pages/superadmin/UsersAdmin';
 import Announcements from './pages/superadmin/Announcements';
+import CouponsAdmin from './pages/superadmin/CouponsAdmin';
 import ImpersonationBanner from './components/ImpersonationBanner';
 import AnnouncementBanner from './components/AnnouncementBanner';
 
-const HIDE_CHROME_ROUTES = ['/app', '/superadmin', '/logout', '/launch', '/verify-email', '/access-denied'];
 const AUTH_MARKETING_ROUTES = ['/login', '/forgot-password', '/reset-password', '/signup'];
 
 function AppLayout() {
   const location = useLocation();
-  const hideChrome = HIDE_CHROME_ROUTES.some(r => location.pathname.startsWith(r));
-  const authMarketingPage = AUTH_MARKETING_ROUTES.some(r => location.pathname.startsWith(r));
-  const isSignupPage = location.pathname.startsWith('/signup');
-  const isLoginPage = location.pathname.startsWith('/login');
+  const path = location.pathname;
+  const isProductSwitcher = path === '/app' || path === '/app/';
+  const isAppBilling = path.startsWith('/app/billing');
+  const hideChrome =
+    path.startsWith('/app') ||
+    path.startsWith('/superadmin') ||
+    path.startsWith('/logout') ||
+    path.startsWith('/launch') ||
+    path.startsWith('/verify-email') ||
+    path.startsWith('/access-denied');
+  const authMarketingPage = AUTH_MARKETING_ROUTES.some(r => path.startsWith(r));
+  const isSignupPage = path.startsWith('/signup');
+  const isLoginPage = path.startsWith('/login');
+
+  // Product switcher uses an inner scroll region; superadmin/launch lock the viewport.
+  const lockViewport =
+    path.startsWith('/superadmin') ||
+    path.startsWith('/launch') ||
+    path.startsWith('/access-denied') ||
+    path === '/logout' ||
+    path.startsWith('/verify-email');
+
+  const mainClassName = [
+    'main-content',
+    authMarketingPage ? 'main-content--login' : '',
+    isAppBilling ? 'main-content--billing' : '',
+    isProductSwitcher ? 'main-content--switcher' : '',
+    lockViewport && !isProductSwitcher ? 'main-content--auth' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  const shellClassName = [
+    'app-shell',
+    isAppBilling ? 'app-shell--billing' : '',
+    isProductSwitcher ? 'app-shell--switcher' : '',
+    lockViewport && !isProductSwitcher ? 'app-shell--locked' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  const mainStyle = isProductSwitcher || lockViewport
+    ? ({ flex: 1, minHeight: 0 } as const)
+    : undefined;
 
   return (
-    <div
-      style={
-        hideChrome
-          ? { height: '100dvh', maxHeight: '100dvh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }
-          : { minHeight: '100vh', display: 'flex', flexDirection: 'column' }
-      }
-    >
+    <div className={shellClassName}>
       <ImpersonationBanner />
       <AnnouncementBanner />
       {!hideChrome && <Navbar />}
-      <main
-        className={`main-content${authMarketingPage ? ' main-content--login' : hideChrome ? ' main-content--auth' : ''}`}
-        style={{ flex: 1 }}
-      >
+      <main className={mainClassName} style={mainStyle}>
         <Routes>
           {/* Public marketing pages */}
           <Route path="/" element={<Home />} />
@@ -118,10 +151,13 @@ function AppLayout() {
           <Route path="/superadmin/revenue" element={<ProtectedRoute><Revenue /></ProtectedRoute>} />
           <Route path="/superadmin/users" element={<ProtectedRoute><UsersAdmin /></ProtectedRoute>} />
           <Route path="/superadmin/announcements" element={<ProtectedRoute><Announcements /></ProtectedRoute>} />
+          <Route path="/superadmin/coupons" element={<ProtectedRoute><CouponsAdmin /></ProtectedRoute>} />
           <Route path="/superadmin/companies/:schema" element={<ProtectedRoute><CompanyDetail /></ProtectedRoute>} />
 
           {/* Account billing/subscription (stays in the marketing shell). */}
           <Route path="/app/billing" element={<ProtectedRoute><Billing /></ProtectedRoute>} />
+          <Route path="/app/billing/success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
+          <Route path="/app/billing/failed" element={<ProtectedRoute><PaymentFailed /></ProtectedRoute>} />
 
           {/* Wrong-workspace guard: shown when a user tries to enter a company
               that isn't theirs (workspace mismatch detected at login). */}

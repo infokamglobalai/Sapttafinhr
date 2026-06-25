@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<html>
+<body style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+  <p>Dear {{ employee.first_name }},</p>
+  <p>Please find attached your <strong>{{ letter_type }}</strong>{% if reference_number %} (Ref: {{ reference_number }}){% endif %} from {{ tenant.name }}.</p>
+  <p>If you have any questions, please contact your HR team.</p>
+  <p>Regards,<br>{{ tenant.name }} HR</p>
+</body>
+</html>

@@ -16,6 +16,24 @@ from rest_framework.views import APIView
 from .models import SaasInvoice, Subscription, SubscriptionEntitlement
 
 
+def _tenant_for_request(request):
+    """Resolve customer tenant from subdomain or owner billing_email."""
+    tenant = getattr(request, "tenant", None)
+    if tenant and tenant.schema_name != "public":
+        return tenant
+    from apps.core.models import Tenant
+
+    email = getattr(request.user, "email", "")
+    if not email:
+        return tenant
+    return (
+        Tenant.objects.exclude(schema_name="public")
+        .filter(billing_email__iexact=email)
+        .order_by("created_on")
+        .first()
+    )
+
+
 class EntitlementOut(serializers.ModelSerializer):
     class Meta:
         model = SubscriptionEntitlement
@@ -39,10 +57,10 @@ class MySubscriptionView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        tenant = getattr(request, "tenant", None)
-        if tenant is None:
+        tenant = _tenant_for_request(request)
+        if tenant is None or tenant.schema_name == "public":
             return Response(
-                {"detail": "No workspace context. Call this on your workspace subdomain."},
+                {"detail": "No workspace found for this account."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

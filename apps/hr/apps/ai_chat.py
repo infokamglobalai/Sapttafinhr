@@ -106,7 +106,9 @@ def _execute_tool(name: str, inputs: dict, tenant) -> str:
                 qs = qs.filter(department_id=inputs["department_id"])
             total = qs.count()
             limit = inputs.get("limit", 20)
-            employees = qs.select_related("department", "designation").order_by("full_name")[:limit]
+            employees = qs.select_related("department", "designation").order_by(
+                "first_name", "last_name"
+            )[:limit]
             lines = [
                 f"• {e.full_name} — {getattr(e.designation, 'name', 'N/A')} ({getattr(e.department, 'name', 'N/A')})"
                 for e in employees
@@ -149,17 +151,18 @@ def _execute_tool(name: str, inputs: dict, tenant) -> str:
         elif name == "get_payroll_summary":
             from apps.payroll.models import PayrollRun
             last_run = (
-                PayrollRun.objects.filter(tenant=tenant, status="processed")
-                .order_by("-pay_period_end").first()
+                PayrollRun.objects.filter(tenant=tenant, status__in=("approved", "paid"))
+                .order_by("-year", "-month").first()
             )
             if not last_run:
                 return "No processed payroll runs found."
+            period = date(last_run.year, last_run.month, 1).strftime("%b %Y")
             return (
-                f"Last payroll run: {last_run.pay_period_start} to {last_run.pay_period_end}\n"
-                f"Employees: {getattr(last_run, 'employee_count', 'N/A')} | "
-                f"Gross: ₹{getattr(last_run, 'total_gross', 0):,.0f} | "
-                f"Net Pay: ₹{getattr(last_run, 'total_net', 0):,.0f} | "
-                f"Status: {last_run.status.title()}"
+                f"Last payroll run: {period}\n"
+                f"Employees: {last_run.total_employees} | "
+                f"Gross: ₹{last_run.total_gross:,.0f} | "
+                f"Net Pay: ₹{last_run.total_net:,.0f} | "
+                f"Status: {last_run.get_status_display()}"
             )
 
         elif name == "get_new_joiners":

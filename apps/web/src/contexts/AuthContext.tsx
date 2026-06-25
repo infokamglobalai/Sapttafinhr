@@ -6,7 +6,6 @@ import {
   fetchMe,
   fetchProducts,
   fetchMySubscription,
-  devActivateSubscription,
   getAccessToken,
   getWorkspace,
   clearAuth,
@@ -112,17 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const res = await apiLogin(email, password, workspace);
       const resolvedWs = res.workspace ?? workspace ?? getWorkspace();
-      const [me, rawProducts] = await Promise.all([fetchMe(), fetchProducts()]);
-
-      // Dev mode: if no active products (PENDING subscription), auto-activate
-      // so testing is always free — no billing page required.
-      let products = rawProducts;
-      if (import.meta.env.DEV && (!products || products.length === 0)) {
-        try {
-          await devActivateSubscription();
-          products = await fetchProducts();
-        } catch { /* no workspace yet — leave products empty */ }
-      }
+      const [me, products] = await Promise.all([fetchMe(), fetchProducts()]);
 
       const appUser = toAppUser(me, products ?? [], resolvedWs);
       setUser(appUser);
