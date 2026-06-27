@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 LETTER_DOC_TYPE_MAP = {
     "offer": "offer_letter",
+    "intent": "intent_letter",
     "appointment": "appointment",
     "experience": "experience",
     "relieving": "relieving",
@@ -29,6 +30,8 @@ LETTER_DOC_TYPE_MAP = {
     "confirmation": "confirmation",
     "termination": "termination",
     "internship": "internship",
+    "noc": "noc",
+    "certificate": "certificate",
 }
 
 
@@ -57,6 +60,7 @@ def create_draft_letter(
     *,
     parent=None,
     version: int = 1,
+    job_application=None,
 ) -> HRLetter:
     html = render_template_html(tenant, employee, template, extra_context)
     letter = HRLetter.objects.create(
@@ -71,6 +75,7 @@ def create_draft_letter(
         version=version,
         parent=parent,
         generated_by=created_by,
+        job_application=job_application,
     )
     _log(tenant, created_by, "create", letter, f"Draft {template.get_letter_type_display()} for {employee.full_name}")
     return letter
@@ -103,6 +108,10 @@ def submit_for_approval(letter: HRLetter, actor, *, ip=None) -> HRLetter:
 def approve_letter(letter: HRLetter, actor, *, ip=None) -> HRLetter:
     if letter.status != "pending_approval":
         raise ValueError("Letter is not pending approval.")
+    if letter.generated_by_id and actor.pk == letter.generated_by_id and not getattr(actor, "is_hr_admin", False):
+        raise ValueError(
+            "You cannot approve a letter you created. Ask another approver (e.g. HR head or workspace owner)."
+        )
     letter.status = "approved"
     letter.approved_by = actor
     letter.approved_at = timezone.now()

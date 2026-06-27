@@ -116,6 +116,23 @@ class CompanyLetterSettingsForm(forms.Form):
     )
 
 
+class LetterSignatoryForm(forms.ModelForm):
+    class Meta:
+        from .models import CompanyLetterSignatory
+
+        model = CompanyLetterSignatory
+        fields = ["name", "title", "signature_image", "sort_order", "is_active"]
+        widgets = {
+            "name": forms.TextInput(attrs={"class": INPUT, "placeholder": "Priya Sharma"}),
+            "title": forms.TextInput(attrs={"class": INPUT, "placeholder": "Director — Human Resources"}),
+            "signature_image": forms.ClearableFileInput(
+                attrs={"class": "file-input file-input-bordered w-full", "accept": "image/*"}
+            ),
+            "sort_order": forms.NumberInput(attrs={"class": INPUT, "style": "max-width:80px", "min": 0}),
+            "is_active": forms.CheckboxInput(attrs={"class": "checkbox checkbox-primary"}),
+        }
+
+
 class LetterDraftForm(forms.Form):
     draft_html = forms.CharField(
         widget=forms.Textarea(attrs={
@@ -239,3 +256,39 @@ class CelebrationWishForm(forms.ModelForm):
             }),
             "emoji": forms.HiddenInput(attrs={"id": "id_wish_emoji"}),
         }
+
+
+class CompanyDocumentForm(forms.ModelForm):
+    class Meta:
+        from .models import CompanyDocument
+
+        model = CompanyDocument
+        fields = ["doc_type", "title", "description", "file", "expiry_date", "is_active"]
+        widgets = {
+            "doc_type": forms.Select(attrs={"class": SELECT}),
+            "title": forms.TextInput(attrs={"class": INPUT, "placeholder": "e.g. GST Registration Certificate"}),
+            "description": forms.Textarea(attrs={"class": TEXTAREA, "rows": 3, "placeholder": "Optional notes for admins only"}),
+            "file": forms.ClearableFileInput(attrs={"class": "file-input file-input-bordered w-full"}),
+            "expiry_date": forms.DateInput(attrs={"class": INPUT, "type": "date"}),
+        }
+
+
+class CompanyDocAccessRequestForm(forms.Form):
+    doc_type = forms.ChoiceField(
+        widget=forms.Select(attrs={"class": SELECT}),
+        label="Document type needed",
+    )
+    purpose = forms.CharField(
+        label="Why do you need this?",
+        widget=forms.Textarea(attrs={
+            "class": TEXTAREA,
+            "rows": 4,
+            "placeholder": "e.g. Visa application, bank loan, client onboarding…",
+        }),
+    )
+
+    def __init__(self, *args, **kwargs):
+        from .models import CompanyDocument
+
+        super().__init__(*args, **kwargs)
+        self.fields["doc_type"].choices = CompanyDocument.DOC_TYPES

@@ -8,7 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 import { openFinanceApp, openHrApp } from '../lib/products';
 
-import { getWorkspace, setWorkspace, hrStaffLogin } from '../lib/api';
+import { getWorkspace, setWorkspace, hrStaffLogin, login as apiLogin, mfaSetupStart, mfaSetupConfirm, mfaVerifyLogin, hrStaffLoginMfa, ApiError, type LoginMfaChallenge, type MfaSetupPayload } from '../lib/api';
 
 
 
@@ -236,7 +236,7 @@ export default function Login() {
 
   const [searchParams] = useSearchParams();
 
-  const { login, isLoading, isAuthenticated, user } = useAuth();
+  const { login, hydrateSession, isLoading, isAuthenticated, user } = useAuth();
 
 
 
@@ -251,6 +251,11 @@ export default function Login() {
   const [handoffFailed, setHandoffFailed] = useState<string | null>(null);
 
   const [handoffPending, setHandoffPending] = useState(false);
+
+  const [mfaChallenge, setMfaChallenge] = useState<LoginMfaChallenge | null>(null);
+  const [mfaCode, setMfaCode] = useState('');
+  const [mfaSetup, setMfaSetup] = useState<MfaSetupPayload | null>(null);
+  const [backupCodes, setBackupCodes] = useState<string[] | null>(null);
 
   const handoffOnceRef = useRef(false);
 
@@ -493,17 +498,41 @@ export default function Login() {
 
     try {
 
-      const u = await login(email, password, workspaceParam);
+      const platformRes = await apiLogin(email, password, workspaceParam);
+
+      if (platformRes.kind === 'mfa') {
+
+        setMfaChallenge(platformRes);
+
+        if (platformRes.setup) {
+
+          const setup = await mfaSetupStart(platformRes.challenge_token);
+
+          setMfaSetup(setup);
+
+        }
+
+        return;
+
+      }
+
+      const u = await hydrateSession(platformRes.workspace ?? workspaceParam);
 
       if (redirectTarget) await performRedirect();
 
       else navigate(landingFor(u), { replace: true });
 
-    } catch {
+    } catch (platformErr) {
+
+      if (platformErr instanceof ApiError && platformErr.message.toLowerCase().includes('verify your email')) {
+        setError(`${platformErr.message} Use the code from your email or open Sign up → verify.`);
+        handoffOnceRef.current = false;
+        return;
+      }
 
       try {
 
-        const hr = await hrStaffLogin(
+        const hrRes = await hrStaffLogin(
 
           email,
 
@@ -515,9 +544,25 @@ export default function Login() {
 
         );
 
-        if (hr.workspace) setWorkspace(hr.workspace);
+        if (hrRes.kind === 'mfa') {
 
-        window.location.href = hr.redirect_url;
+          setMfaChallenge(hrRes);
+
+          if (hrRes.setup) {
+
+            const setup = await hrStaffLoginMfa('setup_start', hrRes.challenge_token, '', redirectTarget === 'hr' ? '/' : '/') as MfaSetupPayload;
+
+            setMfaSetup(setup);
+
+          }
+
+          return;
+
+        }
+
+        if (hrRes.workspace) setWorkspace(hrRes.workspace);
+
+        window.location.href = hrRes.redirect_url;
 
         return;
 
@@ -528,6 +573,88 @@ export default function Login() {
         setError('Invalid email or password.');
 
       }
+
+    }
+
+  };
+
+
+
+  const handleMfaSubmit = async (e: React.FormEvent) => {
+
+    e.preventDefault();
+
+    if (!mfaChallenge) return;
+
+    setError('');
+
+    try {
+
+      if (mfaChallenge.setup) {
+
+        const finish = mfaChallenge.authType === 'hr_staff'
+
+          ? await hrStaffLoginMfa('setup_confirm', mfaChallenge.challenge_token, mfaCode, redirectTarget === 'hr' ? '/' : '/')
+
+          : await mfaSetupConfirm(mfaChallenge.challenge_token, mfaCode);
+
+        if ('redirect_url' in finish && finish.redirect_url) {
+
+          if (finish.backup_codes?.length) setBackupCodes(finish.backup_codes);
+
+          if (finish.workspace) setWorkspace(finish.workspace);
+
+          window.location.href = finish.redirect_url;
+
+          return;
+
+        }
+
+        if ('kind' in finish && finish.kind === 'tokens') {
+
+          if (finish.backup_codes?.length) setBackupCodes(finish.backup_codes);
+
+          const u = await hydrateSession(finish.workspace ?? workspaceParam);
+
+          if (redirectTarget) await performRedirect();
+
+          else navigate(landingFor(u), { replace: true });
+
+        }
+
+        return;
+
+      }
+
+      if (mfaChallenge.authType === 'hr_staff') {
+
+        const finish = await hrStaffLoginMfa('verify', mfaChallenge.challenge_token, mfaCode, redirectTarget === 'hr' ? '/' : '/');
+
+        if ('redirect_url' in finish) {
+
+          if (finish.workspace) setWorkspace(finish.workspace);
+
+          window.location.href = finish.redirect_url;
+
+          return;
+
+        }
+
+      } else {
+
+        await mfaVerifyLogin(mfaChallenge.challenge_token, mfaCode);
+
+        const u = await hydrateSession(workspaceParam);
+
+        if (redirectTarget) await performRedirect();
+
+        else navigate(landingFor(u), { replace: true });
+
+      }
+
+    } catch {
+
+      setError('Invalid verification code.');
 
     }
 
@@ -554,7 +681,16 @@ export default function Login() {
     setEmail(dEmail);
     setPassword(dPass);
     try {
-      const u = await login(dEmail, dPass, workspaceParam);
+      const platformRes = await apiLogin(dEmail, dPass, workspaceParam);
+      if (platformRes.kind === 'mfa') {
+        setMfaChallenge(platformRes);
+        if (platformRes.setup) {
+          const setup = await mfaSetupStart(platformRes.challenge_token);
+          setMfaSetup(setup);
+        }
+        return;
+      }
+      const u = await hydrateSession(platformRes.workspace ?? workspaceParam);
       if (redirectTarget) await performRedirect();
       else navigate(landingFor(u), { replace: true });
     } catch {
@@ -562,6 +698,158 @@ export default function Login() {
       setError('Demo login unavailable. Check that the API is running.');
     }
   };
+
+
+
+  if (mfaChallenge) {
+
+    return (
+
+      <div className="login-page login-page--centered login-page--chrome">
+
+        <div className="login-page__shell">
+
+          <div className="login-page__form-wrap login-page__form-wrap--wide">
+
+            <div className="login-page__card">
+
+              <div className="login-page__card-top">
+
+                <Link to="/" className="login-page__logo-link" aria-label="Saptta home">
+
+                  <SapttaLogo />
+
+                </Link>
+
+                <h1 className="login-page__title">
+
+                  {mfaChallenge.setup ? 'Set up two-factor authentication' : 'Verify sign-in'}
+
+                </h1>
+
+                <p className="login-page__subtitle">
+
+                  {mfaChallenge.setup
+
+                    ? `Scan the QR code with your authenticator app for ${mfaChallenge.email}.`
+
+                    : `Enter the 6-digit code from your authenticator app for ${mfaChallenge.email}.`}
+
+                </p>
+
+              </div>
+
+
+
+              {mfaSetup?.qr_svg ? (
+
+                <div
+
+                  className="login-page__mfa-qr"
+
+                  dangerouslySetInnerHTML={{ __html: mfaSetup.qr_svg }}
+
+                />
+
+              ) : null}
+
+
+
+              {mfaSetup?.manual_secret ? (
+
+                <p className="login-page__subtitle text-sm">Manual key: <code>{mfaSetup.manual_secret}</code></p>
+
+              ) : null}
+
+
+
+              {backupCodes?.length ? (
+
+                <div className="login-page__error" role="status">
+
+                  Save these backup codes in a safe place: {backupCodes.join(', ')}
+
+                </div>
+
+              ) : null}
+
+
+
+              <form className="login-page__form" onSubmit={handleMfaSubmit}>
+
+                <div className="login-page__field">
+
+                  <label htmlFor="login-mfa-code">Authentication code</label>
+
+                  <input
+
+                    id="login-mfa-code"
+
+                    type="text"
+
+                    inputMode="numeric"
+
+                    autoComplete="one-time-code"
+
+                    required
+
+                    placeholder="123456"
+
+                    value={mfaCode}
+
+                    onChange={(e) => setMfaCode(e.target.value)}
+
+                  />
+
+                </div>
+
+
+
+                {error && <div className="login-page__error" role="alert">{error}</div>}
+
+
+
+                <button type="submit" className="login-page__submit login-page__submit--brand" disabled={isLoading}>
+
+                  {isLoading ? 'Verifying…' : mfaChallenge.setup ? 'Enable MFA and continue' : 'Verify and sign in'}
+
+                </button>
+
+              </form>
+
+
+
+              <p className="login-page__signup-inline">
+
+                <button
+
+                  type="button"
+
+                  className="login-page__link"
+
+                  style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+
+                  onClick={() => { setMfaChallenge(null); setMfaSetup(null); setMfaCode(''); setError(''); }}
+
+                >
+
+                  Back to sign in
+
+                </button>
+
+              </p>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    );
+
+  }
 
 
 

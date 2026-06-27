@@ -4,7 +4,7 @@ from django.db.models import Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
-from utils.access import employee_profile_required, hr_admin_required
+from utils.access import employee_profile_required, perm_required
 
 from .access import (
     attach_project_roles,
@@ -22,7 +22,7 @@ from .forms import (
 from .models import Project, ProjectDocument, ProjectMember, ProjectUpdate, TimeEntry
 
 
-@hr_admin_required
+@perm_required("projects.manage")
 def project_list(request):
     tenant = request.tenant
     status = request.GET.get("status", "")
@@ -36,7 +36,7 @@ def project_list(request):
     })
 
 
-@hr_admin_required
+@perm_required("projects.manage")
 def project_create_or_edit(request, pk=None):
     tenant = request.tenant
     project = get_object_or_404(Project, pk=pk, tenant=tenant) if pk else None
@@ -72,13 +72,13 @@ def project_detail(request, pk):
 
     members = project.members.select_related("employee", "employee__designation")
     documents = project.documents.select_related("uploaded_by").filter(is_team_visible=True)
-    if request.user.is_hr_admin:
+    if request.user.is_hr_admin or request.user.has_perm_code("projects.manage"):
         documents = project.documents.select_related("uploaded_by")
     updates = project.updates.select_related("author")[:30]
     can_edit = user_can_edit_project(request.user, project)
 
     member_form = None
-    if request.user.is_hr_admin:
+    if request.user.is_hr_admin or request.user.has_perm_code("projects.manage"):
         member_form = ProjectMemberForm(tenant, project)
 
     return render(request, "projects/project_detail.html", {
@@ -94,7 +94,7 @@ def project_detail(request, pk):
     })
 
 
-@hr_admin_required
+@perm_required("projects.manage")
 def project_add_member(request, pk):
     tenant = request.tenant
     project = get_object_or_404(Project, pk=pk, tenant=tenant)

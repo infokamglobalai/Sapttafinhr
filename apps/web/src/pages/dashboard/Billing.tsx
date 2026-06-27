@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Tag, message, Card, Table, Divider, InputNumber, Input } from 'antd';
+import { Button, Tag, message, Card, Table, Divider, InputNumber, Input, Checkbox } from 'antd';
 import {
   ArrowLeftOutlined,
   CheckCircleFilled,
@@ -37,6 +37,7 @@ export default function Billing() {
     free_checkout?: boolean;
   } | null>(null);
   const [couponBusy, setCouponBusy] = useState(false);
+  const [legalAccepted, setLegalAccepted] = useState(false);
 
   // Live subscription via platform API (works on localhost:8080 without tenant subdomain).
   const [sub, setSub] = useState<MySubscription | null>(null);
@@ -59,6 +60,10 @@ export default function Billing() {
   const isPending = !subLoading && sub && (sub.status as string) === 'PENDING';
 
   const subscribe = async (planId: string) => {
+    if (!legalAccepted) {
+      message.warning('Please accept the Terms of Service and Privacy Policy before checkout.');
+      return;
+    }
     setLoadingPlan(planId);
     try {
       const res = await startCheckout(planId, {
@@ -407,6 +412,16 @@ export default function Billing() {
         <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
           HRMS &amp; Complete include {INCLUDED_EMPLOYEES} employees · +₹{EXTRA_EMPLOYEE_PRICE} each after · prices ex-GST, {Math.round(GST_RATE * 100)}% GST added at checkout
         </span>
+      </div>
+
+      <div style={{ maxWidth: 640, margin: '0 auto 32px', textAlign: 'left' }} className="anim-fadeInUp delay-2">
+        <Checkbox checked={legalAccepted} onChange={(e) => setLegalAccepted(e.target.checked)}>
+          I agree to the{' '}
+          <a href="/terms" target="_blank" rel="noopener noreferrer">Terms of Service</a>
+          {' '}and{' '}
+          <a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
+          {' '}(subscription fees are non-refundable except as required by law).
+        </Checkbox>
       </div>
 
       {/* Pricing Grid */}

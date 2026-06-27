@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block page_title %}Document request{% endblock %}
+{% block content %}
+<a href="{% url 'hr_ops:my_company_doc_requests' %}" class="text-sm link mb-3 inline-block">← My requests</a>
+<h2 class="text-xl font-bold mb-4">{{ req.get_doc_type_display }}</h2>
+
+<div class="card max-w-xl">
+  <div class="card-body text-sm gap-3">
+    <p><strong>Status:</strong>
+      <span class="badge badge-sm {% if req.status == 'pending' %}badge-warning{% elif req.status == 'approved' %}badge-success{% elif req.status == 'denied' %}badge-error{% else %}badge-ghost{% endif %}">
+        {{ req.get_status_display }}
+      </span>
+    </p>
+    <p><strong>Your reason:</strong></p>
+    <p class="whitespace-pre-wrap bg-base-200/50 rounded-lg p-3">{{ req.purpose }}</p>
+    <p><strong>Submitted:</strong> {{ req.created_at|date:"d M Y H:i" }}</p>
+    {% if req.reviewed_by %}
+    <p><strong>Reviewed by:</strong> {{ req.reviewed_by }} · {{ req.reviewed_at|date:"d M Y" }}</p>
+    {% endif %}
+    {% if req.denial_reason %}<p class="text-error"><strong>Response:</strong> {{ req.denial_reason }}</p>{% endif %}
+    {% if req.is_access_valid and req.document %}
+    <p><strong>File:</strong> {{ req.document.title }}</p>
+    <p><strong>Download until:</strong> {{ req.access_expires_at|date:"d M Y H:i" }}</p>
+    <a href="{% url 'hr_ops:company_vault_download' req.document.pk %}" class="btn btn-primary btn-sm" target="_blank">Download document</a>
+    {% elif req.status == 'approved' %}
+    <p class="text-warning text-xs">Access has expired. Submit a new request if you still need this document.</p>
+    {% elif req.status == 'pending' %}
+    <p class="text-base-content/60">Waiting for company admin to review your request.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

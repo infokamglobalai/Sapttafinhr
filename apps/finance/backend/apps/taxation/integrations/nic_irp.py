@@ -25,9 +25,12 @@ class StubIRPClient:
     """Deterministic stub — does NOT call NIC. Returns fake but well-formed data."""
 
     def generate_irn(self, *, supplier_gstin: str, invoice_no: str,
-                     invoice_date: str, total: str) -> IRNResult:
-        payload = f"{supplier_gstin}|{invoice_no}|{invoice_date}|{total}"
-        irn = hashlib.sha256(payload.encode()).hexdigest()
+                     invoice_date: str, total: str, payload: dict | None = None) -> IRNResult:
+        base = f"{supplier_gstin}|{invoice_no}|{invoice_date}|{total}"
+        if payload:
+            import json
+            base += "|" + json.dumps(payload, sort_keys=True, default=str)
+        irn = hashlib.sha256(base.encode()).hexdigest()
         ack_no = f"112{abs(hash(invoice_no)) % 10**13:013d}"
         return IRNResult(
             irn=irn,
@@ -45,6 +48,7 @@ def get_irp_client():
     mode = os.environ.get("EINVOICE_MODE", "STUB").upper()
     if mode == "STUB":
         return StubIRPClient()
-    # When wiring real client:
-    # from .nic_irp_live import LiveIRPClient; return LiveIRPClient(...)
-    raise NotImplementedError(f"EINVOICE_MODE={mode} not implemented yet")
+    if mode == "LIVE":
+        from .nic_irp_live import LiveIRPClient
+        return LiveIRPClient()
+    raise NotImplementedError(f"EINVOICE_MODE={mode} not supported (use STUB or LIVE)")

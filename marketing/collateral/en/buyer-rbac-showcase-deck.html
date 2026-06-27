@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Saptta — Buyer Guide: Plans, Login & RBAC</title>
+  <style>
+    :root {
+      --blue: #2563EB; --blue-dark: #1D4ED8; --blue-soft: #EFF6FF;
+      --green: #059669; --green-soft: #ECFDF5;
+      --orange: #EA580C; --orange-soft: #FFF7ED;
+      --violet: #7C3AED; --violet-soft: #F5F3FF;
+      --text: #0F172A; --muted: #64748B; --border: #E2E8F0; --bg: #F8FAFC; --white: #fff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Segoe UI", system-ui, sans-serif; color: var(--text); background: #fff; line-height: 1.45; font-size: 11pt; }
+    @page { size: A4 landscape; margin: 12mm; }
+    @media print {
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .slide { page-break-after: always; box-shadow: none !important; }
+      .slide:last-child { page-break-after: avoid; }
+      .no-print { display: none !important; }
+    }
+    @media screen {
+      body { background: #CBD5E1; padding: 24px 16px 48px; }
+      .slide { max-width: 297mm; margin: 0 auto 24px; box-shadow: 0 12px 48px rgba(15,23,42,.14); border-radius: 14px; overflow: hidden; }
+    }
+    .slide { background: var(--white); padding: 14mm 16mm; min-height: 185mm; position: relative; }
+    .slide-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .logo { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 13pt; }
+    .logo-icon { width: 34px; height: 34px; border-radius: 9px; background: linear-gradient(135deg, var(--blue), var(--blue-dark)); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13pt; }
+    .slide-num { font-size: 8pt; color: var(--muted); font-weight: 600; }
+    h1 { font-size: 26pt; font-weight: 800; letter-spacing: -.03em; line-height: 1.12; margin-bottom: 8px; }
+    h2 { font-size: 15pt; font-weight: 700; margin-bottom: 12px; }
+    .subtitle { color: var(--muted); font-size: 11pt; max-width: 780px; margin-bottom: 14px; }
+    .tag { display: inline-block; background: var(--blue-soft); color: var(--blue); font-size: 8pt; font-weight: 700; padding: 4px 12px; border-radius: 999px; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 10px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+    .card { border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; background: #fff; }
+    .card h3 { font-size: 10.5pt; font-weight: 700; margin-bottom: 6px; }
+    .card p, .card li { font-size: 9pt; color: var(--muted); }
+    .card ul { margin: 6px 0 0 16px; }
+    .card li { margin: 3px 0; }
+    .card.blue { background: var(--blue-soft); border-color: rgba(37,99,235,.25); }
+    .card.green { background: var(--green-soft); border-color: rgba(5,150,105,.25); }
+    .card.orange { background: var(--orange-soft); border-color: rgba(234,88,12,.25); }
+    .card.violet { background: var(--violet-soft); border-color: rgba(124,58,237,.25); }
+    .flow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 12px 0; }
+    .flow-step { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; font-size: 8.5pt; font-weight: 600; }
+    .flow-arrow { color: var(--blue); font-weight: 700; font-size: 11pt; }
+    table { width: 100%; border-collapse: collapse; font-size: 8.5pt; margin-top: 8px; }
+    th, td { border: 1px solid var(--border); padding: 7px 9px; text-align: left; vertical-align: top; }
+    th { background: var(--bg); font-weight: 700; font-size: 7.5pt; text-transform: uppercase; color: var(--muted); }
+    .footer { position: absolute; bottom: 12mm; left: 16mm; right: 16mm; font-size: 8pt; color: var(--muted); display: flex; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 8px; }
+    .slide.title-slide { background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 55%, #2563EB 100%); color: #fff; }
+    .title-slide h1 { color: #fff; font-size: 30pt; }
+    .title-slide .subtitle { color: rgba(255,255,255,.88); }
+    .title-slide .tag { background: rgba(255,255,255,.15); color: #fff; }
+    .title-slide .footer { color: rgba(255,255,255,.65); border-color: rgba(255,255,255,.2); }
+    .pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+    .pill { background: var(--bg); border: 1px solid var(--border); padding: 5px 11px; border-radius: 999px; font-size: 8pt; font-weight: 600; }
+    .callout { background: var(--blue-soft); border-left: 4px solid var(--blue); padding: 12px 16px; border-radius: 0 10px 10px 0; font-size: 9.5pt; margin: 12px 0; }
+    .no-print { text-align: center; padding: 14px; background: #1E293B; color: #fff; font-size: 10pt; }
+    .role-badge { display: inline-block; font-size: 7.5pt; font-weight: 700; padding: 2px 8px; border-radius: 6px; margin-right: 4px; }
+    .role-owner { background: #FEF3C7; color: #92400E; }
+    .role-hr { background: #DBEAFE; color: #1E40AF; }
+    .role-mgr { background: #D1FAE5; color: #065F46; }
+    .role-emp { background: #F3F4F6; color: #374151; }
+    .role-fin { background: #EDE9FE; color: #5B21B6; }
+  </style>
+</head>
+<body>
+  <p class="no-print">Chrome → Print → Save as PDF (A4 Landscape, background graphics ON) · Speaker notes & RBAC manual: README.md (User workflows & RBAC sections)</p>
+
+  <!-- 1 TITLE -->
+  <section class="slide title-slide">
+    <span class="tag">Buyer guide · Plans &amp; access</span>
+    <h1>Who logs in.<br>What they see.<br>How RBAC works.</h1>
+    <p class="subtitle">A clear guide for customers purchasing Saptta HRMS, Saptta Finance, or Saptta Complete — plus speaker-ready slides for your sales team.</p>
+    <div class="pill-row" style="margin-top: 20px;">
+      <span class="pill" style="background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.25)">HRMS · Finance · Complete</span>
+      <span class="pill" style="background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.25)">Workspace owner ≠ Saptta staff</span>
+      <span class="pill" style="background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.25)">Step-by-step onboarding</span>
+    </div>
+    <div class="footer"><span>Saptta · For buyers &amp; sales</span><span>saptta.com</span></div>
+  </section>
+
+  <!-- 2 TWO WORLDS -->
+  <section class="slide">
+    <div class="slide-header"><div class="logo"><div class="logo-icon">S</div> Saptta</div><span class="slide-num">02 / 12</span></div>
+    <span class="tag">Important distinction</span>
+    <h2>Two different “admins” — don’t mix them up</h2>
+    <div class="grid-2">
+      <div class="card orange">
+        <h3>❌ NOT what you buy — Saptta platform team</h3>
+        <ul>
+          <li>Internal Saptta operators only</li>
+          <li>Console at <strong>/superadmin</strong></li>
+          <li>Manages <em>all</em> customer companies</li>
+          <li>Billing ops, support, provisioning</li>
+        </ul>
+      </div>
+      <div class="card green">
+        <h3>✅ What YOU get — Workspace owner</h3>
+        <ul>
+          <li>The email that signed up &amp; paid</li>
+          <li>Controls <strong>only your company</strong></li>
+          <li>HR: <span class="role-badge role-owner">Owner</span> + full HR admin</li>
+          <li>Finance: <span class="role-badge role-fin">OWNER</span> (if licensed)</li>
+        </ul>
+      </div>
+    </div>
+    <div class="callout"><strong>Sales line:</strong> “You are not getting Saptta’s internal superadmin. You get your own secure company workspace — like your own private HR &amp; Finance tenant.”</div>
+    <div class="footer"><span>Buyer RBAC showcase</span><span>02</span></div>
+  </section>
+
+  <!-- 3 THREE PLANS -->
+  <section class="slide">
+    <div class="slide-header"><div class="logo"><div class="logo-icon">S</div> Saptta</div><span class="slide-num">03 / 12</span></div>
+    <span class="tag">Pricing · ex-GST</span>
+    <h2>Three plans → three product combinations</h2>
+    <div class="grid-3">
+      <div class="card blue">
+        <h3>Saptta HRMS · ₹4,999/mo</h3>
+        <p><strong>Product:</strong> HR only</p>
+        <ul>
+          <li>30 employees included</li>
+          <li>Payroll, attendance, leave</li>
+          <li>Recruitment &amp; performance</li>
+          <li>No Finance app tile</li>
+        </ul>
+      </div>
+      <div class="card violet">
+        <h3>Saptta Finance · ₹4,999/mo</h3>
+        <p><strong>Product:</strong> Finance only</p>
+        <ul>
+          <li>Unlimited finance users</li>
+          <li>GST, ledger, banking</li>
+          <li>Inventory &amp; GSTR / e-Invoice</li>
+          <li>No HR app tile</li>
+        </ul>
+      </div>
+      <div class="card green">
+        <h3>Saptta Complete · ₹7,999/mo</h3>
+        <p><strong>Products:</strong> HR + Finance</p>
+        <ul>
+          <li>Save ₹1,999 vs separate</li>
+          <li>One login, product switcher</li>
+          <li>Payroll → books sync</li>
+          <li>Expense reimbursement flow</li>
+        </ul>
+      </div>
+    </div>
+    <p class="subtitle" style="margin-top:12px">+ 18% GST at checkout · GST invoice emailed to billing contact</p>
+    <div class="footer"><span>Buyer RBAC showcase</span><span>03</span></div>
+  </section>
+
+  <!-- 4 PURCHASE JOURNEY -->
+  <section class="slide">
+    <div class="slide-header"><div class="logo"><div class="logo-icon">S</div> Saptta</div><span class="slide-num">04 / 12</span></div>
+    <span class="tag">All plans</span>
+    <h2>Step-by-step: from purchase to first login</h2>
+    <div class="flow">
+      <span class="flow-step">1 · Choose plan</span><span class="flow-arrow">→</span>
+      <span class="flow-step">2 · Signup + workspace URL</span><span class="flow-arrow">→</span>
+      <span class="flow-step">3 · Pay (Razorpay)</span><span class="flow-arrow">→</span>
+      <span class="flow-step">4 · Auto-provision (~2 min)</span><span class="flow-arrow">→</span>
+      <span class="flow-step">5 · Login as owner</span>
+    </div>
+    <table>
+      <tr><th>Step</th><th>System action</th><th>Your role becomes</th></tr>
+      <tr><td>Signup email</td><td>Creates platform user + workspace</td><td>Future <strong>owner</strong></td></tr>
+      <tr><td>Payment success</td><td>Activates subscription + entitlements</td><td>Licensed products turn ON</td></tr>
+      <tr><td>Provisioning</td><td>FIN schema + HR workspace (per plan)</td><td>Apps ready to configure</td></tr>
+      <tr><td>First login</td><td>Product switcher shows licensed apps</td><td>Setup wizards start</td></tr>
+    </table>
+    <div class="callout">The <strong>signup email is always the workspace owner</strong> — billing contact, company branding, and highest access in purchased products.</div>
+    <div class="footer"><span>Buyer RBAC showcase</span><span>04</span></div>
+  </section>
+
+  <!-- 5 COMPLETE -->
+  <section class="slide">
+    <div class="slide-header"><div class="logo"><div class="logo-icon">S</div> Saptta</div><span class="slide-num">05 / 12</span></div>
+    <span class="tag">Saptta Complete</span>
+    <h2>Complete bundle — both products, one workspace</h2>
+    <div class="grid-2">
+      <div class="card blue">
+        <h3>HR path (owner &amp; HR team)</h3>
+        <ol style="font-size:9pt;color:var(--muted);margin-left:18px">
+          <li>Open <strong>Saptta HR</strong> from switcher</li>
+          <li>Finish setup wizard (dept, leave, holidays)</li>
+          <li>Add employees</li>
+          <li><strong>People → Team Access</strong> — assign roles</li>
+          <li>Create logins → staff get invite links</li>
+        </ol>
+      </div>
+      <div class="card violet">
+        <h3>Finance path (owner &amp; accounts)</h3>
+        <ol style="font-size:9pt;color:var(--muted);margin-left:18px">
+          <li>Open <strong>Saptta Finance</strong> from switcher</li>
+          <li>Company, GSTIN, fiscal year, COA</li>
+          <li>Parties, items, bank accounts</li>
+          <li><strong>Settings → Team</strong> — invite users</li>
+          <li>Assign OWNER / ACCOUNTANT / VIEWER</li>
+        </ol>
+      </div>
+    </div>
+    <div class="pill-row">
+      <span class="pill">Payroll → ledger sync</span>
+      <span class="pill">Expense claims → reimbursement</span>
+      <span class="pill">Unified KPIs in dashboard</span>
+    </div>
+    <div class="footer"><span>Buyer RBAC showcase</span><span>05</span></div>
+  </section>
+
+  <!-- 6 HR ONLY -->
+  <section class="slide">
+    <div class="slide-header"><div class="logo"><div class="logo-icon">S</div> Saptta</div><span class="slide-num">06 / 12</span></div>
+    <span class="tag">HRMS only</span>
+    <h2>HRMS plan — HR roles only</h2>
+    <div class="grid-2">
+      <div class="card green">
+        <h3>What activates</h3>
+        <ul>
+          <li>Subscription entitlement: <strong>HR</strong></li>
+          <li>HR workspace fully provisioned</li>
+          <li>Finance tile <strong>hidden</strong> in switcher</li>
+          <li>Finance RBAC not applicable</li>
+        </ul>
+      </div>
+      <div class="card blue">
+        <h3>Typical rollout (week 1)</h3>
+        <ul>
+          <li>Day 1–2: Setup wizard + org structure</li>
+          <li>Day 3–5: Import employees, assign managers</li>
+          <li>Day 6–7: First payroll run (if ready)</li>
+          <li>Ongoing: Recruitment, performance cycles</li>
+        </ul>
+      </div>
+    </div>
+    <div class="callout"><strong>Upgrade path:</strong> Add Finance or move to Complete later — same workspace URL, no re-signup.</div>
+    <div class="footer"><span>Buyer RBAC showcase</span><span>06</span></div>
+  </section>
+
+  <!-- 7 FIN ONLY -->
+  <section class="slide">
+    <div class="slide-header"><div class="logo"><div class="logo-icon">S</div> Saptta</div><span class="slide-num">07 / 12</span></div>
+    <span class="tag">Finance only</span>
+    <h2>Finance plan — finance roles only</h2>
+    <div class="grid-2">
+      <div class="card violet">
+        <h3>What activates</h3>
+        <ul>
+          <li>Subscription entitlement: <strong>FIN</strong></li>
+          <li>Finance tenant schema + company seed</li>
+          <li>HR tile <strong>hidden</strong></li>
+          <li>HR employee roles not applicable</li>
+        </ul>
+      </div>
+      <div class="card green">
+        <h3>Typical rollout (week 1)</h3>
+        <ul>
+          <li>Day 1: Company profile + GST settings</li>
+          <li>Day 2–3: Invite CA / accountant (ACCOUNTANT role)</li>
+          <li>Day 4–5: Opening balances, first invoices</li>
+          <li>Month end: GSTR-1 / 3B, reconciliation</li>
+        </ul>
+      </div>
+    </div>
+    <p class="subtitle"><strong>Unlimited finance users</strong> on flat price — ideal for CA firms and multi-branch finance teams.</p>
+    <div class="footer"><span>Buyer RBAC showcase</span><span>07</span></div>
+  </section>
+
+  <!-- 8 HR ROLES -->
+  <section class="slide">
+    <div class="slide-header"><div class="logo"><div class="logo-icon">S</div> Saptta</div><span class="slide-num">08 / 12</span></div>
+    <span class="tag">HR RBAC</span>
+    <h2>HR roles inside your company</h2>
+    <table>
+      <tr><th>Role</th><th>Buyer name</th><th>Access</th><th>Assigned where</th></tr>
+      <tr><td><span class="role-badge role-owner">super_admin</span></td><td>Workspace owner</td><td>Full HR + billing + branding</td><td>Auto on signup</td></tr>
+      <tr><td><span class="role-badge role-hr">hr_admin</span></td><td>HR administrator</td><td>Full HR operations</td><td>Team Access</td></tr>
+      <tr><td><span class="role-badge role-mgr">manager</span></td><td>Team lead</td><td>Approve leave, expenses, requests (direct reports)</td><td>Team Access</td></tr>
+      <tr><td><span class="role-badge role-emp">employee</span></td><td>Staff</td><td>My Space: punch, leave, payslips</td><td>Auto on login create</td></tr>
+    </table>
+    <p class="subtitle" style="margin-top:10px"><strong>2026 granular RBAC:</strong> Optional module permissions (payroll.run, recruitment.manage, etc.) for specialist teams without full HR admin.</p>
+    <div class="footer"><span>Buyer RBAC showcase</span><span>08</span></div>
+  </section>
+
+  <!-- 9 FIN ROLES -->
+  <section class="slide">
+    <div class="slide-header"><div class="logo"><div class="logo-icon">S</div> Saptta</div><span class="slide-num">09 / 12</span></div>
+    <span class="tag">Finance RBAC</span>
+    <h2>Finance roles inside your company</h2>
+    <table>
+      <tr><th>Role</th><th>Typical person</th><th>Can do</th></tr>
+      <tr><td><span class="role-badge role-fin">OWNER</span></td><td>Purchaser / CFO</td><td>Everything + invite team</td></tr>
+      <tr><td><span class="role-badge role-fin">ADMIN</span></td><td>Finance head</td><td>All modules + configuration</td></tr>
+      <tr><td><span class="role-badge role-fin">ACCOUNTANT</span></td><td>Accountant / CA</td><td>Ledger, GST, billing, banking, inventory</td></tr>
+      <tr><td><span class="role-badge role-fin">MANAGER</span></td><td>Ops manager</td><td>Approvals, limited write</td></tr>
+      <tr><td><span class="role-badge role-fin">EMPLOYEE</span></td><td>Staff</td><td>Submit expenses</td></tr>
+      <tr><td><span class="role-badge role-fin">VIEWER</span></td><td>Auditor / board</td><td>Read-only reports</td></tr>
+    </table>
+    <div class="callout">Enforced on the API — not just hidden buttons. A VIEWER cannot post journals.</div>
+    <div class="footer"><span>Buyer RBAC showcase</span><span>09</span></div>
+  </section>
+
+  <!-- 10 APPROVALS -->
+  <section class="slide">
+    <div class="slide-header"><div class="logo"><div class="logo-icon">S</div> Saptta</div><span class="slide-num">10 / 12</span></div>
+    <span class="tag">Day in the life</span>
+    <h2>How approvals flow (example)</h2>
+    <div class="grid-3">
+      <div class="card">
+        <h3>Leave</h3>
+        <div class="flow" style="flex-direction:column;align-items:flex-start">
+          <span class="flow-step">Employee applies</span>
+          <span class="flow-arrow">↓</span>
+          <span class="flow-step">Manager approves</span>
+          <span class="flow-arrow">↓</span>
+          <span class="flow-step">Balance updated</span>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Expense (Complete / Finance)</h3>
+        <div class="flow" style="flex-direction:column;align-items:flex-start">
+          <span class="flow-step">Employee submits</span>
+          <span class="flow-arrow">↓</span>
+          <span class="flow-step">Manager approves</span>
+          <span class="flow-arrow">↓</span>
+          <span class="flow-step">Finance pays in payroll</span>
+        </div>
+      </div>
+      <div class="card">
+        <h3>HR service request</h3>
+        <div class="flow" style="flex-direction:column;align-items:flex-start">
+          <span class="flow-step">Employee raises ticket</span>
+          <span class="flow-arrow">↓</span>
+          <span class="flow-step">Manager (if needed)</span>
+          <span class="flow-arrow">↓</span>
+          <span class="flow-step">HR admin resolves</span>
+        </div>
+      </div>
+    </div>
+    <div class="footer"><span>Buyer RBAC showcase</span><span>10</span></div>
+  </section>
+
+  <!-- 11 EMPLOYEE LOGIN -->
+  <section class="slide">
+    <div class="slide-header"><div class="logo"><div class="logo-icon">S</div> Saptta</div><span class="slide-num">11 / 12</span></div>
+    <span class="tag">Staff onboarding</span>
+    <h2>Getting employees logged in (HR plans)</h2>
+    <div class="flow">
+      <span class="flow-step">HR adds employee + email</span><span class="flow-arrow">→</span>
+      <span class="flow-step">Create login</span><span class="flow-arrow">→</span>
+      <span class="flow-step">Invite link emailed</span><span class="flow-arrow">→</span>
+      <span class="flow-step">Employee sets password</span><span class="flow-arrow">→</span>
+      <span class="flow-step">My Space app</span>
+    </div>
+    <div class="grid-2" style="margin-top:14px">
+      <div class="card green">
+        <h3>Security</h3>
+        <ul>
+          <li>One-time invite link (no shared passwords)</li>
+          <li>HR can reset / re-issue invite</li>
+          <li>Revoke access on exit workflow</li>
+        </ul>
+      </div>
+      <div class="card blue">
+        <h3>Employee sees</h3>
+        <ul>
+          <li>Attendance punch &amp; history</li>
+          <li>Leave apply &amp; balance</li>
+          <li>Payslips &amp; Form 16</li>
+          <li>Policies, assets, help requests</li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer"><span>Buyer RBAC showcase</span><span>11</span></div>
+  </section>
+
+  <!-- 12 CTA -->
+  <section class="slide title-slide">
+    <span class="tag">Next step</span>
+    <h1 style="font-size:26pt">Pick your plan.<br>Own your workspace.<br>Invite your team.</h1>
+    <div class="grid-3" style="margin-top:24px">
+      <div class="card" style="background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2);color:#fff">
+        <h3 style="color:#93C5FD">HR-led?</h3>
+        <p style="color:rgba(255,255,255,.85)">Start HRMS → add Finance when ready</p>
+      </div>
+      <div class="card" style="background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2);color:#fff">
+        <h3 style="color:#93C5FD">Finance-led?</h3>
+        <p style="color:rgba(255,255,255,.85)">Start Finance → add HRMS when ready</p>
+      </div>
+      <div class="card" style="background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2);color:#fff">
+        <h3 style="color:#93C5FD">Both today?</h3>
+        <p style="color:rgba(255,255,255,.85)">Complete — save ₹1,999/mo</p>
+      </div>
+    </div>
+    <p class="subtitle" style="margin-top:20px">hello@saptta.com · saptta.com · Full manual: README.md</p>
+    <div class="footer"><span>Saptta</span><span>12 / 12</span></div>
+  </section>
+</body>
+</html>

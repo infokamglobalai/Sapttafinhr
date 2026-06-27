@@ -65,6 +65,27 @@ services:
       SENTRY_DSN: ${FIN_SENTRY_DSN:-}
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
       SENTRY_RELEASE: ${SENTRY_RELEASE:-}
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-}
+      RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET:-}
+      EINVOICE_MODE: ${EINVOICE_MODE:-STUB}
+      EWB_MODE: ${EWB_MODE:-STUB}
+      NIC_IRP_BASE_URL: ${NIC_IRP_BASE_URL:-}
+      NIC_IRP_CLIENT_ID: ${NIC_IRP_CLIENT_ID:-}
+      NIC_IRP_CLIENT_SECRET: ${NIC_IRP_CLIENT_SECRET:-}
+      NIC_IRP_GSTIN: ${NIC_IRP_GSTIN:-}
+      EWB_BASE_URL: ${EWB_BASE_URL:-}
+      EWB_USERNAME: ${EWB_USERNAME:-}
+      EWB_PASSWORD: ${EWB_PASSWORD:-}
+      ZATCA_MODE: ${ZATCA_MODE:-STUB}
+      ZATCA_BASE_URL: ${ZATCA_BASE_URL:-}
+      ZATCA_CLIENT_ID: ${ZATCA_CLIENT_ID:-}
+      ZATCA_CLIENT_SECRET: ${ZATCA_CLIENT_SECRET:-}
+      PEPPOL_MODE: ${PEPPOL_MODE:-STUB}
+      PEPPOL_BASE_URL: ${PEPPOL_BASE_URL:-}
+      PEPPOL_API_KEY: ${PEPPOL_API_KEY:-}
+      SAAS_VENDOR_GSTIN: ${SAAS_VENDOR_GSTIN:-}
+      SAAS_VENDOR_STATE_CODE: ${SAAS_VENDOR_STATE_CODE:-27}
     depends_on:
       db: { condition: service_healthy }
       redis: { condition: service_healthy }
@@ -131,6 +152,12 @@ services:
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
       HR_PUBLIC_BASE_URL: https://${HR_SUPERADMIN_DOMAIN:-hr.saptta.com}
       PLATFORM_BASE_URL: ${FRONTEND_BASE_URL:-https://app.saptta.com}
+      EMAIL_BACKEND: ${HR_EMAIL_BACKEND:-django.core.mail.backends.smtp.EmailBackend}
+      EMAIL_HOST: ${HR_EMAIL_HOST:-}
+      EMAIL_PORT: ${HR_EMAIL_PORT:-587}
+      EMAIL_HOST_USER: ${HR_EMAIL_HOST_USER:-}
+      EMAIL_HOST_PASSWORD: ${HR_EMAIL_HOST_PASSWORD:-}
+      EMAIL_USE_TLS: ${HR_EMAIL_USE_TLS:-True}
     depends_on:
       db: { condition: service_healthy }
       redis: { condition: service_healthy }
@@ -156,7 +183,12 @@ services:
       SUPERADMIN_DOMAIN: ${HR_SUPERADMIN_DOMAIN}
       TENANT_DOMAIN: ${HR_TENANT_DOMAIN}
       DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL}
-      EMAIL_BACKEND: ${EMAIL_BACKEND:-anymail.backends.amazon_ses.EmailBackend}
+      EMAIL_BACKEND: ${HR_EMAIL_BACKEND:-django.core.mail.backends.smtp.EmailBackend}
+      EMAIL_HOST: ${HR_EMAIL_HOST:-}
+      EMAIL_PORT: ${HR_EMAIL_PORT:-587}
+      EMAIL_HOST_USER: ${HR_EMAIL_HOST_USER:-}
+      EMAIL_HOST_PASSWORD: ${HR_EMAIL_HOST_PASSWORD:-}
+      EMAIL_USE_TLS: ${HR_EMAIL_USE_TLS:-True}
       SSO_SHARED_SECRET: ${SSO_SHARED_SECRET}
       SENTRY_DSN: ${HR_SENTRY_DSN:-}
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}

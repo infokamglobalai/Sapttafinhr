@@ -9,13 +9,13 @@ from django import forms as djforms
 from .models import ReviewCycle, PerformanceReview
 from .forms import PerformanceReviewForm, EmployeeAcknowledgementForm
 from apps.employees.models import Employee
-from utils.access import hr_admin_required, manager_or_hr_required
+from utils.access import perm_required, manager_or_hr_required, has_full_team_scope, can_review_employee
 
 
 # ────────────────────────────────────────────────────────────────────────────
 # MANAGER — review your direct reports
 # ────────────────────────────────────────────────────────────────────────────
-@login_required
+@manager_or_hr_required
 def team_reviews(request):
     """Manager lands here: shows each direct report × each open cycle."""
     tenant = request.tenant
@@ -53,8 +53,7 @@ def review_create_or_edit(request, employee_pk, cycle_pk):
     employee = get_object_or_404(Employee, pk=employee_pk, tenant=tenant)
     cycle = get_object_or_404(ReviewCycle, pk=cycle_pk, tenant=tenant)
 
-    is_hr_admin = request.user.is_hr_admin
-    if not is_hr_admin and (not reviewer or employee.reporting_manager != reviewer):
+    if not can_review_employee(request.user, employee):
         messages.error(request, "You can only review your direct reports.")
         return redirect("performance:team_reviews")
 
@@ -134,6 +133,7 @@ def review_detail(request, pk):
     emp = getattr(user, "employee_profile", None)
     can_view = (
         user.is_hr_admin
+        or user.has_perm_code("performance.manage")
         or (emp and review.employee_id == emp.id)
         or (emp and review.reviewer_id == emp.id)
     )
@@ -174,14 +174,14 @@ def acknowledge_review(request, pk):
 # ────────────────────────────────────────────────────────────────────────────
 # HR ADMIN — manage review cycles
 # ────────────────────────────────────────────────────────────────────────────
-@hr_admin_required
+@perm_required("performance.manage")
 def cycle_list(request):
     tenant = request.tenant
     cycles = ReviewCycle.objects.filter(tenant=tenant).order_by("-review_period_end")
     return render(request, "performance/cycles.html", {"cycles": cycles})
 
 
-@hr_admin_required
+@perm_required("performance.manage")
 def cycle_detail(request, pk):
     tenant = request.tenant
     cycle = get_object_or_404(ReviewCycle, pk=pk, tenant=tenant)
@@ -220,7 +220,7 @@ class ReviewCycleForm(djforms.ModelForm):
         }
 
 
-@hr_admin_required
+@perm_required("performance.manage")
 @require_POST
 def cycle_launch_reviews(request, pk):
     """Bulk-create performance reviews for all active employees with managers."""
@@ -249,7 +249,7 @@ def cycle_launch_reviews(request, pk):
     return redirect("performance:cycle_detail", pk=pk)
 
 
-@hr_admin_required
+@perm_required("performance.manage")
 def cycle_create_or_edit(request, pk=None):
     tenant = request.tenant
     cycle = get_object_or_404(ReviewCycle, pk=pk, tenant=tenant) if pk else None
@@ -279,7 +279,7 @@ def ai_draft_review(request, employee_pk, cycle_pk):
 
     # Permission: HR admin OR the actual reporting manager
     reviewer = getattr(request.user, "employee_profile", None)
-    if not (request.user.is_hr_admin or (reviewer and employee.reporting_manager == reviewer)):
+    if not can_review_employee(request.user, employee):
         return JsonResponse({"error": "You can only draft reviews for your direct reports."}, status=403)
 
     notes = (request.POST.get("notes") or "").strip()

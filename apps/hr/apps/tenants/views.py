@@ -10,6 +10,8 @@ from django.db.models import Count, Sum, Q
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
+from utils.access import perm_required
+
 from .services import provision_tenant, validate_subdomain
 from .jurisdiction import SIGNUP_COUNTRY_CHOICES
 
@@ -168,6 +170,8 @@ def dashboard(request):
     }
 
     if user.is_hr_admin:
+        from .setup_checklist import get_setup_checklist
+        ctx["setup_checklist"] = get_setup_checklist(tenant)
         ctx.update(_hr_admin_analytics(tenant, today, month_start))
         _sync_calendar_notifications(user, tenant, today)
     elif user.is_manager and not user.is_hr_admin:
@@ -930,12 +934,9 @@ def _employee_analytics(tenant, user, today, month_start):
 
 
 @login_required
+@perm_required("reports.view")
 def company_overview(request):
     """Executive / company-head view — org-wide issues, payroll, projects, people."""
-    if not request.user.is_hr_admin:
-        messages.error(request, "HR administrator access required.")
-        return redirect("tenants:dashboard")
-
     tenant = request.tenant
     today = timezone.localdate()
     month_start = today.replace(day=1)
@@ -1003,4 +1004,23 @@ def company_overview(request):
         "pending_offer_letters": pending_offer_letters,
         "pending_offer_count": pending_offer_count,
     })
+
+
+@login_required
+@require_http_methods(["POST"])
+@perm_required("settings.manage")
+def set_ui_language(request):
+    """Switch tenant UI language (English / Arabic RTL)."""
+    lang = (request.POST.get("language") or "en").strip().lower()
+    if lang not in ("en", "ar"):
+        lang = "en"
+
+    tenant = request.tenant
+    if tenant and tenant.ui_language != lang:
+        tenant.ui_language = lang
+        tenant.save(update_fields=["ui_language"])
+        messages.success(request, "Language updated." if lang == "en" else "تم تحديث اللغة.")
+
+    next_url = request.POST.get("next") or request.META.get("HTTP_REFERER") or "/"
+    return redirect(next_url)
 

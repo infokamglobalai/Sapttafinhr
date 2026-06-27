@@ -1,6 +1,7 @@
 from django.contrib import admin
 
 from .models import (
+    ClientDocument, ClientDocumentTemplate,
     CreditNote, Invoice, InvoiceLine,
     Quotation, QuotationLine, SalesOrder, SalesOrderLine,
     RecurringInvoiceTemplate,
@@ -61,3 +62,16 @@ class SalesOrderAdmin(admin.ModelAdmin):
 class RecurringAdmin(admin.ModelAdmin):
     list_display = ("name", "customer", "frequency", "next_run_date", "is_active", "runs_completed")
     list_filter = ("frequency", "is_active", "company")
+
+
+@admin.register(ClientDocumentTemplate)
+class ClientDocumentTemplateAdmin(admin.ModelAdmin):
+    list_display = ("name", "doc_type", "company", "is_active")
+    list_filter = ("doc_type", "is_active", "company")
+
+
+@admin.register(ClientDocument)
+class ClientDocumentAdmin(admin.ModelAdmin):
+    list_display = ("doc_no", "title", "customer", "doc_type", "status", "company")
+    list_filter = ("status", "doc_type", "company")
+    search_fields = ("doc_no", "title", "customer__name")

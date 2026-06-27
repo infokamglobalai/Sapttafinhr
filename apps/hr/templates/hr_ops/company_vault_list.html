@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block page_title %}Company Vault{% endblock %}
+{% block content %}
+<div class="hr-page-header">
+  <div class="hr-page-header__main">
+    <h1 class="hr-page-header__title">Company Document Vault</h1>
+    <p class="hr-page-header__sub">Legal &amp; registration documents — not visible to all employees. Staff request access; you approve.</p>
+  </div>
+  <div class="hr-page-header__actions flex flex-wrap gap-2">
+    <a href="{% url 'hr_ops:company_vault_requests' %}" class="btn btn-outline btn-sm">
+      Access requests{% if pending_count %} <span class="badge badge-warning badge-sm">{{ pending_count }}</span>{% endif %}
+    </a>
+    <a href="{% url 'hr_ops:company_vault_upload' %}" class="btn btn-primary btn-sm">+ Upload document</a>
+  </div>
+</div>
+
+<div class="overflow-x-auto">
+  <table class="table table-sm">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Title</th>
+        <th>Uploaded</th>
+        <th>Expires</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for doc in documents %}
+      <tr>
+        <td class="text-xs">{{ doc.get_doc_type_display }}</td>
+        <td class="font-medium">{{ doc.title }}</td>
+        <td class="text-xs">{{ doc.uploaded_at|date:"d M Y" }}</td>
+        <td class="text-xs">{{ doc.expiry_date|date:"d M Y"|default:"—" }}</td>
+        <td>
+          {% if doc.is_active %}<span class="badge badge-success badge-sm">Active</span>{% else %}<span class="badge badge-ghost badge-sm">Archived</span>{% endif %}
+        </td>
+        <td class="text-right whitespace-nowrap">
+          <a href="{% url 'hr_ops:company_vault_download' doc.pk %}" class="btn btn-ghost btn-xs" target="_blank">Open</a>
+          <a href="{% url 'hr_ops:company_vault_edit' doc.pk %}" class="btn btn-ghost btn-xs">Edit</a>
+          {% if doc.is_active %}
+          <form method="post" action="{% url 'hr_ops:company_vault_archive' doc.pk %}" class="inline" onsubmit="return confirm('Archive this document?');">{% csrf_token %}
+            <button type="submit" class="btn btn-ghost btn-xs text-error">Archive</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="text-center py-10 text-base-content/60">
+        No company documents yet. Upload incorporation certificate, PAN, GST, bank KYC, etc.
+      </td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

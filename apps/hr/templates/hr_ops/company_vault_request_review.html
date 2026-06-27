@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block page_title %}Review access request{% endblock %}
+{% block content %}
+<a href="{% url 'hr_ops:company_vault_requests' %}" class="text-sm link mb-3 inline-block">← Access requests</a>
+<h2 class="text-xl font-bold mb-1">Review request</h2>
+<p class="text-sm text-base-content/60 mb-4">{{ req.employee.full_name }} · {{ req.get_doc_type_display }}</p>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+  <div class="card">
+    <div class="card-body text-sm gap-2">
+      <p><strong>Status:</strong> {{ req.get_status_display }}</p>
+      <p><strong>Requested:</strong> {{ req.created_at|date:"d M Y H:i" }}</p>
+      <p><strong>Purpose:</strong></p>
+      <p class="whitespace-pre-wrap bg-base-200/50 rounded-lg p-3">{{ req.purpose }}</p>
+      {% if req.document %}
+      <p><strong>Granted file:</strong> {{ req.document.title }}</p>
+      <p><strong>Access until:</strong> {{ req.access_expires_at|date:"d M Y H:i"|default:"—" }}</p>
+      {% endif %}
+      {% if req.denial_reason %}<p class="text-error"><strong>Denial:</strong> {{ req.denial_reason }}</p>{% endif %}
+    </div>
+  </div>
+
+  {% if req.status == 'pending' %}
+  <div class="card">
+    <div class="card-body gap-4">
+      {% if available_docs %}
+      <form method="post" class="space-y-3">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="approve">
+        <p class="font-medium text-sm">Approve — select vault file</p>
+        <select name="document_id" class="select select-bordered w-full" required>
+          {% for d in available_docs %}
+          <option value="{{ d.pk }}">{{ d.title }}</option>
+          {% endfor %}
+        </select>
+        <label class="text-sm">Access valid for (days)</label>
+        <input type="number" name="access_days" class="input input-bordered w-full" value="{{ default_access_days }}" min="1" max="90">
+        <button type="submit" class="btn btn-success w-full">Approve &amp; grant download</button>
+      </form>
+      <div class="divider">OR</div>
+      {% else %}
+      <div class="alert alert-warning text-sm">No active vault file for this type. <a href="{% url 'hr_ops:company_vault_upload' %}" class="link">Upload one</a> before approving.</div>
+      {% endif %}
+      <form method="post" class="space-y-2">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="deny">
+        <p class="font-medium text-sm">Deny request</p>
+        <input type="text" name="denial_reason" class="input input-bordered w-full" placeholder="Reason (optional)">
+        <button type="submit" class="btn btn-error btn-outline w-full">Deny</button>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

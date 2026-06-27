@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Form, Input, Button, Steps, Tag, Slider, message, Select } from 'antd';
+import { Form, Input, Button, Steps, Tag, Slider, message, Select, Checkbox } from 'antd';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import {
   CheckCircleFilled,
@@ -84,14 +84,14 @@ export default function Signup() {
     setStep(1);
   };
 
-  const handleSubmit = async (values: { email: string; password: string; firstName: string; lastName: string; companyName: string; country?: string }) => {
+  const handleSubmit = async (values: { email: string; password: string; firstName: string; lastName: string; companyName: string; country?: string; termsAccepted?: boolean }) => {
     if (!selectedPlanId) return;
     // Signup returns instantly; the tenant schema is then built in the
     // background. Show a persistent status while we poll for it so the form
     // doesn't look frozen.
     const hideLoading = message.loading('Creating your account…', 0);
     try {
-      const { provisioning } = await signup({
+      const { provisioning, requiresEmailVerification, email, workspace } = await signup({
         email: values.email,
         password: values.password,
         firstName: values.firstName,
@@ -99,9 +99,20 @@ export default function Signup() {
         planId: selectedPlanId,
         companyName: values.companyName,
         country: values.country || 'IN',
+        terms_accepted: values.termsAccepted ?? false,
       });
 
       hideLoading();
+
+      if (requiresEmailVerification) {
+        message.info('Check your email for a 6-digit verification code.');
+        navigate('/signup/verify', {
+          replace: true,
+          state: { email, workspace, provisioning },
+        });
+        return;
+      }
+
       message.success('Account created! Choose a plan to activate your workspace.');
 
       // Checkout only needs the tenant row (created instantly). Schema build runs
@@ -819,7 +830,23 @@ export default function Signup() {
                     </div>
                   )}
 
-                  <Form.Item style={{ marginTop: 24, marginBottom: 16 }}>
+                  <Form.Item
+                    name="termsAccepted"
+                    valuePropName="checked"
+                    rules={[{
+                      validator: (_, v) => v ? Promise.resolve() : Promise.reject(new Error('You must accept the terms')),
+                    }]}
+                    style={{ marginBottom: 16 }}
+                  >
+                    <Checkbox>
+                      I agree to the{' '}
+                      <Link to="/terms" target="_blank" rel="noopener noreferrer">Terms of Service</Link>
+                      {' '}and{' '}
+                      <Link to="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</Link>
+                    </Checkbox>
+                  </Form.Item>
+
+                  <Form.Item style={{ marginTop: 8, marginBottom: 16 }}>
                     <Button
                       type="primary"
                       htmlType="submit"

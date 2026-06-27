@@ -7,7 +7,7 @@ from django.http import HttpResponse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from utils.access import perm_required, hr_admin_required
+from utils.access import perm_required
 from utils.excel import make_workbook, apply_header_row, auto_fit_columns, workbook_response
 
 
@@ -316,7 +316,7 @@ def get_run_or_404(request, tenant):
     return get_object_or_404(PayrollRun, pk=run_id, tenant=tenant)
 
 
-@hr_admin_required
+@perm_required("reports.export")
 def monthly_report_pack_download(request):
     """Download ZIP of leave + attendance + payroll PDFs for a month."""
     from apps.reports.report_pack import build_monthly_report_pack

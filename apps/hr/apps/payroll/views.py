@@ -15,21 +15,21 @@ from .models import (
 )
 from utils.pdf import render_pdf_response
 from utils.excel import make_workbook, apply_header_row, auto_fit_columns, workbook_response
-from utils.access import hr_admin_required, manager_or_hr_required, employee_profile_required, can_manage_employee
+from utils.access import manager_or_hr_required, employee_profile_required, can_manage_employee, perm_required, has_full_team_scope
 from apps.tenants.jurisdiction import require_india_payroll, require_gcc_payroll, is_gcc_payroll, normalise_jurisdiction
 
 
 # ---------------------------------------------------------------------------
 # Payroll run management (HR admin)
 # ---------------------------------------------------------------------------
-@hr_admin_required
+@perm_required("payroll.view_all")
 def payroll_run_list(request):
     tenant = request.tenant
     runs = PayrollRun.objects.filter(tenant=tenant).order_by("-year", "-month")
     return render(request, "payroll/run_list.html", {"runs": runs})
 
 
-@hr_admin_required
+@perm_required("payroll.run")
 def payroll_run_create(request):
     tenant = request.tenant
     if request.method == "POST":
@@ -56,7 +56,7 @@ def payroll_run_create(request):
     return render(request, "payroll/run_create.html", {"today": today})
 
 
-@hr_admin_required
+@perm_required("payroll.view_all")
 def payroll_run_detail(request, pk):
     tenant = request.tenant
     run = get_object_or_404(PayrollRun, pk=pk, tenant=tenant)
@@ -83,7 +83,7 @@ def payroll_run_detail(request, pk):
     })
 
 
-@hr_admin_required
+@perm_required("payroll.approve")
 @require_POST
 def payroll_run_approve(request, pk):
     tenant = request.tenant
@@ -106,7 +106,7 @@ def payroll_run_approve(request, pk):
     return redirect("payroll:run_detail", pk=pk)
 
 
-@hr_admin_required
+@perm_required("payroll.run")
 @require_POST
 def payroll_run_publish(request, pk):
     """Publish payslips so employees can see them in ESS."""
@@ -208,7 +208,7 @@ def _apply_finance_sync(tenant, run, request=None) -> str:
     return suffix
 
 
-@hr_admin_required
+@perm_required("payroll.run")
 @require_POST
 def payroll_sync_finance(request, pk):
     """Manually sync an approved/paid payroll run to Finance ledger."""
@@ -229,7 +229,7 @@ def payroll_sync_finance(request, pk):
 # ---------------------------------------------------------------------------
 # Pre-payroll review & per-employee adjustments
 # ---------------------------------------------------------------------------
-@hr_admin_required
+@perm_required("payroll.view_all")
 def payroll_monthly_review(request):
     tenant = request.tenant
     today = timezone.localdate()
@@ -270,7 +270,7 @@ def payroll_monthly_review(request):
     })
 
 
-@hr_admin_required
+@perm_required("payroll.view_all")
 def payroll_record_detail(request, run_pk, record_pk):
     tenant = request.tenant
     run = get_object_or_404(PayrollRun, pk=run_pk, tenant=tenant)
@@ -290,7 +290,7 @@ def payroll_record_detail(request, run_pk, record_pk):
     })
 
 
-@hr_admin_required
+@perm_required("payroll.run")
 @require_POST
 def payroll_record_edit(request, run_pk, record_pk):
     tenant = request.tenant
@@ -332,7 +332,7 @@ def payroll_record_edit(request, run_pk, record_pk):
     return redirect("payroll:record_detail", run_pk=run.pk, record_pk=record.pk)
 
 
-@hr_admin_required
+@perm_required("payroll.run")
 @require_POST
 def payroll_run_recompute(request, pk):
     tenant = request.tenant
@@ -426,7 +426,7 @@ def _salary_register_gcc_excel(tenant, run, records):
     return workbook_response(wb, f"salary_register_{run.year}_{run.month:02d}.xlsx")
 
 
-@hr_admin_required
+@perm_required("payroll.export")
 def salary_register_excel(request, pk):
     """
     Salary register Excel — primary document for bank disbursement and CA/compliance.
@@ -530,7 +530,7 @@ def salary_register_excel(request, pk):
     return workbook_response(wb, f"salary_register_{run.year}_{run.month:02d}.xlsx")
 
 
-@hr_admin_required
+@perm_required("payroll.export")
 def bank_advice_excel(request, pk):
     """
     Bank advice / disbursement file — India (IFSC) or GCC (IBAN/SWIFT).
@@ -592,7 +592,7 @@ def bank_advice_excel(request, pk):
     return workbook_response(wb, f"bank_advice_{run.year}_{run.month:02d}.xlsx")
 
 
-@hr_admin_required
+@perm_required("payroll.export")
 @require_india_payroll
 def pf_statement_excel(request, pk):
     """PF ECR format export for EPFO portal upload."""
@@ -665,14 +665,14 @@ def payslip_view(request, pk):
 # ---------------------------------------------------------------------------
 # Salary structure management
 # ---------------------------------------------------------------------------
-@hr_admin_required
+@perm_required("payroll.configure")
 def salary_structure_list(request):
     tenant = request.tenant
     structures = SalaryStructure.objects.filter(tenant=tenant)
     return render(request, "payroll/structures.html", {"structures": structures})
 
 
-@hr_admin_required
+@perm_required("payroll.configure")
 @require_india_payroll
 def statutory_settings_view(request):
     tenant = request.tenant
@@ -680,7 +680,7 @@ def statutory_settings_view(request):
     return render(request, "payroll/statutory.html", {"settings": settings})
 
 
-@hr_admin_required
+@perm_required("payroll.configure")
 @require_india_payroll
 def statutory_create_or_edit(request, pk=None):
     from .forms import StatutorySettingForm
@@ -700,7 +700,7 @@ def statutory_create_or_edit(request, pk=None):
     return render(request, "payroll/statutory_form.html", {"form": form, "setting": s})
 
 
-@hr_admin_required
+@perm_required("payroll.configure")
 def structure_create_or_edit(request, pk=None):
     from .forms import SalaryStructureForm
     tenant = request.tenant
@@ -719,7 +719,7 @@ def structure_create_or_edit(request, pk=None):
 # ────────────────────────────────────────────────────────────────────────────
 # LOANS — admin & employee views
 # ────────────────────────────────────────────────────────────────────────────
-@hr_admin_required
+@perm_required("payroll.configure")
 def loan_list(request):
     """Admin view: all loans across employees."""
     tenant = request.tenant
@@ -746,7 +746,7 @@ def loan_list(request):
     })
 
 
-@hr_admin_required
+@perm_required("payroll.configure")
 def loan_create_or_edit(request, pk=None):
     from .forms import EmployeeLoanForm
     tenant = request.tenant
@@ -783,7 +783,7 @@ def loan_create_or_edit(request, pk=None):
     return render(request, "payroll/loan_form.html", {"form": form, "loan": loan})
 
 
-@hr_admin_required
+@perm_required("payroll.configure")
 def loan_detail(request, pk):
     tenant = request.tenant
     loan = get_object_or_404(EmployeeLoan, pk=pk, tenant=tenant)
@@ -806,7 +806,7 @@ def my_loans(request):
 # ────────────────────────────────────────────────────────────────────────────
 # REIMBURSEMENTS (Expense Claims) — admin & employee views
 # ────────────────────────────────────────────────────────────────────────────
-@hr_admin_required
+@perm_required("payroll.view_all")
 def expense_list(request):
     """Admin view: all expense claims to approve."""
     tenant = request.tenant
@@ -836,7 +836,7 @@ def team_expenses(request):
     """Manager: pending expense claims from direct reports."""
     tenant = request.tenant
     qs = ExpenseClaim.objects.filter(tenant=tenant, status="pending").select_related("employee")
-    if not request.user.is_hr_admin:
+    if not has_full_team_scope(request.user):
         manager = getattr(request.user, "employee_profile", None)
         if manager:
             qs = qs.filter(employee__reporting_manager=manager)
@@ -906,7 +906,7 @@ def expense_action(request, pk):
     claim = get_object_or_404(ExpenseClaim, pk=pk, tenant=tenant, status="pending")
     if not can_manage_employee(request.user, claim.employee):
         messages.error(request, "You cannot action this expense claim.")
-        next_url = "payroll:team_expenses" if request.user.is_manager and not request.user.is_hr_admin else "payroll:expenses"
+        next_url = "payroll:team_expenses" if request.user.is_manager and not has_full_team_scope(request.user) else "payroll:expenses"
         return redirect(next_url)
     action = request.POST.get("action")
 
@@ -1027,7 +1027,7 @@ def my_tax_declaration(request):
     })
 
 
-@hr_admin_required
+@perm_required("payroll.view_all")
 @require_india_payroll
 def tax_declaration_admin_list(request):
     """HR view: all employee declarations for an FY."""
@@ -1043,7 +1043,7 @@ def tax_declaration_admin_list(request):
     })
 
 
-@hr_admin_required
+@perm_required("payroll.approve")
 @require_POST
 @require_india_payroll
 def tax_declaration_verify(request, pk):
@@ -1072,7 +1072,7 @@ def tax_declaration_verify(request, pk):
 # ---------------------------------------------------------------------------
 # Form 16 generation (annual TDS certificate)
 # ---------------------------------------------------------------------------
-@hr_admin_required
+@perm_required("payroll.view_all")
 @require_india_payroll
 def form16_admin_list(request):
     """HR view to bulk-generate Form 16 Part B PDFs for an FY."""
@@ -1085,7 +1085,7 @@ def form16_admin_list(request):
     })
 
 
-@hr_admin_required
+@perm_required("payroll.configure")
 @require_POST
 @require_india_payroll
 def form16_generate_all(request):
@@ -1102,7 +1102,7 @@ def form16_generate_all(request):
     return redirect("payroll:form16_admin")
 
 
-@hr_admin_required
+@perm_required("payroll.configure")
 @require_POST
 @require_india_payroll
 def form16_issue(request, pk):
@@ -1116,7 +1116,7 @@ def form16_issue(request, pk):
     return redirect(f"{reverse('payroll:form16_admin')}?fy={form16.financial_year}")
 
 
-@hr_admin_required
+@perm_required("payroll.configure")
 @require_POST
 @require_india_payroll
 def form16_issue_all(request):
@@ -1146,7 +1146,7 @@ def my_form16s(request):
 # ---------------------------------------------------------------------------
 # Tally / PF ECR / ESI exports
 # ---------------------------------------------------------------------------
-@hr_admin_required
+@perm_required("payroll.export")
 @require_india_payroll
 def tally_xml_export(request, pk):
     """Export payroll run as Tally XML voucher batch."""
@@ -1161,7 +1161,7 @@ def tally_xml_export(request, pk):
     return resp
 
 
-@hr_admin_required
+@perm_required("payroll.export")
 @require_india_payroll
 def pf_ecr_export(request, pk):
     """PF ECR file (pipe-delimited TXT per EPFO format)."""
@@ -1176,7 +1176,7 @@ def pf_ecr_export(request, pk):
     return resp
 
 
-@hr_admin_required
+@perm_required("payroll.export")
 @require_india_payroll
 def esi_return_export(request, pk):
     """ESI monthly contribution return (CSV per ESIC format)."""
@@ -1191,7 +1191,7 @@ def esi_return_export(request, pk):
     return resp
 
 
-@hr_admin_required
+@perm_required("payroll.export")
 @require_india_payroll
 def statutory_bundle_export(request, pk):
     """ZIP bundle of PF ECR + ESI return for statutory filing."""
@@ -1209,7 +1209,7 @@ def statutory_bundle_export(request, pk):
 # ---------------------------------------------------------------------------
 # GCC exports (WPS, bank transfer, PIFSS, indemnity liability)
 # ---------------------------------------------------------------------------
-@hr_admin_required
+@perm_required("payroll.export")
 @require_gcc_payroll
 def wps_sif_export(request, pk):
     from .exports_gcc import build_wps_sif_csv
@@ -1236,7 +1236,7 @@ def wps_sif_export(request, pk):
     return resp
 
 
-@hr_admin_required
+@perm_required("payroll.export")
 @require_gcc_payroll
 def gcc_bank_transfer_export(request, pk):
     from .exports_gcc import build_gcc_bank_transfer_csv
@@ -1262,7 +1262,7 @@ def gcc_bank_transfer_export(request, pk):
     return resp
 
 
-@hr_admin_required
+@perm_required("payroll.export")
 @require_gcc_payroll
 def pifss_statement_export(request, pk):
     """PIFSS contribution report (Kuwait) — Excel."""
@@ -1281,7 +1281,7 @@ def pifss_statement_export(request, pk):
     return workbook_response(wb, f"pifss_{run.year}_{run.month:02d}.xlsx")
 
 
-@hr_admin_required
+@perm_required("payroll.export")
 @require_gcc_payroll
 def indemnity_liability_export(request):
     """Active headcount — EOS / indemnity liability snapshot."""
@@ -1299,7 +1299,7 @@ def indemnity_liability_export(request):
 # ---------------------------------------------------------------------------
 # Payslip templates (per-company layout)
 # ---------------------------------------------------------------------------
-@hr_admin_required
+@perm_required("payroll.configure")
 def payslip_template_list(request):
     from apps.hr_ops.letter_company import get_company_profile
     from apps.tenants.jurisdiction import jurisdiction_label
@@ -1320,7 +1320,7 @@ def payslip_template_list(request):
     })
 
 
-@hr_admin_required
+@perm_required("payroll.configure")
 @require_POST
 def payslip_template_seed(request):
     from .payslip_services import seed_default_payslip_template
@@ -1333,7 +1333,7 @@ def payslip_template_seed(request):
     return redirect("payroll:payslip_templates")
 
 
-@hr_admin_required
+@perm_required("payroll.configure")
 def payslip_template_create_or_edit(request, pk=None):
     from .forms import PayslipTemplateForm
     from .payslip_defaults import default_layout_for_tenant, default_template_name
@@ -1368,7 +1368,7 @@ def payslip_template_create_or_edit(request, pk=None):
     })
 
 
-@hr_admin_required
+@perm_required("payroll.configure")
 def payslip_template_preview(request, pk):
     from decimal import Decimal
     from types import SimpleNamespace

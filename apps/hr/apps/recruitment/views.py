@@ -6,7 +6,7 @@ it mutates). Mirrors the leaves/employees view conventions.
 import json
 
 from django.contrib import messages
-from utils.access import hr_admin_required
+from utils.access import can_generate_letters, perm_required
 from django.core.paginator import Paginator
 from django.db.models import Count, Q
 from django.http import JsonResponse
@@ -63,7 +63,7 @@ def _parse_list(raw: str) -> list:
 
 
 # ── Job openings ────────────────────────────────────────────────────────────
-@hr_admin_required
+@perm_required("recruitment.manage")
 def job_list(request):
     tenant = request.tenant
     qs = JobOpening.objects.filter(tenant=tenant).select_related("department", "designation")
@@ -90,10 +90,8 @@ def job_list(request):
     return render(request, "recruitment/job_list.html", ctx)
 
 
-@hr_admin_required
+@perm_required("recruitment.manage")
 def job_create(request):
-    if not request.user.is_hr_admin:
-        return redirect("recruitment:job_list")
     tenant = request.tenant
     if request.method == "POST":
         p = request.POST
@@ -149,7 +147,7 @@ def job_create(request):
     return render(request, "recruitment/job_form.html", ctx)
 
 
-@hr_admin_required
+@perm_required("recruitment.manage")
 def jd_template_load(request, pk):
     """Return a saved JD template as JSON so the form can populate itself."""
     tpl = get_object_or_404(JDTemplate, pk=pk, tenant=request.tenant)
@@ -166,13 +164,33 @@ def jd_template_load(request, pk):
     })
 
 
-@hr_admin_required
+@perm_required("recruitment.manage")
 def job_detail(request, pk):
     tenant = request.tenant
     job = get_object_or_404(JobOpening, pk=pk, tenant=tenant)
     buckets = {s: [] for s in PIPELINE}
-    for app in (JobApplication.objects.filter(job_opening=job)
-                .select_related("candidate", "candidate__profile").order_by("-applied_at")):
+    applications = list(
+        JobApplication.objects.filter(job_opening=job)
+        .select_related("candidate", "candidate__profile")
+        .order_by("-applied_at")
+    )
+    offer_drafts = {}
+    if applications:
+        from apps.hr_ops.models import HRLetter
+
+        for letter in (
+            HRLetter.objects.filter(
+                tenant=tenant,
+                job_application_id__in=[a.pk for a in applications],
+                letter_type="offer",
+                is_deleted=False,
+            )
+            .order_by("-generated_at")
+        ):
+            offer_drafts.setdefault(letter.job_application_id, letter)
+
+    for app in applications:
+        app.offer_draft = offer_drafts.get(app.pk)
         buckets.setdefault(app.status, []).append(app)
     # Template-friendly: ordered list of stages (no custom filter needed).
     stages = [{"key": s, "count": len(buckets[s]), "apps": buckets[s]} for s in PIPELINE]
@@ -184,11 +202,12 @@ def job_detail(request, pk):
         "weights": weights.as_dict() if weights else dict(ScoringWeights.DEFAULTS),
         "bias_flags": talent.scan_jd_bias(job),
         "ats_configured": bool(getattr(settings, "ATS_PROVIDER", "")),
+        "can_create_offer_letters": can_generate_letters(request.user),
     }
     return render(request, "recruitment/job_detail.html", ctx)
 
 
-@hr_admin_required
+@perm_required("recruitment.manage")
 @require_POST
 def edit_scoring_weights(request, pk):
     """Set per-opening scoring weights (Phase 3). Used to re-tune AI ranking."""
@@ -216,11 +235,9 @@ def edit_scoring_weights(request, pk):
     return redirect("recruitment:job_detail", pk=pk)
 
 
-@hr_admin_required
+@perm_required("recruitment.manage")
 @require_POST
 def job_publish(request, pk):
-    if not request.user.is_hr_admin:
-        return redirect("recruitment:job_list")
     job = get_object_or_404(JobOpening, pk=pk, tenant=request.tenant)
     job.status = "published"
     job.published_at = timezone.now()
@@ -229,11 +246,9 @@ def job_publish(request, pk):
     return redirect("recruitment:job_detail", pk=pk)
 
 
-@hr_admin_required
+@perm_required("recruitment.manage")
 @require_POST
 def job_close(request, pk):
-    if not request.user.is_hr_admin:
-        return redirect("recruitment:job_list")
     job = get_object_or_404(JobOpening, pk=pk, tenant=request.tenant)
     job.status = "closed"
     job.save(update_fields=["status"])
@@ -242,11 +257,9 @@ def job_close(request, pk):
 
 
 # ── Candidates / applications ───────────────────────────────────────────────
-@hr_admin_required
+@perm_required("recruitment.manage")
 def add_applicant(request, pk):
     """Add a candidate + application to a job in one step."""
-    if not request.user.is_hr_admin:
-        return redirect("recruitment:job_detail", pk=pk)
     tenant = request.tenant
     job = get_object_or_404(JobOpening, pk=pk, tenant=tenant)
     if request.method == "POST":
@@ -285,7 +298,7 @@ def add_applicant(request, pk):
     return render(request, "recruitment/applicant_form.html", {"job": job})
 
 
-@hr_admin_required
+@perm_required("recruitment.manage")
 @require_POST
 def bulk_upload(request, pk):
     """Bulk-upload many resumes to one opening; each is parsed in the background."""
@@ -320,7 +333,7 @@ def bulk_upload(request, pk):
     return redirect("recruitment:job_detail", pk=pk)
 
 
-@hr_admin_required
+@perm_required("recruitment.manage")
 @require_POST
 def convert_to_employee(request, pk):
     """Create employee from a hired application and start onboarding."""
@@ -344,12 +357,47 @@ def convert_to_employee(request, pk):
     return redirect("employees:detail", pk=emp.pk)
 
 
-@hr_admin_required
+@perm_required("recruitment.manage")
+@require_POST
+def create_offer_hr_draft(request, pk):
+    """Create HR offer letter draft from a recruitment application (template-based)."""
+    if not can_generate_letters(request.user):
+        messages.error(request, "You need Generate HR letters permission for this action.")
+        return redirect("recruitment:job_detail", pk=get_object_or_404(
+            JobApplication, pk=pk, tenant=request.tenant
+        ).job_opening_id)
+
+    app = get_object_or_404(
+        JobApplication.objects.select_related("candidate", "job_opening", "job_opening__department"),
+        pk=pk,
+        tenant=request.tenant,
+    )
+    if app.status not in ("interview", "offer", "hired"):
+        messages.error(request, "Move the candidate to Interview or Offer stage first.")
+        return redirect("recruitment:job_detail", pk=app.job_opening_id)
+
+    from apps.hr_ops.recruitment_offer_bridge import create_recruitment_offer_draft
+
+    try:
+        letter = create_recruitment_offer_draft(
+            app,
+            request.user,
+            salary=request.POST.get("salary", "").strip(),
+            joining_date=request.POST.get("joining_date", "").strip(),
+            use_ai_body=False,
+        )
+    except ValueError as exc:
+        messages.error(request, str(exc))
+        return redirect("recruitment:job_detail", pk=app.job_opening_id)
+
+    messages.success(request, f"Offer letter draft created for {app.candidate.display_name}.")
+    return redirect("hr_ops:letter_edit_draft", pk=letter.pk)
+
+
+@perm_required("recruitment.manage")
 @require_POST
 def move_application(request, pk):
     """Move an application to a new pipeline stage."""
-    if not request.user.is_hr_admin:
-        return redirect("recruitment:job_list")
     app = get_object_or_404(
         JobApplication.objects.select_related("job_opening"), pk=pk, tenant=request.tenant
     )
@@ -361,12 +409,10 @@ def move_application(request, pk):
     return redirect("recruitment:job_detail", pk=app.job_opening_id)
 
 
-@hr_admin_required
+@perm_required("recruitment.manage")
 @require_POST
 def move_application_api(request, pk):
     """JSON API for kanban drag-and-drop stage changes."""
-    if not request.user.is_hr_admin:
-        return JsonResponse({"error": "Forbidden"}, status=403)
     app = get_object_or_404(
         JobApplication.objects.select_related("job_opening"), pk=pk, tenant=request.tenant
     )
@@ -383,7 +429,7 @@ def move_application_api(request, pk):
 
 
 # ── Async pool ranking (Phase 4) ────────────────────────────────────────────
-@hr_admin_required
+@perm_required("recruitment.manage")
 @require_POST
 def start_pool_ranking(request, pk):
     """Kick off two-stage pool ranking (vector pre-rank → LLM deep-score top N)."""
@@ -395,7 +441,7 @@ def start_pool_ranking(request, pk):
     return JsonResponse({"ranking_job_id": rj.id, **rj.as_dict()})
 
 
-@hr_admin_required
+@perm_required("recruitment.manage")
 def ranking_progress(request, pk, job_id):
     """Poll a RankingJob's progress."""
     rj = get_object_or_404(RankingJob, pk=job_id, job_opening_id=pk, tenant=request.tenant)
@@ -409,7 +455,7 @@ SORT_FIELDS = {
 }
 
 
-@hr_admin_required
+@perm_required("recruitment.manage")
 def dashboard(request, pk):
     """Ranked candidate dashboard for one opening — scores, sub-scores, skill gaps."""
     from . import insights
@@ -439,7 +485,7 @@ def dashboard(request, pk):
     return render(request, "recruitment/dashboard.html", ctx)
 
 
-@hr_admin_required
+@perm_required("recruitment.manage")
 def compare(request, pk):
     """Side-by-side comparison of selected candidates (?ids=1,2,3)."""
     from . import insights
@@ -460,7 +506,7 @@ def compare(request, pk):
                   {"job": job, "rows": rows, "score_rows": score_rows})
 
 
-@hr_admin_required
+@perm_required("recruitment.manage")
 @require_POST
 def shortlist_top(request, pk):
     """Move the top-N AI-scored candidates into the 'screening' stage."""
@@ -478,7 +524,7 @@ def shortlist_top(request, pk):
     return redirect("recruitment:dashboard", pk=pk)
 
 
-@hr_admin_required
+@perm_required("recruitment.manage")
 @require_POST
 def add_tag(request, pk):
     """Add or remove a recruiter tag on an application (JSON)."""
@@ -502,7 +548,7 @@ def add_tag(request, pk):
 
 
 # ── Talent intelligence (Phase 6) ───────────────────────────────────────────
-@hr_admin_required
+@perm_required("recruitment.manage")
 def talent_pools(request):
     """List + create reusable candidate pools."""
     from .models import TalentPool
@@ -522,7 +568,7 @@ def talent_pools(request):
     return render(request, "recruitment/talent_pools.html", {"pools": pools})
 
 
-@hr_admin_required
+@perm_required("recruitment.manage")
 def talent_pool_detail(request, pk):
     from .models import TalentPool
     tenant = request.tenant
@@ -536,7 +582,7 @@ def talent_pool_detail(request, pk):
     })
 
 
-@hr_admin_required
+@perm_required("recruitment.manage")
 @require_POST
 def pool_add_candidate(request, pk):
     from .models import TalentPool
@@ -549,7 +595,7 @@ def pool_add_candidate(request, pk):
     return redirect("recruitment:talent_pool_detail", pk=pk)
 
 
-@hr_admin_required
+@perm_required("recruitment.manage")
 def pool_match(request, pk):
     """Rank a pool's candidates against a chosen JD (embedding similarity)."""
     from . import talent
@@ -569,7 +615,7 @@ def pool_match(request, pk):
     })
 
 
-@hr_admin_required
+@perm_required("recruitment.manage")
 def similar_candidates(request, pk):
     """Find candidates similar to a given one (nearest neighbour by resume embedding)."""
     from . import talent
@@ -589,7 +635,7 @@ def similar_candidates(request, pk):
     })
 
 
-@hr_admin_required
+@perm_required("recruitment.manage")
 def internal_matches(request, pk):
     """Rank active internal employees against a JD for internal mobility."""
     from apps.employees.models import Employee
@@ -613,7 +659,7 @@ def internal_matches(request, pk):
     })
 
 
-@hr_admin_required
+@perm_required("recruitment.manage")
 def recruitment_analytics(request):
     """Hiring funnel, source effectiveness, score distribution, time-to-hire."""
     from . import talent
@@ -622,7 +668,7 @@ def recruitment_analytics(request):
 
 
 # ── Workflow & integrations (Phase 7) ───────────────────────────────────────
-@hr_admin_required
+@perm_required("recruitment.manage")
 def interviews(request, pk):
     """Interview schedule for one opening + a scheduling form."""
     from .models import Interview
@@ -638,7 +684,7 @@ def interviews(request, pk):
     })
 
 
-@hr_admin_required
+@perm_required("recruitment.manage")
 @require_POST
 def schedule_interview(request, pk):
     """Create an interview for an application (and optionally email the candidate)."""
@@ -684,7 +730,7 @@ def schedule_interview(request, pk):
     return redirect("recruitment:interviews", pk=pk)
 
 
-@hr_admin_required
+@perm_required("recruitment.manage")
 @require_POST
 def set_interview_status(request, pk):
     """Update an interview's status (completed / cancelled / no-show)."""
@@ -700,7 +746,7 @@ def set_interview_status(request, pk):
     return redirect("recruitment:interviews", pk=iv.application.job_opening_id)
 
 
-@hr_admin_required
+@perm_required("recruitment.manage")
 def recommend_candidates(request, pk):
     """Recommend candidates across the whole tenant pool for this JD (embeddings)."""
     from . import talent
@@ -719,7 +765,7 @@ def recommend_candidates(request, pk):
     })
 
 
-@hr_admin_required
+@perm_required("recruitment.manage")
 @require_POST
 def push_ats(request, pk):
     """Push a published opening to the configured external ATS (stub by default)."""

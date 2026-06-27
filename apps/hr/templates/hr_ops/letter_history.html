@@ -12,6 +12,13 @@
   </div>
 </div>
 
+{% if can_approve_letters and pending_approval_count %}
+<div class="alert alert-warning mb-4 shadow-sm">
+  <span><strong>{{ pending_approval_count }}</strong> letter{{ pending_approval_count|pluralize }} waiting for your approval.</span>
+  <a href="?status=pending_approval" class="btn btn-sm btn-warning">Review now</a>
+</div>
+{% endif %}
+
 <form method="get" class="card mb-4">
   <div class="card-body p-4 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3">
     <select name="employee" class="select select-bordered select-sm">

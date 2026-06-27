@@ -13,6 +13,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from django.http import HttpResponse
+
+from .invoice_docs import render_invoice_html, render_invoice_pdf
 from .models import SaasInvoice, Subscription, SubscriptionEntitlement
 
 
@@ -98,3 +101,33 @@ class MySubscriptionView(APIView):
             "entitlements": EntitlementOut(sub.entitlements.all(), many=True).data,
             "invoices": SaasInvoiceOut(invoices, many=True).data,
         })
+
+
+class MyInvoicePdfView(APIView):
+    """GET /api/v1/saas/my-subscription/invoices/<id>/pdf/ — download GST invoice."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, invoice_id: int):
+        tenant = _tenant_for_request(request)
+        if tenant is None or tenant.schema_name == "public":
+            return Response({"detail": "No workspace found."}, status=status.HTTP_400_BAD_REQUEST)
+
+        sub = Subscription.objects.filter(tenant=tenant).first()
+        if not sub:
+            return Response({"detail": "No subscription."}, status=status.HTTP_404_NOT_FOUND)
+
+        inv = SaasInvoice.objects.filter(id=invoice_id, subscription=sub).first()
+        if not inv:
+            return Response({"detail": "Invoice not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        fmt = (request.query_params.get("format") or "pdf").lower()
+        if fmt == "html":
+            return HttpResponse(render_invoice_html(inv), content_type="text/html; charset=utf-8")
+
+        pdf = render_invoice_pdf(inv)
+        if pdf[:4] == b"%PDF":
+            resp = HttpResponse(pdf, content_type="application/pdf")
+            resp["Content-Disposition"] = f'attachment; filename="{inv.number}.pdf"'
+            return resp
+        return HttpResponse(pdf, content_type="text/html; charset=utf-8")

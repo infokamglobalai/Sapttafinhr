@@ -120,7 +120,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING(
                 f"{failed} check(s) need attention before production go-live."
             ))
-            self.stdout.write("See apps/hr/docs/GO_LIVE_CHECKLIST.md")
+            self.stdout.write("See README.md § Go-live checklist")
             if strict:
                 raise SystemExit(1)
         else:

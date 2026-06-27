@@ -94,9 +94,9 @@ WSGI_APPLICATION = "hrms.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": config("DB_NAME"),
-        "USER": config("DB_USER"),
-        "PASSWORD": config("DB_PASSWORD"),
+        "NAME": config("DB_NAME", default="finsaptta"),
+        "USER": config("DB_USER", default="finsaptta"),
+        "PASSWORD": config("DB_PASSWORD", default="finsaptta"),
         "HOST": config("DB_HOST", default="localhost"),
         "PORT": config("DB_PORT", default="5432"),
         "CONN_MAX_AGE": 60,
@@ -234,7 +234,7 @@ SERVER_EMAIL = DEFAULT_FROM_EMAIL
 # ---------------------------------------------------------------------------
 # Encryption key (Fernet) for PII fields
 # ---------------------------------------------------------------------------
-FIELD_ENCRYPTION_KEY = config("FIELD_ENCRYPTION_KEY")
+FIELD_ENCRYPTION_KEY = config("FIELD_ENCRYPTION_KEY", default="")
 
 # ---------------------------------------------------------------------------
 # Security
@@ -291,6 +291,10 @@ RANK_DEEP_TOP_N = config("RANK_DEEP_TOP_N", default=20, cast=int)
 # ---------------------------------------------------------------------------
 SSO_SHARED_SECRET = config("SSO_SHARED_SECRET", default="")
 SSO_TOKEN_MAX_AGE_SECONDS = config("SSO_TOKEN_MAX_AGE_SECONDS", default=120, cast=int)
+
+# Multi-factor authentication (TOTP) — required for all HR logins when enabled.
+MFA_REQUIRED = config("MFA_REQUIRED", default=True, cast=bool)
+MFA_CHALLENGE_MAX_AGE_SECONDS = config("MFA_CHALLENGE_MAX_AGE_SECONDS", default=300, cast=int)
 # Finance backend (server-to-server) for in-account billing + invoices.
 FIN_INTERNAL_BASE_URL = config("FIN_INTERNAL_BASE_URL", default="http://fin-backend:8000")
 # Finance SPA origin for HR → Fin handoff URLs ({workspace} replaced per tenant).

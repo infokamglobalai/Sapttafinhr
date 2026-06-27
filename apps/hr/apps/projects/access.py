@@ -7,7 +7,7 @@ from .models import Project, ProjectMember
 def user_can_access_project(user, project: Project) -> bool:
     if not user or not user.is_authenticated:
         return False
-    if user.is_hr_admin:
+    if user.is_hr_admin or user.has_perm_code("projects.manage"):
         return True
     employee = getattr(user, "employee_profile", None)
     if not employee:
@@ -18,7 +18,7 @@ def user_can_access_project(user, project: Project) -> bool:
 
 
 def user_can_edit_project(user, project: Project) -> bool:
-    if user.is_hr_admin:
+    if user.is_hr_admin or user.has_perm_code("projects.manage"):
         return True
     employee = getattr(user, "employee_profile", None)
     if not employee:

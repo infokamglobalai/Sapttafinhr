@@ -4,6 +4,7 @@ from apps.masters.models import Company, FiscalYear, Item, Party
 from apps.masters.tax import SUPPLY_STANDARD, SUPPLY_TYPE_CHOICES
 
 from .models import (
+    ClientDocument, ClientDocumentTemplate,
     CreditNote, Invoice, InvoiceLine,
     Quotation, QuotationLine, SalesOrder, SalesOrderLine,
     RecurringInvoiceTemplate,
@@ -69,6 +70,7 @@ class InvoiceCreateSerializer(serializers.Serializer):
         max_digits=18, decimal_places=6, required=False, default=1,
         help_text="1 unit of `currency` = this many base-currency units. 1 when currency == base.")
     notes = serializers.CharField(required=False, allow_blank=True, default="")
+    warehouse = serializers.IntegerField(required=False, allow_null=True)
     lines = InvoiceLineInput(many=True)
 
     def validate_lines(self, value):
@@ -77,12 +79,14 @@ class InvoiceCreateSerializer(serializers.Serializer):
         return value
 
     def create(self, validated_data):
+        warehouse_id = validated_data.pop("warehouse", None)
         lines = validated_data.pop("lines")
         invoice = Invoice(**validated_data)
         return InvoiceService().create_and_post(
             invoice=invoice,
             lines_data=lines,
             user=self.context["request"].user,
+            warehouse_id=warehouse_id,
         )
 
 
@@ -200,3 +204,67 @@ class CreditNoteCreateSerializer(serializers.Serializer):
             user=self.context["request"].user,
             **validated_data,
         )
+
+
+class ClientDocumentTemplateSerializer(serializers.ModelSerializer):
+    doc_type_display = serializers.CharField(source="get_doc_type_display", read_only=True)
+
+    class Meta:
+        model = ClientDocumentTemplate
+        fields = (
+            "id", "company", "doc_type", "doc_type_display", "name",
+            "template_html", "is_active", "created_at", "updated_at",
+        )
+        read_only_fields = ("created_at", "updated_at")
+
+
+class ClientDocumentReadSerializer(serializers.ModelSerializer):
+    customer_name = serializers.CharField(source="customer.name", read_only=True)
+    template_name = serializers.CharField(source="template.name", read_only=True, default="")
+    quotation_no = serializers.CharField(source="quotation.quote_no", read_only=True, default="")
+    doc_type_display = serializers.CharField(source="get_doc_type_display", read_only=True)
+
+    class Meta:
+        model = ClientDocument
+        fields = (
+            "id", "company", "template", "template_name", "doc_type", "doc_type_display",
+            "doc_no", "title", "customer", "customer_name", "quotation", "quotation_no",
+            "sales_order", "body_html", "extra_context", "status", "finalized_at",
+            "created_at", "updated_at",
+        )
+
+
+class ClientDocumentFromQuotationSerializer(serializers.Serializer):
+    quotation = serializers.PrimaryKeyRelatedField(queryset=Quotation.objects.all())
+    doc_type = serializers.ChoiceField(
+        choices=ClientDocumentTemplate.DocType.choices, default="sow", required=False
+    )
+    template = serializers.PrimaryKeyRelatedField(
+        queryset=ClientDocumentTemplate.objects.all(), required=False, allow_null=True
+    )
+    project_name = serializers.CharField(required=False, allow_blank=True, default="")
+    milestones = serializers.CharField(required=False, allow_blank=True, default="")
+    payment_terms = serializers.CharField(required=False, allow_blank=True, default="")
+    contract_start = serializers.CharField(required=False, allow_blank=True, default="")
+    contract_end = serializers.CharField(required=False, allow_blank=True, default="")
+
+    def create(self, validated_data):
+        from .client_documents import create_from_quotation
+
+        quotation = validated_data["quotation"]
+        extra = {
+            k: validated_data.get(k, "")
+            for k in ("project_name", "milestones", "payment_terms", "contract_start", "contract_end")
+            if validated_data.get(k)
+        }
+        template = validated_data.get("template")
+        return create_from_quotation(
+            quotation,
+            doc_type=validated_data.get("doc_type") or "sow",
+            template_id=template.pk if template else None,
+            extra_context=extra,
+        )
+
+
+class ClientDocumentBodySerializer(serializers.Serializer):
+    body_html = serializers.CharField()

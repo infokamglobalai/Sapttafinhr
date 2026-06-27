@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Tax Invoice {{ invoice.number }}</title>
+  <style>
+    body { font-family: Arial, sans-serif; font-size: 12px; color: #111; margin: 32px; }
+    h1 { font-size: 18px; margin: 0 0 4px; }
+    .muted { color: #666; }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    th { background: #f5f5f5; }
+    .totals td { border: none; padding: 4px 8px; }
+    .totals tr td:last-child { text-align: right; font-weight: 600; }
+    .header { display: flex; justify-content: space-between; gap: 24px; }
+    .box { border: 1px solid #ddd; padding: 12px; border-radius: 6px; flex: 1; }
+  </style>
+</head>
+<body>
+  <h1>Tax Invoice</h1>
+  <p class="muted">Invoice No: <strong>{{ invoice.number }}</strong></p>
+  <p class="muted">Period: {{ invoice.period_start }} — {{ invoice.period_end }}</p>
+
+  <div class="header">
+    <div class="box">
+      <strong>Supplier</strong><br>
+      Saptta Technologies Pvt Ltd<br>
+      SAC: {{ invoice.sac_code }} (Software as a Service)<br>
+      GSTIN: {{ vendor_gstin }}
+    </div>
+    <div class="box">
+      <strong>Customer</strong><br>
+      {{ tenant_name }}<br>
+      {% if invoice.customer_gstin %}GSTIN: {{ invoice.customer_gstin }}<br>{% endif %}
+      Place of supply: {{ invoice.place_of_supply|default:"—" }}
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Description</th>
+        <th>Taxable (₹)</th>
+        <th>CGST</th>
+        <th>SGST</th>
+        <th>IGST</th>
+        <th>Total (₹)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>{{ plan_name }} subscription ({{ invoice.period_start }} to {{ invoice.period_end }})</td>
+        <td>{{ invoice.taxable_amount }}</td>
+        <td>{{ invoice.cgst }}</td>
+        <td>{{ invoice.sgst }}</td>
+        <td>{{ invoice.igst }}</td>
+        <td>{{ invoice.amount }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <table class="totals" style="width: 320px; margin-left: auto;">
+    <tr><td>Taxable value</td><td>₹{{ invoice.taxable_amount }}</td></tr>
+    <tr><td>CGST @ {{ invoice.tax_rate }}%</td><td>₹{{ invoice.cgst }}</td></tr>
+    <tr><td>SGST @ {{ invoice.tax_rate }}%</td><td>₹{{ invoice.sgst }}</td></tr>
+    <tr><td>IGST @ {{ invoice.tax_rate }}%</td><td>₹{{ invoice.igst }}</td></tr>
+    <tr><td><strong>Grand total</strong></td><td><strong>₹{{ invoice.amount }}</strong></td></tr>
+  </table>
+
+  {% if invoice.paid_at %}
+  <p class="muted" style="margin-top: 24px;">Paid on {{ invoice.paid_at|date:"d M Y, H:i" }} T{% if invoice.razorpay_payment_id %} · Payment ref {{ invoice.razorpay_payment_id }}{% endif %}</p>
+  {% endif %}
+</body>
+</html>

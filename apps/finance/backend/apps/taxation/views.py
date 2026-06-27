@@ -86,12 +86,68 @@ class GSTR3BExportView(APIView):
         return Response(services.gstr3b_json(int(cid), period))
 
 
+class TaxComplianceModesView(APIView):
+    """GET /api/v1/taxation/modes/ — current e-invoice / e-way integration modes."""
+
+    def get(self, request):
+        import os
+        return Response({
+            "einvoice_mode": os.environ.get("EINVOICE_MODE", "STUB").upper(),
+            "ewb_mode": os.environ.get("EWB_MODE", "STUB").upper(),
+            "zatca_mode": os.environ.get("ZATCA_MODE", "STUB").upper(),
+            "peppol_mode": os.environ.get("PEPPOL_MODE", "STUB").upper(),
+            "live_ready": {
+                "einvoice": bool(os.environ.get("NIC_IRP_BASE_URL")),
+                "ewb": bool(os.environ.get("EWB_BASE_URL") or os.environ.get("NIC_IRP_BASE_URL")),
+                "zatca": bool(os.environ.get("ZATCA_BASE_URL") or os.environ.get("NIC_IRP_BASE_URL")),
+                "peppol": bool(os.environ.get("PEPPOL_BASE_URL")),
+            },
+        })
+
+
 class GSTR2BReconcileView(APIView):
     def post(self, request):
         cid = request.data.get("company")
         if not cid:
             raise ValidationError({"company": "required"})
         return Response(services.reconcile_gstr2b(int(cid)))
+
+
+class GSTR2BLinesView(APIView):
+    """GET /api/v1/taxation/gstr2b/lines/?company=&period="""
+
+    def get(self, request):
+        from .models import GSTR2BLine
+
+        cid = request.query_params.get("company")
+        if not cid:
+            raise ValidationError({"company": "required"})
+        qs = GSTR2BLine.objects.filter(company_id=cid).select_related("matched_bill")
+        period = request.query_params.get("period")
+        if period:
+            qs = qs.filter(return_period=period)
+        rows = [{
+            "id": r.id,
+            "return_period": r.return_period,
+            "supplier_gstin": r.supplier_gstin,
+            "supplier_name": r.supplier_name,
+            "invoice_no": r.invoice_no,
+            "invoice_date": r.invoice_date,
+            "taxable": str(r.taxable),
+            "cgst": str(r.cgst),
+            "sgst": str(r.sgst),
+            "igst": str(r.igst),
+            "match_status": r.match_status,
+            "matched_bill_id": r.matched_bill_id,
+            "matched_bill_no": r.matched_bill.bill_no if r.matched_bill_id else "",
+        } for r in qs.order_by("-invoice_date")[:500]]
+        summary = {
+            "total": len(rows),
+            "matched": sum(1 for r in rows if r["match_status"] == "MATCHED"),
+            "unmatched": sum(1 for r in rows if r["match_status"] == "UNMATCHED"),
+            "disputed": sum(1 for r in rows if r["match_status"] == "DISPUTED"),
+        }
+        return Response({"summary": summary, "results": rows})
 
 
 # ── TDS ─────────────────────────────────────────────────────────────────────

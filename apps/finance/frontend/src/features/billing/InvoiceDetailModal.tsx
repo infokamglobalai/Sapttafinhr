@@ -10,6 +10,7 @@ import {
   useGenerateGccEInvoice,
   useGenerateEWayBill,
   useInvoice,
+  useTaxComplianceModes,
 } from './api';
 import { downloadInvoicePdf } from '@/lib/pdf';
 import { printBilingualInvoice } from '@/lib/invoicePrint';
@@ -31,6 +32,7 @@ export default function InvoiceDetailModal({ id, onClose, onRecordPayment }: Pro
   const eInvoice = useGenerateEInvoice();
   const gccEInvoice = useGenerateGccEInvoice();
   const payLink = useCreatePaymentLink();
+  const { data: taxModes } = useTaxComplianceModes();
   const isVat = company?.tax_regime === 'GCC_VAT';
   // Amounts are stored in the invoice's own transaction currency, so format with
   // that — falling back to the company base only until the invoice has loaded.
@@ -122,6 +124,14 @@ export default function InvoiceDetailModal({ id, onClose, onRecordPayment }: Pro
               </button>
             ) : (
               <>
+                {taxModes && (
+                  <span className={`rounded px-2 py-1 text-xs font-medium ${
+                    taxModes.einvoice_mode === 'LIVE' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                  }`}>
+                    E-Invoice: {taxModes.einvoice_mode}
+                    {taxModes.einvoice_mode === 'LIVE' && !taxModes.live_ready.einvoice ? ' (misconfigured)' : ''}
+                  </span>
+                )}
                 <button className="btn-ghost inline-flex items-center gap-1 border border-slate-200" onClick={onEInvoice} disabled={eInvoice.isPending}>
                   <FileSignature size={14} /> {eInvoice.isPending ? 'Generating…' : 'Generate E-Invoice'}
                 </button>

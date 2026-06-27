@@ -307,6 +307,9 @@ class EmployeeDocument(models.Model):
         ("warning", "Warning Letter"),
         ("relieving", "Relieving Letter"),
         ("experience", "Experience Letter"),
+        ("intent_letter", "Letter of Intent"),
+        ("noc", "No Objection Certificate"),
+        ("certificate", "Certificate"),
         ("other", "Other"),
     ]
 

@@ -79,6 +79,8 @@ export interface User {
   tenantId: string;
   products: ('hrms' | 'finance')[];
   setupComplete: boolean;
+  /** Platform email verified (required before app access). */
+  emailVerified: boolean;
 }
 
 export interface CompanyProfile {

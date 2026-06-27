@@ -38,16 +38,19 @@ interface SignupData {
   planId: string;
   companyName: string;
   country?: string;
+  terms_accepted?: boolean;
 }
 
 interface SignupResultInfo {
-  /** True when the workspace is still building in the background — poll before routing in. */
   provisioning: boolean;
   workspace: string;
+  requiresEmailVerification: boolean;
+  email: string;
 }
 
 interface AuthContextValue extends AuthState {
   login: (email: string, password: string, workspace?: string) => Promise<User>;
+  hydrateSession: (workspace?: string | null) => Promise<User>;
   signup: (data: SignupData) => Promise<SignupResultInfo>;
   logout: () => void;
   updateUser: (updates: Partial<User>) => void;
@@ -69,6 +72,7 @@ function toAppUser(be: BackendUser, products: ProductSlug[], workspace: string |
     tenantId: workspace || '',
     products,
     setupComplete: true,
+    emailVerified: !!be.is_verified,
   };
 }
 
@@ -106,17 +110,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  const hydrateSession = async (workspace?: string | null) => {
+    const resolvedWs = workspace ?? getWorkspace();
+    const [me, products] = await Promise.all([fetchMe(), fetchProducts()]);
+    const appUser = toAppUser(me, products ?? [], resolvedWs);
+    setUser(appUser);
+    setToken(getAccessToken());
+    return appUser;
+  };
+
   const login = async (email: string, password: string, workspace?: string) => {
     setIsLoading(true);
     try {
       const res = await apiLogin(email, password, workspace);
+      if (res.kind === 'mfa') {
+        throw new Error('MFA_REQUIRED');
+      }
       const resolvedWs = res.workspace ?? workspace ?? getWorkspace();
-      const [me, products] = await Promise.all([fetchMe(), fetchProducts()]);
-
-      const appUser = toAppUser(me, products ?? [], resolvedWs);
-      setUser(appUser);
-      setToken(res.access);
-      return appUser;
+      return await hydrateSession(resolvedWs);
     } finally {
       setIsLoading(false);
     }
@@ -134,18 +145,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         plan_id: data.planId,
         products: productsForPlan(data.planId),
         country: data.country || 'IN',
+        terms_accepted: data.terms_accepted ?? false,
       });
       // Provisioning runs in the background, so products arrive later (via the
       // status poll → refreshProducts). Keep them empty until then.
       setUser(
         toAppUser(
-          result.user ?? { id: '', email: data.email, full_name: fullName, is_staff: false },
+          result.user ?? { id: '', email: data.email, full_name: fullName, is_staff: false, is_verified: false },
           result.products ?? [],
           result.workspace,
         ),
       );
       setToken(result.access);
-      return { provisioning: !!result.provisioning, workspace: result.workspace };
+      return {
+        provisioning: !!result.provisioning,
+        workspace: result.workspace,
+        requiresEmailVerification: !!result.requires_email_verification,
+        email: data.email,
+      };
     } finally {
       setIsLoading(false);
     }
@@ -189,6 +206,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: !!user && !!token,
         isLoading,
         login,
+        hydrateSession,
         signup,
         logout,
         updateUser,

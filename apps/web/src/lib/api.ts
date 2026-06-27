@@ -150,12 +150,18 @@ async function rawRequest<T>(path: string, opts: RequestOptions, accessToken: st
   const data = text ? safeJson(text) : null;
 
   if (!res.ok) {
-    const msg =
-      (data && typeof data === 'object' && (data as any).detail) ||
-      `Request failed (${res.status})`;
-    throw new ApiError(res.status, String(msg), data);
+    const msg = formatApiDetail(data) || `Request failed (${res.status})`;
+    throw new ApiError(res.status, msg, data);
   }
   return data as T;
+}
+
+function formatApiDetail(data: unknown): string {
+  if (!data || typeof data !== 'object') return '';
+  const detail = (data as { detail?: unknown }).detail;
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail)) return detail.map(String).join(' ');
+  return '';
 }
 
 function safeJson(text: string): unknown {
@@ -214,23 +220,119 @@ export interface BackendUser {
   email: string;
   full_name: string;
   is_staff: boolean;
+  is_verified?: boolean;
 }
 
-/** Log in against the FIN platform (public schema). Returns the access token. */
+export type LoginMfaChallenge = {
+  kind: 'mfa';
+  challenge_token: string;
+  setup: boolean;
+  email: string;
+  authType: 'platform' | 'hr_staff';
+};
+
+export type LoginTokens = {
+  kind: 'tokens';
+  access: string;
+  refresh: string;
+  workspace?: string | null;
+  backup_codes?: string[];
+};
+
+export type HrStaffRedirect = {
+  kind: 'hr_redirect';
+  redirect_url: string;
+  workspace: string;
+};
+
+export type MfaSetupPayload = {
+  provisioning_uri: string;
+  qr_svg: string;
+  manual_secret: string;
+  email: string;
+};
+
+type RawLoginResponse = {
+  access?: string;
+  refresh?: string;
+  workspace?: string | null;
+  mfa_required?: boolean;
+  mfa_setup_required?: boolean;
+  challenge_token?: string;
+  email?: string;
+};
+
+function parseLoginResponse(
+  data: RawLoginResponse,
+  authType: 'platform' | 'hr_staff',
+): LoginMfaChallenge | LoginTokens {
+  if (data.mfa_required && data.challenge_token) {
+    return {
+      kind: 'mfa',
+      challenge_token: data.challenge_token,
+      setup: !!data.mfa_setup_required,
+      email: data.email || '',
+      authType,
+    };
+  }
+  if (!data.access || !data.refresh) {
+    throw new ApiError(500, 'Unexpected login response', data);
+  }
+  setTokens(data.access, data.refresh);
+  const ws = data.workspace || null;
+  if (ws) setWorkspace(ws);
+  return { kind: 'tokens', access: data.access, refresh: data.refresh, workspace: ws };
+}
+
+/** Log in against the FIN platform (public schema). */
 export async function login(
   email: string,
   password: string,
   workspace?: string,
-): Promise<{ access: string; refresh: string; workspace?: string | null }> {
-  const data = await rawRequest<{ access: string; refresh: string; workspace?: string | null }>(
+): Promise<LoginMfaChallenge | LoginTokens> {
+  const data = await rawRequest<RawLoginResponse>(
     '/auth/login/',
     { surface: 'platform', method: 'POST', body: { email, password }, auth: false },
     null,
   );
-  setTokens(data.access, data.refresh);
-  const ws = workspace || data.workspace || null;
-  if (ws) setWorkspace(ws);
-  return data;
+  const parsed = parseLoginResponse(data, 'platform');
+  if (parsed.kind === 'tokens' && workspace && !parsed.workspace) {
+    setWorkspace(workspace);
+    parsed.workspace = workspace;
+  }
+  return parsed;
+}
+
+export async function mfaVerifyLogin(challengeToken: string, code: string): Promise<LoginTokens> {
+  const data = await rawRequest<RawLoginResponse & { backup_codes?: string[] }>(
+    '/auth/mfa/verify/',
+    { surface: 'platform', method: 'POST', body: { challenge_token: challengeToken, code }, auth: false },
+    null,
+  );
+  const parsed = parseLoginResponse(data, 'platform');
+  if (parsed.kind !== 'tokens') throw new ApiError(500, 'Unexpected MFA response', data);
+  if (data.backup_codes) parsed.backup_codes = data.backup_codes;
+  return parsed;
+}
+
+export async function mfaSetupStart(challengeToken: string): Promise<MfaSetupPayload> {
+  return rawRequest<MfaSetupPayload>(
+    '/auth/mfa/setup/start/',
+    { surface: 'platform', method: 'POST', body: { challenge_token: challengeToken }, auth: false },
+    null,
+  );
+}
+
+export async function mfaSetupConfirm(challengeToken: string, code: string): Promise<LoginTokens> {
+  const data = await rawRequest<RawLoginResponse & { backup_codes?: string[] }>(
+    '/auth/mfa/setup/confirm/',
+    { surface: 'platform', method: 'POST', body: { challenge_token: challengeToken, code }, auth: false },
+    null,
+  );
+  const parsed = parseLoginResponse(data, 'platform');
+  if (parsed.kind !== 'tokens') throw new ApiError(500, 'Unexpected MFA setup response', data);
+  if (data.backup_codes) parsed.backup_codes = data.backup_codes;
+  return parsed;
 }
 
 /** HR staff (employee / team lead) login via unified platform page → HR SSO redirect. */
@@ -239,10 +341,12 @@ export async function hrStaffLogin(
   password: string,
   workspace?: string,
   nextPath = '/',
-): Promise<{ redirect_url: string; workspace: string; auth_type: string }> {
+): Promise<LoginMfaChallenge | HrStaffRedirect> {
   const platformUrl =
     typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8080';
-  return rawRequest<{ redirect_url: string; workspace: string; auth_type: string }>(
+  const data = await rawRequest<
+    RawLoginResponse & { redirect_url?: string; auth_type?: string }
+  >(
     '/auth/hr-staff-login/',
     {
       surface: 'platform',
@@ -258,6 +362,53 @@ export async function hrStaffLogin(
     },
     null,
   );
+  if (data.mfa_required && data.challenge_token) {
+    return {
+      kind: 'mfa',
+      challenge_token: data.challenge_token,
+      setup: !!data.mfa_setup_required,
+      email: data.email || email,
+      authType: 'hr_staff',
+    };
+  }
+  if (!data.redirect_url) throw new ApiError(500, 'Unexpected HR login response', data);
+  return {
+    kind: 'hr_redirect',
+    redirect_url: data.redirect_url,
+    workspace: data.workspace || workspace || '',
+  };
+}
+
+export async function hrStaffLoginMfa(
+  action: 'verify' | 'setup_start' | 'setup_confirm',
+  challengeToken: string,
+  code: string,
+  nextPath = '/',
+): Promise<MfaSetupPayload | HrStaffRedirect & { backup_codes?: string[] }> {
+  const platformUrl =
+    typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8080';
+  const body: Record<string, string> = {
+    challenge_token: challengeToken,
+    platform_url: platformUrl,
+    next: nextPath,
+    action,
+  };
+  if (code) body.code = code;
+  const data = await rawRequest<
+    MfaSetupPayload & { redirect_url?: string; workspace?: string; backup_codes?: string[] }
+  >(
+    '/auth/hr-staff-login/mfa/',
+    { surface: 'platform', method: 'POST', body, auth: false },
+    null,
+  );
+  if (action === 'setup_start') return data as MfaSetupPayload;
+  if (!data.redirect_url) throw new ApiError(500, 'Unexpected HR MFA response', data);
+  return {
+    kind: 'hr_redirect',
+    redirect_url: data.redirect_url,
+    workspace: data.workspace || '',
+    backup_codes: data.backup_codes,
+  };
 }
 
 export async function fetchMe(): Promise<BackendUser> {
@@ -283,10 +434,13 @@ export function requestEmailVerification(email: string): Promise<Msg> {
   return rawRequest<Msg>('/auth/verify-email/request/', { surface: 'platform', method: 'POST', body: { email }, auth: false }, null);
 }
 
-export function confirmEmailVerification(token: string): Promise<Msg & { email?: string }> {
+export function confirmEmailVerification(tokenOrEmail: string, code?: string): Promise<Msg & { email?: string }> {
+  const body = code
+    ? { email: tokenOrEmail, code }
+    : { token: tokenOrEmail };
   return rawRequest<Msg & { email?: string }>(
     '/auth/verify-email/confirm/',
-    { surface: 'platform', method: 'POST', body: { token }, auth: false },
+    { surface: 'platform', method: 'POST', body, auth: false },
     null,
   );
 }
@@ -301,6 +455,7 @@ export interface SignupResult {
    *  The caller should poll fetchProvisioningStatus() until ready. */
   provisioning?: boolean;
   status?: 'PENDING' | 'PROVISIONING' | 'READY' | 'FAILED';
+  requires_email_verification?: boolean;
 }
 
 export interface ProvisioningStatus {
@@ -329,6 +484,7 @@ export async function signup(payload: {
   plan_id?: string;
   products?: ProductSlug[];
   country?: string;
+  terms_accepted?: boolean;
 }): Promise<SignupResult> {
   const data = await rawRequest<SignupResult>(
     '/saas/signup/',
@@ -406,12 +562,37 @@ export function validateBillingCoupon(
 }
 
 /** Verify Razorpay payment server-side and activate subscription immediately. */
-export function confirmBillingPayment(paymentId: string, orderId?: string): Promise<{ status: string; workspace: string }> {
+export function confirmBillingPayment(
+  paymentId: string,
+  orderId?: string,
+): Promise<{ status: string; workspace: string; invoice_id?: number | null; invoice_number?: string | null }> {
   return request('/saas/billing/confirm/', {
     surface: 'platform',
     method: 'POST',
     body: { payment_id: paymentId, order_id: orderId },
   });
+}
+
+/** Download the latest SaaS GST invoice PDF (authenticated platform API). */
+export async function downloadSaasInvoicePdf(invoiceId: number): Promise<void> {
+  const url = `${PLATFORM_BASE}/saas/my-subscription/invoices/${invoiceId}/pdf/`;
+  const token = getAccessToken();
+  const resp = await fetch(url, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!resp.ok) {
+    const body = await resp.text().catch(() => '');
+    throw new ApiError(resp.status, 'Invoice download failed', body);
+  }
+  const blob = await resp.blob();
+  const cd = resp.headers.get('Content-Disposition') || '';
+  const match = /filename="([^"]+)"/.exec(cd);
+  const filename = match?.[1] || `invoice-${invoiceId}.pdf`;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
 }
 
 // ─── Customer billing portal: my subscription ─────────────────────────────
@@ -729,8 +910,8 @@ export function generateCompanyInvoice(schema: string, amount?: number): Promise
   });
 }
 
-export function invoiceAction(invoiceId: number, action: 'mark-paid' | 'void'): Promise<AdminInvoice> {
-  return request<AdminInvoice>(`/saas/admin/invoices/${invoiceId}/${action}/`, { surface: 'platform', method: 'POST' });
+export function invoiceAction(invoiceId: number, action: 'mark-paid' | 'void' | 'refund', body?: Record<string, unknown>): Promise<AdminInvoice> {
+  return request<AdminInvoice>(`/saas/admin/invoices/${invoiceId}/${action}/`, { surface: 'platform', method: 'POST', body });
 }
 
 export function toggleEntitlement(subId: number, product: 'FIN' | 'HR', enable: boolean): Promise<AdminEntitlement> {

@@ -191,6 +191,20 @@
               {% for s in pipeline %}<option value="{{ s }}" {% if s == app.status %}selected{% endif %}>{{ s }}</option>{% endfor %}
             </select>
           </form>
+          {% if app.status == 'interview' or app.status == 'offer' or app.status == 'hired' %}
+          <div class="mt-2 flex flex-col gap-1.5">
+            {% if app.offer_draft %}
+            <a href="{% if app.offer_draft.is_editable %}{% url 'hr_ops:letter_edit_draft' app.offer_draft.pk %}{% else %}{% url 'hr_ops:letter_detail' app.offer_draft.pk %}{% endif %}" class="btn btn-outline btn-xs w-full">
+              {% if app.offer_draft.is_editable %}Edit offer draft{% else %}View offer letter{% endif %}
+            </a>
+            {% elif can_create_offer_letters %}
+            <button type="button" class="btn btn-secondary btn-xs w-full"
+                    onclick="openOfferModal({{ app.pk }}, '{{ app.candidate.display_name|escapejs }}', '{{ job.title|escapejs }}', '{{ app.candidate.expected_ctc|default:''|escapejs }}')">
+              AI offer → HR draft
+            </button>
+            {% endif %}
+          </div>
+          {% endif %}
           {% if app.status == 'hired' %}
           <form method="post" action="{% url 'recruitment:convert_to_employee' app.pk %}" class="mt-2">
             {% csrf_token %}
@@ -286,6 +300,35 @@
       <button class="btn btn-sm btn-primary" onclick="location.reload()">View results</button>
     </div>
   </div>
+</dialog>
+{% endif %}
+
+{% if user.is_hr_admin %}
+<!-- Offer letter modal (Recruitment → HR Letters) -->
+<dialog id="offer-modal" class="modal">
+  <div class="modal-box max-w-2xl">
+    <form method="dialog"><button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button></form>
+    <h3 class="font-bold text-lg mb-1">Offer letter — <span id="offer-modal-name"></span></h3>
+    <p class="text-xs text-base-content/60 mb-4">Generate AI wording, then create a formal HR letter draft with letterhead and signatories.</p>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <label class="form-control"><span class="label-text text-xs">Annual CTC / salary</span>
+        <input type="text" id="offer-salary" class="input input-bordered input-sm" placeholder="e.g. 12,00,000"></label>
+      <label class="form-control"><span class="label-text text-xs">Joining date</span>
+        <input type="date" id="offer-joining" class="input input-bordered input-sm"></label>
+      <label class="form-control sm:col-span-2"><span class="label-text text-xs">Probation (months)</span>
+        <input type="number" id="offer-probation" class="input input-bordered input-sm w-24" value="3" min="0" max="12"></label>
+    </div>
+    <div id="offer-status" class="text-xs text-base-content/60 mb-2 hidden"></div>
+    <textarea id="offer-text" class="textarea textarea-bordered w-full text-sm font-mono min-h-[220px] hidden" readonly></textarea>
+    <div class="flex flex-wrap justify-end gap-2 mt-4">
+      <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('offer-modal').close()">Close</button>
+      <button type="button" id="offer-generate-btn" class="btn btn-outline btn-sm" onclick="generateOfferText()">Generate AI text</button>
+      {% if can_create_offer_letters %}
+      <button type="button" id="offer-draft-btn" class="btn btn-primary btn-sm hidden" onclick="createOfferDraft()">Create HR letter draft</button>
+      {% endif %}
+    </div>
+  </div>
+  <form method="dialog" class="modal-backdrop"><button>close</button></form>
 </dialog>
 {% endif %}
 
@@ -473,5 +516,93 @@ async function rankCandidates(jobId) {
     content.innerHTML = `<div class="alert alert-error">Ranking failed: ${esc(e.message)}</div>`;
   }
 }
+
+{% if user.is_hr_admin %}
+let offerAppId = null;
+function openOfferModal(appId, name, role, expectedCtc) {
+  offerAppId = appId;
+  document.getElementById('offer-modal-name').textContent = name;
+  document.getElementById('offer-salary').value = expectedCtc || '';
+  document.getElementById('offer-joining').value = '';
+  document.getElementById('offer-probation').value = 3;
+  document.getElementById('offer-text').classList.add('hidden');
+  document.getElementById('offer-text').value = '';
+  document.getElementById('offer-status').classList.add('hidden');
+  const draftBtn = document.getElementById('offer-draft-btn');
+  if (draftBtn) draftBtn.classList.add('hidden');
+  document.getElementById('offer-modal').showModal();
+}
+
+async function generateOfferText() {
+  if (!offerAppId) return;
+  const statusEl = document.getElementById('offer-status');
+  const textEl = document.getElementById('offer-text');
+  const draftBtn = document.getElementById('offer-draft-btn');
+  statusEl.classList.remove('hidden');
+  statusEl.textContent = 'Generating offer letter…';
+  textEl.classList.add('hidden');
+  if (draftBtn) draftBtn.classList.add('hidden');
+  try {
+    const resp = await fetch('{% url "recruitment:ai_generate_offer" %}', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        application_id: offerAppId,
+        salary: document.getElementById('offer-salary').value,
+        joining_date: document.getElementById('offer-joining').value,
+        probation_months: parseInt(document.getElementById('offer-probation').value, 10) || 3,
+      }),
+    });
+    const data = await resp.json();
+    if (data.error) {
+      statusEl.innerHTML = `<span class="text-error">${data.error}</span>`;
+      return;
+    }
+    textEl.value = data.letter_text || '';
+    textEl.classList.remove('hidden');
+    statusEl.textContent = 'Review the text below, then create the HR letter draft.';
+    if (draftBtn) draftBtn.classList.remove('hidden');
+  } catch (e) {
+    statusEl.innerHTML = `<span class="text-error">Error: ${e.message}</span>`;
+  }
+}
+
+async function createOfferDraft() {
+  if (!offerAppId) return;
+  const statusEl = document.getElementById('offer-status');
+  const draftBtn = document.getElementById('offer-draft-btn');
+  statusEl.classList.remove('hidden');
+  statusEl.textContent = 'Creating HR letter draft…';
+  if (draftBtn) draftBtn.disabled = true;
+  try {
+    const resp = await fetch('{% url "recruitment:ai_generate_offer" %}', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        application_id: offerAppId,
+        salary: document.getElementById('offer-salary').value,
+        joining_date: document.getElementById('offer-joining').value,
+        probation_months: parseInt(document.getElementById('offer-probation').value, 10) || 3,
+        create_draft: true,
+        letter_text: document.getElementById('offer-text').value,
+      }),
+    });
+    const data = await resp.json();
+    if (data.error) {
+      statusEl.innerHTML = `<span class="text-error">${data.error}</span>`;
+      if (draftBtn) draftBtn.disabled = false;
+      return;
+    }
+    if (data.letter_edit_url) {
+      window.location.href = data.letter_edit_url;
+      return;
+    }
+    statusEl.innerHTML = '<span class="text-error">Draft created but no edit URL returned.</span>';
+  } catch (e) {
+    statusEl.innerHTML = `<span class="text-error">Error: ${e.message}</span>`;
+  }
+  if (draftBtn) draftBtn.disabled = false;
+}
+{% endif %}
 </script>
 {% endblock %}

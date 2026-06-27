@@ -20,6 +20,7 @@ class Command(BaseCommand):
     @transaction.atomic
     def handle(self, *args, **options):
         from apps.tenants.models import Tenant
+        from apps.accounts.role_defaults import EMPLOYEE_PERMISSION_CODENAMES, MANAGER_PERMISSION_CODENAMES
         from apps.accounts.models import User, Role, Permission, RolePermission, UserRole
 
         name = options["name"] or input("Company name: ")
@@ -39,13 +40,8 @@ class Command(BaseCommand):
         roles_config = {
             "super_admin": all_perms,
             "hr_admin": [p for p in all_perms if p.module != "reports" or True],
-            "manager": [p for p in all_perms if p.codename in (
-                "employees.view", "attendance.view", "attendance.regularize_others",
-                "leaves.approve_own_team", "payroll.view_own",
-            )],
-            "employee": [p for p in all_perms if p.codename in (
-                "attendance.regularize_own", "leaves.apply", "payroll.view_own",
-            )],
+            "manager": [p for p in all_perms if p.codename in MANAGER_PERMISSION_CODENAMES],
+            "employee": [p for p in all_perms if p.codename in EMPLOYEE_PERMISSION_CODENAMES],
         }
 
         for role_name, perms in roles_config.items():

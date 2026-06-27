@@ -164,6 +164,8 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.IsAuthenticated",
         # Bind the JWT to the tenant schema it was issued for (H2).
         "apps.identity.permissions.TokenWorkspaceMatchesSchema",
+        # Enforce TenantMember role on tenant finance APIs (VIEWER → OWNER).
+        "apps.team.permissions.TenantRolePermission",
     ),
     "DEFAULT_FILTER_BACKENDS": (
         "django_filters.rest_framework.DjangoFilterBackend",
@@ -228,7 +230,8 @@ TRIAL_REMINDER_DAYS = env.int("TRIAL_REMINDER_DAYS", default=3)
 # Account security policy.
 # When True, unverified users cannot obtain JWT tokens (login is blocked until
 # they verify). Kept False by default so dev/demo flows aren't interrupted.
-REQUIRE_EMAIL_VERIFICATION = env.bool("REQUIRE_EMAIL_VERIFICATION", default=False)
+REQUIRE_EMAIL_VERIFICATION = env.bool("REQUIRE_EMAIL_VERIFICATION", default=True)
+EMAIL_OTP_TIMEOUT_MINUTES = env.int("EMAIL_OTP_TIMEOUT_MINUTES", default=15)
 # Email-verification + password-reset link lifetime (hours / Django default).
 EMAIL_VERIFICATION_TIMEOUT_HOURS = env.int("EMAIL_VERIFICATION_TIMEOUT_HOURS", default=48)
 PASSWORD_RESET_TIMEOUT = env.int("PASSWORD_RESET_TIMEOUT", default=60 * 60 * 24)  # 24h (seconds)
@@ -346,3 +349,8 @@ LOGGING = {
     },
     "root": {"handlers": ["console"], "level": "INFO"},
 }
+
+# ===== Encryption / MFA =====
+FIELD_ENCRYPTION_KEY = env("FIELD_ENCRYPTION_KEY", default=env("HR_FIELD_ENCRYPTION_KEY", default=""))
+MFA_REQUIRED = env.bool("MFA_REQUIRED", default=True)
+MFA_CHALLENGE_MAX_AGE_SECONDS = env.int("MFA_CHALLENGE_MAX_AGE_SECONDS", default=300)

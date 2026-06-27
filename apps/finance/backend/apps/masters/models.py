@@ -253,6 +253,75 @@ class Party(TimeStampedModel):
         return bool(self.bank_account_number and self.bank_ifsc)
 
 
+class SalesLead(TimeStampedModel):
+    """CRM lite — sales opportunity tied to an optional Finance Party (customer)."""
+
+    class Stage(models.TextChoices):
+        NEW = "new", "New"
+        CONTACTED = "contacted", "Contacted"
+        QUALIFIED = "qualified", "Qualified"
+        PROPOSAL = "proposal", "Proposal sent"
+        NEGOTIATION = "negotiation", "Negotiation"
+        WON = "won", "Won"
+        LOST = "lost", "Lost"
+
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="sales_leads")
+    party = models.ForeignKey(
+        Party, null=True, blank=True, on_delete=models.SET_NULL, related_name="sales_leads",
+        help_text="Linked customer/vendor master record when the prospect is in Parties.",
+    )
+    title = models.CharField(max_length=255, help_text="Deal or opportunity name")
+    contact_name = models.CharField(max_length=200, blank=True)
+    organization = models.CharField(max_length=255, blank=True, help_text="Prospect company name")
+    email = models.EmailField(blank=True)
+    phone = models.CharField(max_length=20, blank=True)
+    stage = models.CharField(max_length=20, choices=Stage.choices, default=Stage.NEW, db_index=True)
+    expected_value = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    next_follow_up = models.DateField(null=True, blank=True, db_index=True)
+    source = models.CharField(max_length=80, blank=True, help_text="e.g. referral, inbound, event")
+    notes = models.TextField(blank=True)
+    lost_reason = models.CharField(max_length=255, blank=True)
+    closed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ("-updated_at",)
+        indexes = [
+            models.Index(fields=["company", "stage"]),
+            models.Index(fields=["company", "next_follow_up"]),
+        ]
+
+    def __str__(self) -> str:
+        return self.title
+
+    @property
+    def display_name(self) -> str:
+        return self.organization or self.contact_name or self.title
+
+
+class LeadActivity(TimeStampedModel):
+    """Follow-up log on a sales lead."""
+
+    class ActivityType(models.TextChoices):
+        NOTE = "note", "Note"
+        CALL = "call", "Call"
+        EMAIL = "email", "Email"
+        MEETING = "meeting", "Meeting"
+
+    lead = models.ForeignKey(SalesLead, on_delete=models.CASCADE, related_name="activities")
+    activity_type = models.CharField(max_length=20, choices=ActivityType.choices, default=ActivityType.NOTE)
+    summary = models.TextField()
+    activity_at = models.DateTimeField()
+    created_by = models.ForeignKey(
+        "identity.User", null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+
+    class Meta:
+        ordering = ("-activity_at",)
+
+    def __str__(self) -> str:
+        return f"{self.get_activity_type_display()} — {self.lead_id}"
+
+
 class NumberSeries(TimeStampedModel):
     """Per-company document numbering format (prefix + zero-padded running number).
 
@@ -270,6 +339,7 @@ class NumberSeries(TimeStampedModel):
         VENDOR_BILL = "vendor_bill", "Vendor Bill"
         RECEIPT = "receipt", "Customer Receipt"
         VENDOR_PAYMENT = "vendor_payment", "Vendor Payment"
+        CLIENT_DOCUMENT = "client_document", "Client Document"
 
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="number_series")
     doc_type = models.CharField(max_length=20, choices=DocType.choices)

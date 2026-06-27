@@ -68,7 +68,8 @@ def _aggregate_invoice(invoice: Invoice) -> None:
 
 class InvoiceService:
     @transaction.atomic
-    def create_and_post(self, *, invoice: Invoice, lines_data: list[dict], user=None) -> Invoice:
+    def create_and_post(self, *, invoice: Invoice, lines_data: list[dict], user=None,
+                        warehouse_id=None) -> Invoice:
         """Create invoice + lines, compute tax per the company's regime, post to ledger."""
         company = invoice.company
         regime = company.tax_regime
@@ -91,7 +92,46 @@ class InvoiceService:
         invoice.journal_entry = je
         invoice.status = Invoice.Status.POSTED
         invoice.save(update_fields=["journal_entry", "status", "updated_at"])
+        self._post_inventory_movements(invoice, warehouse_id=warehouse_id)
         return invoice
+
+    def _post_inventory_movements(self, invoice: Invoice, *, warehouse_id=None) -> None:
+        """Deduct stock for GOODS lines when a warehouse is available."""
+        from apps.inventory.models import StockMovement, Warehouse
+        from apps.inventory.services import record_movement
+        from apps.masters.models import Item
+
+        warehouse = None
+        if warehouse_id:
+            warehouse = Warehouse.objects.filter(pk=warehouse_id, company=invoice.company).first()
+        if not warehouse:
+            warehouse = (
+                Warehouse.objects.filter(company=invoice.company, is_default=True, is_active=True).first()
+                or Warehouse.objects.filter(company=invoice.company, is_active=True).first()
+            )
+        if not warehouse:
+            return
+
+        for line in invoice.lines.select_related("item"):
+            if not line.item_id:
+                continue
+            item = line.item
+            if item.kind != Item.Kind.GOODS:
+                continue
+            qty = to_money(line.quantity)
+            if qty <= 0:
+                continue
+            record_movement(
+                company=invoice.company,
+                date=invoice.date,
+                item=item,
+                warehouse=warehouse,
+                kind=StockMovement.Kind.SALE,
+                quantity=-qty,
+                unit_cost=item.purchase_price or line.unit_price,
+                reference=f"Inv {invoice.invoice_no}",
+                journal_entry=invoice.journal_entry,
+            )
 
     def _post_je(self, invoice: Invoice, *, user=None):
         company = invoice.company

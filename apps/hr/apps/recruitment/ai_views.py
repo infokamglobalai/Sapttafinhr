@@ -5,12 +5,12 @@ from django.http import JsonResponse
 from django.views import View
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
-from utils.access import hr_admin_required
+from utils.access import perm_required
 
 logger = logging.getLogger(__name__)
 
 
-@method_decorator([hr_admin_required, csrf_exempt], name="dispatch")
+@method_decorator([perm_required("recruitment.manage"), csrf_exempt], name="dispatch")
 class JDGeneratorView(View):
     """POST /recruitment/ai/generate-jd/
     Body: {role_title, department, experience_years, skills[], salary_range, company_name}
@@ -113,10 +113,11 @@ We are looking for an experienced {role} to join our growing team. This is an ex
 • Collaborative and inclusive work culture"""
 
 
-@method_decorator([hr_admin_required, csrf_exempt], name="dispatch")
+@method_decorator([perm_required("recruitment.manage"), csrf_exempt], name="dispatch")
 class OfferLetterGeneratorView(View):
     """POST /recruitment/ai/generate-offer/
-    Body: {employee_id or candidate_name, role, department, salary, joining_date}
+    Body: {application_id?, candidate_name, role, department, salary, joining_date,
+           create_draft?, probation_months}
     """
 
     def post(self, request):
@@ -126,90 +127,85 @@ class OfferLetterGeneratorView(View):
             return JsonResponse({"error": "Invalid JSON"}, status=400)
 
         tenant = getattr(request, "tenant", None)
-        company_name = tenant.name if tenant else "The Company"
-        company_address = (tenant.address if tenant else "") or "Company Address"
+        application = None
+        app_id = data.get("application_id")
+        if app_id:
+            from .models import JobApplication
 
-        candidate_name = data.get("candidate_name", "Candidate")
-        role = data.get("role", "")
-        department = data.get("department", "")
-        salary = data.get("salary", "")
+            application = JobApplication.objects.select_related(
+                "candidate", "job_opening", "job_opening__department"
+            ).filter(pk=app_id, tenant=tenant).first()
+            if not application:
+                return JsonResponse({"error": "Application not found"}, status=404)
+
+        if application:
+            candidate = application.candidate
+            job = application.job_opening
+            candidate_name = candidate.display_name
+            role = job.title
+            department = job.department.name if job.department_id else ""
+            salary = data.get("salary") or (
+                str(candidate.expected_ctc) if candidate.expected_ctc else ""
+            )
+        else:
+            candidate_name = data.get("candidate_name", "Candidate")
+            role = data.get("role", "")
+            department = data.get("department", "")
+            salary = data.get("salary", "")
+
         joining_date = data.get("joining_date", "")
         probation_months = data.get("probation_months", 3)
 
         if not role:
             return JsonResponse({"error": "role required"}, status=400)
 
-        from django.conf import settings
-        api_key = getattr(settings, "ANTHROPIC_API_KEY", "")
+        from .offer_ai import generate_offer_letter_text
 
-        if not api_key:
-            return JsonResponse({"letter_text": self._template_offer(candidate_name, role, department, salary, joining_date, company_name, company_address, probation_months)})
+        letter_text = (data.get("letter_text") or "").strip()
+        if not letter_text:
+            letter_text = generate_offer_letter_text(
+            tenant,
+            candidate_name=candidate_name,
+            role=role,
+            department=department,
+            salary=salary,
+            joining_date=joining_date,
+            probation_months=probation_months,
+        )
 
-        try:
-            import anthropic
-            from datetime import date
-            client = anthropic.Anthropic(api_key=api_key)
-            prompt = f"""Write a professional offer letter for the following:
+        payload = {
+            "letter_text": letter_text,
+            "candidate": candidate_name,
+            "role": role,
+            "application_id": application.pk if application else None,
+        }
 
-Candidate: {candidate_name}
-Role: {role}
-Department: {department or 'Not specified'}
-Company: {company_name}
-Company Address: {company_address}
-CTC/Salary: {salary or 'As discussed'}
-Joining Date: {joining_date or 'To be confirmed'}
-Probation Period: {probation_months} months
-Date of Letter: {date.today().strftime('%d %B %Y')}
+        if data.get("create_draft") and application:
+            from utils.access import can_generate_letters
 
-Include: formal header, offer details, compensation, probation, acceptance request, warm closing.
-Format as a proper letter. Keep professional and clear. No placeholder brackets."""
+            if not can_generate_letters(request.user):
+                return JsonResponse(
+                    {"error": "hr_ops.generate_letters permission required to create HR draft"},
+                    status=403,
+                )
+            from apps.hr_ops.recruitment_offer_bridge import create_recruitment_offer_draft
 
-            response = client.messages.create(
-                model="claude-sonnet-4-6",
-                max_tokens=1024,
-                messages=[{"role": "user", "content": prompt}]
+            letter = create_recruitment_offer_draft(
+                application,
+                request.user,
+                ai_body_text=letter_text,
+                use_ai_body=True,
+                salary=salary,
+                joining_date=joining_date,
+                probation_months=probation_months,
             )
-            letter_text = response.content[0].text
-        except Exception:
-            logger.exception("Offer letter generation failed")
-            letter_text = self._template_offer(candidate_name, role, department, salary, joining_date, company_name, company_address, probation_months)
+            payload["letter_id"] = letter.pk
+            payload["letter_edit_url"] = f"/hr/letters/{letter.pk}/edit/"
 
-        return JsonResponse({"letter_text": letter_text, "candidate": candidate_name, "role": role})
-
-    def _template_offer(self, name, role, dept, salary, joining, company, address, probation):
-        from datetime import date
-        return f"""{company}
-{address}
-Date: {date.today().strftime('%d %B %Y')}
-
-Dear {name},
-
-**LETTER OF OFFER — {role.upper()}**
-
-We are pleased to extend this offer of employment for the position of **{role}**{(' in the ' + dept + ' department') if dept else ''} at {company}.
-
-**Terms of Employment:**
-• Designation: {role}
-• Department: {dept or 'As applicable'}
-• Date of Joining: {joining or 'To be mutually agreed'}
-• Compensation: {salary or 'As discussed during the interview process'}
-• Probation Period: {probation} months from the date of joining
-
-This offer is subject to satisfactory completion of background verification and submission of required documents before joining.
-
-Please sign and return a copy of this letter as acceptance of the offer by [Date + 7 days].
-
-We look forward to welcoming you to the {company} family!
-
-Warm regards,
-
-HR Manager
-{company}
-
-Accepted by: _________________ Date: _________________"""
+        return JsonResponse(payload)
 
 
-@method_decorator([hr_admin_required, csrf_exempt], name="dispatch")
+@method_decorator([perm_required("recruitment.manage"), csrf_exempt], name="dispatch")
 class ResumeParsViewView(View):
     """POST /recruitment/ai/parse-resume/ — multipart upload of PDF/DOCX.
     Returns extracted candidate profile for ATS pre-fill.
@@ -230,7 +226,7 @@ class ResumeParsViewView(View):
         return JsonResponse(result)
 
 
-@method_decorator([hr_admin_required, csrf_exempt], name="dispatch")
+@method_decorator([perm_required("recruitment.manage"), csrf_exempt], name="dispatch")
 class ResumeRankView(View):
     """POST /recruitment/ai/rank-resumes/
     Body: {job_opening_id, application_ids: []} (application_ids optional — ranks all)

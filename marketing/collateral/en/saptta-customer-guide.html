@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Saptta — Customer Guide</title>
+  <style>
+    :root {
+      --blue: #2563EB; --blue-dark: #1D4ED8; --blue-soft: #EFF6FF;
+      --green: #059669; --text: #0F172A; --muted: #64748B; --border: #E2E8F0; --bg: #F8FAFC;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Segoe UI", system-ui, sans-serif; color: var(--text); line-height: 1.55; font-size: 10.5pt; }
+    @page { size: A4; margin: 18mm 16mm; }
+    @media print {
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .page { page-break-after: always; }
+      .page:last-child { page-break-after: avoid; }
+      .no-print { display: none !important; }
+    }
+    @media screen {
+      body { background: #CBD5E1; padding: 24px 16px 48px; }
+      .page { max-width: 210mm; margin: 0 auto 24px; background: #fff; padding: 18mm 16mm; box-shadow: 0 8px 32px rgba(15,23,42,.12); border-radius: 8px; }
+    }
+    .page { padding: 18mm 16mm; min-height: 260mm; position: relative; }
+    .cover { background: linear-gradient(145deg, #0F172A, #1E3A8A 50%, #2563EB); color: #fff; }
+    .cover h1 { font-size: 28pt; font-weight: 800; letter-spacing: -.03em; margin-bottom: 12px; }
+    .cover p { color: rgba(255,255,255,.88); font-size: 12pt; max-width: 520px; }
+    .tag { display: inline-block; background: rgba(255,255,255,.15); color: #fff; font-size: 8pt; font-weight: 700; padding: 4px 12px; border-radius: 999px; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 16px; }
+    h2 { font-size: 16pt; font-weight: 800; margin-bottom: 10px; color: var(--text); border-bottom: 2px solid var(--border); padding-bottom: 6px; }
+    h3 { font-size: 11pt; font-weight: 700; margin: 14px 0 6px; color: var(--blue-dark); }
+    p, li { color: #334155; font-size: 10pt; }
+    ul, ol { margin: 8px 0 8px 20px; }
+    li { margin: 4px 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 9pt; margin: 10px 0; }
+    th, td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; }
+    th { background: var(--bg); font-weight: 700; font-size: 8pt; text-transform: uppercase; color: var(--muted); }
+    .callout { background: var(--blue-soft); border-left: 4px solid var(--blue); padding: 12px 14px; border-radius: 0 8px 8px 0; margin: 12px 0; font-size: 9.5pt; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 10px; }
+    .card { border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; background: var(--bg); }
+    .card h3 { margin-top: 0; font-size: 10pt; }
+    .card ul { margin-left: 16px; }
+    .footer { margin-top: 24px; padding-top: 10px; border-top: 1px solid var(--border); font-size: 8pt; color: var(--muted); display: flex; justify-content: space-between; }
+    .cover .footer { border-color: rgba(255,255,255,.2); color: rgba(255,255,255,.7); margin-top: 40px; }
+    .no-print { text-align: center; padding: 14px; background: #1E293B; color: #fff; font-size: 10pt; }
+    .check { color: var(--green); font-weight: 700; }
+    .flow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 10px 0; }
+    .step { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; font-size: 8.5pt; font-weight: 600; }
+    .arrow { color: var(--blue); font-weight: 700; }
+  </style>
+</head>
+<body>
+  <p class="no-print">Chrome → Print → Save as PDF (A4, background graphics ON) · Or run: <code>node scripts/generate-docs-pdf.mjs</code></p>
+
+  <!-- COVER -->
+  <section class="page cover">
+    <span class="tag">Customer guide · 2026</span>
+    <h1>Saptta Platform<br>User &amp; Admin Guide</h1>
+    <p>Everything your team needs after purchase: plans, login, roles, daily workflows, and security — in one short guide.</p>
+    <p style="margin-top:20px;font-size:10pt;opacity:.85">Saptta HRMS + Saptta Finance · India &amp; GCC · hello@saptta.com · saptta.com</p>
+    <div class="footer"><span>Confidential — for Saptta customers</span><span>v2026.06</span></div>
+  </section>
+
+  <!-- PLANS -->
+  <section class="page">
+    <h2>1. Plans &amp; what you get</h2>
+    <table>
+      <thead><tr><th>Plan</th><th>Includes</th><th>Price (ex-GST)</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Saptta HRMS</strong></td><td>People, attendance, leave, payroll, recruitment, letters, AI assist</td><td>₹4,999/mo · 30 employees · +₹111/extra</td></tr>
+        <tr><td><strong>Saptta Finance</strong></td><td>GST invoicing, ledger, reports, Tally export, client contracts</td><td>₹4,999/mo · unlimited users</td></tr>
+        <tr><td><strong>Saptta Complete</strong></td><td>HR + Finance + portal + AI on one login</td><td>₹7,999/mo · save ₹1,999/mo</td></tr>
+      </tbody>
+    </table>
+    <div class="callout">18% GST at checkout · 14-day free trial · Buy HR only, Finance only, or both — each product is gated to your subscription.</div>
+    <h3>After you sign up</h3>
+    <div class="flow">
+      <span class="step">Create account</span><span class="arrow">→</span>
+      <span class="step">Verify email (OTP)</span><span class="arrow">→</span>
+      <span class="step">Set up MFA</span><span class="arrow">→</span>
+      <span class="step">Choose plan</span><span class="arrow">→</span>
+      <span class="step">Setup wizard</span>
+    </div>
+    <p>Your signup email becomes the company owner and first <strong>HR Administrator</strong>. Complete the setup wizard: company profile, departments, leave types, and payroll basics.</p>
+    <div class="footer"><span>Saptta Customer Guide</span><span>Page 2</span></div>
+  </section>
+
+  <!-- ROLES -->
+  <section class="page">
+    <h2>2. Who logs in &amp; where</h2>
+    <table>
+      <thead><tr><th>Role</th><th>Typical user</th><th>Login URL</th><th>What they see</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Company owner</strong></td><td>Director / founder</td><td><code>app.yourdomain.com/login</code></td><td>Product switcher, billing, both HR &amp; Finance</td></tr>
+        <tr><td><strong>HR Administrator</strong></td><td>HR head</td><td>Platform login or HR URL</td><td>Full HRMS — people, payroll, letters, reports</td></tr>
+        <tr><td><strong>Finance user</strong></td><td>Accountant</td><td>Platform login</td><td>Finance modules per their access</td></tr>
+        <tr><td><strong>Manager</strong></td><td>Team lead</td><td>Platform or employee login</td><td>Direct reports — leave, expenses, reviews</td></tr>
+        <tr><td><strong>Employee</strong></td><td>Staff</td><td><code>hr.yourdomain.com/auth/employee-login/</code></td><td>Self-service — punch, leave, payslip, requests</td></tr>
+      </tbody>
+    </table>
+    <h3>Onboard a new employee</h3>
+    <ol>
+      <li>HR Admin → <strong>People → Employees → Add</strong> (official email required).</li>
+      <li>Open profile → <strong>Create login</strong> → send the one-time invite link (valid 7 days).</li>
+      <li>Employee sets password, completes MFA, lands on their dashboard.</li>
+    </ol>
+    <div class="callout"><strong>Manager tip:</strong> Managers must have an employee profile linked to their login. If they see “Manager profile not found,” ask HR to link their user to their employee record.</div>
+    <div class="footer"><span>Saptta Customer Guide</span><span>Page 3</span></div>
+  </section>
+
+  <!-- HR ADMIN -->
+  <section class="page">
+    <h2>3. HR Administrator — key workflows</h2>
+    <div class="grid-2">
+      <div class="card">
+        <h3>People &amp; org</h3>
+        <ul>
+          <li>Add / import employees</li>
+          <li>Departments, designations, locations</li>
+          <li>Team Access — assign HR Admin / Manager roles</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Time &amp; leave</h3>
+        <ul>
+          <li>Attendance register, shifts, regularizations</li>
+          <li>Leave types, holidays, balances</li>
+          <li>Approve all pending leave &amp; comp-off (CO)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Payroll (month-end)</h3>
+        <ul>
+          <li>Lock attendance → Monthly review</li>
+          <li>Create run → Recompute → Approve → Publish</li>
+          <li>Bank advice, salary register, PF ECR exports</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>HR Ops</h3>
+        <ul>
+          <li>Letters (maker-checker: generate vs approve)</li>
+          <li>Company vault &amp; document requests</li>
+          <li>Recruitment, assets, exits, announcements</li>
+        </ul>
+      </div>
+    </div>
+    <h3>Access at a glance</h3>
+    <table>
+      <thead><tr><th>Feature</th><th>HR Admin</th><th>Manager</th><th>Employee</th></tr></thead>
+      <tbody>
+        <tr><td>Employee directory / edit</td><td class="check">✓</td><td>—</td><td>—</td></tr>
+        <tr><td>Approve team leave &amp; expenses</td><td class="check">✓</td><td class="check">✓ (team)</td><td>—</td></tr>
+        <tr><td>Run &amp; publish payroll</td><td class="check">✓</td><td>—</td><td>—</td></tr>
+        <tr><td>Own payslip &amp; tax declaration</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+        <tr><td>Recruitment &amp; org reports</td><td class="check">✓</td><td>—</td><td>—</td></tr>
+        <tr><td>AI policy Q&amp;A chat</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+      </tbody>
+    </table>
+    <div class="footer"><span>Saptta Customer Guide</span><span>Page 4</span></div>
+  </section>
+
+  <!-- MANAGER + EMPLOYEE -->
+  <section class="page">
+    <h2>4. Manager guide</h2>
+    <ul>
+      <li><strong>My Team</strong> — see who is on leave, pending approvals.</li>
+      <li><strong>Leave</strong> — approve or reject with optional comment; HR can override.</li>
+      <li><strong>Regularizations</strong> — approve punch corrections for direct reports.</li>
+      <li><strong>Expenses</strong> — approve team reimbursement claims → HR pays via payroll.</li>
+      <li><strong>Performance</strong> — write/submit reviews for open cycles (optional AI draft).</li>
+      <li><strong>Service requests</strong> — hardware/software requests route through you first.</li>
+    </ul>
+
+    <h2>5. Employee self-service</h2>
+    <ul>
+      <li><strong>Attendance</strong> — punch in/out; request regularization if you missed a punch.</li>
+      <li><strong>Leave</strong> — apply, track status, cancel if still pending; comp-off type <strong>CO</strong> if enabled.</li>
+      <li><strong>Payslips</strong> — download PDF after HR publishes payroll.</li>
+      <li><strong>Tax &amp; Form 16</strong> — submit declarations; download Form 16 when issued.</li>
+      <li><strong>Expenses &amp; loans</strong> — submit claims; view EMI schedule if assigned.</li>
+      <li><strong>Help &amp; requests</strong> — IT, HR, or hardware tickets with status tracking.</li>
+      <li><strong>Policies</strong> — read company policies; ask AI for plain-language answers.</li>
+    </ul>
+    <div class="footer"><span>Saptta Customer Guide</span><span>Page 5</span></div>
+  </section>
+
+  <!-- SECURITY + SUPPORT -->
+  <section class="page">
+    <h2>6. Security (what your users experience)</h2>
+    <table>
+      <thead><tr><th>Step</th><th>When</th><th>What happens</th></tr></thead>
+      <tbody>
+        <tr><td>Email verification</td><td>Signup</td><td>6-digit code + link sent to inbox — required before full access</td></tr>
+        <tr><td>MFA (TOTP)</td><td>Every login</td><td>Authenticator app (Google Authenticator, etc.) — required for all users</td></tr>
+        <tr><td>Password reset</td><td>Forgot password</td><td>Single-use email link</td></tr>
+        <tr><td>Data isolation</td><td>Always</td><td>Your company data is tenant-isolated; sensitive fields encrypted</td></tr>
+      </tbody>
+    </table>
+    <div class="callout">Ask IT to allow email from your Saptta sending domain and to whitelist <strong>app.yourdomain.com</strong> and <strong>hr.yourdomain.com</strong> for staff browsers.</div>
+
+    <h2>7. Go-live checklist (for your IT / HR lead)</h2>
+    <ul>
+      <li>Complete setup wizard — departments, leave types, holidays, salary structures</li>
+      <li>Configure statutory settings (India: PF/ESI/TDS; GCC: jurisdiction-specific)</li>
+      <li>Upload letter templates and signatories</li>
+      <li>Test one payroll month end on a small group before full rollout</li>
+      <li>Share this guide with managers and employees</li>
+    </ul>
+
+    <h2>8. Support</h2>
+    <p><strong>Email:</strong> hello@saptta.com · <strong>Web:</strong> saptta.com</p>
+    <p style="margin-top:8px;color:var(--muted);font-size:9pt">For technical deployment, CI, and developer setup, see the internal <strong>README.md</strong> in your Saptta deployment package or request the full project guide PDF from your account manager.</p>
+    <div class="footer"><span>© Saptta Tech Solutions · Proprietary</span><span>Page 6</span></div>
+  </section>
+</body>
+</html>

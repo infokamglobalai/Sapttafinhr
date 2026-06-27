@@ -130,12 +130,18 @@ class Command(BaseCommand):
             )
             self.stdout.write(self.style.SUCCESS("Created superuser sp@saptta.com / Saptta@2026"))
 
+        # Dev/demo logins must stay pre-verified so REQUIRE_EMAIL_VERIFICATION does not block them.
+        User.objects.filter(email__in=["demo@saptta.com", "kuwit@saptta.com"], is_verified=False).update(
+            is_verified=True
+        )
+
         # Create demo company admin (lives in public/shared, resolves via billing_email)
         if not User.objects.filter(email="demo@saptta.com").exists():
             User.objects.create_user(
                 email="demo@saptta.com",
                 password="Demo@1234",
                 full_name="Demo Admin",
+                is_verified=True,
             )
             self.stdout.write(self.style.SUCCESS("Created demo admin demo@saptta.com / Demo@1234"))
 
@@ -145,6 +151,7 @@ class Command(BaseCommand):
                 email="kuwit@saptta.com",
                 password="Kuwit@1234",
                 full_name="Demo Kuwit",
+                is_verified=True,
             )
             self.stdout.write(self.style.SUCCESS("Created demo kuwit kuwit@saptta.com / Kuwit@1234"))
 

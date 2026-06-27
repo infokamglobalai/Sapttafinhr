@@ -10,6 +10,8 @@ from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 
+from apps.team.membership import resolve_tenant_role
+
 
 def resolve_workspace_for(user) -> str | None:
     """Best-effort: the tenant this user owns (billing_email match)."""
@@ -38,26 +40,54 @@ class SapttaTokenObtainPairSerializer(TokenObtainPairSerializer):
         # replayed against another tenant's subdomain. Null for users with no
         # resolved workspace (non-owners) — see the per-user membership follow-up.
         token["workspace"] = resolve_workspace_for(user)
+        token["fin_role"] = resolve_tenant_role(user)
         return token
 
     def validate(self, attrs):
         data = super().validate(attrs)
-        # Optionally block login until the email is verified.
+        user = self.user
+
         from django.conf import settings
 
         if getattr(settings, "REQUIRE_EMAIL_VERIFICATION", False) and not getattr(
-            self.user, "is_verified", True
+            user, "is_verified", True
         ):
             raise serializers.ValidationError(
-                {"detail": "Please verify your email address before signing in."}
+                {
+                    "detail": (
+                        "Please verify your email before signing in. "
+                        "Check your inbox for a 6-digit code or use Resend on the login page."
+                    )
+                }
             )
-        data["workspace"] = resolve_workspace_for(self.user)
+
+        from . import mfa as mfa_service
+
+        if mfa_service.user_needs_mfa_setup(user):
+            return {
+                "mfa_required": True,
+                "mfa_setup_required": True,
+                "challenge_token": mfa_service.mint_login_challenge(user.id, "setup"),
+                "email": user.email,
+            }
+        if mfa_service.user_needs_mfa_verify(user):
+            return {
+                "mfa_required": True,
+                "mfa_setup_required": False,
+                "challenge_token": mfa_service.mint_login_challenge(user.id, "verify"),
+                "email": user.email,
+            }
+
+        data["workspace"] = resolve_workspace_for(user)
+        data["fin_role"] = resolve_tenant_role(user)
         data["user"] = {
-            "id": self.user.id,
-            "email": self.user.email,
-            "full_name": getattr(self.user, "full_name", ""),
-            "is_staff": self.user.is_staff,
-            "is_verified": getattr(self.user, "is_verified", True),
+            "id": user.id,
+            "email": user.email,
+            "full_name": getattr(user, "full_name", ""),
+            "is_staff": user.is_staff,
+            "is_verified": getattr(user, "is_verified", True),
+            "fin_role": resolve_tenant_role(user),
+            "mfa_enabled": bool(getattr(user, "mfa_enabled", False)),
         }
         return data
 

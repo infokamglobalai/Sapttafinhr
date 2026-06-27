@@ -35,5 +35,7 @@ def get_zatca_client():
     mode = os.environ.get("ZATCA_MODE", "STUB").upper()
     if mode == "STUB":
         return StubZatcaClient()
-    # from .zatca_live import LiveZatcaClient; return LiveZatcaClient(...)
-    raise NotImplementedError(f"ZATCA_MODE={mode} not implemented yet")
+    if mode == "LIVE":
+        from .zatca_live import LiveZatcaClient
+        return LiveZatcaClient()
+    raise NotImplementedError(f"ZATCA_MODE={mode} not supported (use STUB or LIVE)")

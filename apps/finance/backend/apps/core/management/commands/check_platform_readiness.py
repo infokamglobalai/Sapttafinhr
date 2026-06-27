@@ -80,6 +80,41 @@ class Command(BaseCommand):
         if is_prod:
             results.append(("DEBUG=False in production", not debug, str(debug)))
 
+        email_backend = getattr(settings, "EMAIL_BACKEND", "")
+        email_host = getattr(settings, "EMAIL_HOST", "")
+        smtp_ok = "console" not in email_backend.lower() and bool(email_host)
+        results.append((
+            "SMTP email configured",
+            smtp_ok or not is_prod,
+            email_backend if smtp_ok else f"{email_backend} (set EMAIL_HOST for prod)",
+        ))
+
+        einv_mode = os.environ.get("EINVOICE_MODE", "STUB").upper()
+        ewb_mode = os.environ.get("EWB_MODE", "STUB").upper()
+        if is_prod and einv_mode == "LIVE":
+            live_ok = bool(os.environ.get("NIC_IRP_BASE_URL"))
+            results.append(("E-invoice LIVE credentials", live_ok, "NIC_IRP_BASE_URL set" if live_ok else "missing"))
+        else:
+            results.append(("E-invoice mode", True, einv_mode))
+        if is_prod and ewb_mode == "LIVE":
+            live_ok = bool(os.environ.get("EWB_BASE_URL") or os.environ.get("NIC_IRP_BASE_URL"))
+            results.append(("E-way LIVE credentials", live_ok, "EWB_BASE_URL set" if live_ok else "missing"))
+        else:
+            results.append(("E-way mode", True, ewb_mode))
+
+        zatca_mode = os.environ.get("ZATCA_MODE", "STUB").upper()
+        peppol_mode = os.environ.get("PEPPOL_MODE", "STUB").upper()
+        if is_prod and zatca_mode == "LIVE":
+            z_ok = bool(os.environ.get("ZATCA_BASE_URL") or os.environ.get("NIC_IRP_BASE_URL"))
+            results.append(("ZATCA LIVE credentials", z_ok, "ZATCA_BASE_URL set" if z_ok else "missing"))
+        else:
+            results.append(("ZATCA mode", True, zatca_mode))
+        if is_prod and peppol_mode == "LIVE":
+            p_ok = bool(os.environ.get("PEPPOL_BASE_URL"))
+            results.append(("Peppol LIVE credentials", p_ok, "PEPPOL_BASE_URL set" if p_ok else "missing"))
+        else:
+            results.append(("Peppol mode", True, peppol_mode))
+
         self.stdout.write("")
         self.stdout.write(self.style.MIGRATE_HEADING("FIN platform go-live readiness"))
         self.stdout.write("")

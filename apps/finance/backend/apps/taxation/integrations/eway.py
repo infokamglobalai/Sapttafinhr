@@ -26,6 +26,10 @@ class StubEWBClient:
 
 
 def get_ewb_client():
-    if os.environ.get("EWB_MODE", "STUB").upper() == "STUB":
+    mode = os.environ.get("EWB_MODE", "STUB").upper()
+    if mode == "STUB":
         return StubEWBClient()
-    raise NotImplementedError
+    if mode == "LIVE":
+        from .eway_live import LiveEWBClient
+        return LiveEWBClient()
+    raise NotImplementedError(f"EWB_MODE={mode} not supported (use STUB or LIVE)")

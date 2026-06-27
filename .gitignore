@@ -85,6 +85,15 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
+~$*
+
+# ─────────── SQLite WAL sidecars (local dev only) ───────────
+*.sqlite3-shm
+*.sqlite3-wal
+
+# ─────────── Marketing build outputs (regenerate via scripts) ───────────
+marketing/collateral/generated/
+marketing/collateral/_project-guide-print.html
 
 # ─────────── Logs ───────────
 logs/

@@ -245,3 +245,66 @@ class CreditNote(TimeStampedModel):
 
     def __str__(self) -> str:
         return f"CN {self.note_no} (against {self.invoice.invoice_no})"
+
+
+class ClientDocumentTemplate(TimeStampedModel):
+    """Reusable SOW / MSA / NDA HTML templates with client merge fields."""
+
+    class DocType(models.TextChoices):
+        SOW = "sow", "Statement of Work (SOW)"
+        MSA = "msa", "Master Service Agreement (MSA)"
+        NDA = "nda", "Non-Disclosure Agreement (NDA)"
+        CUSTOM = "custom", "Custom"
+
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="client_doc_templates")
+    doc_type = models.CharField(max_length=20, choices=DocType.choices, default=DocType.SOW)
+    name = models.CharField(max_length=255)
+    template_html = models.TextField(help_text="Jinja2 HTML. Vars: company, customer, quotation, project_name, milestones, …")
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ("doc_type", "name")
+        unique_together = ("company", "doc_type", "name")
+
+    def __str__(self) -> str:
+        return f"{self.get_doc_type_display()} — {self.name}"
+
+
+class ClientDocument(TimeStampedModel):
+    """Generated client contract / SOW document (non-posting)."""
+
+    class DocType(models.TextChoices):
+        SOW = "sow", "Statement of Work (SOW)"
+        MSA = "msa", "Master Service Agreement (MSA)"
+        NDA = "nda", "Non-Disclosure Agreement (NDA)"
+        CUSTOM = "custom", "Custom"
+
+    class Status(models.TextChoices):
+        DRAFT = "DRAFT", "Draft"
+        FINAL = "FINAL", "Final"
+
+    company = models.ForeignKey(Company, on_delete=models.PROTECT, related_name="client_documents")
+    template = models.ForeignKey(
+        ClientDocumentTemplate, null=True, blank=True, on_delete=models.SET_NULL, related_name="documents"
+    )
+    doc_type = models.CharField(max_length=20, choices=DocType.choices, default=DocType.SOW)
+    doc_no = models.CharField(max_length=40, db_index=True)
+    title = models.CharField(max_length=255)
+    customer = models.ForeignKey(Party, on_delete=models.PROTECT, related_name="client_documents")
+    quotation = models.ForeignKey(
+        Quotation, null=True, blank=True, on_delete=models.SET_NULL, related_name="client_documents"
+    )
+    sales_order = models.ForeignKey(
+        SalesOrder, null=True, blank=True, on_delete=models.SET_NULL, related_name="client_documents"
+    )
+    body_html = models.TextField(blank=True)
+    extra_context = models.JSONField(default=dict, blank=True)
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.DRAFT)
+    finalized_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        unique_together = ("company", "doc_no")
+        ordering = ("-created_at",)
+
+    def __str__(self) -> str:
+        return f"{self.doc_no} — {self.customer.name}"

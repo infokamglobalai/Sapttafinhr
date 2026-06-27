@@ -1,0 +1,26 @@
+{# Language toggle — switches tenant UI language (en / ar) for RTL support #}
+{% if user.is_authenticated %}
+<div x-data="{ open: false }" @click.outside="open = false" class="topbar-lang-wrap">
+  <button
+    type="button"
+    class="topbar-icon-btn topbar-lang-trigger"
+    aria-label="Language"
+    title="{% if tenant_ui_language == 'ar' %}العربية{% else %}English{% endif %}"
+    @click="open = !open"
+  >
+    <span class="topbar-lang-code" aria-hidden="true">{{ tenant_ui_language|default:'en'|upper }}</span>
+  </button>
+  <div x-show="open" x-cloak x-transition class="topbar-lang-menu surface" role="menu">
+    <form method="post" action="{% url 'tenants:set_ui_language' %}">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <button type="submit" name="language" value="en" class="topbar-lang-item{% if tenant_ui_language != 'ar' %} is-active{% endif %}" role="menuitem">
+        English
+      </button>
+      <button type="submit" name="language" value="ar" class="topbar-lang-item{% if tenant_ui_language == 'ar' %} is-active{% endif %}" role="menuitem">
+        العربية
+      </button>
+    </form>
+  </div>
+</div>
+{% endif %}

@@ -16,6 +16,8 @@ requests==2.32.3
 sentry-sdk[django]==2.19.2
 anthropic>=0.100.0
 argon2-cffi==23.1.0  # stronger password hashing (activated via PASSWORD_HASHERS once installed)
+cryptography>=44.0.0
+pyotp==2.9.0
+qrcode[pil]==8.0
 razorpay==2.0.1
-
-razorpay>=2.0.1
+xhtml2pdf==0.2.16

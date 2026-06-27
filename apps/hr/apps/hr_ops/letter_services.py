@@ -34,6 +34,15 @@ def build_letter_context(tenant, employee, extra: dict | None = None) -> dict:
         "warning_reason": "",
         "warning_subject": "",
         "appreciation_reason": "",
+        "proposed_designation": "",
+        "proposed_joining_date": "",
+        "intent_valid_until": "",
+        "noc_purpose": "",
+        "noc_valid_until": "",
+        "certificate_title": "Certificate of Achievement",
+        "certificate_event": "",
+        "certificate_date": "",
+        "certificate_reason": "",
     }
     if extra:
         ctx.update({k: v for k, v in extra.items() if v})

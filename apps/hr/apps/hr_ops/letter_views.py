@@ -7,10 +7,10 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST, require_http_methods
 
 from apps.employees.models import Employee
-from utils.access import hr_admin_required
+from utils.access import can_approve_letters, can_generate_letters, can_issue_letter, perm_required
 
-from .forms import CompanyLetterSettingsForm, LetterDraftForm
-from .letter_company import get_branding, get_company_profile, save_company_profile
+from .forms import CompanyLetterSettingsForm, LetterDraftForm, LetterSignatoryForm
+from .letter_company import get_branding, get_company_profile, get_letter_signatories, save_company_profile
 from .letter_render import render_letter_body, wrap_letter_document
 from .letter_services import seed_default_letter_templates
 from .letter_workflow import (
@@ -26,7 +26,7 @@ from .letter_workflow import (
     soft_delete_letter,
     submit_for_approval,
 )
-from .models import HRLetter, LetterTemplate
+from .models import CompanyLetterSignatory, HRLetter, LetterTemplate
 from .services import audit_log
 
 
@@ -74,10 +74,28 @@ LETTER_EXTRA_FIELDS = {
     "appreciation": [
         ("appreciation_reason", "Reason for appreciation", "text", ""),
     ],
+    "intent": [
+        ("proposed_designation", "Proposed designation", "text", ""),
+        ("proposed_joining_date", "Tentative joining date", "date", ""),
+        ("joining_date", "Joining date (if different)", "date", ""),
+        ("ctc", "Proposed annual CTC (INR)", "text", ""),
+        ("intent_valid_until", "LOI valid until", "date", ""),
+    ],
+    "noc": [
+        ("noc_purpose", "Purpose of NOC", "text", "Visa / loan / higher studies / new employment"),
+        ("noc_valid_until", "Valid until (optional)", "date", ""),
+        ("last_working_day", "Last working day (if applicable)", "date", ""),
+    ],
+    "certificate": [
+        ("certificate_title", "Certificate title", "text", "Certificate of Achievement"),
+        ("certificate_event", "Event / program name", "text", "Annual Sports Day 2026"),
+        ("certificate_date", "Event / award date", "date", ""),
+        ("certificate_reason", "Achievement / participation details", "text", ""),
+    ],
 }
 
 
-@hr_admin_required
+@perm_required("hr_ops.generate_letters")
 def letter_company_settings(request):
     tenant = request.tenant
     profile = get_company_profile(tenant)
@@ -106,11 +124,83 @@ def letter_company_settings(request):
         "form": form,
         "profile": profile,
         "branding": branding,
+        "signatories": get_letter_signatories(tenant),
+        "signatory_count": CompanyLetterSignatory.objects.filter(tenant=tenant, is_active=True).count(),
     })
 
 
-@hr_admin_required
+@perm_required("hr_ops.generate_letters")
+def letter_signatories(request):
+    tenant = request.tenant
+    signatories = CompanyLetterSignatory.objects.filter(tenant=tenant).order_by("sort_order", "pk")
+    return render(request, "hr_ops/letter_signatories.html", {
+        "signatories": signatories,
+        "legacy_signatories": get_letter_signatories(tenant) if not signatories.filter(is_active=True).exists() else [],
+    })
+
+
+@perm_required("hr_ops.generate_letters")
+@require_http_methods(["GET", "POST"])
+def letter_signatory_edit(request, pk=None):
+    tenant = request.tenant
+    signatory = get_object_or_404(CompanyLetterSignatory, pk=pk, tenant=tenant) if pk else None
+
+    if request.method == "POST":
+        form = LetterSignatoryForm(request.POST, request.FILES, instance=signatory)
+        if form.is_valid():
+            obj = form.save(commit=False)
+            obj.tenant = tenant
+            obj.save()
+            messages.success(request, f'Signatory "{obj.name}" saved.')
+            return redirect("hr_ops:letter_signatories")
+    else:
+        initial = {}
+        if not signatory:
+            initial["sort_order"] = (
+                CompanyLetterSignatory.objects.filter(tenant=tenant).count()
+            )
+        form = LetterSignatoryForm(instance=signatory, initial=initial if not signatory else None)
+
+    return render(request, "hr_ops/letter_signatory_form.html", {"form": form, "signatory": signatory})
+
+
+@perm_required("hr_ops.generate_letters")
 @require_POST
+def letter_signatory_import_legacy(request):
+    """Create first signatory row from legacy letterhead name + signature image."""
+    tenant = request.tenant
+    if CompanyLetterSignatory.objects.filter(tenant=tenant).exists():
+        messages.info(request, "Signatories already configured — edit them below.")
+        return redirect("hr_ops:letter_signatories")
+
+    profile = get_company_profile(tenant)
+    branding = get_branding(tenant)
+    if not profile.signatory_name and not (branding and branding.signature_image):
+        messages.error(request, "Set signatory name or signature on letterhead settings first.")
+        return redirect("hr_ops:letter_company_settings")
+
+    CompanyLetterSignatory.objects.create(
+        tenant=tenant,
+        name=profile.signatory_name or "Authorized Signatory",
+        title=profile.signatory_title or "",
+        signature_image=branding.signature_image if branding and branding.signature_image else None,
+        sort_order=0,
+    )
+    messages.success(request, "Imported legacy signatory. Add more signatories if needed.")
+    return redirect("hr_ops:letter_signatories")
+
+
+@perm_required("hr_ops.generate_letters")
+@require_POST
+def letter_signatory_delete(request, pk):
+    signatory = get_object_or_404(CompanyLetterSignatory, pk=pk, tenant=request.tenant)
+    name = signatory.name
+    signatory.delete()
+    messages.success(request, f'Removed signatory "{name}".')
+    return redirect("hr_ops:letter_signatories")
+
+
+@perm_required("hr_ops.generate_letters")
 def letter_seed_defaults(request):
     created, skipped = seed_default_letter_templates(request.tenant, created_by=request.user)
     if created:
@@ -120,7 +210,7 @@ def letter_seed_defaults(request):
     return redirect("hr_ops:letter_templates")
 
 
-@hr_admin_required
+@perm_required("hr_ops.generate_letters")
 def letter_history(request):
     tenant = request.tenant
     qs = (
@@ -152,6 +242,12 @@ def letter_history(request):
     paginator = Paginator(qs, 25)
     page_obj = paginator.get_page(request.GET.get("page"))
 
+    pending_approval_count = 0
+    if can_approve_letters(request.user):
+        pending_approval_count = HRLetter.objects.filter(
+            tenant=tenant, status="pending_approval", is_deleted=False
+        ).count()
+
     employees = Employee.objects.filter(tenant=tenant, is_active=True).order_by("first_name", "last_name")[:200]
     from apps.accounts.models import User
     authors = User.objects.filter(
@@ -164,6 +260,8 @@ def letter_history(request):
         "authors": authors,
         "letter_type_choices": LetterTemplate.LETTER_TYPES,
         "status_choices": HRLetter.STATUS_CHOICES,
+        "pending_approval_count": pending_approval_count,
+        "can_approve_letters": can_approve_letters(request.user),
         "filters": {
             "employee": employee_id or "",
             "type": letter_type or "",
@@ -175,10 +273,13 @@ def letter_history(request):
     })
 
 
-@hr_admin_required
+@perm_required("hr_ops.generate_letters")
 def letter_detail(request, pk):
     letter = get_object_or_404(
-        HRLetter.objects.select_related("employee", "template", "generated_by", "approved_by", "rejected_by"),
+        HRLetter.objects.select_related(
+            "employee", "template", "generated_by", "approved_by", "rejected_by",
+            "job_application", "job_application__candidate", "job_application__job_opening",
+        ),
         pk=pk,
         tenant=request.tenant,
         is_deleted=False,
@@ -193,14 +294,18 @@ def letter_detail(request, pk):
         is_deleted=False,
     ).filter(Q(pk=letter.pk) | Q(parent=letter.parent or letter)).order_by("-version")
 
+    user = request.user
     return render(request, "hr_ops/letter_detail.html", {
         "letter": letter,
         "revisions": revisions,
         "preview_html": wrap_letter_document(render_letter_body(letter), request.tenant),
+        "can_generate_letters": can_generate_letters(user),
+        "can_approve_letters": can_approve_letters(user),
+        "can_issue_letter": can_issue_letter(user, letter),
     })
 
 
-@hr_admin_required
+@perm_required("hr_ops.generate_letters")
 def letter_edit_draft(request, pk):
     letter = get_object_or_404(HRLetter, pk=pk, tenant=request.tenant, is_deleted=False)
     if not letter.is_editable:
@@ -221,7 +326,7 @@ def letter_edit_draft(request, pk):
     return render(request, "hr_ops/letter_edit_draft.html", {"letter": letter, "form": form})
 
 
-@hr_admin_required
+@perm_required("hr_ops.generate_letters")
 def employee_letter_picker(request, employee_pk):
     employee = get_object_or_404(Employee, pk=employee_pk, tenant=request.tenant)
     templates = LetterTemplate.objects.filter(tenant=request.tenant, is_active=True).order_by("letter_type")
@@ -236,7 +341,7 @@ def employee_letter_picker(request, employee_pk):
     })
 
 
-@hr_admin_required
+@perm_required("hr_ops.generate_letters")
 @require_http_methods(["GET", "POST"])
 def generate_letter_view(request, employee_pk, template_pk):
     tenant = request.tenant
@@ -259,7 +364,7 @@ def generate_letter_view(request, employee_pk, template_pk):
     })
 
 
-@hr_admin_required
+@perm_required("hr_ops.generate_letters")
 @require_POST
 def letter_submit(request, pk):
     letter = get_object_or_404(HRLetter, pk=pk, tenant=request.tenant, is_deleted=False)
@@ -271,7 +376,7 @@ def letter_submit(request, pk):
     return redirect("hr_ops:letter_detail", pk=pk)
 
 
-@hr_admin_required
+@perm_required("hr_ops.approve_letters")
 @require_POST
 def letter_approve(request, pk):
     letter = get_object_or_404(HRLetter, pk=pk, tenant=request.tenant, is_deleted=False)
@@ -283,7 +388,7 @@ def letter_approve(request, pk):
     return redirect("hr_ops:letter_detail", pk=pk)
 
 
-@hr_admin_required
+@perm_required("hr_ops.approve_letters")
 @require_POST
 def letter_reject(request, pk):
     letter = get_object_or_404(HRLetter, pk=pk, tenant=request.tenant, is_deleted=False)
@@ -296,10 +401,13 @@ def letter_reject(request, pk):
     return redirect("hr_ops:letter_detail", pk=pk)
 
 
-@hr_admin_required
+@perm_required("hr_ops.generate_letters", "hr_ops.approve_letters")
 @require_POST
 def letter_issue(request, pk):
     letter = get_object_or_404(HRLetter, pk=pk, tenant=request.tenant, is_deleted=False)
+    if not can_issue_letter(request.user, letter):
+        messages.error(request, "You do not have permission to issue this letter.")
+        return redirect("hr_ops:letter_detail", pk=pk)
     try:
         if letter.status == "approved":
             issue_letter(letter, request.user, ip=_client_ip(request))
@@ -311,7 +419,7 @@ def letter_issue(request, pk):
     return redirect("hr_ops:letter_detail", pk=pk)
 
 
-@hr_admin_required
+@perm_required("hr_ops.generate_letters")
 @require_POST
 def letter_email(request, pk):
     letter = get_object_or_404(HRLetter, pk=pk, tenant=request.tenant, is_deleted=False)
@@ -322,7 +430,7 @@ def letter_email(request, pk):
     return redirect("hr_ops:letter_detail", pk=pk)
 
 
-@hr_admin_required
+@perm_required("hr_ops.generate_letters")
 @require_POST
 def letter_duplicate(request, pk):
     letter = get_object_or_404(HRLetter, pk=pk, tenant=request.tenant, is_deleted=False)
@@ -331,7 +439,7 @@ def letter_duplicate(request, pk):
     return redirect("hr_ops:letter_edit_draft", pk=new_letter.pk)
 
 
-@hr_admin_required
+@perm_required("hr_ops.generate_letters")
 @require_POST
 def letter_revision(request, pk):
     letter = get_object_or_404(HRLetter, pk=pk, tenant=request.tenant, is_deleted=False)
@@ -344,7 +452,7 @@ def letter_revision(request, pk):
         return redirect("hr_ops:letter_detail", pk=pk)
 
 
-@hr_admin_required
+@perm_required("hr_ops.generate_letters")
 @require_POST
 def letter_delete(request, pk):
     letter = get_object_or_404(HRLetter, pk=pk, tenant=request.tenant, is_deleted=False)

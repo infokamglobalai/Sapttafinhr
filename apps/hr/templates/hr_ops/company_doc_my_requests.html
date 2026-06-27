@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block page_title %}Company Document Requests{% endblock %}
+{% block content %}
+<div class="hr-page-header">
+  <div class="hr-page-header__main">
+    <h1 class="hr-page-header__title">Company document requests</h1>
+    <p class="hr-page-header__sub">Request official company papers (PAN, GST, incorporation, etc.). You cannot browse the vault — admin approves each request.</p>
+  </div>
+  <div class="hr-page-header__actions">
+    <a href="{% url 'hr_ops:company_doc_request_create' %}" class="btn btn-primary btn-sm">+ New request</a>
+  </div>
+</div>
+
+<div class="overflow-x-auto">
+  <table class="table table-sm">
+    <thead>
+      <tr>
+        <th>Document type</th>
+        <th>Status</th>
+        <th>Requested</th>
+        <th>Access until</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in requests %}
+      <tr>
+        <td class="font-medium">{{ r.get_doc_type_display }}</td>
+        <td>
+          <span class="badge badge-sm {% if r.status == 'pending' %}badge-warning{% elif r.status == 'approved' %}badge-success{% elif r.status == 'denied' %}badge-error{% else %}badge-ghost{% endif %}">
+            {{ r.get_status_display }}
+          </span>
+        </td>
+        <td class="text-xs">{{ r.created_at|date:"d M Y" }}</td>
+        <td class="text-xs">{{ r.access_expires_at|date:"d M Y"|default:"—" }}</td>
+        <td class="text-right">
+          <a href="{% url 'hr_ops:my_company_doc_request_detail' r.pk %}" class="btn btn-ghost btn-xs">View</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="text-center py-8 text-base-content/60">No requests yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

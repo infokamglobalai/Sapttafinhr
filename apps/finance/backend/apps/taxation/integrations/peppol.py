@@ -31,5 +31,7 @@ def get_peppol_client():
     mode = os.environ.get("PEPPOL_MODE", "STUB").upper()
     if mode == "STUB":
         return StubPeppolClient()
-    # from .peppol_live import LivePeppolClient; return LivePeppolClient(...)
-    raise NotImplementedError(f"PEPPOL_MODE={mode} not implemented yet")
+    if mode == "LIVE":
+        from .peppol_live import LivePeppolClient
+        return LivePeppolClient()
+    raise NotImplementedError(f"PEPPOL_MODE={mode} not supported (use STUB or LIVE)")

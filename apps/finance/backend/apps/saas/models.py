@@ -116,6 +116,7 @@ class SaasInvoice(TimeStampedModel):
         OPEN = "OPEN", "Open"
         PAID = "PAID", "Paid"
         VOID = "VOID", "Void"
+        REFUNDED = "REFUNDED", "Refunded"
 
     subscription = models.ForeignKey(Subscription, on_delete=models.CASCADE,
                                       related_name="invoices")
@@ -137,6 +138,9 @@ class SaasInvoice(TimeStampedModel):
     customer_gstin = models.CharField(max_length=15, blank=True)
     due_date = models.DateField()
     paid_at = models.DateTimeField(null=True, blank=True)
+    refunded_at = models.DateTimeField(null=True, blank=True)
+    razorpay_payment_id = models.CharField(max_length=100, blank=True)
+    razorpay_refund_id = models.CharField(max_length=100, blank=True)
     status = models.CharField(max_length=10, choices=Status.choices,
                                default=Status.OPEN)
 

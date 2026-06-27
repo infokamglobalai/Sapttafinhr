@@ -44,6 +44,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)  # Django admin access
     date_joined = models.DateTimeField(default=timezone.now)
+    mfa_totp_secret_enc = models.TextField(blank=True, default="")
+    mfa_enabled = models.BooleanField(default=False)
+    mfa_enrolled_at = models.DateTimeField(null=True, blank=True)
+    mfa_backup_codes = models.JSONField(default=list, blank=True)
 
     objects = UserManager()
 

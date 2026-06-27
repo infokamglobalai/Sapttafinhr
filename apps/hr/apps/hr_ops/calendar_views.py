@@ -6,11 +6,11 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_POST
 
-from utils.access import hr_admin_required
+from utils.access import perm_required
 
 
 @login_required
-@hr_admin_required
+@perm_required("leaves.configure")
 @require_POST
 def calendar_event_create(request):
     from .models import CompanyCalendarEvent
@@ -58,7 +58,7 @@ def calendar_event_create(request):
 
 
 @login_required
-@hr_admin_required
+@perm_required("leaves.configure")
 @require_POST
 def calendar_event_delete(request, pk):
     from .models import CompanyCalendarEvent

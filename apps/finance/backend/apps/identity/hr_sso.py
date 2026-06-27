@@ -151,6 +151,8 @@ class HrStaffLoginView(APIView):
             return Response({"detail": detail}, status=code)
 
         data = resp.json()
+        if data.get("mfa_required"):
+            return Response(data)
         return Response(
             {
                 "redirect_url": data.get("redirect_url"),
@@ -158,3 +160,65 @@ class HrStaffLoginView(APIView):
                 "auth_type": "hr_staff",
             }
         )
+
+
+def _proxy_hr_internal(path: str, payload: dict, *, timeout: int = 15):
+    secret = getattr(settings, "SSO_SHARED_SECRET", "")
+    base = getattr(settings, "HR_INTERNAL_BASE_URL", "")
+    if not (secret and base):
+        return None, Response(
+            {"detail": "HR staff login is not configured."},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+    try:
+        import requests
+
+        resp = requests.post(
+            f"{base.rstrip('/')}{path}",
+            json=payload,
+            headers={
+                "Authorization": f"Bearer {secret}",
+                "Content-Type": "application/json",
+                "Host": "localhost",
+            },
+            timeout=timeout,
+        )
+    except Exception:
+        return None, Response({"detail": "HR is unavailable."}, status=status.HTTP_502_BAD_GATEWAY)
+    return resp, None
+
+
+class HrStaffLoginMfaView(APIView):
+    """POST /api/v1/auth/hr-staff-login/mfa/ — complete HR staff login after TOTP."""
+
+    permission_classes = [AllowAny]
+    throttle_scope = "login"
+
+    def post(self, request):
+        platform_url = (request.data.get("platform_url") or request.build_absolute_uri("/")).rstrip("/")
+        payload = {
+            "challenge_token": (request.data.get("challenge_token") or "").strip(),
+            "code": (request.data.get("code") or "").strip(),
+            "platform_url": platform_url,
+            "next": (request.data.get("next") or "/").strip() or "/",
+        }
+        action = (request.data.get("action") or "verify").strip().lower()
+        if action == "setup_start":
+            path = "/internal/staff-login/mfa/setup/start/"
+            payload = {"challenge_token": payload["challenge_token"]}
+        elif action == "setup_confirm":
+            path = "/internal/staff-login/mfa/setup/confirm/"
+        else:
+            path = "/internal/staff-login/mfa/"
+
+        resp, err = _proxy_hr_internal(path, payload)
+        if err:
+            return err
+        if resp.status_code != 200:
+            try:
+                detail = resp.json().get("detail", "Invalid verification code.")
+            except Exception:
+                detail = "Invalid verification code."
+            code = status.HTTP_401_UNAUTHORIZED if resp.status_code in (401, 403) else resp.status_code
+            return Response({"detail": detail}, status=code)
+        return Response(resp.json())

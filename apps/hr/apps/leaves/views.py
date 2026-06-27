@@ -10,10 +10,11 @@ from django.views.decorators.http import require_POST
 from django.core.paginator import Paginator
 
 from utils.access import (
-    hr_admin_required,
     manager_or_hr_required,
     employee_profile_required,
     can_manage_employee,
+    perm_required,
+    has_full_team_scope,
 )
 
 from .models import LeaveRequest, LeaveType, LeaveBalance, HolidayCalendar, Holiday, CompOffCredit
@@ -152,7 +153,7 @@ def pending_leaves(request):
     # If HR admin: see all pending
     # If manager: see only direct reports
     employee = getattr(user, "employee_profile", None)
-    if user.is_hr_admin:
+    if has_full_team_scope(user):
         qs = LeaveRequest.objects.filter(tenant=tenant, status="pending")
     elif employee:
         qs = LeaveRequest.objects.filter(
@@ -204,14 +205,14 @@ def leave_action(request, pk):
 # ---------------------------------------------------------------------------
 # Leave type configuration (HR admin)
 # ---------------------------------------------------------------------------
-@hr_admin_required
+@perm_required("leaves.configure")
 def leave_type_list(request):
     tenant = request.tenant
     leave_types = LeaveType.objects.filter(tenant=tenant).order_by("name")
     return render(request, "leaves/leave_types.html", {"leave_types": leave_types})
 
 
-@hr_admin_required
+@perm_required("leaves.configure")
 def leave_type_create_or_edit(request, pk=None):
     from .forms import LeaveTypeForm
     tenant = request.tenant
@@ -232,7 +233,7 @@ def leave_type_create_or_edit(request, pk=None):
 # ---------------------------------------------------------------------------
 # Holiday calendar management
 # ---------------------------------------------------------------------------
-@hr_admin_required
+@perm_required("leaves.configure")
 def holiday_calendar(request):
     tenant = request.tenant
     year = int(request.GET.get("year", timezone.localdate().year))
@@ -246,7 +247,7 @@ def holiday_calendar(request):
     })
 
 
-@hr_admin_required
+@perm_required("leaves.configure")
 @require_POST
 def holiday_create(request):
     tenant = request.tenant
@@ -269,7 +270,7 @@ def holiday_create(request):
 # ---------------------------------------------------------------------------
 # Leave balance (HR admin view)
 # ---------------------------------------------------------------------------
-@hr_admin_required
+@perm_required("leaves.approve_all")
 def leave_balance_admin(request):
     tenant = request.tenant
     year = int(request.GET.get("year", timezone.localdate().year))
@@ -329,7 +330,7 @@ def comp_off_pending(request):
     user = request.user
     qs = CompOffCredit.objects.filter(tenant=tenant, status="pending").select_related("employee")
 
-    if not user.is_hr_admin:
+    if not has_full_team_scope(user):
         manager = getattr(user, "employee_profile", None)
         if manager:
             qs = qs.filter(employee__reporting_manager=manager)

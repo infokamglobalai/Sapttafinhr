@@ -4,7 +4,7 @@ from django.urls import include, path
 
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
-from apps.saas.portal_views import MySubscriptionView
+from apps.saas.portal_views import MyInvoicePdfView, MySubscriptionView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -12,6 +12,11 @@ urlpatterns = [
     # Customer billing portal — resolves the subscription from the workspace
     # subdomain (request.tenant). saas models live in the public schema.
     path("api/v1/saas/my-subscription/", MySubscriptionView.as_view(), name="my_subscription"),
+    path(
+        "api/v1/saas/my-subscription/invoices/<int:invoice_id>/pdf/",
+        MyInvoicePdfView.as_view(),
+        name="my_subscription_invoice_pdf",
+    ),
 
     # SaaS platform surface (signup, subscriptions, entitlements, billing,
     # dev/activate). These live in the shared/public schema and must be reachable

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, ArrowLeftRight } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import PageHeader from '@/components/PageHeader';
 import SimpleTable from '@/components/SimpleTable';
@@ -8,6 +8,7 @@ import { useActiveCompany } from '@/hooks/useActiveCompany';
 import { api } from '@/lib/api';
 import { formatINR } from '@/lib/money';
 import StockMovementCreateModal from './StockMovementCreateModal';
+import StockTransferModal from './StockTransferModal';
 
 interface MV {
   id: number; date: string; item_sku: string; item_name: string;
@@ -22,11 +23,21 @@ export default function StockMovementsPage() {
     queryFn: async () => (await api.get('/inventory/movements/', { params: { company: companyId, page_size: 200 } })).data.results as MV[],
   });
   const [open, setOpen] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
   const [viewing, setViewing] = useState<MV | null>(null);
   return (
     <div className="space-y-6">
       <PageHeader title="Stock Movements" subtitle="Append-only ledger of all stock in/out."
-        action={<button className="btn-primary" onClick={() => setOpen(true)}><Plus size={16} className="mr-1" /> Record movement</button>}
+        action={
+          <div className="flex gap-2">
+            <button className="btn-ghost" onClick={() => setTransferOpen(true)}>
+              <ArrowLeftRight size={16} className="mr-1" /> Transfer
+            </button>
+            <button className="btn-primary" onClick={() => setOpen(true)}>
+              <Plus size={16} className="mr-1" /> Record movement
+            </button>
+          </div>
+        }
       />
       <SimpleTable<MV>
         rows={data} loading={isLoading} onRowClick={setViewing}
@@ -42,6 +53,7 @@ export default function StockMovementsPage() {
         ]}
       />
       <StockMovementCreateModal open={open} onClose={() => setOpen(false)} />
+      <StockTransferModal open={transferOpen} onClose={() => setTransferOpen(false)} />
 
       <RecordDetailModal
         open={!!viewing} onClose={() => setViewing(null)}

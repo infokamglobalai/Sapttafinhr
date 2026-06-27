@@ -60,6 +60,8 @@ jobs:
       POSTGRES_HOST: localhost
       POSTGRES_PORT: "5432"
       REDIS_URL: redis://localhost:6379/0
+      FIELD_ENCRYPTION_KEY: jdHj22Nt1m1Mg9Oh1aRT9Pdf2Ej7-_oxYUoqs8dYUg8=
+      REQUIRE_EMAIL_VERIFICATION: "False"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

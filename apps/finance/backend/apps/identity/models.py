@@ -28,14 +28,33 @@ class UserManager(BaseUserManager):
 
 
 class User(AbstractBaseUser, PermissionsMixin):
+    class PlatformRole(models.TextChoices):
+        OWNER = "OWNER", "Platform Owner"
+        BILLING = "BILLING", "Billing Ops"
+        SUPPORT = "SUPPORT", "Support"
+        READONLY = "READONLY", "Read Only"
+
     email = models.EmailField(unique=True)
     full_name = models.CharField(max_length=200, blank=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
+    platform_role = models.CharField(
+        max_length=20,
+        choices=PlatformRole.choices,
+        blank=True,
+        default="",
+        help_text="Scoped superadmin access. Empty + is_staff = full platform owner.",
+    )
     # Email verification: gates sensitive actions. Login is allowed when
     # unverified unless settings.REQUIRE_EMAIL_VERIFICATION is True.
     is_verified = models.BooleanField(default=False)
     date_joined = models.DateTimeField(auto_now_add=True)
+    mfa_totp_secret_enc = models.TextField(blank=True, default="")
+    mfa_enabled = models.BooleanField(default=False)
+    mfa_enrolled_at = models.DateTimeField(null=True, blank=True)
+    mfa_backup_codes = models.JSONField(default=list, blank=True)
+    email_verify_otp_hash = models.CharField(max_length=128, blank=True, default="")
+    email_verify_otp_sent_at = models.DateTimeField(null=True, blank=True)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []

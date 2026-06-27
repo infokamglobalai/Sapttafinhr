@@ -4,7 +4,7 @@
 <div style="max-width: 720px; margin: 0 auto;">
   <a href="{% url 'hr_ops:letter_templates' %}" class="text-sm link mb-3 inline-block">← Letter Templates</a>
   <h2 class="text-xl font-bold mb-1">Company letterhead settings</h2>
-  <p class="text-sm text-base-content/60 mb-4">Logo, address, footer, signature, stamp, and authorized signatory — used on every generated letter.</p>
+  <p class="text-sm text-base-content/60 mb-4">Logo, address, footer, and company stamp. For signatures, use <a href="{% url 'hr_ops:letter_signatories' %}" class="link font-medium">multiple signatories</a> (HR + director + CEO).</p>
 
   <form method="post" enctype="multipart/form-data" class="card">
     <div class="card-body gap-4">
@@ -27,8 +27,9 @@
           {% if branding.logo %}<img src="{{ branding.logo.url }}" alt="" class="mt-2 h-12 object-contain">{% elif profile.logo_url %}<img src="{{ profile.logo_url }}" alt="" class="mt-2 h-12 object-contain">{% endif %}
         </label>
         <label class="form-control">
-          <span class="label-text font-medium">Signature image</span>
+          <span class="label-text font-medium">Legacy signature (optional)</span>
           {{ form.signature_image }}
+          <span class="text-xs text-base-content/50 mt-1">Used only if no signatories are configured. Prefer <a href="{% url 'hr_ops:letter_signatories' %}" class="link">Signatories</a>.</span>
           {% if branding.signature_image %}<img src="{{ branding.signature_image.url }}" alt="" class="mt-2 h-10 object-contain">{% endif %}
         </label>
         <label class="form-control">
@@ -50,8 +51,18 @@
     {% if profile.logo_url %}<img src="{{ profile.logo_url }}" alt="" class="h-10 mb-2">{% endif %}
     <p class="text-base-content/70">{{ profile.name|default:"Your Company" }}</p>
     {% if profile.address %}<p class="text-base-content/60 text-xs">{{ profile.address }}{% if profile.city %}, {{ profile.city }}{% endif %}</p>{% endif %}
-    <p class="mt-3 text-base-content/70">— {{ profile.signatory_name|default:"Authorized signatory" }}</p>
+    <p class="mt-3 text-base-content/70">Signatories on PDF: {{ signatory_count|default:0 }} configured
+      · <a href="{% url 'hr_ops:letter_signatories' %}" class="link">Manage</a></p>
+    {% if signatories %}
+    <ul class="mt-2 text-xs text-base-content/60 space-y-1">
+      {% for s in signatories %}
+      <li>{{ s.name }}{% if s.title %} — {{ s.title }}{% endif %}</li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-xs text-base-content/50 mt-1">— {{ profile.signatory_name|default:"Authorized signatory" }} (legacy)</p>
     <p class="text-xs text-base-content/50">{{ profile.signatory_title }}</p>
+    {% endif %}
     {% if profile.footer_text %}<p class="text-xs text-base-content/40 mt-2">{{ profile.footer_text }}</p>{% endif %}
   </div>
 </div>

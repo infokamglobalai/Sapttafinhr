@@ -5,7 +5,7 @@ from jinja2 import Environment
 
 from django.conf import settings
 
-from .letter_company import get_company_profile
+from .letter_company import get_company_profile, get_letter_signatories
 from .letter_services import build_letter_context
 from .models import CompanyLetterBranding, HRLetter, LetterTemplate
 
@@ -32,7 +32,36 @@ def _branding_urls(tenant) -> dict:
         "signature_url": signature_url,
         "stamp_url": stamp_url,
         "footer_html": footer_html,
+        "signatories": get_letter_signatories(tenant),
     }
+
+
+def _render_signatory_columns(signatories: list[dict], company_name: str) -> str:
+    if not signatories:
+        return (
+            f'<p style="font-size:10pt; margin:0;">For <strong>{company_name}</strong></p>'
+        )
+
+    cols = []
+    for sig in signatories:
+        if sig.get("signature_url"):
+            sig_body = f'<img src="{sig["signature_url"]}" alt="Signature" style="height:44px; max-width:160px;">'
+        else:
+            sig_body = f'<p style="margin:0 0 4px;"><strong>{sig.get("name", "")}</strong></p>'
+        title = sig.get("title") or ""
+        if sig.get("signature_url") and sig.get("name"):
+            title_block = (
+                f'<p style="font-size:10pt; margin:4px 0 0;"><strong>{sig["name"]}</strong></p>'
+                f'<p style="font-size:9pt; margin:0; color:#444;">{title}</p>'
+            )
+        else:
+            title_block = f'<p style="font-size:9pt; margin:4px 0 0; color:#444;">{title}</p>' if title else ""
+        cols.append(
+            f'<div class="signature-col">{sig_body}{title_block}</div>'
+        )
+
+    company_line = f'<p class="for-company">For <strong>{company_name}</strong></p>'
+    return f'<div class="signatories-grid">{"".join(cols)}</div>{company_line}'
 
 
 def render_template_html(
@@ -68,17 +97,16 @@ def wrap_letter_document(content_html: str, tenant) -> str:
     if branding["logo_url"]:
         logo_block = f'<img src="{branding["logo_url"]}" alt="" style="height:56px; max-width:220px;">'
 
-    signature_block = ""
-    if branding["signature_url"]:
-        signature_block = f'<img src="{branding["signature_url"]}" alt="Signature" style="height:48px;">'
-    elif company.get("signatory_name"):
-        signature_block = f'<p style="margin:0;"><strong>{company["signatory_name"]}</strong></p>'
-
     stamp_block = ""
     if branding["stamp_url"]:
         stamp_block = f'<img src="{branding["stamp_url"]}" alt="Stamp" style="height:64px; opacity:0.9;">'
 
-    footer_block = branding["footer_html"] or company.get("contact_email", "")
+    signatories_html = _render_signatory_columns(
+        branding.get("signatories") or [],
+        company.get("name", tenant.name),
+    )
+
+    footer_block = branding["footer_html"] or company.get("footer_text") or company.get("contact_email", "")
     addr_parts = [company.get("address", ""), company.get("city", "")]
     addr_line = ", ".join(p for p in addr_parts if p)
 
@@ -92,8 +120,11 @@ def wrap_letter_document(content_html: str, tenant) -> str:
     .letterhead .name {{ font-size: 15pt; font-weight: bold; margin: 8px 0 4px; }}
     .letterhead .addr {{ font-size: 9pt; color: #555; }}
     .content {{ line-height: 1.65; }}
-    .signature-row {{ margin-top: 48px; display: flex; justify-content: space-between; align-items: flex-end; }}
-    .signature-col {{ max-width: 45%; }}
+    .signature-row {{ margin-top: 48px; display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; }}
+    .signatories-grid {{ display: flex; flex-wrap: wrap; gap: 28px; flex: 1; align-items: flex-end; }}
+    .signature-col {{ min-width: 120px; max-width: 180px; }}
+    .for-company {{ font-size: 10pt; margin: 12px 0 0; width: 100%; }}
+    .stamp-col {{ text-align: right; flex-shrink: 0; }}
     .footer {{ margin-top: 40px; padding-top: 12px; border-top: 1px solid #e5e7eb; font-size: 9pt; color: #666; text-align: center; }}
     table {{ width: 100%; border-collapse: collapse; }}
   </style>
@@ -106,12 +137,8 @@ def wrap_letter_document(content_html: str, tenant) -> str:
   </div>
   <div class="content">{content_html}</div>
   <div class="signature-row">
-    <div class="signature-col">
-      {signature_block}
-      <p style="font-size:10pt; margin:4px 0 0;">{company.get("signatory_title", "")}</p>
-      <p style="font-size:10pt; margin:0;">For <strong>{company.get("name", tenant.name)}</strong></p>
-    </div>
-    <div class="signature-col" style="text-align:right;">{stamp_block}</div>
+    <div style="flex:1;">{signatories_html}</div>
+    <div class="stamp-col">{stamp_block}</div>
   </div>
   {f'<div class="footer">{footer_block}</div>' if footer_block else ''}
 </body>

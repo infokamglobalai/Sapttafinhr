@@ -45,6 +45,17 @@ export function useCreatePO() {
   });
 }
 
+export function useCreateGRN() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: any) => (await api.post('/procurement/grns/create/', payload)).data,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['grns'] });
+      qc.invalidateQueries({ queryKey: ['pos'] });
+    },
+  });
+}
+
 export function useCreateVendorBill() {
   const qc = useQueryClient();
   return useMutation({

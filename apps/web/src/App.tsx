@@ -26,6 +26,7 @@ import Careers from './pages/Careers';
 import Login from './pages/Login';
 import Pricing from './pages/Pricing';
 import Signup from './pages/Signup';
+import SignupVerify from './pages/SignupVerify';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import VerifyEmail from './pages/VerifyEmail';
@@ -44,6 +45,7 @@ import PaymentFailed from './pages/dashboard/PaymentFailed';
 import AccessDenied from './pages/AccessDenied';
 import Launch from './pages/Launch';
 import Logout from './pages/Logout';
+import SuperAdminLayout from './pages/superadmin/SuperAdminLayout';
 import SuperAdminDashboard from './pages/superadmin/SuperAdminDashboard';
 import CompanyDetail from './pages/superadmin/CompanyDetail';
 import PlansAdmin from './pages/superadmin/PlansAdmin';
@@ -68,6 +70,7 @@ function AppLayout() {
     path.startsWith('/logout') ||
     path.startsWith('/launch') ||
     path.startsWith('/verify-email') ||
+    path.startsWith('/signup/verify') ||
     path.startsWith('/access-denied');
   const authMarketingPage = AUTH_MARKETING_ROUTES.some(r => path.startsWith(r));
   const isSignupPage = path.startsWith('/signup');
@@ -136,6 +139,7 @@ function AppLayout() {
           <Route path="/status" element={<StatusPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/signup/verify" element={<SignupVerify />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
@@ -144,15 +148,17 @@ function AppLayout() {
               (Finance app on the workspace host; HR app via SSO). */}
           <Route path="/app" element={<ProtectedRoute><ProductSwitcher /></ProtectedRoute>} />
 
-          {/* Super Admin Dashboard — platform owner only (page self-gates on is_staff). */}
-          <Route path="/superadmin" element={<ProtectedRoute><SuperAdminDashboard /></ProtectedRoute>} />
-          <Route path="/superadmin/plans" element={<ProtectedRoute><PlansAdmin /></ProtectedRoute>} />
-          <Route path="/superadmin/ops" element={<ProtectedRoute><Operations /></ProtectedRoute>} />
-          <Route path="/superadmin/revenue" element={<ProtectedRoute><Revenue /></ProtectedRoute>} />
-          <Route path="/superadmin/users" element={<ProtectedRoute><UsersAdmin /></ProtectedRoute>} />
-          <Route path="/superadmin/announcements" element={<ProtectedRoute><Announcements /></ProtectedRoute>} />
-          <Route path="/superadmin/coupons" element={<ProtectedRoute><CouponsAdmin /></ProtectedRoute>} />
-          <Route path="/superadmin/companies/:schema" element={<ProtectedRoute><CompanyDetail /></ProtectedRoute>} />
+          {/* Super Admin Dashboard — platform owner only. */}
+          <Route path="/superadmin" element={<ProtectedRoute><SuperAdminLayout /></ProtectedRoute>}>
+            <Route index element={<SuperAdminDashboard />} />
+            <Route path="plans" element={<PlansAdmin />} />
+            <Route path="ops" element={<Operations />} />
+            <Route path="revenue" element={<Revenue />} />
+            <Route path="users" element={<UsersAdmin />} />
+            <Route path="announcements" element={<Announcements />} />
+            <Route path="coupons" element={<CouponsAdmin />} />
+            <Route path="companies/:schema" element={<CompanyDetail />} />
+          </Route>
 
           {/* Account billing/subscription (stays in the marketing shell). */}
           <Route path="/app/billing" element={<ProtectedRoute><Billing /></ProtectedRoute>} />

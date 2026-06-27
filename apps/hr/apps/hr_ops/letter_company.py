@@ -38,6 +38,7 @@ class CompanyLetterProfile:
     logo_url: str = ""
     signature_url: str = ""
     stamp_url: str = ""
+    signatories: list = None
 
     def as_context(self) -> dict:
         return {
@@ -57,12 +58,39 @@ class CompanyLetterProfile:
             "logo_url": self.logo_url,
             "signature_url": self.signature_url,
             "stamp_url": self.stamp_url,
+            "signatories": self.signatories or [],
         }
 
 
 def get_branding(tenant) -> CompanyLetterBranding | None:
     branding, _ = CompanyLetterBranding.objects.get_or_create(tenant=tenant)
     return branding
+
+
+def get_letter_signatories(tenant) -> list[dict]:
+    """Active signatories for letter PDFs. Falls back to legacy single signatory on branding."""
+    from .models import CompanyLetterSignatory
+
+    rows = list(
+        CompanyLetterSignatory.objects.filter(tenant=tenant, is_active=True).order_by("sort_order", "pk")
+    )
+    if rows:
+        return [
+            {
+                "name": s.name,
+                "title": s.title,
+                "signature_url": s.signature_image.url if s.signature_image else "",
+            }
+            for s in rows
+        ]
+
+    branding = CompanyLetterBranding.objects.filter(tenant=tenant).first()
+    name = TenantSetting.get(tenant, KEYS["signatory_name"])
+    title = TenantSetting.get(tenant, KEYS["signatory_title"]) or "HR Manager"
+    sig_url = branding.signature_image.url if branding and branding.signature_image else ""
+    if name or sig_url:
+        return [{"name": name or "Authorized Signatory", "title": title, "signature_url": sig_url}]
+    return []
 
 
 def get_company_profile(tenant) -> CompanyLetterProfile:
@@ -85,6 +113,9 @@ def get_company_profile(tenant) -> CompanyLetterProfile:
     elif tenant.company_logo:
         logo_url = tenant.company_logo.url
 
+    signatories = get_letter_signatories(tenant)
+    primary = signatories[0] if signatories else {}
+
     return CompanyLetterProfile(
         name=TenantSetting.get(tenant, KEYS["display_name"]) or tenant.name,
         legal_name=tenant.name,
@@ -93,15 +124,16 @@ def get_company_profile(tenant) -> CompanyLetterProfile:
         gstin=tenant.gstin or "",
         pan=tenant.pan or "",
         cin=tenant.cin or "",
-        signatory_name=TenantSetting.get(tenant, KEYS["signatory_name"]),
-        signatory_title=TenantSetting.get(tenant, KEYS["signatory_title"]) or "HR Manager",
+        signatory_name=primary.get("name") or TenantSetting.get(tenant, KEYS["signatory_name"]),
+        signatory_title=primary.get("title") or TenantSetting.get(tenant, KEYS["signatory_title"]) or "HR Manager",
         contact_email=TenantSetting.get(tenant, KEYS["contact_email"]),
         contact_phone=TenantSetting.get(tenant, KEYS["contact_phone"]),
         ref_prefix=TenantSetting.get(tenant, KEYS["ref_prefix"]) or "HR",
         footer_text=footer_html,
         logo_url=logo_url,
-        signature_url=signature_url,
+        signature_url=primary.get("signature_url") or signature_url,
         stamp_url=stamp_url,
+        signatories=signatories,
     )
 
 

@@ -24,6 +24,8 @@ import json
 import logging
 from datetime import date, timedelta
 
+from django.utils import timezone
+
 from django.conf import settings
 from rest_framework import status
 from .models import ProductCode
@@ -139,7 +141,9 @@ def activate_subscription_for_tenant(
     sub.entitlements.update(status=SubscriptionEntitlement.Status.ACTIVE)
 
     # Issue a GST-compliant SaaS invoice for the paid period (idempotent).
+    invoice = None
     try:
+        from decimal import Decimal
         from .pricing import with_gst
 
         gross = None
@@ -154,12 +158,24 @@ def activate_subscription_for_tenant(
         if gross and gross > 0:
             # Place of supply / GSTIN come from the tenant's FIN company if set.
             pos, gstin = _tenant_gst_info(schema_name)
-            generate_gst_invoice(
+            invoice = generate_gst_invoice(
                 sub, period_start=sub.current_period_start, period_end=sub.current_period_end,
                 gross_amount=gross, customer_gstin=gstin, place_of_supply=pos,
             )
+            pay_id = (notes or {}).get("razorpay_payment_id") or (notes or {}).get("payment_id")
+            if invoice and pay_id:
+                invoice.razorpay_payment_id = str(pay_id)
+                invoice.paid_at = timezone.now()
+                invoice.save(update_fields=["razorpay_payment_id", "paid_at"])
     except Exception:  # noqa: BLE001 — invoicing must not fail activation
         logger.exception("SaaS invoice generation failed for %s", schema_name)
+
+    if invoice:
+        try:
+            from .invoice_email import send_subscription_invoice_email
+            send_subscription_invoice_email(invoice)
+        except Exception:  # noqa: BLE001 — email must not fail activation
+            logger.exception("SaaS invoice email failed for %s", schema_name)
 
     plan_code = notes.get("plan") or sub.plan.code
     max_emp = notes.get("max_employees") or notes.get("employees")
@@ -538,7 +554,7 @@ class ConfirmPaymentView(APIView):
             _attach_plan_to_subscription(schema_name, plan_code)
 
         activated = activate_subscription_for_tenant(
-            schema_name, period_days=period_days, notes=notes,
+            schema_name, period_days=period_days, notes={**notes, "razorpay_payment_id": payment_id},
         )
         if not activated:
             return Response({"detail": "No subscription found for workspace."}, status=status.HTTP_404_NOT_FOUND)
@@ -578,7 +594,26 @@ class ConfirmPaymentView(APIView):
                 except Exception:  # noqa: BLE001
                     logger.exception("Coupon redemption record failed for %s", coupon_code)
 
-        return Response({"status": "activated", "workspace": schema_name})
+        from apps.core.models import Tenant
+        from .models import SaasInvoice, Subscription
+
+        tenant = Tenant.objects.filter(schema_name=schema_name).first()
+        latest_invoice = None
+        if tenant:
+            sub_obj = Subscription.objects.filter(tenant=tenant).first()
+            if sub_obj:
+                latest_invoice = (
+                    SaasInvoice.objects.filter(subscription=sub_obj)
+                    .order_by("-created_at")
+                    .first()
+                )
+
+        return Response({
+            "status": "activated",
+            "workspace": schema_name,
+            "invoice_id": latest_invoice.id if latest_invoice else None,
+            "invoice_number": latest_invoice.number if latest_invoice else None,
+        })
 
 
 def _attach_plan_to_subscription(schema_name: str, plan_code: str) -> None:

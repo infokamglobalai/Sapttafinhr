@@ -100,6 +100,7 @@ class SignupSerializer(serializers.Serializer):
         child=serializers.CharField(), required=False, allow_empty=True
     )
     country = serializers.CharField(max_length=2, required=False, default="IN")
+    terms_accepted = serializers.BooleanField()
 
 
 class SignupView(APIView):
@@ -113,6 +114,12 @@ class SignupView(APIView):
         ser.is_valid(raise_exception=True)
         data = ser.validated_data
 
+        if not data.get("terms_accepted"):
+            return Response(
+                {"detail": "You must accept the Terms of Service and Privacy Policy."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         if User.objects.filter(email__iexact=data["email"]).exists():
             return Response(
                 {"detail": "An account with this email already exists. Please sign in."},
@@ -125,25 +132,27 @@ class SignupView(APIView):
         schema_name = _unique_schema_name(_slugify_company(data["company_name"]))
 
         # 1) Owner user (public/shared schema), created first so an email race
-        #    is rejected before we provision anything.
-        #    Created PRE-VERIFIED: they own (and, in production, pay for) this
-        #    workspace, so they must never be locked out of their own account.
-        #    Without this, REQUIRE_EMAIL_VERIFICATION (True in prod) blocks their
-        #    next login — which the SPA masks as "Invalid email or password",
-        #    stranding the owner if mail delivery is flaky. Verification still
-        #    gates any non-owner users.
+        #    is rejected before we provision anything. Email must be verified
+        #    before login when REQUIRE_EMAIL_VERIFICATION is enabled (default in prod).
         try:
             user = User.objects.create_user(
                 email=data["email"],
                 password=data["password"],
                 full_name=data.get("full_name", ""),
-                is_verified=True,
+                is_verified=False,
             )
         except IntegrityError:
             return Response(
                 {"detail": "An account with this email already exists. Please sign in."},
                 status=status.HTTP_409_CONFLICT,
             )
+
+        from apps.identity.auth_views import send_verification_email
+
+        try:
+            send_verification_email(user)
+        except Exception:  # noqa: BLE001 — signup succeeds; user can resend OTP
+            log.exception("Could not send verification email to %s", user.email)
 
         # 2) Tenant ROW only — defer the slow schema build to the worker. Setting
         #    auto_create_schema=False makes save() a plain, fast INSERT.
@@ -191,7 +200,13 @@ class SignupView(APIView):
                 "provisioning": provisioning,
                 "status": tenant.provision_status,
                 "products": [],
-                "user": {"id": user.id, "email": user.email, "full_name": user.full_name},
+                "requires_email_verification": True,
+                "user": {
+                    "id": user.id,
+                    "email": user.email,
+                    "full_name": user.full_name,
+                    "is_verified": user.is_verified,
+                },
             },
             status=status.HTTP_202_ACCEPTED if provisioning else status.HTTP_201_CREATED,
         )

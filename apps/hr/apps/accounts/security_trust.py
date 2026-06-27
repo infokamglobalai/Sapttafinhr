@@ -45,6 +45,11 @@ def get_security_trust_context() -> dict:
                     "detail": "Rate limiting and lockout on login and password-reset attempts.",
                     "status": "active",
                 },
+                {
+                    "title": "Two-factor authentication (TOTP)",
+                    "detail": "Authenticator app required for all sign-ins. Secrets encrypted at rest; backup codes on enrollment.",
+                    "status": "active" if getattr(settings, "MFA_REQUIRED", True) else "configured",
+                },
             ],
         },
         {

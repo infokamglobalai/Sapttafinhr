@@ -3,16 +3,24 @@ Fernet symmetric encryption for PII fields (Aadhaar, bank account numbers).
 Key is loaded from FIELD_ENCRYPTION_KEY environment variable.
 """
 import base64
+import hashlib
+
 from django.conf import settings
 from cryptography.fernet import Fernet, InvalidToken
 
 
-def _get_fernet():
-    key = settings.FIELD_ENCRYPTION_KEY
+def _fernet_key_bytes() -> bytes:
+    key = (getattr(settings, "FIELD_ENCRYPTION_KEY", "") or "").strip()
+    if not key:
+        digest = hashlib.sha256(settings.SECRET_KEY.encode()).digest()
+        key = base64.urlsafe_b64encode(digest).decode()
     if isinstance(key, str):
         key = key.encode()
-    # Fernet requires a 32-byte URL-safe base64-encoded key
-    return Fernet(key)
+    return key
+
+
+def _get_fernet():
+    return Fernet(_fernet_key_bytes())
 
 
 def encrypt(value: str) -> str:

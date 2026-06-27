@@ -26,11 +26,14 @@ def generate_einvoice(invoice: Invoice) -> EInvoiceIRN:
     if hasattr(invoice, "einvoice"):
         return invoice.einvoice
     client = get_irp_client()
+    from .integrations.nic_irp_payload import payload_from_invoice
+    nic_payload = payload_from_invoice(invoice)
     res = client.generate_irn(
         supplier_gstin=invoice.company.gstin or "27ACMEX0000X1Z0",
         invoice_no=invoice.invoice_no,
         invoice_date=invoice.date.isoformat(),
         total=str(invoice.grand_total),
+        payload=nic_payload,
     )
     return EInvoiceIRN.objects.create(
         company=invoice.company, invoice=invoice,

@@ -4009,3 +4009,44 @@ body:has(.dash-refresh--admin) #sahayak-fab {
   background: rgba(79, 70, 229, 0.1);
 }
 
+/* Topbar language switcher (en / ar RTL) */
+.topbar-lang-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.topbar-lang-trigger .topbar-lang-code {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #64748b;
+}
+
+.topbar-lang-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 120px;
+  padding: 6px;
+  z-index: 50;
+}
+
+.topbar-lang-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  color: #334155;
+}
+
+.topbar-lang-item:hover,
+.topbar-lang-item.is-active {
+  background: rgba(79, 70, 229, 0.08);
+  color: #4f46e5;
+}

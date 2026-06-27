@@ -3,6 +3,8 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 
+from utils.access import manager_or_hr_required, perm_required, has_full_team_scope
+
 from .forms import ServiceRequestForm
 from .models import Asset, ServiceRequest
 from . import service_request_services as srs
@@ -78,14 +80,10 @@ def my_request_detail(request, pk):
     })
 
 
-@login_required
+@manager_or_hr_required
 def team_requests(request):
     """Manager: pending approvals for direct reports."""
-    if not (request.user.is_manager or request.user.is_hr_admin):
-        messages.error(request, "Manager or HR admin access required.")
-        return redirect("tenants:dashboard")
-
-    if request.user.is_hr_admin:
+    if has_full_team_scope(request.user):
         qs = ServiceRequest.objects.filter(
             tenant=request.tenant,
             status="pending_manager",
@@ -140,11 +138,8 @@ def team_request_detail(request, pk):
     })
 
 
-@login_required
+@perm_required("hr_ops.manage_requests")
 def admin_queue(request):
-    if not request.user.is_hr_admin:
-        return redirect("tenants:dashboard")
-
     status = request.GET.get("status", "open")
     qs = ServiceRequest.objects.filter(tenant=request.tenant).select_related("employee", "assigned_to")
 
@@ -164,11 +159,8 @@ def admin_queue(request):
     })
 
 
-@login_required
+@perm_required("hr_ops.manage_requests")
 def admin_request_detail(request, pk):
-    if not request.user.is_hr_admin:
-        return redirect("tenants:dashboard")
-
     req = get_object_or_404(
         ServiceRequest.objects.select_related("employee", "asset", "assigned_to"),
         pk=pk, tenant=request.tenant,

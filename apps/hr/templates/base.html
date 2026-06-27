@@ -189,6 +189,9 @@
         <div class="topbar-actions topbar-actions--pro">
           <div class="topbar-actions-rail">
           {% include "partials/topbar_datetime.html" %}
+          {% if user.is_authenticated %}
+          {% include "partials/topbar_language.html" %}
+          {% endif %}
           {% if user.is_hr_admin or user.is_manager or user.employee_profile %}
           {% include "partials/topbar_quick_actions.html" %}
           {% endif %}

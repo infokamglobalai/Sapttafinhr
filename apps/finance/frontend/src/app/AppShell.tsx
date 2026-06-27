@@ -6,7 +6,7 @@ import {
   ShoppingCart, Truck, FileInput, Landmark, Calendar, Warehouse, Boxes,
   Building2, ReceiptText, CalendarDays, Settings, FileCheck2,
   BarChart3, Briefcase, BookCopy, Plus, Menu, X as XIcon, Webhook, Share2, Hash, UserCircle2,
-  Search, LayoutGrid, AlertTriangle, Globe,
+  Search, LayoutGrid, AlertTriangle, Globe, Layers, Zap, ScrollText, Kanban,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { cn } from '@/lib/cn';
@@ -27,17 +27,23 @@ import InvoicesPage from '@/features/billing/InvoicesPage';
 import CreditNotesPage from '@/features/billing/CreditNotesPage';
 import QuotationsPage from '@/features/billing/QuotationsPage';
 import SalesOrdersPage from '@/features/billing/SalesOrdersPage';
+import ClientDocumentsPage from '@/features/billing/ClientDocumentsPage';
+import SalesCrmPage from '@/features/crm/SalesCrmPage';
 import ReceiptsPage from '@/features/payments/ReceiptsPage';
 import POsPage from '@/features/procurement/POsPage';
+import GRNsPage from '@/features/procurement/GRNsPage';
 import VendorBillsPage from '@/features/procurement/VendorBillsPage';
 import VendorPaymentsPage from '@/features/procurement/VendorPaymentsPage';
 import BankAccountsPage from '@/features/banking/BankAccountsPage';
 import PDCsPage from '@/features/banking/PDCsPage';
 import WarehousesPage from '@/features/inventory/WarehousesPage';
 import StockMovementsPage from '@/features/inventory/StockMovementsPage';
+import InventoryTrackingPage from '@/features/inventory/InventoryTrackingPage';
 import StockSummaryPage from '@/features/inventory/StockSummaryPage';
 import FixedAssetsPage from '@/features/assets/FixedAssetsPage';
 import ClaimsPage from '@/features/expenses/ClaimsPage';
+import PettyCashPage from '@/features/expenses/PettyCashPage';
+import BudgetsPage from '@/features/expenses/BudgetsPage';
 import PnLPage from '@/features/reports/PnLPage';
 import BalanceSheetPage from '@/features/reports/BalanceSheetPage';
 import PartyLedgerPage from '@/features/reports/PartyLedgerPage';
@@ -67,21 +73,23 @@ import NotificationBell from '@/features/notifications/NotificationBell';
 import NumberSeriesPage from '@/features/settings/NumberSeriesPage';
 import TeamPage from '@/features/team/TeamPage';
 import TDSPage from '@/features/taxation/TDSPage';
+import GSTR2BPage from '@/features/taxation/GSTR2BPage';
+import AutomationRulesPage from '@/features/settings/AutomationRulesPage';
 import UncategorizedPage from '@/features/ledger/UncategorizedPage';
 
 type RouteId =
   | 'dashboard'
   | 'parties' | 'items' | 'cost-centers' | 'projects'
-  | 'quotations' | 'sales-orders' | 'invoices' | 'credit-notes' | 'receipts' | 'recurring-invoices' | 'portal-access'
-  | 'purchase-orders' | 'vendor-bills' | 'vendor-payments'
+  | 'quotations' | 'sales-crm' | 'sales-orders' | 'client-documents' | 'invoices' | 'credit-notes' | 'receipts' | 'recurring-invoices' | 'portal-access'
+  | 'purchase-orders' | 'grns' | 'vendor-bills' | 'vendor-payments'
   | 'bank-accounts' | 'pdcs' | 'reconciliation'
-  | 'warehouses' | 'stock-movements' | 'stock-summary'
-  | 'fixed-assets' | 'expense-claims'
+  | 'warehouses' | 'stock-movements' | 'stock-summary' | 'inventory-tracking'
+  | 'fixed-assets' | 'expense-claims' | 'petty-cash' | 'budgets'
   | 'manual' | 'trial-balance'
   | 'pnl' | 'balance-sheet' | 'cash-flow' | 'day-book' | 'party-ledger'
-  | 'ar-aging' | 'sales-register' | 'hsn-summary' | 'gstr-export' | 'audit-log'
+  | 'ar-aging' | 'sales-register' | 'hsn-summary' | 'gstr-export' | 'gstr-2b' | 'audit-log'
   | 'budget-vs-actual' | 'cost-center-pnl' | 'consolidation' | 'vat-return' | 'direct-tax'
-  | 'settings' | 'company-profile' | 'tax-jurisdiction' | 'api-keys' | 'webhooks' | 'number-series'
+  | 'settings' | 'company-profile' | 'tax-jurisdiction' | 'api-keys' | 'webhooks' | 'number-series' | 'automation'
   | 'team' | 'tds' | 'uncategorized';
 
 interface SubItem { id: RouteId; label: string; icon: LucideIcon; description?: string; regimes?: TaxRegime[]; }
@@ -109,7 +117,9 @@ const SECTIONS: Section[] = [
 
   {
     id: 'sales', label: 'Sales', icon: TrendingUp, children: [
+      { id: 'sales-crm', label: 'Sales CRM', icon: Kanban, description: 'Lead pipeline & follow-ups (owner)' },
       { id: 'quotations', label: 'Quotations', icon: FileCheck2, description: 'Estimates sent to customers' },
+      { id: 'client-documents', label: 'Client Contracts', icon: ScrollText, description: 'SOW, MSA, NDA from quotations' },
       { id: 'sales-orders', label: 'Sales Orders', icon: ShoppingCart, description: 'Confirmed customer orders' },
       { id: 'invoices', label: 'Tax Invoices', icon: FileText, description: 'GST invoices with CGST/SGST/IGST' },
       { id: 'credit-notes', label: 'Credit Notes', icon: FileMinus, description: 'Reverse a posted invoice' },
@@ -122,6 +132,7 @@ const SECTIONS: Section[] = [
   {
     id: 'purchase', label: 'Purchase', icon: Briefcase, children: [
       { id: 'purchase-orders', label: 'Purchase Orders', icon: ShoppingCart, description: 'POs to vendors' },
+      { id: 'grns', label: 'Goods Receipt (GRN)', icon: Package, description: 'Record goods received against POs' },
       { id: 'vendor-bills', label: 'Vendor Bills', icon: ReceiptText, description: 'Bills received from vendors' },
       { id: 'vendor-payments', label: 'Vendor Payments', icon: Truck, description: 'Money paid to vendors' },
     ]
@@ -140,11 +151,18 @@ const SECTIONS: Section[] = [
       { id: 'warehouses', label: 'Warehouses', icon: Warehouse, description: 'Stock locations' },
       { id: 'stock-movements', label: 'Stock Movements', icon: FileInput, description: 'Every stock in/out' },
       { id: 'stock-summary', label: 'Stock on Hand', icon: Boxes, description: 'Live inventory snapshot' },
+      { id: 'inventory-tracking', label: 'Bins / Batches / Serials', icon: Layers, description: 'Advanced tracking' },
     ]
   },
 
   { id: 'assets', label: 'Assets', icon: Building2, direct: 'fixed-assets' },
-  { id: 'expenses', label: 'Expenses', icon: FileInput, direct: 'expense-claims' },
+  {
+    id: 'expenses', label: 'Expenses', icon: FileInput, children: [
+      { id: 'expense-claims', label: 'Expense Claims', icon: FileInput, description: 'Employee reimbursement' },
+      { id: 'petty-cash', label: 'Petty Cash', icon: Wallet, description: 'Imprest floats & transactions' },
+      { id: 'budgets', label: 'Budgets', icon: TrendingUp, description: 'Budget lines by account' },
+    ],
+  },
 
   {
     id: 'ledger', label: 'Ledger', icon: BookOpen, children: [
@@ -169,6 +187,7 @@ const SECTIONS: Section[] = [
       { id: 'consolidation', label: 'Consolidation', icon: BarChart3, description: 'Multi-company P&L sum' },
       { id: 'audit-log', label: 'Audit Log', icon: BookText, description: 'Edits to financial records' },
       { id: 'gstr-export', label: 'GSTR-1 / 3B Export', icon: FileText, description: 'Download JSON for offline filing', regimes: ['INDIA_GST'] },
+      { id: 'gstr-2b', label: 'GSTR-2B Reconcile', icon: FileText, description: 'ITC match against vendor bills', regimes: ['INDIA_GST'] },
     ]
   },
 
@@ -183,6 +202,7 @@ const SECTIONS: Section[] = [
       { id: 'number-series', label: 'Number Series', icon: Hash, description: 'Document number prefixes & sequences' },
       { id: 'api-keys', label: 'API Keys', icon: Settings, description: 'Programmatic access tokens' },
       { id: 'webhooks', label: 'Webhooks', icon: Webhook, description: 'Push events to your URL' },
+      { id: 'automation', label: 'Automation Rules', icon: Zap, description: 'Triggers for email, webhooks, alerts' },
       { id: 'settings', label: 'Books Closing & Export', icon: Settings, description: 'Period lock, full data export' },
     ]
   },
@@ -538,11 +558,14 @@ export default function AppShell() {
             {route === 'parties' && <PartiesPage />}
             {route === 'items' && <ItemsPage />}
             {route === 'quotations' && <QuotationsPage />}
+            {route === 'sales-crm' && <SalesCrmPage />}
+            {route === 'client-documents' && <ClientDocumentsPage />}
             {route === 'sales-orders' && <SalesOrdersPage />}
             {route === 'invoices' && <InvoicesPage />}
             {route === 'credit-notes' && <CreditNotesPage />}
             {route === 'receipts' && <ReceiptsPage />}
             {route === 'purchase-orders' && <POsPage />}
+            {route === 'grns' && <GRNsPage />}
             {route === 'vendor-bills' && <VendorBillsPage />}
             {route === 'vendor-payments' && <VendorPaymentsPage />}
             {route === 'bank-accounts' && <BankAccountsPage />}
@@ -550,8 +573,11 @@ export default function AppShell() {
             {route === 'warehouses' && <WarehousesPage />}
             {route === 'stock-movements' && <StockMovementsPage />}
             {route === 'stock-summary' && <StockSummaryPage />}
+            {route === 'inventory-tracking' && <InventoryTrackingPage />}
             {route === 'fixed-assets' && <FixedAssetsPage />}
             {route === 'expense-claims' && <ClaimsPage />}
+            {route === 'petty-cash' && <PettyCashPage />}
+            {route === 'budgets' && <BudgetsPage />}
             {route === 'manual' && <ManualEntryPage />}
             {route === 'trial-balance' && <TrialBalancePage />}
             {route === 'pnl' && <PnLPage />}
@@ -569,11 +595,13 @@ export default function AppShell() {
             {route === 'projects' && <ProjectsPage />}
             {route === 'api-keys' && <APIKeysPage />}
             {route === 'webhooks' && <WebhooksPage />}
+            {route === 'automation' && <AutomationRulesPage />}
             {route === 'recurring-invoices' && <RecurringInvoicesPage />}
             {route === 'portal-access' && <PortalAccessPage />}
             {route === 'reconciliation' && <ReconciliationPage />}
             {route === 'hsn-summary' && <HSNSummaryPage />}
             {route === 'gstr-export' && <GSTRExportPage />}
+            {route === 'gstr-2b' && <GSTR2BPage />}
             {route === 'audit-log' && <AuditLogPage />}
             {route === 'budget-vs-actual' && <BudgetVsActualPage />}
             {route === 'cost-center-pnl' && <CostCenterPnLPage />}

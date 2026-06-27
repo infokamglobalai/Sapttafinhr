@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Account, Branch, Company, FiscalYear, HSNCode, Item, Party
+from .models import Account, Branch, Company, FiscalYear, HSNCode, Item, LeadActivity, Party, SalesLead
 
 
 @admin.register(Company)
@@ -47,3 +47,16 @@ class ItemAdmin(admin.ModelAdmin):
     list_display = ("sku", "name", "kind", "sale_price", "tax_rate", "is_active")
     list_filter = ("kind", "company", "is_active")
     search_fields = ("sku", "name")
+
+
+@admin.register(SalesLead)
+class SalesLeadAdmin(admin.ModelAdmin):
+    list_display = ("title", "organization", "stage", "expected_value", "next_follow_up", "company", "party")
+    list_filter = ("stage", "company")
+    search_fields = ("title", "organization", "contact_name", "email")
+
+
+@admin.register(LeadActivity)
+class LeadActivityAdmin(admin.ModelAdmin):
+    list_display = ("lead", "activity_type", "activity_at", "created_by")
+    list_filter = ("activity_type",)

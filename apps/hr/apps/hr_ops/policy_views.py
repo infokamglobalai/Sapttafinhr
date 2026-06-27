@@ -7,15 +7,15 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from apps.employees.models import Department, Employee
+from utils.access import perm_required
 
 from .models import PolicyDocument, PolicyRecipient
 from . import policy_services as ps
 
 
 @login_required
+@perm_required("hr_ops.generate_letters")
 def policy_list(request):
-    if not request.user.is_hr_admin:
-        return redirect("/")
     docs = PolicyDocument.objects.filter(tenant=request.tenant).order_by("-updated_at")
     policy_rows = []
     for doc in docs:
@@ -25,9 +25,8 @@ def policy_list(request):
 
 
 @login_required
+@perm_required("hr_ops.generate_letters")
 def policy_create_or_edit(request, pk=None):
-    if not request.user.is_hr_admin:
-        return redirect("/")
     tenant = request.tenant
     policy = get_object_or_404(PolicyDocument, pk=pk, tenant=tenant) if pk else None
     versions = policy.versions.all()[:10] if policy else []
@@ -90,9 +89,8 @@ def policy_create_or_edit(request, pk=None):
 
 
 @login_required
+@perm_required("hr_ops.generate_letters")
 def policy_distribute(request, pk):
-    if not request.user.is_hr_admin:
-        return redirect("/")
     policy = get_object_or_404(PolicyDocument, pk=pk, tenant=request.tenant)
     departments = Department.objects.filter(tenant=request.tenant, is_active=True).order_by("name")
     employees = Employee.objects.filter(
@@ -133,9 +131,8 @@ def policy_distribute(request, pk):
 
 
 @login_required
+@perm_required("hr_ops.generate_letters")
 def policy_compliance(request, pk):
-    if not request.user.is_hr_admin:
-        return redirect("/")
     policy = get_object_or_404(PolicyDocument, pk=pk, tenant=request.tenant)
     recipients = ps.get_current_version_recipients(policy)
     summary = ps.get_compliance_summary(policy)
@@ -149,10 +146,9 @@ def policy_compliance(request, pk):
 
 
 @login_required
+@perm_required("hr_ops.generate_letters")
 @require_POST
 def policy_remind(request, pk):
-    if not request.user.is_hr_admin:
-        return redirect("/")
     policy = get_object_or_404(PolicyDocument, pk=pk, tenant=request.tenant)
     count = ps.remind_pending_recipients(policy, reminded_by=request.user)
     if count:
@@ -167,7 +163,7 @@ def policy_download(request, pk):
     policy = get_object_or_404(PolicyDocument, pk=pk, tenant=request.tenant)
     if not policy.attachment:
         raise Http404
-    if not request.user.is_hr_admin:
+    if not request.user.is_hr_admin and not request.user.has_perm_code("hr_ops.generate_letters"):
         allowed = PolicyRecipient.objects.filter(
             user=request.user,
             distribution__policy=policy,
@@ -222,7 +218,7 @@ def employee_policy_list(request):
 def employee_policy_view(request, pk):
     policy = get_object_or_404(PolicyDocument, pk=pk, tenant=request.tenant, is_active=True)
     receipt = _latest_receipt(request.user, policy)
-    if not receipt and not request.user.is_hr_admin:
+    if not receipt and not (request.user.is_hr_admin or request.user.has_perm_code("hr_ops.generate_letters")):
         raise Http404
 
     if request.method == "POST" and request.POST.get("action") == "acknowledge":
@@ -252,10 +248,9 @@ def employee_policy_view(request, pk):
 
 
 @login_required
+@perm_required("hr_ops.generate_letters")
 @require_POST
 def policy_delete(request, pk):
-    if not request.user.is_hr_admin:
-        return redirect("/")
     policy = get_object_or_404(PolicyDocument, pk=pk, tenant=request.tenant)
     policy.delete()
     messages.success(request, "Policy deleted.")

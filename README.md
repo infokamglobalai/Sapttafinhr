@@ -1,53 +1,104 @@
-# Saptta — HRMS & Finance SaaS Platform
+# Saptta — Complete Project Guide
 
-Two SaaS products — **Saptta HR** (HRMS) and **fin-saptta** (Accounts & Finance) —
-sold under one roof, behind one website, one login, and per-product subscriptions.
-Targeted at the Indian market with built-in GST, PF, ESI, TDS compliance.
+One document for architecture, development, deployment, security, user workflows, RBAC, demo, and CI.  
+**Products:** Saptta HR (HRMS) + Saptta Finance — one website, one login, per-product subscriptions.  
+**Markets:** India (GST, PF, ESI, TDS) and GCC (Kuwait, UAE, KSA, etc.).
 
-## Architecture — one front door, two backends
+**Customer-facing guide (shorter):** open [`marketing/collateral/en/saptta-customer-guide.html`](marketing/collateral/en/saptta-customer-guide.html) in Chrome → Print → Save as PDF, or run `node scripts/generate-docs-pdf.mjs` to export both the customer guide and this full project guide as PDFs.
+
+---
+
+## Table of contents
+
+1. [Architecture](#1-architecture)
+2. [Repository layout](#2-repository-layout)
+3. [Pricing & subscriptions](#3-pricing--subscriptions)
+4. [Local development](#4-local-development)
+5. [Demo credentials & script](#5-demo-credentials--script)
+6. [User workflows](#6-user-workflows)
+7. [RBAC & permissions](#7-rbac--permissions)
+8. [Security](#8-security)
+9. [Production deployment](#9-production-deployment)
+10. [Go-live checklist](#10-go-live-checklist)
+11. [Testing & GitHub CI](#11-testing--github-ci)
+12. [Project status & roadmap](#12-project-status--roadmap)
+
+---
+
+## 1. Architecture
 
 ```
                          ┌──────────────────────────────┐
-   browser ──────────────►  nginx front door  :8080      │  (deploy/nginx.conf)
+   browser ──────────────►  nginx front door  :8080      │
                          └───────────────┬──────────────┘
-        http://localhost:8080            │
-        http://acme.localhost:8080       │
-          (workspace = subdomain)        │
                                          │
         ┌────────────────────────────────┼───────────────────────────────┐
         ▼                                 ▼                                ▼
    web (SPA)                        fin-backend                      hr-backend
-   apps/web  React+Vite+AntD        apps/finance/backend             apps/hr
-   marketing + app shell            Django + DRF + JWT               Django (server-rendered)
-   one login, product switcher      django-tenants (schema/tenant)   row-level tenancy
-                                     /api/v1/* REST                   existing HR pages
+   apps/web                         Django + DRF + JWT               Django (server-rendered)
+   marketing + login                django-tenants (schema/tenant)   row-level tenancy
+                                    /api/v1/* REST                   session + SSO
 ```
 
-Why two backends instead of one merged project: **FIN and HR use incompatible
-multi-tenancy** (FIN = django-tenants schema-per-tenant + JWT; HR = row-level
-tenant FK + session auth + server-rendered templates). Merging would mean
-rewriting HR end-to-end. Instead, the **`apps/web` website is the single front
-door**: it owns marketing, login, and the subscription/entitlement gating, then
-routes users into FIN (via its REST API, rendered in the AntD dashboard) and HR
-(its existing pages) — so customers experience one product.
+| Product | UI | Backend | Auth |
+|---------|-----|---------|------|
+| **Saptta Finance** | Ant Design SPA (`apps/finance/frontend`) | `apps/finance/backend` | JWT |
+| **Saptta HR** | Server-rendered Django templates | `apps/hr` | Session; SSO from platform |
+| **Platform** | `apps/web` (marketing + switcher) | FIN public schema | JWT |
 
-| Product | In the app | Backend | How it's served |
-|---------|-----------|---------|-----------------|
-| **fin-saptta** | `/app/finance` | `apps/finance/backend` | SPA calls `/api/v1/*` (JWT) |
-| **Saptta HR** | `/app/hrms` | `apps/hr` | existing HR pages, embedded |
+**Why two backends:** Finance uses schema-per-tenant (django-tenants); HR uses row-level tenant FK. The website is the single front door for login, billing, and product gating.
 
-Subscriptions live in FIN's `apps.saas` (`Plan`, `Subscription`,
-`SubscriptionEntitlement` with `ProductCode.FIN`/`HR`). The SPA reads them to
-unlock/lock each product in the switcher. See
-[PRODUCT_SUBSCRIPTION_ACCESS.md](PRODUCT_SUBSCRIPTION_ACCESS.md).
+**SSO:** Platform login → short-lived token → HR session (`SSO_SHARED_SECRET` must match on both backends).
 
-## Run the whole stack (one command)
+**Auth layers (all users):**
+1. **Signup** — email OTP (6-digit code + link); `REQUIRE_EMAIL_VERIFICATION=True`
+2. **Login** — password → TOTP MFA (authenticator app); `MFA_REQUIRED=True`
 
-Requires Docker. From the repo root:
+---
+
+## 2. Repository layout
+
+```
+sapttafinhr/
+├── docker-compose.yml          # Dev stack
+├── docker-compose.prod.yml     # Production
+├── deploy/                     # nginx, bootstrap scripts
+├── .env.example                # Dev secrets template
+├── .env.prod.example           # Production template
+├── scripts/test-all.ps1        # Run all backend tests
+└── apps/
+    ├── web/                    # Platform SPA (Vite + React)
+    ├── finance/
+    │   ├── backend/            # Django REST API
+    │   └── frontend/           # Finance tenant SPA
+    └── hr/                     # HR Django app
+```
+
+---
+
+## 3. Pricing & subscriptions
+
+| Plan | Products | Price (ex-GST) |
+|------|----------|----------------|
+| Saptta HRMS | HR only (30 employees included) | ₹4,999/mo + ₹111/extra employee |
+| Saptta Finance | Finance (unlimited users) | ₹4,999/mo |
+| **Saptta Complete** | HR + Finance + Portal + AI | ₹7,999/mo (30 employees · save ₹1,999/mo) |
+
+18% GST added at checkout. 14-day free trial.
+
+**Product entitlements:** Each tenant has FIN and/or HR entitlements. Middleware blocks access to a product without an active entitlement. Subscriptions live in FIN `apps.saas`; HR mirrors entitlements on the tenant row.
+
+**Signup flow:** `POST /api/v1/saas/signup/` → provisions workspace (async) → email verify → MFA setup → billing.
+
+---
+
+## 4. Local development
+
+### Full stack (recommended)
 
 ```bash
 cp .env.example .env
-# Fill in .env — generate real secrets (do NOT ship the examples):
+# Generate secrets (examples):
 python -c "import secrets; print('FIN_SECRET_KEY=' + secrets.token_urlsafe(48))"
 python -c "import secrets; print('HR_SECRET_KEY=' + secrets.token_urlsafe(48))"
 python -c "from cryptography.fernet import Fernet; print('HR_FIELD_ENCRYPTION_KEY=' + Fernet.generate_key().decode())"
@@ -55,127 +106,346 @@ python -c "from cryptography.fernet import Fernet; print('HR_FIELD_ENCRYPTION_KE
 docker compose up --build
 ```
 
-> **Hosts file (required on Windows; usually automatic on Linux/macOS).**
-> The stack routes by subdomain, so `*.localhost` must resolve to 127.0.0.1.
-> Most Linux/macOS resolve `*.localhost` automatically. On **Windows**, add to
-> `C:\Windows\System32\drivers\etc\hosts`:
-> ```
-> 127.0.0.1 localhost acme.localhost hr.localhost
-> ```
-> Add one line per workspace subdomain you create.
+**Windows hosts file** (add to `C:\Windows\System32\drivers\etc\hosts`):
+```
+127.0.0.1 localhost acme.localhost hr.localhost
+```
 
-Then:
-
-| URL | What |
-|-----|------|
-| http://localhost:8080 | the website (marketing + login) |
-| http://acme.localhost:8080 | the `acme` workspace app (after sign-in) |
-| http://hr.localhost:8080 | HR backend pages |
+| URL | Purpose |
+|-----|---------|
+| http://localhost:8080 | Platform (login, marketing, switcher) |
+| http://acme.localhost:8080 | Workspace app |
+| http://hr.localhost:8080 | HR pages |
 | http://localhost:8080/admin/ | FIN Django admin |
 
-FIN seeds a dev tenant automatically (`bootstrap_dev`): workspace **acme**,
-login **admin@acme.test / admin12345** (FIN entitlement active).
-
-Provision an HR workspace + admin:
-
+**After first boot:**
 ```bash
 docker compose exec hr-backend python manage.py seed_permissions
 docker compose exec hr-backend python manage.py create_tenant \
   --name "Acme Pvt Ltd" --subdomain acme --email admin@acme.test --password admin12345
 ```
 
-### Run all tests (one command)
+### Web SPA only
 
-With Docker running (the script starts backends if they are down):
+```bash
+cd apps/web && npm install && npm run dev   # http://localhost:5173
+```
+
+Set `apps/web/.env.local` — `VITE_PLATFORM_API_BASE_URL`, `VITE_TENANT_API_BASE_URL`.
+
+### HR backend only (SQLite dev)
 
 ```powershell
-# Windows (PowerShell, from repo root)
+cd apps/hr
+python -m venv .venv && .\.venv\Scripts\activate
+pip install -r requirements.txt
+$env:DJANGO_SETTINGS_MODULE = "hrms.settings.development"
+$env:SECRET_KEY = "dev-secret"
+python manage.py migrate
+python manage.py seed_dummy_login
+python manage.py runserver 127.0.0.1:8001
+```
+
+### Finance backend only
+
+Requires PostgreSQL + Redis. See `apps/finance/backend` — `migrate_schemas --shared`, `bootstrap_dev`, `runserver`.
+
+---
+
+## 5. Demo credentials & script
+
+### Credentials (Docker stack)
+
+| Role | URL | Email | Password |
+|------|-----|-------|----------|
+| Platform owner / HR admin | http://localhost:8080/login | `demo@saptta.com` | `Demo@1234` |
+| Super admin | http://localhost:8080/login | `sp@saptta.com` | `Saptta@2026` |
+| Finance admin (acme) | http://localhost:8080/login | `admin@acme.test` | `admin12345` |
+| HR manager | http://hr.localhost:8080/auth/employee-login/ | `manager@saptta.com` | `Demo@1234` |
+| HR employee | http://hr.localhost:8080/auth/employee-login/ | `manju@saptta.com` | `Employee@1234` |
+
+Unified login: platform page tries Finance first, then HR staff SSO.
+
+**Re-seed demo data:**
+```bash
+docker compose exec hr-backend python manage.py seed_demo_data --subdomain acme
+docker compose exec fin-backend python manage.py bootstrap_dev
+```
+
+### 45-minute demo script
+
+1. **Platform (5 min)** — Login as `demo@saptta.com` → product switcher → open HR.
+2. **HR admin (15 min)** — Employees, attendance, leave queue, recruitment, payroll (paid run).
+3. **Manager (10 min)** — Employee login `manager@saptta.com` → approve leave.
+4. **Employee (10 min)** — `manju@saptta.com` → payslip, apply leave.
+5. **Finance (5 min)** — Switch to Finance as `admin@acme.test`.
+
+---
+
+## 6. User workflows
+
+### 6.1 After purchase / signup
+
+1. Customer signs up on platform → workspace provisions in background.
+2. Verify email (OTP) → set up MFA → choose plan / billing.
+3. First admin email becomes **HR Administrator** for that tenant.
+4. Complete **Setup wizard** (`/setup/`) — company, departments, leave, payroll basics.
+
+### 6.2 Roles & login URLs
+
+| Role | Who | Login |
+|------|-----|-------|
+| Platform super admin | Saptta ops | http://localhost:8080/login → `/superadmin` |
+| Company owner | Signup email | Platform login → MFA |
+| HR Administrator | HR head | Platform SSO or HR login |
+| Manager | Team lead | Platform login **or** `/auth/employee-login/` |
+| Employee | Staff | `/auth/employee-login/` |
+
+### 6.3 Onboard an employee
+
+1. **People → Employees → Add** — official email required.
+2. Profile → **Create login** → copy **invite link** (7 days, one-time).
+3. Employee opens invite → sets password → dashboard.
+4. Future logins: employee login URL + work email + password + MFA.
+
+### 6.4 HR Administrator — daily tasks
+
+| Area | Actions |
+|------|---------|
+| **People** | CRUD, bulk import, Team Access (roles), org structure |
+| **Time** | Attendance register, shifts, regularizations |
+| **Leave** | Types, holidays, balances, approve all |
+| **Payroll** | Monthly review → create run → recompute → approve → publish |
+| **HR Ops** | Letters (maker-checker), company vault, recruitment, assets, exits |
+| **Reports** | MIS exports, monthly pack |
+| **Setup** | Master data, letter templates, signatories |
+
+**Payroll month-end:** Lock attendance → `/payroll/review/` → create run → recompute → approve → publish → bank advice / PF ECR exports.
+
+### 6.5 Manager
+
+- **My Team** — leave, expenses, regularizations, performance reviews, service requests.
+- Must have **employee profile** linked; team = direct reports via `reporting_manager`.
+- Approve/reject; HR can override.
+
+### 6.6 Employee (self-service)
+
+- **My Space** — punch, attendance, apply leave, payslips, expenses, loans, tax declaration, Form 16, assets, help requests, policies.
+- **Comp-off:** leave type code **CO** — request credit, then apply CO leave.
+
+### 6.7 Service requests
+
+| Type | Flow |
+|------|------|
+| Hardware/software | Manager → HR/IT queue |
+| IT issue | HR queue |
+| HR/other | HR queue |
+
+Employee tracks under **Help & Requests**; manager under **My Team → Request Approvals**.
+
+### 6.8 Letters & documents (HR admin)
+
+- **Generate** (`hr_ops.generate_letters`) — draft, submit.
+- **Approve** (`hr_ops.approve_letters`) — separate user (maker-checker).
+- **Company vault** — legal docs; employees request access, HR approves.
+- **Recruitment → AI offer → HR letter draft** — pipeline integration.
+
+Run after deploy: `python manage.py seed_permissions`
+
+---
+
+## 7. RBAC & permissions
+
+### Roles
+
+| Role | Scope |
+|------|-------|
+| **HR Admin** | Full tenant HRMS |
+| **Manager** | Direct reports only |
+| **Employee** | Self-service |
+
+Nav uses `user.is_hr_admin`, `user.is_manager`, and linked `employee_profile`.
+
+### Access summary
+
+| Feature | HR Admin | Manager | Employee |
+|---------|:--------:|:-------:|:--------:|
+| Employee directory / CRUD | ✓ | — | — |
+| Team attendance / leave approve | ✓ | ✓ (reports) | — |
+| Punch / own attendance | ✓* | ✓* | ✓ |
+| Payroll runs / publish | ✓ | — | — |
+| Own payslip | ✓* | ✓* | ✓ |
+| Recruitment / ATS | ✓ | — | — |
+| HR letters generate / approve | ✓* | — | — |
+| Company vault manage | ✓* | — | request |
+| Reports (org-wide) | ✓ | — | — |
+| AI chat / policy Q&A | ✓ | ✓ | ✓ |
+
+\*Requires linked employee profile where marked.
+
+### Decorators (`utils/access.py`)
+
+- `@hr_admin_required` — HR admin only
+- `@manager_or_hr_required` — manager or HR admin
+- `@perm_required("codename")` — granular permissions
+
+---
+
+## 8. Security
+
+| Control | Status |
+|---------|--------|
+| JWT + refresh (Finance/platform) | ✅ |
+| Email verification OTP on signup | ✅ |
+| TOTP MFA on all logins | ✅ |
+| Rate limits (login 10/min, signup 5/h) | ✅ |
+| Password reset (single-use tokens) | ✅ |
+| Tenant isolation (schema + row-level) | ✅ |
+| PII encryption (PAN, Aadhaar, bank — Fernet) | ✅ |
+| HTTPS / HSTS / secure cookies (prod) | ✅ |
+| SSO shared secret (HR handoff) | ✅ |
+| Refresh token blacklist on logout | 🟠 Partial |
+| Full CSP on SPA | 🔴 Todo |
+| Automated backups + Sentry | 🔴 Todo |
+
+**Required production env vars:** `FIN_SECRET_KEY`, `HR_SECRET_KEY`, `HR_FIELD_ENCRYPTION_KEY`, `SSO_SHARED_SECRET`, `REQUIRE_EMAIL_VERIFICATION=True`, `MFA_REQUIRED=True`.
+
+**Dev only:** Set `MFA_REQUIRED=False` or `REQUIRE_EMAIL_VERIFICATION=False` to simplify local testing.
+
+---
+
+## 9. Production deployment
+
+### DNS (wildcard required)
+
+| Type | Host | Value |
+|------|------|-------|
+| A | `@` | VPS IP |
+| A | `app` | VPS IP |
+| A | `hr` | VPS IP |
+| A | `*` | VPS IP (tenant subdomains) |
+
+### Configure secrets
+
+```bash
+python deploy/configure_domain.py --domain yourdomain.com
+# Creates .env.prod with strong keys
+```
+
+### Deploy
+
+**Coolify (recommended):** Paste `docker-compose.coolify.yml`, load `.env.prod`, set domains + wildcard SSL.
+
+**Manual:**
+```bash
+git clone <repo> /opt/saptta && cd /opt/saptta
+# Copy .env.prod, obtain TLS cert (certbot wildcard)
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+chmod +x deploy/bootstrap_deploy.sh
+./deploy/bootstrap_deploy.sh --domain yourdomain.com --email admin@yourdomain.com
+```
+
+### Post-deploy migrations
+
+```bash
+docker compose exec fin-backend python manage.py migrate_schemas --shared
+docker compose exec fin-backend python manage.py migrate_tenant_schemas
+docker compose exec hr-backend python manage.py migrate
+docker compose exec hr-backend python manage.py seed_permissions
+```
+
+---
+
+## 10. Go-live checklist
+
+### Infrastructure
+- [ ] PostgreSQL + Redis (not SQLite)
+- [ ] Celery worker + beat (HR payslip email, reminders)
+- [ ] S3/Spaces for media; `collectstatic` + CDN/WhiteNoise
+- [ ] HTTPS, `ALLOWED_HOSTS`, unique `SECRET_KEY`s
+- [ ] `FIELD_ENCRYPTION_KEY` set (Fernet)
+
+### Email
+- [ ] SMTP or SES configured
+- [ ] Test payslip, Form 16, invite, verification OTP emails
+
+### Security
+- [ ] Rotate/remove demo passwords
+- [ ] `REQUIRE_EMAIL_VERIFICATION=True`, SPF/DKIM/DMARC on sending domain
+- [ ] `python manage.py check --deploy` clean (both backends)
+
+### Per tenant
+- [ ] Admin user + HR admin role
+- [ ] Departments, leave types, holidays, salary structures
+- [ ] Statutory settings (PF/ESI/TDS or GCC)
+- [ ] Letter templates + signatories
+
+### Smoke tests
+```bash
+python manage.py check_go_live_readiness --strict   # HR
+docker compose exec hr-backend python manage.py verify_all_features
+```
+
+### Post go-live
+- [ ] DB + media backups scheduled
+- [ ] Sentry / uptime monitoring
+- [ ] Share this README (user workflows section) with customer admins
+
+---
+
+## 11. Testing & GitHub CI
+
+CI runs on every push/PR to `main` (`.github/workflows/ci.yml`):
+
+| Job | What |
+|-----|------|
+| **web** | `tsc --noEmit` + production build |
+| **finance-frontend** | `tsc` + build |
+| **fin-backend** | `manage.py check`, migration check, **pytest** (Postgres service) |
+| **hr-backend** | `manage.py check`, migration check, **full Django test suite** |
+
+### Run locally
+
+```powershell
+# All backend tests (Docker must be running)
 .\scripts\test-all.ps1
+
+# With frontend build
+.\scripts\test-all.ps1 -IncludeBuild
+
+# HR only (no Docker — SQLite dev settings)
+cd apps/hr
+$env:SECRET_KEY="test"; $env:DJANGO_SETTINGS_MODULE="hrms.settings.development"
+python manage.py test --verbosity=1
+
+# Web
+cd apps/web && npm run build
 ```
 
-```bash
-# Linux / macOS / WSL
-chmod +x scripts/test-all.sh
-./scripts/test-all.sh
-```
+**E2E (optional):** `e2e/` Playwright scripts against `:8080` — run with `-IncludeE2E` when stack is up.
 
-Optional: `-IncludeBuild` / `--include-build` (frontend tsc + build),
-`-IncludeE2E` / `--include-e2e` (Playwright against :8080). CI runs the same
-HR + FIN backend checks on every pull request.
+---
 
-> `*.localhost` resolves to 127.0.0.1 automatically on most Linux/macOS. On
-> Windows, add `127.0.0.1 acme.localhost hr.localhost` to
-> `C:\Windows\System32\drivers\etc\hosts`.
+## 12. Project status & roadmap
 
-### Front-end only (mock-free, against a running FIN backend)
+### Done
+- Unified platform login, signup, billing (Razorpay)
+- HR + Finance product entitlements
+- HR SSO from platform; employee unified login
+- Email verification + MFA for all users
+- HR: payroll, attendance, leave, recruitment AI, letters maker-checker, company vault, multi-signatory PDFs
+- Finance: GST invoicing, ledger, client contracts (SOW), sales CRM lite
+- GCC payroll jurisdiction (KW, AE, SA, BH, OM, QA)
+- Superadmin console, Arabic RTL basics
 
-```bash
-cd apps/web
-npm install
-cp .env.example .env.local      # point VITE_*_API_BASE_URL at your backend
-npm run dev                      # http://localhost:5173
-```
+### In progress / planned
+- Full Finance SPA live data on all modules
+- JWT tenant claim + refresh token blacklist
+- eSign integration (DSC / DocuSign)
+- Automated backups, Sentry, full CSP
+- WAF / admin IP allowlisting
 
-The SPA talks to two API surfaces (see [apps/web/src/lib/api.ts](apps/web/src/lib/api.ts)):
-- **platform** (`VITE_PLATFORM_API_BASE_URL`, bare host) — auth + saas (public schema)
-- **tenant** (`VITE_TENANT_API_BASE_URL` with `{workspace}`) — business resources
-
-## Repository layout
-
-```
-saptta/
-├── docker-compose.yml          # the unified dev stack
-├── deploy/nginx.conf           # the front door (host-based routing)
-├── .env.example                # stack-wide env
-└── apps/
-    ├── web/                    # THE WEBSITE = the product (React+Vite+AntD)
-    │   ├── src/lib/api.ts      #   real API client (JWT + refresh, 2 surfaces)
-    │   ├── src/contexts/AuthContext.tsx   # real login/me/logout + entitlements→products
-    │   ├── src/pages/          #   marketing, auth, /app switcher, dashboards
-    │   └── Dockerfile
-    ├── finance/                # FIN backend (Django + DRF + django-tenants)
-    │   └── backend/apps/…      #   identity, saas, masters, ledger, billing, …
-    └── hr/                     # HR backend (Django, server-rendered)
-        └── apps/…              #   accounts, employees, attendance, payroll, …
-```
-
-## Status & known gaps
-
-Done:
-- Unified front door (nginx + docker compose), single git repo.
-- Real SPA auth against FIN JWT (login + refresh), entitlement→product gating
-  in the product switcher.
-- **Self-serve signup** — `POST /api/v1/saas/signup/` provisions a workspace
-  (tenant schema + owner user + subscription/entitlements + company/COA/FY) and
-  signs the user straight in. Wired to the website Signup page.
-- **HR embedded** — `/app/hrms/workspace` renders the live HR Django app inside
-  the shell (iframe + "open in new tab"); HR sidebar has a "Live HR App" entry.
-- **FIN live data path proven** — the Finance dashboard calls the real tenant
-  API (`/masters/*`) and shows a live/demo connection banner.
-- JWT now carries `email`/`full_name` and login returns a `user` object.
-
-Remaining gaps for full production SaaS:
-1. **HR SSO** — HR uses its own Django session login; there's no token handoff
-   from the FIN identity yet, so users sign in to HR once inside the embed.
-   Signup also provisions only the FIN side; an HR workspace is created via
-   `create_tenant` (see above).
-2. **No "my subscription" endpoint** and **no tenant claim in the JWT** — the
-   SPA infers products from the subscription list as a stopgap, and the active
-   workspace is tracked client-side.
-3. **Most dashboard pages still use demo data** — only the Finance home is
-   wired to live APIs; the per-module pages (Invoices, Ledger, …) are next.
-
-## Subscription plans
-
-| Plan | Products | Price (ex-GST) |
-|------|----------|----------------|
-| Saptta HRMS | Saptta HR (up to 30 employees) | ₹4,999 / mo · +₹111 per extra employee |
-| Saptta Finance | fin-saptta (unlimited users) | ₹4,999 / mo |
-| **Saptta Complete** | Both products + Portal + AI | ₹7,999 / mo (up to 30 employees · save ₹1,999/mo) |
-
-HRMS and Complete include up to 30 employees in the base price; each additional employee
-is ₹111/month. Finance is flat with unlimited users. **All prices are exclusive of 18%
-GST**, which is added at checkout. All plans include a 14-day free trial.
+---
 
 ## License
 

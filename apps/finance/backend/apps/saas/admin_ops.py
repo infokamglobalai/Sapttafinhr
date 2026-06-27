@@ -433,9 +433,10 @@ class AdminCompanyLifecycleView(APIView):
 
 # ───────────────────────────── Phase 5: billing ops ─────────────────────────────
 class AdminInvoiceActionView(APIView):
-    """POST /api/v1/saas/admin/invoices/<id>/<action>/ — mark-paid | void."""
+    """POST /api/v1/saas/admin/invoices/<id>/<action>/ — mark-paid | void | refund."""
 
     permission_classes = [IsAuthenticated, IsSuperAdmin]
+    platform_roles = ("OWNER", "BILLING", "")
 
     def post(self, request, invoice_id, action):
         inv = SaasInvoice.objects.select_related("subscription__tenant").filter(pk=invoice_id).first()
@@ -449,6 +450,46 @@ class AdminInvoiceActionView(APIView):
         elif action == "void":
             inv.status = SaasInvoice.Status.VOID
             inv.save(update_fields=["status"])
+        elif action == "refund":
+            if inv.status not in (SaasInvoice.Status.PAID,):
+                return Response({"detail": "Only paid invoices can be refunded."}, status=400)
+            payment_id = (
+                inv.razorpay_payment_id
+                or request.data.get("razorpay_payment_id", "").strip()
+            )
+            refund_id = ""
+            if payment_id:
+                key_id = getattr(settings, "RAZORPAY_KEY_ID", "")
+                key_secret = getattr(settings, "RAZORPAY_KEY_SECRET", "")
+                if key_id and key_secret:
+                    try:
+                        import requests
+
+                        amount_paise = int(Decimal(str(inv.amount)) * 100)
+                        resp = requests.post(
+                            f"https://api.razorpay.com/v1/payments/{payment_id}/refund",
+                            auth=(key_id, key_secret),
+                            json={"amount": amount_paise},
+                            timeout=20,
+                        )
+                        if resp.ok:
+                            refund_id = resp.json().get("id", "")
+                        else:
+                            return Response(
+                                {"detail": f"Razorpay refund failed: {resp.text[:200]}"},
+                                status=502,
+                            )
+                    except Exception as exc:  # noqa: BLE001
+                        return Response({"detail": f"Refund request failed: {exc}"}, status=502)
+            inv.status = SaasInvoice.Status.REFUNDED
+            inv.refunded_at = timezone.now()
+            if payment_id:
+                inv.razorpay_payment_id = payment_id
+            if refund_id:
+                inv.razorpay_refund_id = refund_id
+            inv.save(update_fields=[
+                "status", "refunded_at", "razorpay_payment_id", "razorpay_refund_id",
+            ])
         else:
             return Response({"detail": "Unknown action."}, status=400)
         record_audit(request, f"invoice.{action}", target_schema=schema,

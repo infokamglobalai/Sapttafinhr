@@ -21,6 +21,7 @@ DOC_MAP = {
     "vendor_bill": ("procurement.VendorBill", "bill_no"),
     "receipt": ("payments.Receipt", "receipt_no"),
     "vendor_payment": ("procurement.VendorPayment", "payment_no"),
+    "client_document": ("billing.ClientDocument", "doc_no"),
 }
 
 # Sensible default prefixes when a company hasn't customised its series yet.
@@ -33,6 +34,7 @@ DEFAULT_PREFIX = {
     "vendor_bill": "BILL-",
     "receipt": "RCPT-",
     "vendor_payment": "PAY-",
+    "client_document": "CTR-",
 }
 
 _TRAILING_DIGITS = re.compile(r"(\d+)(?!.*\d)")  # last run of digits in the string

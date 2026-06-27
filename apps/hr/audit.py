@@ -53,6 +53,8 @@ ADMIN_PAGES = [
     ("/hr/announcements/", "Announcements"),
     ("/hr/policies/", "Policies"),
     ("/recruitment/", "Recruitment-Jobs"),
+    ("/performance/cycles/", "Performance-Cycles"),
+    ("/performance/team/", "Performance-Team"),
     ("/projects/", "Projects-List"),
     ("/reports/", "Reports-Hub"),
     ("/reports/leave/", "Report-Leave"),

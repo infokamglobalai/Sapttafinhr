@@ -26,6 +26,32 @@ DEFAULT_LETTER_TEMPLATES: dict[str, dict] = {
 </div>
 """,
     },
+    "intent": {
+        "name": "Letter of Intent (LOI) — Standard",
+        "html": """
+<div class="header">
+  <p style="font-size: 14pt; font-weight: bold;">{{ company.name }}</p>
+  {% if company.address %}<p style="font-size: 9pt;">{{ company.address }}{% if company.city %}, {{ company.city }}{% endif %}</p>{% endif %}
+</div>
+<p style="text-align: right;">Ref: {{ company.ref_prefix }}/LOI/{{ employee.employee_code }}<br>Date: {{ today_formatted }}</p>
+<p><strong>Letter of Intent</strong></p>
+<p>Dear {{ employee.first_name }},</p>
+<p>We are pleased to issue this <strong>Letter of Intent</strong> confirming our intention to offer you employment with <strong>{{ company.name }}</strong>, subject to satisfactory completion of pre-employment checks and issuance of a formal offer letter.</p>
+<table style="width:100%; border-collapse: collapse; margin: 16px 0; font-size: 11pt;">
+  <tr><td style="padding:6px; border:1px solid #ccc; width:40%;"><strong>Proposed designation</strong></td><td style="padding:6px; border:1px solid #ccc;">{{ proposed_designation|default(employee.designation.name|default("—")) }}</td></tr>
+  <tr><td style="padding:6px; border:1px solid #ccc;"><strong>Department</strong></td><td style="padding:6px; border:1px solid #ccc;">{{ employee.department.name|default("—") }}</td></tr>
+  <tr><td style="padding:6px; border:1px solid #ccc;"><strong>Tentative joining date</strong></td><td style="padding:6px; border:1px solid #ccc;">{{ proposed_joining_date or joining_date or employee.date_of_joining or "To be confirmed" }}</td></tr>
+  <tr><td style="padding:6px; border:1px solid #ccc;"><strong>Proposed annual CTC (INR)</strong></td><td style="padding:6px; border:1px solid #ccc;">{{ ctc|default("As discussed") }}</td></tr>
+  <tr><td style="padding:6px; border:1px solid #ccc;"><strong>LOI valid until</strong></td><td style="padding:6px; border:1px solid #ccc;">{{ intent_valid_until|default("7 days from date of issue") }}</td></tr>
+</table>
+<p>This LOI is non-binding until a formal offer letter is issued and accepted. Either party may withdraw prior to execution of the offer letter.</p>
+<p>We look forward to welcoming you to {{ company.name }}.</p>
+<div class="signature">
+  <p>For <strong>{{ company.name }}</strong></p>
+  <p style="margin-top: 40px;"><strong>{{ company.signatory_name|default("Authorized Signatory") }}</strong><br>{{ company.signatory_title }}</p>
+</div>
+""",
+    },
     "appointment": {
         "name": "Appointment Letter — Standard",
         "html": """
@@ -168,6 +194,48 @@ DEFAULT_LETTER_TEMPLATES: dict[str, dict] = {
   <p>For <strong>{{ company.name }}</strong></p>
   <p style="margin-top: 40px;"><strong>{{ company.signatory_name|default("Authorized Signatory") }}</strong><br>{{ company.signatory_title }}</p>
 </div>
+""",
+    },
+    "noc": {
+        "name": "No Objection Certificate (NOC) — Standard",
+        "html": """
+<div class="header">
+  <p style="font-size: 14pt; font-weight: bold;">{{ company.name }}</p>
+  {% if company.address %}<p style="font-size: 9pt;">{{ company.address }}{% if company.city %}, {{ company.city }}{% endif %}</p>{% endif %}
+  {% if company.gstin %}<p style="font-size: 9pt;">GSTIN: {{ company.gstin }}</p>{% endif %}
+</div>
+<p style="text-align: right;">Ref: {{ company.ref_prefix }}/NOC/{{ employee.employee_code }}<br>Date: {{ today_formatted }}</p>
+<p style="text-align: center; font-size: 14pt; font-weight: bold; margin: 24px 0;">NO OBJECTION CERTIFICATE</p>
+<p><strong>To Whom It May Concern</strong></p>
+<p>This is to certify that <strong>{{ employee.full_name }}</strong> (Employee ID: <strong>{{ employee.employee_code }}</strong>) is employed with <strong>{{ company.name }}</strong> as <strong>{{ employee.designation.name|default("—") }}</strong> in the {{ employee.department.name|default("—") }} department since <strong>{{ employee.date_of_joining }}</strong>.</p>
+<p>We have <strong>no objection</strong> to {{ employee.first_name }} using this certificate for the purpose of: <strong>{{ noc_purpose|default("the stated official requirement") }}</strong>.</p>
+{% if last_working_day %}<p>Last working day with the company (if applicable): <strong>{{ last_working_day }}</strong>.</p>{% endif %}
+{% if noc_valid_until %}<p>This certificate is valid until <strong>{{ noc_valid_until }}</strong>.</p>{% endif %}
+<p>This NOC is issued at the employee's request for official use only and does not constitute a relieving or experience letter unless separately provided.</p>
+<div class="signature">
+  <p>For <strong>{{ company.name }}</strong></p>
+  <p style="margin-top: 40px;"><strong>{{ company.signatory_name|default("Authorized Signatory") }}</strong><br>{{ company.signatory_title }}</p>
+</div>
+""",
+    },
+    "certificate": {
+        "name": "Certificate — Standard",
+        "html": """
+<div style="border: 3px double #1e3a8a; padding: 32px 40px; text-align: center; margin: 8px 0 24px;">
+  {% if company.logo_url %}<p style="margin-bottom: 12px;"><img src="{{ company.logo_url }}" alt="" style="height:52px; max-width:200px;"></p>{% endif %}
+  <p style="font-size: 13pt; font-weight: bold; color: #1e3a8a; margin: 0;">{{ company.name }}</p>
+  {% if company.address %}<p style="font-size: 9pt; color: #555; margin: 4px 0 20px;">{{ company.address }}{% if company.city %}, {{ company.city }}{% endif %}</p>{% endif %}
+  <p style="font-size: 18pt; font-weight: bold; letter-spacing: 0.04em; margin: 20px 0 8px; color: #0f172a;">{{ certificate_title|default("Certificate of Achievement") }}</p>
+  <p style="font-size: 10pt; color: #64748b; margin-bottom: 24px;">This is to certify that</p>
+  <p style="font-size: 16pt; font-weight: bold; margin: 8px 0 20px; color: #1d4ed8;">{{ employee.full_name }}</p>
+  <p style="font-size: 11pt; line-height: 1.7; max-width: 520px; margin: 0 auto 16px; text-align: center;">
+    {% if certificate_event %}has successfully participated in <strong>{{ certificate_event }}</strong>{% if certificate_date %} held on <strong>{{ certificate_date }}</strong>{% endif %}{% else %}has demonstrated outstanding contribution{% endif %}
+    {% if certificate_reason %}: {{ certificate_reason }}{% endif %}.
+  </p>
+  <p style="font-size: 10pt; color: #64748b; margin-top: 24px;">Employee ID: {{ employee.employee_code }} · {{ employee.designation.name|default("Team Member") }}</p>
+  <p style="font-size: 10pt; margin-top: 28px;">Awarded on {{ certificate_date|default(today_formatted) }}</p>
+</div>
+<p style="text-align: center; font-size: 10pt; color: #64748b;">Issued by {{ company.name }} for internal recognition and official records.</p>
 """,
     },
 }

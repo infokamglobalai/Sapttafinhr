@@ -2,6 +2,7 @@ from django.urls import path
 from rest_framework.routers import DefaultRouter
 
 from .closing_views import BooksClosingView, CompanyExportView
+from .crm_views import SalesLeadViewSet
 from .setup_views import SetupCompleteView, SetupStatusView
 from .views import (
     AccountViewSet, BranchViewSet, CompanyViewSet, CostCenterViewSet,
@@ -20,6 +21,7 @@ router.register("items", ItemViewSet)
 router.register("cost-centers", CostCenterViewSet)
 router.register("projects", ProjectViewSet)
 router.register("number-series", NumberSeriesViewSet)
+router.register("sales-leads", SalesLeadViewSet)
 
 urlpatterns = [
     path("setup/status/", SetupStatusView.as_view(), name="setup-status"),

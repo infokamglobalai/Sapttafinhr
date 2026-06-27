@@ -207,6 +207,14 @@ def _provision_hr(*, name: str, subdomain: str, email: str, country: str = "IN")
         logger.exception("HR provisioning call failed for %s", subdomain)
 
 
+def _seed_team_owner(schema_name: str, *, user_id: int, email: str, full_name: str = "") -> None:
+    from django_tenants.utils import schema_context
+    from apps.team.membership import ensure_owner_member
+
+    with schema_context(schema_name):
+        ensure_owner_member(user_id=user_id, email=email, full_name=full_name)
+
+
 def run_provision(tenant_pk: int, plan_id: str, product_codes: list, country: str) -> None:
     """The actual provisioning work. Idempotent; safe to retry."""
     from datetime import date, timedelta
@@ -250,6 +258,16 @@ def run_provision(tenant_pk: int, plan_id: str, product_codes: list, country: st
         # 3) Company + COA + fiscal year inside the new tenant schema.
         if ProductCode.FIN in all_products:
             _seed_finance(tenant.schema_name, tenant.name, country)
+            from apps.identity.models import User
+
+            owner = User.objects.filter(email__iexact=tenant.billing_email).first()
+            if owner:
+                _seed_team_owner(
+                    tenant.schema_name,
+                    user_id=owner.id,
+                    email=owner.email,
+                    full_name=owner.full_name,
+                )
 
         # 4) Provision the HR workspace (separate backend service).
         if ProductCode.HR in all_products:

@@ -1,0 +1,14 @@
+node_modules
+dist
+dist-ssr
+.vite
+.cache
+coverage
+*.log
+.git
+.github
+e2e
+marketing
+shots
+*.md
+!README.md

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ArrowRight, FileCheck2, Plus } from 'lucide-react';
+import { ArrowRight, FileCheck2, Plus, ScrollText } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import PageHeader from '@/components/PageHeader';
 import PageHint from '@/components/PageHint';
@@ -11,6 +11,7 @@ import { useActiveCompany } from '@/hooks/useActiveCompany';
 import { api } from '@/lib/api';
 import { formatINR } from '@/lib/money';
 import QuoteSOCreateModal from './QuoteSOCreateModal';
+import { createSowFromQuotation } from './ClientDocumentsPage';
 
 interface QuoteLine { id: number; description: string; quantity: string; unit_price: string; tax_rate: string; line_total: string; }
 interface Quote {
@@ -48,6 +49,15 @@ export default function QuotationsPage() {
       qc.invalidateQueries({ queryKey: ['salesorders'] });
     },
     onError: (e: any) => toast.error('Convert failed', JSON.stringify(e?.response?.data ?? 'Failed')),
+  });
+
+  const generateSow = useMutation({
+    mutationFn: async (id: number) => createSowFromQuotation(id),
+    onSuccess: (doc: { doc_no: string }) => {
+      toast.success(`SOW draft ${doc.doc_no} created — open Client Contracts to edit`);
+      qc.invalidateQueries({ queryKey: ['client-documents'] });
+    },
+    onError: (e: any) => toast.error('SOW failed', e?.response?.data?.detail ?? JSON.stringify(e?.response?.data ?? 'Failed')),
   });
 
   return (
@@ -100,6 +110,26 @@ export default function QuotationsPage() {
         title={viewing ? `Quotation ${viewing.quote_no}` : ''}
         subtitle={viewing ? `${viewing.customer_name} · ${viewing.status}` : ''}
         size="xl"
+        actions={viewing ? (
+          <>
+            <button
+              className="btn-outline btn-sm inline-flex items-center gap-1"
+              onClick={() => generateSow.mutate(viewing.id)}
+              disabled={generateSow.isPending}
+            >
+              <ScrollText size={14} /> Generate SOW
+            </button>
+            {viewing.status !== 'ACCEPTED' && viewing.status !== 'REJECTED' && (
+              <button
+                className="btn-primary btn-sm inline-flex items-center gap-1"
+                onClick={() => { convert.mutate(viewing.id); setViewing(null); }}
+                disabled={convert.isPending}
+              >
+                Convert to SO <ArrowRight size={12} />
+              </button>
+            )}
+          </>
+        ) : undefined}
         sections={viewing ? [{
           title: 'Header',
           fields: [

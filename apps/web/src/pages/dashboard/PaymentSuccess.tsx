@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Button, Result, Spin } from 'antd';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { CheckCircleFilled } from '@ant-design/icons';
+import { CheckCircleFilled, DownloadOutlined } from '@ant-design/icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { markPostCheckout, waitForActiveProducts } from '../../lib/entitlements';
+import { downloadSaasInvoicePdf, fetchMySubscription } from '../../lib/api';
 import { PLANS } from '../../types';
 import AuthFooter from '../../components/layout/AuthFooter';
 
@@ -28,6 +29,9 @@ export default function PaymentSuccess() {
 
   const [activating, setActivating] = useState(true);
   const [ready, setReady] = useState(false);
+  const [invoiceId, setInvoiceId] = useState<number | null>(null);
+  const [invoiceNumber, setInvoiceNumber] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -36,6 +40,16 @@ export default function PaymentSuccess() {
       const slugs = await waitForActiveProducts({ timeoutMs: 25_000 });
       await refreshProducts();
       if (cancelled) return;
+      try {
+        const sub = await fetchMySubscription();
+        const latest = sub.invoices?.[0];
+        if (latest) {
+          setInvoiceId(latest.id);
+          setInvoiceNumber(latest.number);
+        }
+      } catch {
+        /* invoice may not be ready yet */
+      }
       setActivating(false);
       setReady(slugs.length > 0);
     })();
@@ -44,9 +58,19 @@ export default function PaymentSuccess() {
 
   useEffect(() => {
     if (!ready || activating) return;
-    const t = window.setTimeout(() => navigate('/app', { replace: true }), 4000);
+    const t = window.setTimeout(() => navigate('/app', { replace: true }), 6000);
     return () => window.clearTimeout(t);
   }, [ready, activating, navigate]);
+
+  const handleDownload = async () => {
+    if (!invoiceId) return;
+    setDownloading(true);
+    try {
+      await downloadSaasInvoicePdf(invoiceId);
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   return (
     <>
@@ -68,10 +92,22 @@ export default function PaymentSuccess() {
               title="Payment successful!"
               subTitle={
                 ready
-                  ? `Your ${plan?.name ?? 'subscription'} is active. Redirecting to your dashboard…`
+                  ? `Your ${plan?.name ?? 'subscription'} is active.${invoiceNumber ? ` Invoice ${invoiceNumber} has been emailed to your billing contact.` : ''} Redirecting to your dashboard…`
                   : 'Payment received. Your workspace may take a few more seconds to activate — open the dashboard when ready.'
               }
               extra={[
+                invoiceId ? (
+                  <Button
+                    key="invoice"
+                    size="large"
+                    icon={<DownloadOutlined />}
+                    loading={downloading}
+                    onClick={handleDownload}
+                    style={{ height: 44, borderRadius: 10 }}
+                  >
+                    Download tax invoice
+                  </Button>
+                ) : null,
                 <Button
                   key="dashboard"
                   type="primary"
@@ -81,7 +117,7 @@ export default function PaymentSuccess() {
                 >
                   Go to dashboard
                 </Button>,
-              ]}
+              ].filter(Boolean)}
             />
           )}
         </div>

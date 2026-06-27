@@ -59,6 +59,26 @@ def employee_login(request):
         form = LoginForm(request, data=request.POST)
         if form.is_valid():
             user = form.get_user()
+            from utils import mfa as mfa_service
+            from .mfa_views import begin_mfa_pending
+
+            if mfa_service.user_needs_mfa_setup(user):
+                begin_mfa_pending(request, user, setup=True)
+                clear_failures("emplogin", request, email)
+                next_q = request.GET.urlencode()
+                url = reverse("accounts:employee_mfa_setup")
+                if next_q:
+                    url = f"{url}?{next_q}"
+                return redirect(url)
+            if mfa_service.user_needs_mfa_verify(user):
+                begin_mfa_pending(request, user, setup=False)
+                clear_failures("emplogin", request, email)
+                next_q = request.GET.urlencode()
+                url = reverse("accounts:employee_mfa_verify")
+                if next_q:
+                    url = f"{url}?{next_q}"
+                return redirect(url)
+
             from apps.employees.profile_link import ensure_user_employee_profile
 
             ensure_user_employee_profile(user, tenant=user.tenant)

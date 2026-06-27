@@ -14,18 +14,19 @@ from .models import AttendanceLog, AttendanceRecord, AttendanceRegularization, S
 from .services import validate_geo_fence, process_daily_attendance
 from apps.employees.models import Employee
 from utils.access import (
-    hr_admin_required,
     manager_or_hr_required,
     employee_profile_required,
     can_manage_employee,
     team_employee_ids,
+    perm_required,
+    has_full_team_scope,
 )
 
 
 # ---------------------------------------------------------------------------
 # Attendance anomaly scan (HR manager)
 # ---------------------------------------------------------------------------
-@hr_admin_required
+@perm_required("attendance.export")
 def anomaly_scan_page(request):
     """HR admin UI to run attendance anomaly detection."""
     result = None
@@ -36,7 +37,7 @@ def anomaly_scan_page(request):
     return render(request, "attendance/anomaly_scan.html", {"result": result})
 
 
-@hr_admin_required
+@perm_required("attendance.export")
 @require_POST
 def anomaly_scan(request):
     """POST /attendance/anomaly-scan/ — trigger anomaly detection for HR managers."""
@@ -312,7 +313,7 @@ def regularization_list(request):
         tenant=tenant, status="pending"
     ).select_related("employee").order_by("-requested_at")
 
-    if not request.user.is_hr_admin:
+    if not has_full_team_scope(request.user):
         manager = getattr(request.user, "employee_profile", None)
         if manager:
             qs = qs.filter(employee__reporting_manager=manager)
@@ -334,7 +335,7 @@ def team_attendance(request):
         selected_date = today
 
     team_ids = team_employee_ids(request.user, tenant)
-    if request.user.is_hr_admin:
+    if has_full_team_scope(request.user):
         team_ids = list(
             Employee.objects.filter(tenant=tenant, employment_status="active").values_list("id", flat=True)
         )
@@ -409,14 +410,14 @@ def regularization_action(request, pk):
 # ---------------------------------------------------------------------------
 # Shift management
 # ---------------------------------------------------------------------------
-@hr_admin_required
+@perm_required("leaves.configure")
 def shift_list(request):
     tenant = request.tenant
     shifts = Shift.objects.filter(tenant=tenant).order_by("name")
     return render(request, "attendance/shifts.html", {"shifts": shifts})
 
 
-@hr_admin_required
+@perm_required("leaves.configure")
 def shift_create_or_edit(request, pk=None):
     from .forms import ShiftForm
     tenant = request.tenant

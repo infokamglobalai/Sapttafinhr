@@ -3,6 +3,7 @@ from . import views
 from . import settings_views
 from . import billing_views
 from . import product_launch
+from . import mfa_views
 from .sso import sso_login
 
 app_name = "accounts"
@@ -10,6 +11,8 @@ app_name = "accounts"
 urlpatterns = [
     path("login/", views.login_view, name="login"),
     path("employee-login/", views.employee_login, name="employee_login"),
+    path("mfa/verify/", mfa_views.employee_mfa_verify, name="employee_mfa_verify"),
+    path("mfa/setup/", mfa_views.employee_mfa_setup, name="employee_mfa_setup"),
     path("invite/<str:token>/", views.employee_invite, name="employee_invite"),
     path("sso/", sso_login, name="sso_login"),
     path("logout/", views.logout_view, name="logout"),

@@ -19,5 +19,6 @@
 <div class="nav-section-title mt-2">Access &amp; Letters</div>
 <a href="{% url 'hr_ops:letter_templates' %}" class="nav-item {% if request.resolver_match.url_name == 'letter_templates' or 'letter_template' in request.resolver_match.url_name %}active{% endif %}">Letter Templates</a>
 <a href="{% url 'hr_ops:letter_company_settings' %}" class="nav-item {% if request.resolver_match.url_name == 'letter_company_settings' %}active{% endif %}">Letterhead &amp; Signatory</a>
+<a href="{% url 'hr_ops:letter_signatories' %}" class="nav-item {% if 'letter_signatory' in request.resolver_match.url_name or request.resolver_match.url_name == 'letter_signatories' %}active{% endif %}">Signatories</a>
 <div class="nav-section-title mt-2">Performance</div>
 <a href="{% url 'performance:cycles' %}" class="nav-item {% if 'cycle' in request.resolver_match.url_name and request.resolver_match.app_name == 'performance' %}active{% endif %}">Review Cycles</a>

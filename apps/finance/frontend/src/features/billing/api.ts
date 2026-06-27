@@ -124,6 +124,19 @@ export function useCreatePaymentLink() {
   });
 }
 
+export interface TaxComplianceModes {
+  einvoice_mode: string;
+  ewb_mode: string;
+  live_ready: { einvoice: boolean; ewb: boolean };
+}
+
+export const useTaxComplianceModes = () =>
+  useQuery({
+    queryKey: ['tax-modes'],
+    queryFn: async () => (await api.get<TaxComplianceModes>('/taxation/modes/')).data,
+    staleTime: 60_000,
+  });
+
 export interface CreditNote {
   id: number; company: number; fiscal_year: number; note_no: string;
   date: string; invoice: number; invoice_no: string; customer_name: string;

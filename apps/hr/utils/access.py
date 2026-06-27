@@ -73,11 +73,46 @@ def perm_required(*codenames):
     return decorator
 
 
+def can_generate_letters(user) -> bool:
+    return bool(user.is_hr_admin or user.has_perm_code("hr_ops.generate_letters"))
+
+
+def can_approve_letters(user) -> bool:
+    return bool(user.is_hr_admin or user.has_perm_code("hr_ops.approve_letters"))
+
+
+def can_manage_company_vault(user) -> bool:
+    return bool(user.is_hr_admin or user.has_perm_code("hr_ops.manage_company_vault"))
+
+
+def can_issue_letter(user, letter) -> bool:
+    """Issue PDF: generators for drafts; generators or approvers after approval."""
+    if letter.status == "approved":
+        return can_generate_letters(user) or can_approve_letters(user)
+    if letter.status in ("draft", "rejected"):
+        return can_generate_letters(user)
+    return False
+
+
 def can_manage_employee(user, employee) -> bool:
     if user.is_hr_admin or user.has_perm_code("leaves.approve_all"):
         return True
     manager = getattr(user, "employee_profile", None)
     return bool(manager and employee.reporting_manager_id == manager.id)
+
+
+def has_full_team_scope(user) -> bool:
+    """All-employee scope (HR ops) vs direct-report scope (managers)."""
+    return user.is_hr_admin or user.has_perm_code("leaves.approve_all")
+
+
+def can_review_employee(user, employee) -> bool:
+    if user.is_hr_admin or user.has_perm_code("performance.manage"):
+        return True
+    if not user.has_perm_code("performance.review_team"):
+        return False
+    reviewer = getattr(user, "employee_profile", None)
+    return bool(reviewer and employee.reporting_manager_id == reviewer.id)
 
 
 def team_employee_ids(user, tenant):

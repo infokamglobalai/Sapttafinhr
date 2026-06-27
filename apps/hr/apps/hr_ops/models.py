@@ -7,6 +7,7 @@ from django.db import models
 class LetterTemplate(models.Model):
     LETTER_TYPES = [
         ("offer", "Offer Letter"),
+        ("intent", "Letter of Intent (LOI)"),
         ("appointment", "Appointment Letter"),
         ("experience", "Experience Letter"),
         ("relieving", "Relieving Letter"),
@@ -17,6 +18,8 @@ class LetterTemplate(models.Model):
         ("termination", "Termination Letter"),
         ("internship", "Internship Letter"),
         ("appreciation", "Appreciation Letter"),
+        ("noc", "No Objection Certificate (NOC)"),
+        ("certificate", "Certificate"),
         ("custom", "Custom"),
     ]
 
@@ -61,6 +64,29 @@ class CompanyLetterBranding(models.Model):
 
     def __str__(self):
         return f"Letter branding — {self.tenant.name}"
+
+
+class CompanyLetterSignatory(models.Model):
+    """Authorized signatories on HR letters — supports multiple signatures per PDF."""
+    tenant = models.ForeignKey(
+        "tenants.Tenant", on_delete=models.CASCADE, related_name="letter_signatories"
+    )
+    name = models.CharField(max_length=255)
+    title = models.CharField(max_length=255, blank=True)
+    signature_image = models.ImageField(
+        upload_to="letter_signatures/%Y/", null=True, blank=True,
+        help_text="PNG scan of signature (transparent background works best).",
+    )
+    sort_order = models.PositiveSmallIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "company_letter_signatories"
+        ordering = ["sort_order", "id"]
+
+    def __str__(self):
+        return f"{self.name} ({self.title or 'Signatory'})"
 
 
 class HRLetter(models.Model):
@@ -111,6 +137,14 @@ class HRLetter(models.Model):
     shared_at = models.DateTimeField(null=True, blank=True)
     emailed_at = models.DateTimeField(null=True, blank=True)
     is_deleted = models.BooleanField(default=False)
+    job_application = models.ForeignKey(
+        "recruitment.JobApplication",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="hr_offer_letters",
+        help_text="Recruitment application this offer letter was created from (P5).",
+    )
 
     class Meta:
         db_table = "hr_letters"
@@ -118,6 +152,7 @@ class HRLetter(models.Model):
         indexes = [
             models.Index(fields=["tenant", "status", "letter_type"]),
             models.Index(fields=["tenant", "employee", "letter_type", "status"]),
+            models.Index(fields=["tenant", "job_application", "letter_type"]),
         ]
 
     def __str__(self):
@@ -731,3 +766,96 @@ class CelebrationWish(models.Model):
         if self.message.strip():
             parts.append(self.message.strip())
         return " ".join(parts) or self.emoji or "🎉"
+
+
+# ---------------------------------------------------------------------------
+# Company legal document vault (owner / HR — not open to all employees)
+# ---------------------------------------------------------------------------
+class CompanyDocument(models.Model):
+    DOC_TYPES = [
+        ("incorporation", "Certificate of Incorporation"),
+        ("pan", "Company PAN"),
+        ("gst", "GST Registration"),
+        ("moa_aoa", "MOA / AOA"),
+        ("bank_kyc", "Bank KYC / Account"),
+        ("trade_license", "Trade / Business License"),
+        ("insurance", "Insurance Policy"),
+        ("other", "Other"),
+    ]
+
+    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE, related_name="company_documents")
+    doc_type = models.CharField(max_length=30, choices=DOC_TYPES)
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    file = models.FileField(upload_to="company_vault/%Y/")
+    file_size_bytes = models.PositiveIntegerField(null=True, blank=True)
+    mime_type = models.CharField(max_length=100, blank=True)
+    expiry_date = models.DateField(null=True, blank=True, help_text="Renewal reminder for licenses, etc.")
+    is_active = models.BooleanField(default=True)
+    uploaded_by = models.ForeignKey("accounts.User", on_delete=models.SET_NULL, null=True, related_name="+")
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "company_documents"
+        ordering = ["doc_type", "title"]
+        indexes = [
+            models.Index(fields=["tenant", "doc_type", "is_active"]),
+        ]
+
+    def __str__(self):
+        return f"{self.title} ({self.get_doc_type_display()})"
+
+
+class CompanyDocumentAccessRequest(models.Model):
+    STATUS_CHOICES = [
+        ("pending", "Pending review"),
+        ("approved", "Approved"),
+        ("denied", "Denied"),
+        ("expired", "Access expired"),
+    ]
+
+    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE, related_name="company_doc_requests")
+    employee = models.ForeignKey(
+        "employees.Employee", on_delete=models.CASCADE, related_name="company_doc_requests"
+    )
+    doc_type = models.CharField(max_length=30, choices=CompanyDocument.DOC_TYPES)
+    purpose = models.TextField(help_text="Why the employee needs this document")
+    document = models.ForeignKey(
+        CompanyDocument,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="access_requests",
+        help_text="Vault file granted on approval",
+    )
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+    access_expires_at = models.DateTimeField(null=True, blank=True)
+    reviewed_by = models.ForeignKey(
+        "accounts.User", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    denial_reason = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "company_document_access_requests"
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["tenant", "status", "created_at"]),
+            models.Index(fields=["employee", "status"]),
+        ]
+
+    def __str__(self):
+        return f"{self.employee} — {self.get_doc_type_display()} ({self.status})"
+
+    @property
+    def is_access_valid(self) -> bool:
+        from django.utils import timezone
+
+        if self.status != "approved" or not self.document_id:
+            return False
+        if self.access_expires_at and timezone.now() > self.access_expires_at:
+            return False
+        return True

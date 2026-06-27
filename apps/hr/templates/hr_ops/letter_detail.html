@@ -11,16 +11,20 @@
   </div>
   <div class="flex flex-wrap gap-2">
     {% if letter.is_editable %}
+    {% if can_generate_letters %}
     <a href="{% url 'hr_ops:letter_edit_draft' letter.pk %}" class="btn btn-outline btn-sm">Edit draft</a>
+    {% endif %}
     {% endif %}
     {% if letter.pdf %}
     <a href="{% url 'hr_ops:letter_download' letter.pk %}" class="btn btn-outline btn-sm" target="_blank">Download PDF</a>
     {% endif %}
-    {% if letter.status == 'issued' %}
+    {% if letter.status == 'issued' and can_generate_letters %}
     <form method="post" action="{% url 'hr_ops:letter_email' letter.pk %}">{% csrf_token %}<button type="submit" class="btn btn-outline btn-sm">Email employee</button></form>
     <form method="post" action="{% url 'hr_ops:letter_revision' letter.pk %}">{% csrf_token %}<button type="submit" class="btn btn-outline btn-sm">Create revision</button></form>
     {% endif %}
+    {% if can_generate_letters %}
     <form method="post" action="{% url 'hr_ops:letter_duplicate' letter.pk %}">{% csrf_token %}<button type="submit" class="btn btn-ghost btn-sm">Duplicate</button></form>
+    {% endif %}
   </div>
 </div>
 
@@ -34,6 +38,13 @@
       <p><strong>Created:</strong> {{ letter.generated_at|date:"d M Y H:i" }}</p>
       {% if letter.issued_at %}<p><strong>Issued:</strong> {{ letter.issued_at|date:"d M Y H:i" }}</p>{% endif %}
       {% if letter.emailed_at %}<p><strong>Emailed:</strong> {{ letter.emailed_at|date:"d M Y H:i" }}</p>{% endif %}
+      {% if letter.job_application_id %}
+      <p><strong>Recruitment:</strong>
+        <a href="{% url 'recruitment:job_detail' letter.job_application.job_opening_id %}" class="link">
+          {{ letter.job_application.candidate.display_name }} · {{ letter.job_application.job_opening.title }}
+        </a>
+      </p>
+      {% endif %}
       {% if letter.approved_by %}<p><strong>Approved by:</strong> {{ letter.approved_by }} · {{ letter.approved_at|date:"d M Y" }}</p>{% endif %}
       {% if letter.rejection_reason %}<p class="text-error"><strong>Rejection:</strong> {{ letter.rejection_reason }}</p>{% endif %}
       {% if letter.employee_document_id %}
@@ -43,6 +54,7 @@
       <div class="divider my-1"></div>
       <div class="flex flex-col gap-2">
         {% if letter.status == 'draft' or letter.status == 'rejected' %}
+        {% if can_generate_letters %}
         <form method="post" action="{% url 'hr_ops:letter_issue' letter.pk %}">{% csrf_token %}
           <button type="submit" class="btn btn-primary btn-sm w-full">{% if letter.template and letter.template.requires_approval %}Submit / Issue{% else %}Issue letter{% endif %}</button>
         </form>
@@ -52,7 +64,9 @@
         </form>
         {% endif %}
         {% endif %}
+        {% endif %}
         {% if letter.status == 'pending_approval' %}
+        {% if can_approve_letters %}
         <form method="post" action="{% url 'hr_ops:letter_approve' letter.pk %}">{% csrf_token %}
           <button type="submit" class="btn btn-success btn-sm w-full">Approve</button>
         </form>
@@ -61,13 +75,18 @@
           <input type="text" name="reason" class="input input-bordered input-sm" placeholder="Rejection reason">
           <button type="submit" class="btn btn-error btn-outline btn-sm w-full">Reject</button>
         </form>
+        {% else %}
+        <p class="text-xs text-base-content/60">Waiting for an approver (HR head or workspace owner).</p>
+        {% endif %}
         {% endif %}
         {% if letter.status == 'approved' %}
+        {% if can_issue_letter %}
         <form method="post" action="{% url 'hr_ops:letter_issue' letter.pk %}">{% csrf_token %}
           <button type="submit" class="btn btn-primary btn-sm w-full">Issue PDF</button>
         </form>
         {% endif %}
-        {% if letter.is_editable %}
+        {% endif %}
+        {% if letter.is_editable and can_generate_letters %}
         <form method="post" action="{% url 'hr_ops:letter_delete' letter.pk %}" onsubmit="return confirm('Delete this draft?');">{% csrf_token %}
           <button type="submit" class="btn btn-ghost btn-sm w-full text-error">Delete draft</button>
         </form>

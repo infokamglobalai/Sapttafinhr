@@ -6,6 +6,7 @@ from . import request_views
 from . import ess_views
 from . import calendar_views
 from . import celebration_views
+from . import company_vault_views
 from .ai_views import AIChatView
 
 app_name = "hr_ops"
@@ -14,6 +15,11 @@ urlpatterns = [
     path("letters/", views.letter_template_list, name="letter_templates"),
     path("letters/history/", letter_views.letter_history, name="letter_history"),
     path("letters/settings/", letter_views.letter_company_settings, name="letter_company_settings"),
+    path("letters/signatories/", letter_views.letter_signatories, name="letter_signatories"),
+    path("letters/signatories/new/", letter_views.letter_signatory_edit, name="letter_signatory_create"),
+    path("letters/signatories/import-legacy/", letter_views.letter_signatory_import_legacy, name="letter_signatory_import_legacy"),
+    path("letters/signatories/<int:pk>/edit/", letter_views.letter_signatory_edit, name="letter_signatory_edit"),
+    path("letters/signatories/<int:pk>/delete/", letter_views.letter_signatory_delete, name="letter_signatory_delete"),
     path("letters/seed-defaults/", letter_views.letter_seed_defaults, name="letter_seed_defaults"),
     path("letters/<int:pk>/", letter_views.letter_detail, name="letter_detail"),
     path("letters/<int:pk>/edit/", letter_views.letter_edit_draft, name="letter_edit_draft"),
@@ -81,6 +87,17 @@ urlpatterns = [
     path("policies/view/", policy_views.employee_policy_list, name="employee_policies"),
     path("policies/view/<int:pk>/", policy_views.employee_policy_view, name="employee_policy_view"),
     path("policies/<int:pk>/delete/", policy_views.policy_delete, name="policy_delete"),
+    # Company legal document vault
+    path("vault/", company_vault_views.vault_list, name="company_vault_list"),
+    path("vault/upload/", company_vault_views.vault_upload, name="company_vault_upload"),
+    path("vault/upload/<int:pk>/", company_vault_views.vault_upload, name="company_vault_edit"),
+    path("vault/documents/<int:pk>/download/", company_vault_views.vault_download, name="company_vault_download"),
+    path("vault/documents/<int:pk>/archive/", company_vault_views.vault_deactivate, name="company_vault_archive"),
+    path("vault/requests/", company_vault_views.access_request_queue, name="company_vault_requests"),
+    path("vault/requests/<int:pk>/", company_vault_views.access_request_review, name="company_vault_request_review"),
+    path("vault/my-requests/", company_vault_views.my_doc_requests, name="my_company_doc_requests"),
+    path("vault/my-requests/new/", company_vault_views.doc_request_create, name="company_doc_request_create"),
+    path("vault/my-requests/<int:pk>/", company_vault_views.my_doc_request_detail, name="my_company_doc_request_detail"),
     # Service requests (helpdesk)
     path("requests/my/", request_views.my_requests, name="my_service_requests"),
     path("requests/new/", request_views.request_create, name="request_create"),

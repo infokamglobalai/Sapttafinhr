@@ -5,7 +5,7 @@ from django.http import HttpResponse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from utils.access import hr_admin_required
+from utils.access import perm_required
 from utils.pdf import render_pdf_response
 
 from .models import (
@@ -20,7 +20,7 @@ from apps.employees.models import Employee
 # ---------------------------------------------------------------------------
 # HR Letters
 # ---------------------------------------------------------------------------
-@hr_admin_required
+@perm_required("hr_ops.generate_letters")
 def letter_template_list(request):
     tenant = request.tenant
     templates = LetterTemplate.objects.filter(tenant=tenant, is_active=True).order_by("letter_type")
@@ -34,7 +34,7 @@ def letter_template_list(request):
     })
 
 
-@hr_admin_required
+@perm_required("hr_ops.generate_letters")
 def letter_template_create_or_edit(request, pk=None):
     from .forms import LetterTemplateForm
     from .letter_defaults import get_default_html, get_default_name
@@ -100,7 +100,7 @@ def letter_download(request, pk):
     return response
 
 
-@hr_admin_required
+@perm_required("hr_ops.generate_letters")
 @require_POST
 def share_letter(request, pk):
     tenant = request.tenant
@@ -115,7 +115,7 @@ def share_letter(request, pk):
 # ---------------------------------------------------------------------------
 # Asset management
 # ---------------------------------------------------------------------------
-@hr_admin_required
+@perm_required("hr_ops.manage_assets")
 def asset_list(request):
     tenant = request.tenant
     assets = (
@@ -144,7 +144,7 @@ def asset_list(request):
     )
 
 
-@hr_admin_required
+@perm_required("hr_ops.manage_assets")
 @require_POST
 def asset_assign(request, asset_pk):
     tenant = request.tenant
@@ -171,7 +171,7 @@ def asset_assign(request, asset_pk):
     return redirect("hr_ops:assets")
 
 
-@hr_admin_required
+@perm_required("hr_ops.manage_assets")
 @require_POST
 def asset_return(request, assignment_pk):
     tenant = request.tenant
@@ -188,7 +188,7 @@ def asset_return(request, assignment_pk):
 # ---------------------------------------------------------------------------
 # Onboarding
 # ---------------------------------------------------------------------------
-@hr_admin_required
+@perm_required("hr_ops.manage_assets")
 def onboarding_list(request):
     tenant = request.tenant
     onboardings = EmployeeOnboarding.objects.filter(
@@ -197,7 +197,7 @@ def onboarding_list(request):
     return render(request, "hr_ops/onboarding.html", {"onboardings": onboardings})
 
 
-@hr_admin_required
+@perm_required("hr_ops.manage_assets")
 @require_POST
 def onboarding_start(request, employee_pk):
     tenant = request.tenant
@@ -210,7 +210,7 @@ def onboarding_start(request, employee_pk):
     return redirect("employees:detail", pk=employee_pk)
 
 
-@hr_admin_required
+@perm_required("hr_ops.manage_assets")
 @require_POST
 def onboarding_item_complete(request, item_pk):
     tenant = request.tenant
@@ -229,7 +229,7 @@ def onboarding_item_complete(request, item_pk):
 # ---------------------------------------------------------------------------
 # Exit management
 # ---------------------------------------------------------------------------
-@hr_admin_required
+@perm_required("hr_ops.manage_exits")
 def exit_list(request):
     tenant = request.tenant
     from apps.payroll.settlement import settlement_estimate
@@ -257,7 +257,7 @@ def exit_list(request):
     })
 
 
-@hr_admin_required
+@perm_required("hr_ops.manage_exits")
 @require_POST
 def exit_request_create(request, employee_pk):
     import datetime
@@ -333,13 +333,10 @@ def exit_request_create(request, employee_pk):
     return redirect("hr_ops:exit_list")
 
 
-@hr_admin_required
+@perm_required("hr_ops.manage_exits")
 @require_POST
 def exit_update(request, pk):
     """Update last working day, FnF, and asset return flags."""
-    if not request.user.is_hr_admin:
-        messages.error(request, "HR admin access required.")
-        return redirect("hr_ops:exit_list")
     import datetime
     tenant = request.tenant
     exit_req = get_object_or_404(ExitRequest, pk=pk, tenant=tenant)
@@ -363,13 +360,10 @@ def exit_update(request, pk):
     return redirect("hr_ops:exit_list")
 
 
-@hr_admin_required
+@perm_required("hr_ops.manage_exits")
 @require_POST
 def exit_finalize(request, pk):
     """One-click: mark employee exited, deactivate profile, disable login."""
-    if not request.user.is_hr_admin:
-        messages.error(request, "HR admin access required.")
-        return redirect("hr_ops:exit_list")
     tenant = request.tenant
     exit_req = get_object_or_404(ExitRequest, pk=pk, tenant=tenant)
     from apps.hr_ops.exit_services import finalize_exit
@@ -387,7 +381,7 @@ def exit_finalize(request, pk):
     return redirect("hr_ops:exit_list")
 
 
-@hr_admin_required
+@perm_required("hr_ops.manage_exits")
 def exit_settlement_pdf(request, pk):
     """PDF settlement statement (indemnity / gratuity) for an exit request."""
     tenant = request.tenant
@@ -422,13 +416,10 @@ def exit_settlement_pdf(request, pk):
     )
 
 
-@hr_admin_required
+@perm_required("hr_ops.manage_exits")
 @require_POST
 def exit_revoke_login(request, pk):
     """Disable application login from the exit management list."""
-    if not request.user.is_hr_admin:
-        messages.error(request, "HR admin access required.")
-        return redirect("hr_ops:exit_list")
     tenant = request.tenant
     exit_req = get_object_or_404(ExitRequest, pk=pk, tenant=tenant)
     from apps.employees.access_services import revoke_employee_access
@@ -449,7 +440,7 @@ def announcement_list(request):
 
 
 # ───────── Onboarding Templates ─────────
-@hr_admin_required
+@perm_required("hr_ops.manage_assets")
 def onboarding_template_list(request):
     tenant = request.tenant
     templates = OnboardingTemplate.objects.filter(tenant=tenant).order_by("-is_default", "name")
@@ -458,7 +449,7 @@ def onboarding_template_list(request):
     return render(request, "hr_ops/onboarding_templates.html", {"templates": templates})
 
 
-@hr_admin_required
+@perm_required("hr_ops.manage_assets")
 def onboarding_template_create_or_edit(request, pk=None):
     from .forms import OnboardingTemplateForm, OnboardingTaskFormSet
     tenant = request.tenant
@@ -486,7 +477,7 @@ def onboarding_template_create_or_edit(request, pk=None):
     })
 
 
-@hr_admin_required
+@perm_required("hr_ops.manage_assets")
 def onboarding_detail(request, pk):
     """View one employee's onboarding checklist."""
     tenant = request.tenant
@@ -497,7 +488,7 @@ def onboarding_detail(request, pk):
     })
 
 
-@hr_admin_required
+@perm_required("hr_ops.manage_assets")
 @require_POST
 def onboarding_complete_view(request, pk):
     tenant = request.tenant
@@ -508,7 +499,7 @@ def onboarding_complete_view(request, pk):
     return redirect("hr_ops:onboarding")
 
 
-@hr_admin_required
+@perm_required("hr_ops.manage_assets")
 @require_POST
 def onboarding_item_skip(request, item_pk):
     tenant = request.tenant
@@ -522,7 +513,7 @@ def onboarding_item_skip(request, item_pk):
 
 
 # ───────── Audit log ─────────
-@hr_admin_required
+@perm_required("reports.view")
 def audit_log_list(request):
     from .models import AuditLog
     from django.core.paginator import Paginator
@@ -561,7 +552,7 @@ def audit_log_list(request):
 
 
 # ───────── Document expiry ─────────
-@hr_admin_required
+@perm_required("reports.view")
 def document_expiry(request):
     """List documents that are expiring soon (or have expired)."""
     import datetime
@@ -595,7 +586,7 @@ def document_expiry(request):
 
 
 # ───────── People Pulse — birthdays / anniversaries / probation ─────────
-@hr_admin_required
+@perm_required("reports.view")
 def people_pulse(request):
     import datetime
     from apps.employees.models import Employee
@@ -709,7 +700,7 @@ def notification_dropdown(request):
 
 
 # ───────── Generic create/edit views for assets, announcements ─────────
-@hr_admin_required
+@perm_required("hr_ops.manage_assets")
 def asset_create_or_edit(request, pk=None):
     from .forms import AssetForm
     from .asset_services import generate_asset_code
@@ -730,7 +721,7 @@ def asset_create_or_edit(request, pk=None):
     return render(request, "hr_ops/asset_form.html", {"form": form, "asset": a})
 
 
-@hr_admin_required
+@perm_required("hr_ops.generate_letters")
 def announcement_create_or_edit(request, pk=None):
     from .forms import AnnouncementForm
     from django.utils import timezone

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block page_title %}Letter Signatories{% endblock %}
+{% block content %}
+<div class="hr-page-header">
+  <div class="hr-page-header__main">
+    <h1 class="hr-page-header__title">Letter signatories</h1>
+    <p class="hr-page-header__sub">Add multiple authorized signatories (HR head, director, CEO). All active signatories appear on issued letter PDFs.</p>
+  </div>
+  <div class="hr-page-header__actions flex flex-wrap gap-2">
+    <a href="{% url 'hr_ops:letter_company_settings' %}" class="btn btn-outline btn-sm">Letterhead</a>
+    <a href="{% url 'hr_ops:letter_signatory_create' %}" class="btn btn-primary btn-sm">+ Add signatory</a>
+  </div>
+</div>
+
+{% if legacy_signatories %}
+<div class="alert alert-info mb-4 text-sm">
+  <span>Using legacy single signatory from letterhead settings.</span>
+  <form method="post" action="{% url 'hr_ops:letter_signatory_import_legacy' %}" class="inline ml-2">{% csrf_token %}
+    <button type="submit" class="btn btn-sm btn-info">Import to multi-signatory list</button>
+  </form>
+</div>
+{% endif %}
+
+<div class="overflow-x-auto">
+  <table class="table table-sm">
+    <thead>
+      <tr>
+        <th>Order</th>
+        <th>Name</th>
+        <th>Title</th>
+        <th>Signature</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in signatories %}
+      <tr>
+        <td>{{ s.sort_order }}</td>
+        <td class="font-medium">{{ s.name }}</td>
+        <td class="text-sm">{{ s.title|default:"—" }}</td>
+        <td>{% if s.signature_image %}<img src="{{ s.signature_image.url }}" alt="" class="h-8 object-contain">{% else %}<span class="text-xs text-base-content/50">Name only</span>{% endif %}</td>
+        <td>{% if s.is_active %}<span class="badge badge-success badge-sm">Active</span>{% else %}<span class="badge badge-ghost badge-sm">Inactive</span>{% endif %}</td>
+        <td class="text-right whitespace-nowrap">
+          <a href="{% url 'hr_ops:letter_signatory_edit' s.pk %}" class="btn btn-ghost btn-xs">Edit</a>
+          <form method="post" action="{% url 'hr_ops:letter_signatory_delete' s.pk %}" class="inline" onsubmit="return confirm('Remove this signatory?');">{% csrf_token %}
+            <button type="submit" class="btn btn-ghost btn-xs text-error">Remove</button>
+          </form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="text-center py-10 text-base-content/60">
+        No signatories yet. Add HR head, director, or CEO — each can have a signature image.
+      </td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
