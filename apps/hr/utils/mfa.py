@@ -20,6 +20,9 @@ ISSUER = "Saptta HR"
 
 
 def mfa_required_for_user(user) -> bool:
+    # Demo accounts do not require MFA
+    if getattr(user, "email", "") in ("demo@saptta.com", "kuwit@saptta.com"):
+        return False
     if not getattr(settings, "MFA_REQUIRED", True):
         return False
     return bool(getattr(user, "is_active", True))

@@ -30,9 +30,9 @@ def _decrypt(token: str) -> str:
 
 
 def mfa_required_for_user(user) -> bool:
-    # Demo accounts must have MFA required (e.g. for showcasing/demoing the feature)
+    # Demo accounts do not require MFA
     if getattr(user, "email", "") in ("demo@saptta.com", "kuwit@saptta.com"):
-        return True
+        return False
     if not getattr(settings, "MFA_REQUIRED", True):
         return False
     return bool(getattr(user, "is_active", True))

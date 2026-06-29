@@ -61,3 +61,6 @@ CSRF_TRUSTED_ORIGINS = config(
 HRMS_TENANT_DOMAIN = "localhost"
 HRMS_SUPERADMIN_DOMAIN = "localhost"
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", ".localhost"]
+
+MFA_REQUIRED = False
+
