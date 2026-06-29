@@ -50,13 +50,17 @@ class SapttaTokenObtainPairSerializer(TokenObtainPairSerializer):
         from django.conf import settings
 
         email = (getattr(user, "email", "") or "").strip().lower()
-        is_demo = email in (
-            "demo@saptta.com",
-            "kuwit@saptta.com",
-            "sp@saptta.com",
-            "admin@acme.test",
-            "manager@saptta.com",
-            "manju@saptta.com",
+        is_demo = (
+            email in (
+                "demo@saptta.com",
+                "kuwit@saptta.com",
+                "sp@saptta.com",
+                "admin@acme.test",
+                "manager@saptta.com",
+                "manju@saptta.com",
+            )
+            or email.startswith("demo@")
+            or email.startswith("kuwit@")
         )
         if getattr(settings, "REQUIRE_EMAIL_VERIFICATION", False) and not is_demo and not getattr(
             user, "is_verified", True

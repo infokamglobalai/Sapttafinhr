@@ -22,13 +22,17 @@ ISSUER = "Saptta HR"
 def mfa_required_for_user(user) -> bool:
     # Demo accounts do not require MFA
     email = (getattr(user, "email", "") or "").strip().lower()
-    if email in (
-        "demo@saptta.com",
-        "kuwit@saptta.com",
-        "sp@saptta.com",
-        "admin@acme.test",
-        "manager@saptta.com",
-        "manju@saptta.com",
+    if (
+        email in (
+            "demo@saptta.com",
+            "kuwit@saptta.com",
+            "sp@saptta.com",
+            "admin@acme.test",
+            "manager@saptta.com",
+            "manju@saptta.com",
+        )
+        or email.startswith("demo@")
+        or email.startswith("kuwit@")
     ):
         return False
     if not getattr(settings, "MFA_REQUIRED", True):

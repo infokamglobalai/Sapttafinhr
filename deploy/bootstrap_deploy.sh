@@ -49,7 +49,13 @@ if [ -z "$DOMAIN" ]; then
 fi
 
 if [ -z "$EMAIL" ]; then
-    EMAIL="demo@$DOMAIN"
+    if [ "$SUBDOMAIN" = "acme" ]; then
+        EMAIL="demo@saptta.com"
+    elif [ "$SUBDOMAIN" = "kuwait" ] || [ "$SUBDOMAIN" = "kuwit" ]; then
+        EMAIL="kuwit@saptta.com"
+    else
+        EMAIL="demo@$DOMAIN"
+    fi
 fi
 
 echo "=========================================================="
