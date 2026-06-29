@@ -46,15 +46,15 @@ export default function InventoryTrackingPage() {
 
   const createBin = useMutation({
     mutationFn: async (p: unknown) => (await api.post('/inventory/bins/', p)).data,
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['bins'] }); setOpen(false); toast('Bin created'); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['bins'] }); setOpen(false); toast.success('Bin created'); },
   });
   const createBatch = useMutation({
     mutationFn: async (p: unknown) => (await api.post('/inventory/batches/', p)).data,
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['batches'] }); setOpen(false); toast('Batch created'); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['batches'] }); setOpen(false); toast.success('Batch created'); },
   });
   const createSerial = useMutation({
     mutationFn: async (p: unknown) => (await api.post('/inventory/serials/', p)).data,
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['serials'] }); setOpen(false); toast('Serial created'); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['serials'] }); setOpen(false); toast.success('Serial created'); },
   });
 
   const [binForm, setBinForm] = useState({ warehouse: 0, code: '' });

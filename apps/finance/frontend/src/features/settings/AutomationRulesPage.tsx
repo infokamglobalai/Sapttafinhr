@@ -43,13 +43,13 @@ export default function AutomationRulesPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['automation-rules'] });
       setOpen(false);
-      toast('Automation rule created');
+      toast.success('Automation rule created');
     },
   });
 
   const testRun = useMutation({
     mutationFn: async (id: number) => (await api.post(`/ai/automation/rules/${id}/test_run/`)).data,
-    onSuccess: (r) => toast(`Test run: ${r.items_matched} item(s) matched`),
+    onSuccess: (r) => toast.success(`Test run: ${r.items_matched} item(s) matched`),
   });
 
   const [open, setOpen] = useState(false);
@@ -110,7 +110,7 @@ export default function AutomationRulesPage() {
           <button className="btn-primary w-full" disabled={!companyId || create.isPending}
             onClick={() => {
               let cfg = {};
-              try { cfg = JSON.parse(form.action_config); } catch { toast('Invalid JSON in action config'); return; }
+              try { cfg = JSON.parse(form.action_config); } catch { toast.error('Invalid JSON in action config'); return; }
               create.mutate({
                 company: companyId,
                 name: form.name,

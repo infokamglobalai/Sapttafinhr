@@ -36,7 +36,7 @@ export default function BudgetsPage() {
       qc.invalidateQueries({ queryKey: ['budgets'] });
       qc.invalidateQueries({ queryKey: ['budget-vs-actual'] });
       setOpen(false);
-      toast('Budget line saved');
+      toast.success('Budget line saved');
     },
   });
 

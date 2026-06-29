@@ -35,7 +35,7 @@ export default function GSTR2BPage() {
   const reconcile = useMutation({
     mutationFn: async () => (await api.post('/taxation/gstr2b/reconcile/', { company: companyId })).data,
     onSuccess: (r) => {
-      toast(`Reconciled: ${r.matched ?? 0} matched`);
+      toast.success(`Reconciled: ${r.matched ?? 0} matched`);
       qc.invalidateQueries({ queryKey: ['gstr2b'] });
     },
   });

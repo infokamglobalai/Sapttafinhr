@@ -15,10 +15,6 @@ interface Float {
   id: number; name: string; custodian_email: string;
   float_limit: string; current_balance: string; is_active: boolean;
 }
-interface Txn {
-  id: number; date: string; kind: string; amount: string; description: string;
-}
-
 export default function PettyCashPage() {
   const { companyId } = useActiveCompany();
   const { user } = useAuthStore();
@@ -38,7 +34,7 @@ export default function PettyCashPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['petty-floats'] });
       setFloatOpen(false);
-      toast('Petty cash float created');
+      toast.success('Petty cash float created');
     },
   });
 
@@ -47,7 +43,7 @@ export default function PettyCashPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['petty-floats'] });
       setTxnOpen(false);
-      toast('Transaction recorded');
+      toast.success('Transaction recorded');
     },
   });
 

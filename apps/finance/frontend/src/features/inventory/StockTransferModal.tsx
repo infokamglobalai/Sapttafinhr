@@ -47,7 +47,7 @@ export default function StockTransferModal({ open, onClose }: { open: boolean; o
     }
     try {
       await transfer.mutateAsync({ company: companyId, ...form });
-      toast('Stock transferred');
+      toast.success('Stock transferred');
       onClose();
     } catch (e: any) {
       setErr(e?.response?.data?.detail || e?.message || 'Transfer failed');

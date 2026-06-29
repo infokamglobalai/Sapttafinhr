@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import Modal from '@/components/Modal';
 import { useActiveCompany } from '@/hooks/useActiveCompany';
 import { usePOs, useCreateGRN, type PO } from './api';
@@ -65,7 +65,7 @@ export default function GRNCreateModal({ open, onClose }: { open: boolean; onClo
         notes,
         receipts,
       });
-      toast('GRN recorded');
+      toast.success('GRN recorded');
       qc.invalidateQueries({ queryKey: ['pos'] });
       onClose();
     } catch (e: any) {
