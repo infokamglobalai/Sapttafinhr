@@ -136,8 +136,11 @@ class Command(BaseCommand):
                 email="demo@saptta.com",
                 password="Demo@1234",
                 full_name="Demo Admin",
+                is_verified=True,
             )
             self.stdout.write(self.style.SUCCESS("Created demo admin: demo@saptta.com / Demo@1234"))
+        else:
+            User.objects.filter(email="demo@saptta.com").update(is_verified=True)
 
         # Create Kuwit demo user
         if not User.objects.filter(email="kuwit@saptta.com").exists():
@@ -145,8 +148,11 @@ class Command(BaseCommand):
                 email="kuwit@saptta.com",
                 password="Kuwit@1234",
                 full_name="Demo Kuwit",
+                is_verified=True,
             )
             self.stdout.write(self.style.SUCCESS("Created demo kuwit: kuwit@saptta.com / Kuwit@1234"))
+        else:
+            User.objects.filter(email="kuwit@saptta.com").update(is_verified=True)
 
         # 5. Inside Acme schema: seed Company, COA, Fiscal Year, and basic data
         with schema_context("acme"):
