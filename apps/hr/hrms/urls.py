@@ -19,6 +19,7 @@ urlpatterns = [
     path("reports/", include("apps.reports.urls", namespace="reports")),
     path("projects/", include("apps.projects.urls", namespace="projects")),
     path("api/ai/hr-chat/", HRAIChatView.as_view(), name="hr_ai_chat"),
+    path("api/mobile/", include("apps.mobile_api.urls", namespace="mobile_api")),
 ]
 
 if settings.DEBUG:

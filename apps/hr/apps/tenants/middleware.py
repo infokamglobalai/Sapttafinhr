@@ -17,7 +17,7 @@ class TenantMiddleware:
 
     CACHE_PREFIX = "tenant_subdomain:"
     CACHE_TTL = 300  # 5 minutes
-    EXEMPT_PREFIXES = ("/static/", "/media/", "/superadmin/", "/auth/sso/", "/internal/", "/careers/")
+    EXEMPT_PREFIXES = ("/static/", "/media/", "/superadmin/", "/auth/sso/", "/internal/", "/careers/", "/api/mobile/")
 
     def __init__(self, get_response):
         self.get_response = get_response

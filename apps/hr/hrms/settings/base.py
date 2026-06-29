@@ -47,6 +47,7 @@ LOCAL_APPS = [
     "apps.recruitment",
     "apps.reports",
     "apps.projects",
+    "apps.mobile_api",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -302,6 +303,21 @@ RANK_DEEP_TOP_N = config("RANK_DEEP_TOP_N", default=20, cast=int)
 # ---------------------------------------------------------------------------
 SSO_SHARED_SECRET = config("SSO_SHARED_SECRET", default="")
 SSO_TOKEN_MAX_AGE_SECONDS = config("SSO_TOKEN_MAX_AGE_SECONDS", default=120, cast=int)
+
+# CORS — mobile app (Expo dev + native builds)
+CORS_ALLOW_ALL_ORIGINS = config("CORS_ALLOW_ALL_ORIGINS", default=False, cast=bool)
+CORS_ALLOWED_ORIGINS = config(
+    "CORS_ALLOWED_ORIGINS",
+    default="http://localhost:8080,http://127.0.0.1:8080",
+    cast=Csv(),
+)
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "authorization",
+    "content-type",
+    "origin",
+    "x-workspace",
+]
 
 # Multi-factor authentication (TOTP) — required for all HR logins when enabled.
 MFA_REQUIRED = config("MFA_REQUIRED", default=True, cast=bool)

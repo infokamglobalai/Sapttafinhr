@@ -98,6 +98,18 @@ def _authenticate_staff(data):
     return user, None
 
 
+def _staff_mobile_payload(user) -> dict:
+    from apps.mobile_api.tokens import mint_mobile_token
+
+    return {
+        "api_token": mint_mobile_token(user),
+        "workspace": user.tenant.subdomain,
+        "email": user.email,
+        "auth_type": "hr_staff",
+        "client": "mobile",
+    }
+
+
 def _staff_redirect_payload(user, *, platform_url: str, next_path: str) -> dict:
     subdomain = user.tenant.subdomain
     token = mint_hr_sso_token(user.email, subdomain)
@@ -109,6 +121,12 @@ def _staff_redirect_payload(user, *, platform_url: str, next_path: str) -> dict:
         "redirect_url": redirect_url,
         "auth_type": "hr_staff",
     }
+
+
+def _staff_success_payload(user, *, platform_url: str, next_path: str, client: str) -> dict:
+    if client == "mobile":
+        return _staff_mobile_payload(user)
+    return _staff_redirect_payload(user, platform_url=platform_url, next_path=next_path)
 
 
 def _user_from_challenge(token: str, allowed_purposes: set[str]):
@@ -140,6 +158,7 @@ def staff_login_api(request):
 
     platform_url = (data.get("platform_url") or "").strip()
     next_path = (data.get("next") or "/").strip() or "/"
+    client = (data.get("client") or "").strip().lower()
 
     user, err = _authenticate_staff(data)
     if err:
@@ -166,7 +185,7 @@ def staff_login_api(request):
             }
         )
 
-    return JsonResponse(_staff_redirect_payload(user, platform_url=platform_url, next_path=next_path))
+    return JsonResponse(_staff_success_payload(user, platform_url=platform_url, next_path=next_path, client=client))
 
 
 @csrf_exempt
@@ -184,6 +203,7 @@ def staff_login_mfa_api(request):
     code = (data.get("code") or "").strip()
     platform_url = (data.get("platform_url") or "").strip()
     next_path = (data.get("next") or "/").strip() or "/"
+    client = (data.get("client") or "").strip().lower()
 
     if not token or not code:
         return JsonResponse({"detail": "challenge_token and code are required."}, status=400)
@@ -194,7 +214,7 @@ def staff_login_mfa_api(request):
     if not mfa_service.verify_totp(user, code):
         return JsonResponse({"detail": "Invalid verification code."}, status=401)
 
-    return JsonResponse(_staff_redirect_payload(user, platform_url=platform_url, next_path=next_path))
+    return JsonResponse(_staff_success_payload(user, platform_url=platform_url, next_path=next_path, client=client))
 
 
 @csrf_exempt
@@ -244,6 +264,7 @@ def staff_mfa_setup_confirm_api(request):
     code = (data.get("code") or "").strip()
     platform_url = (data.get("platform_url") or "").strip()
     next_path = (data.get("next") or "/").strip() or "/"
+    client = (data.get("client") or "").strip().lower()
 
     if not token or not code:
         return JsonResponse({"detail": "challenge_token and code are required."}, status=400)
@@ -260,6 +281,6 @@ def staff_mfa_setup_confirm_api(request):
     if not ok:
         return JsonResponse({"detail": "Invalid verification code."}, status=401)
 
-    payload = _staff_redirect_payload(user, platform_url=platform_url, next_path=next_path)
+    payload = _staff_success_payload(user, platform_url=platform_url, next_path=next_path, client=client)
     payload["backup_codes"] = backup_codes
     return JsonResponse(payload)

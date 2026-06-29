@@ -66,3 +66,6 @@ ALLOWED_HOSTS = ["localhost", "127.0.0.1", ".localhost"]
 
 MFA_REQUIRED = False
 
+# Expo / mobile dev — allow any origin in local development.
+CORS_ALLOW_ALL_ORIGINS = True
+

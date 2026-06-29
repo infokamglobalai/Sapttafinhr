@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "Saptta HR",
+    "slug": "saptta-hr",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1E2A78"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.saptta.hr"
+    },
+    "android": {
+      "package": "com.saptta.hr",
+      "adaptiveIcon": {
+        "backgroundColor": "#1E2A78",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Saptta needs your location to verify geofence attendance punches."
+        }
+      ]
+    ],
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}

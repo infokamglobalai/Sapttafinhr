@@ -116,6 +116,7 @@ class HrStaffLoginView(APIView):
         workspace = (request.data.get("workspace") or "").strip().lower()
         platform_url = (request.data.get("platform_url") or request.build_absolute_uri("/")).rstrip("/")
         next_path = (request.data.get("next") or "/").strip() or "/"
+        client = (request.data.get("client") or "").strip().lower()
 
         if not email or not password:
             return Response({"detail": "email and password are required."}, status=400)
@@ -131,6 +132,7 @@ class HrStaffLoginView(APIView):
                     "workspace": workspace,
                     "platform_url": platform_url,
                     "next": next_path,
+                    "client": client,
                 },
                 headers={
                     "Authorization": f"Bearer {secret}",
@@ -153,6 +155,16 @@ class HrStaffLoginView(APIView):
         data = resp.json()
         if data.get("mfa_required"):
             return Response(data)
+        if data.get("api_token"):
+            return Response(
+                {
+                    "api_token": data.get("api_token"),
+                    "workspace": data.get("workspace"),
+                    "email": data.get("email"),
+                    "auth_type": "hr_staff",
+                    "client": "mobile",
+                }
+            )
         return Response(
             {
                 "redirect_url": data.get("redirect_url"),
@@ -201,6 +213,7 @@ class HrStaffLoginMfaView(APIView):
             "code": (request.data.get("code") or "").strip(),
             "platform_url": platform_url,
             "next": (request.data.get("next") or "/").strip() or "/",
+            "client": (request.data.get("client") or "").strip().lower(),
         }
         action = (request.data.get("action") or "verify").strip().lower()
         if action == "setup_start":
