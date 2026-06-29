@@ -231,7 +231,10 @@ export default function Dashboard({ onGo }: DashboardProps) {
   const forecastData = data.cashflow_forecast ?? [];
   const hasForecast = forecastData.some(d => Number(d.balance) !== Number(data.cash_balance));
 
-  const expenseVal = Number(data.mtd_expense) || 120000;
+  // Use real ledger values — never substitute demo numbers. A new company has
+  // 0 here, and `0 || <demo>` would wrongly show fabricated figures.
+  const expenseVal = Number(data.mtd_expense) || 0;
+  const hasExpenses = expenseVal > 0;
   const expenseData = [
     { name: 'Cost of Goods', value: expenseVal * 0.45, color: '#4f46e5' },
     { name: 'Salaries & Payroll', value: expenseVal * 0.30, color: '#10b981' },
@@ -240,8 +243,9 @@ export default function Dashboard({ onGo }: DashboardProps) {
     { name: 'Rent & Utilities', value: expenseVal * 0.05, color: '#ec4899' },
   ];
 
-  const receivables = Number(data.accounts_receivable) || 180000;
-  const overdue = Number(data.overdue_amount) || 45000;
+  const receivables = Number(data.accounts_receivable) || 0;
+  const overdue = Number(data.overdue_amount) || 0;
+  const hasReceivables = receivables > 0;
   const current = Math.max(0, receivables - overdue);
   const agingData = [
     { range: '0-30 Days', amount: current, color: '#4f46e5' },
@@ -379,6 +383,7 @@ export default function Dashboard({ onGo }: DashboardProps) {
             <div className="text-sm font-extrabold text-slate-800 font-display">Operating Expense Allocation</div>
             <div className="text-xs font-semibold text-slate-400 mt-0.5">Distribution of MTD operational expenses by category</div>
           </div>
+          {hasExpenses ? (
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <ResponsiveContainer width="100%" height={150} className="sm:w-[50%]">
               <PieChart>
@@ -420,6 +425,11 @@ export default function Dashboard({ onGo }: DashboardProps) {
               ))}
             </div>
           </div>
+          ) : (
+            <div className="flex h-[150px] items-center justify-center text-xs font-semibold text-slate-400">
+              No expenses recorded yet
+            </div>
+          )}
         </div>
 
         {/* Chart 4: Receivables Aging */}
@@ -428,6 +438,7 @@ export default function Dashboard({ onGo }: DashboardProps) {
             <div className="text-sm font-extrabold text-slate-800 font-display">Receivables Aging Brackets</div>
             <div className="text-xs font-semibold text-slate-400 mt-0.5">Collections pipeline segmented by days outstanding</div>
           </div>
+          {hasReceivables ? (
           <ResponsiveContainer width="100%" height={150}>
             <BarChart
               data={agingData}
@@ -455,6 +466,11 @@ export default function Dashboard({ onGo }: DashboardProps) {
               </Bar>
             </BarChart>
           </ResponsiveContainer>
+          ) : (
+            <div className="flex h-[150px] items-center justify-center text-xs font-semibold text-slate-400">
+              No outstanding receivables
+            </div>
+          )}
         </div>
 
       </div>

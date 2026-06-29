@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import type { User } from '../types';
 import {
   login as apiLogin,
@@ -168,7 +168,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const refreshProducts = async (): Promise<ProductSlug[]> => {
+  // Memoised so its identity is stable: callers run it inside useEffect (e.g.
+  // PaymentSuccess, ProductSwitcher) and depend on it. Without useCallback its
+  // identity changes every render — and because it calls setUser, that render
+  // is self-triggering — so those effects re-run forever, hammering
+  // /my-subscription and never settling. setUser + the imported fetchers are
+  // all stable, so an empty dependency list is correct.
+  const refreshProducts = useCallback(async (): Promise<ProductSlug[]> => {
     try {
       const sub = await fetchMySubscription();
       const slugs = slugsFromSubscription(sub);
@@ -185,7 +191,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser((prev) => (prev ? { ...prev, products: slugs } : prev));
     }
     return slugs;
-  };
+  }, []);
 
   const logout = () => {
     clearAuth();

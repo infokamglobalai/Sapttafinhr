@@ -1002,7 +1002,7 @@ export default function Login() {
 
               <p className="login-page__signup-inline">
 
-                New here? <Link to="/signup">Start free trial</Link>
+                New here? <Link to="/signup">Get started</Link>
 
               </p>
 

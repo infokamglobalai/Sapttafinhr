@@ -22,6 +22,29 @@ class CompanySerializer(serializers.ModelSerializer):
         """The full rule set for this company's country (read-only reference)."""
         return get_jurisdiction(obj.country)
 
+    # Branding ──────────────────────────────────────────────────────────────
+    # The logo rides inside the row as a base64 data URL; cap it so a stray
+    # large upload can't bloat the table or the company API payload.
+    MAX_LOGO_CHARS = 1_500_000  # ~1 MB image once base64-encoded
+
+    def validate_logo(self, value: str) -> str:
+        if not value:
+            return value
+        if not value.startswith("data:image/"):
+            raise serializers.ValidationError("Logo must be an image data URL (data:image/...).")
+        if len(value) > self.MAX_LOGO_CHARS:
+            raise serializers.ValidationError("Logo is too large — use an image under ~1 MB.")
+        return value
+
+    def validate_brand_color(self, value: str) -> str:
+        if not value:
+            return value
+        import re
+
+        if not re.fullmatch(r"#[0-9A-Fa-f]{6}", value):
+            raise serializers.ValidationError("Brand colour must be a hex value like #4f46e5.")
+        return value.lower()
+
     def validate(self, attrs):
         from .tax_validation import (
             gstin_pan_consistency,

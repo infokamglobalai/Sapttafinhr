@@ -20,6 +20,20 @@ export interface PdfCompany {
   base_currency?: string;
   tax_regime?: 'INDIA_GST' | 'GCC_VAT' | 'NONE';
   tax_id?: string;
+  // Branding (set in setup / settings)
+  logo?: string;            // base64 data URL
+  document_header?: string; // tagline under the company name
+  document_footer?: string; // footer note
+  brand_color?: string;     // accent hex, e.g. #4f46e5
+}
+
+/** Parse a #rrggbb hex string into an [r,g,b] tuple, or null if invalid/empty. */
+function hexToRgb(hex?: string): [number, number, number] | null {
+  if (!hex) return null;
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return null;
+  const n = parseInt(m[1], 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
 
 export interface PdfCustomer {
@@ -39,16 +53,35 @@ export function downloadInvoicePdf(inv: Invoice, company: PdfCompany, customer: 
 
   const doc = new jsPDF({ unit: 'pt', format: 'a4' });
   const W = doc.internal.pageSize.getWidth();
+  const brand = hexToRgb(company.brand_color);
+  const headFill: [number, number, number] = brand ?? [241, 245, 249];
+  const headText = brand ? 255 : 70;
 
   // ── Header ──
   doc.setFontSize(20).setFont('helvetica', 'bold');
+  if (brand) doc.setTextColor(brand[0], brand[1], brand[2]);
   doc.text('TAX INVOICE', W - 40, 40, { align: 'right' });
+  doc.setTextColor(0);
 
-  doc.setFontSize(11).setFont('helvetica', 'bold');
-  doc.text(company.name, 40, 50);
+  // Logo (optional) at top-left; the company text flows beneath it.
+  let textY = 50;
+  if (company.logo) {
+    try {
+      const props = doc.getImageProperties(company.logo);
+      const scale = Math.min(150 / props.width, 46 / props.height);
+      const w = props.width * scale, h = props.height * scale;
+      doc.addImage(company.logo, 40, 24, w, h);
+      textY = 24 + h + 16;
+    } catch { /* unsupported/corrupt image — skip, render text only */ }
+  }
+
+  doc.setFontSize(11).setFont('helvetica', 'bold').setTextColor(0);
+  doc.text(company.name, 40, textY);
   doc.setFontSize(9).setFont('helvetica', 'normal').setTextColor(80);
-  if (company.legal_name) doc.text(company.legal_name, 40, 65);
-  if (companyTaxId) doc.text(`${taxIdLabel}: ${companyTaxId}`, 40, 78);
+  let subY = textY + 15;
+  if (company.legal_name) { doc.text(company.legal_name, 40, subY); subY += 13; }
+  if (company.document_header) { doc.text(company.document_header, 40, subY); subY += 13; }
+  if (companyTaxId) { doc.text(`${taxIdLabel}: ${companyTaxId}`, 40, subY); subY += 13; }
   doc.setTextColor(0);
 
   doc.setFontSize(9);
@@ -56,8 +89,8 @@ export function downloadInvoicePdf(inv: Invoice, company: PdfCompany, customer: 
   doc.text(`Date: ${inv.date}`, W - 40, 73, { align: 'right' });
   if (inv.due_date) doc.text(`Due: ${inv.due_date}`, W - 40, 86, { align: 'right' });
 
-  // ── Bill to ──
-  let y = 120;
+  // ── Bill to ── (kept clear of the company/logo block above)
+  let y = Math.max(120, subY + 6);
   doc.setFontSize(9).setFont('helvetica', 'bold').setTextColor(120);
   doc.text('BILL TO', 40, y);
   doc.setTextColor(0).setFont('helvetica', 'normal');
@@ -98,7 +131,7 @@ export function downloadInvoicePdf(inv: Invoice, company: PdfCompany, customer: 
         Number(l.vat) ? money(l.vat) : '—', money(l.line_total),
       ]),
       styles: { fontSize: 8, cellPadding: 4 },
-      headStyles: { fillColor: [241, 245, 249], textColor: 70, fontStyle: 'bold' },
+      headStyles: { fillColor: headFill, textColor: headText, fontStyle: 'bold' },
       columnStyles: {
         0: { halign: 'center', cellWidth: 22 },
         2: { halign: 'right', cellWidth: 45 },
@@ -121,7 +154,7 @@ export function downloadInvoicePdf(inv: Invoice, company: PdfCompany, customer: 
         money(l.line_total),
       ]),
       styles: { fontSize: 8, cellPadding: 4 },
-      headStyles: { fillColor: [241, 245, 249], textColor: 70, fontStyle: 'bold' },
+      headStyles: { fillColor: headFill, textColor: headText, fontStyle: 'bold' },
       columnStyles: {
         0: { halign: 'center', cellWidth: 20 },
         3: { halign: 'right', cellWidth: 35 },
@@ -168,6 +201,13 @@ export function downloadInvoicePdf(inv: Invoice, company: PdfCompany, customer: 
     doc.text('Notes', 40, ny);
     doc.setFont('helvetica', 'normal').setTextColor(0);
     doc.text(doc.splitTextToSize(inv.notes, W - 80), 40, ny + 12);
+  }
+
+  // Company footer note (terms / thanks), above the system line.
+  if (company.document_footer) {
+    doc.setFontSize(8).setTextColor(120).setFont('helvetica', 'normal');
+    doc.text(doc.splitTextToSize(company.document_footer, W - 80),
+      W / 2, doc.internal.pageSize.getHeight() - 42, { align: 'center' });
   }
 
   doc.setFontSize(8).setTextColor(150);

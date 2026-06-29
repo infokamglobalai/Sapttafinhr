@@ -275,7 +275,7 @@ export function HomeFinalCtaSection({ isMobile }: SectionProps) {
                 Start with HRMS, Finance, or Both - No Migration Required
               </h2>
               <p className="home-final-cta__subtitle">
-                14-day free trial · No credit card · Compliance &amp; accounting software for GCC &amp; India
+                No lock-in · Cancel anytime · Compliance &amp; accounting software for GCC &amp; India
               </p>
 
               <div className="home-final-cta__steps" role="list" aria-label="How to get started">
@@ -299,7 +299,7 @@ export function HomeFinalCtaSection({ isMobile }: SectionProps) {
                   className="home-final-cta__btn home-final-cta__btn--primary"
                   onClick={() => navigate('/signup')}
                 >
-                  Start free trial
+                  Get started
                   <RightOutlined />
                 </button>
                 <button

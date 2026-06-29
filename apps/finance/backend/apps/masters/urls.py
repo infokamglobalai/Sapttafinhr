@@ -3,6 +3,12 @@ from rest_framework.routers import DefaultRouter
 
 from .closing_views import BooksClosingView, CompanyExportView
 from .crm_views import SalesLeadViewSet
+from .import_views import (
+    MasterImportTemplateView,
+    MasterImportView,
+    OpeningBalanceImportView,
+    OpeningBalanceTemplateView,
+)
 from .setup_views import SetupCompleteView, SetupStatusView
 from .views import (
     AccountViewSet, BranchViewSet, CompanyViewSet, CostCenterViewSet,
@@ -30,4 +36,8 @@ urlpatterns = [
     path("companies/<int:company_id>/export/", CompanyExportView.as_view()),
     path("exchange-rates/", ExchangeRateView.as_view(), name="exchange-rates"),
     path("jurisdictions/", JurisdictionsView.as_view(), name="jurisdictions"),
+    path("import/template/", MasterImportTemplateView.as_view(), name="master-import-template"),
+    path("import/opening-balances/template/", OpeningBalanceTemplateView.as_view(), name="opening-balance-template"),
+    path("import/opening-balances/", OpeningBalanceImportView.as_view(), name="opening-balance-import"),
+    path("import/", MasterImportView.as_view(), name="master-import"),
 ] + router.urls

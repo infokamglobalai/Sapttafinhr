@@ -54,7 +54,7 @@ const pricingFaqs = [
     key: '4',
     label: 'Is there a setup or onboarding fee?',
     children:
-      'No. Every Saptta subscription includes free guided setup, database migration assistance, and tenant initialization at zero upfront cost.',
+      'No. Every Saptta subscription includes free guided setup, CSV bulk import for your employees and masters, and tenant initialization at zero upfront cost. Automated migration from Tally/Zoho is available on Enterprise.',
   },
   {
     key: '5',
@@ -76,7 +76,7 @@ const planIncludes = [
   { title: 'Data encryption', desc: 'AES-256 at rest and TLS 1.3 in transit.' },
   { title: 'Automatic backups', desc: 'Daily backups with 30-day retention.' },
   { title: '99.9% uptime SLA', desc: 'Hosted on AWS Mumbai with auto-scaling.' },
-  { title: 'Free onboarding', desc: 'Guided setup wizard plus dedicated support.' },
+  { title: 'Free onboarding', desc: 'Guided setup wizard plus email & in-app chat support (business hours).' },
 ];
 
 function fmt(amount: number) {
@@ -116,7 +116,7 @@ export default function Pricing() {
         ]}
         theme="navy"
         gradient="linear-gradient(135deg, #ffffff 0%, #f8fafc 70%, #eef2ff 100%)"
-        primaryLabel="Start free trial"
+        primaryLabel="Get started"
         primaryTo="/signup"
         secondaryLabel="Talk to sales"
         secondaryTo="/contact"
@@ -129,7 +129,7 @@ export default function Pricing() {
           { value: '30 included', label: 'Employees in base price', icon: '👥' },
           { value: '+₹111', label: 'Per extra employee', icon: '➕' },
           { value: 'Unlimited', label: 'Finance users', icon: '◫' },
-          { value: '14 days', label: 'Free trial', icon: '✦' },
+          { value: 'Cancel anytime', label: 'No lock-in contracts', icon: '✦' },
         ]}
       />
 
@@ -286,7 +286,7 @@ export default function Pricing() {
                         style={featured ? { background: 'linear-gradient(135deg, #FF9800, #FF6D00)', border: 'none', color: '#fff' } : undefined}
                         onClick={() => navigate('/signup', { state: { planId: plan.id } })}
                       >
-                        Start free trial
+                        Get started
                       </Button>
                     </div>
                   </article>

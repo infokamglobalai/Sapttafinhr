@@ -38,7 +38,7 @@ const STARTERS = {
 const GUEST_STARTERS = [
   '💰 Pricing for HRMS & Finance',
   '🏢 How does Saptta work?',
-  '🆓 Is there a free trial?',
+  '💳 Monthly or annual pricing?',
   '📞 Talk to sales',
   '📋 HR vs Finance — which plan?',
 ];
@@ -417,7 +417,7 @@ export default function ChatbotWidget() {
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
                     <Link to="/contact" style={{ color: theme.primary, fontWeight: 600, textDecoration: 'none' }}>Contact us</Link>
                     <span aria-hidden>·</span>
-                    <Link to="/signup" style={{ color: theme.primary, fontWeight: 600, textDecoration: 'none' }}>Start free trial</Link>
+                    <Link to="/signup" style={{ color: theme.primary, fontWeight: 600, textDecoration: 'none' }}>Get started</Link>
                     <span aria-hidden>·</span>
                     <a href={`tel:${SAPTTA_PHONES[0].tel}`} style={{ color: theme.primary, fontWeight: 600, textDecoration: 'none' }}>
                       {SAPTTA_PHONES[0].display}

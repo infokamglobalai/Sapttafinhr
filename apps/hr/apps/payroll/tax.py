@@ -175,6 +175,18 @@ def compute_annual_tax(*, regime: str, gross_salary_annual: Decimal,
         rebate = tax if taxable <= D("500000") else Z
 
     tax_after_rebate = max(Z, tax - rebate)
+
+    # New-regime marginal relief at the 87A rebate ceiling (FY 2025-26): the tax
+    # payable cannot exceed the income above Rs 12,00,000. Without this, an income
+    # of, say, 12.05L would owe ~63k of tax on 5k of extra income. Relief caps the
+    # tax (pre-cess) at the slice of taxable income over the threshold.
+    marginal_relief = Z
+    if regime == "new" and taxable > D("1200000"):
+        marginal_cap = taxable - D("1200000")
+        if tax_after_rebate > marginal_cap:
+            marginal_relief = tax_after_rebate - marginal_cap
+            tax_after_rebate = marginal_cap
+
     cess = tax_after_rebate * D("0.04")  # 4% health & education cess
     total_tax = round2(tax_after_rebate + cess)
 
@@ -188,41 +200,86 @@ def compute_annual_tax(*, regime: str, gross_salary_annual: Decimal,
         "taxable_income": round2(taxable),
         "tax_before_rebate": round2(tax),
         "rebate_87a": round2(rebate),
+        "marginal_relief": round2(marginal_relief),
         "tax_after_rebate": round2(tax_after_rebate),
         "cess": round2(cess),
         "total_tax": total_tax,
     }
 
 
+def fy_months_before(fy: str, year: int, month: int) -> list[tuple[int, int]]:
+    """(year, month) pairs in the FY that fall strictly before the given month."""
+    start_year = int(fy.split("-")[0])
+    pairs: list[tuple[int, int]] = []
+    y, m = start_year, 4
+    for _ in range(12):
+        if (y, m) == (year, month):
+            break
+        pairs.append((y, m))
+        m += 1
+        if m > 12:
+            m, y = 1, y + 1
+    return pairs
+
+
+def _spread_monthly_tds(annual_tax, ytd_tds, months_remaining) -> Decimal:
+    """Section 192 averaging: the remaining annual liability over remaining months."""
+    remaining = max(Z, D(annual_tax) - D(ytd_tds))
+    months = max(1, int(months_remaining))
+    return round2(remaining / months)
+
+
 def monthly_tds(tenant, employee, gross_monthly: Decimal,
                 basic_monthly: Decimal, hra_monthly: Decimal,
                 today: datetime.date | None = None) -> Decimal:
-    """
-    Calculate monthly TDS based on employee's tax declaration.
-    Falls back to new-regime flat calculation if no declaration on file.
+    """Monthly TDS under Section 192 (average-tax method).
+
+    1. Project the employee's annual income: actual earnings already paid this FY
+       plus the current month's pay extended over the remaining months. This keeps
+       mid-year joiners and pay changes accurate (no naive ``monthly × 12``).
+    2. Compute the annual tax liability via :func:`compute_annual_tax`, honouring
+       the declared regime and Chapter VI-A / HRA declarations.
+    3. Deduct the TDS already withheld earlier in the FY and spread the balance
+       evenly over the remaining months (including the current one).
+
+    Falls back to the new regime when no declaration is on file. The employer's CA
+    should still verify the annual liability before the Form 24Q filing.
     """
     today = today or datetime.date.today()
     fy = current_financial_year(today)
 
-    # Months remaining in FY (including current)
-    fy_start, _ = fy_date_range(fy)
-    if today.month >= 4:
-        months_elapsed = today.month - 4
-    else:
-        months_elapsed = today.month + 8
-    months_remaining = 12 - months_elapsed
-    months_remaining = max(months_remaining, 1)
+    from django.db.models import Q, Sum
 
-    # Fetch declaration if present
-    from .models import TaxDeclaration
+    from .models import PayrollRecord, TaxDeclaration
+
     declaration = TaxDeclaration.objects.filter(
         tenant=tenant, employee=employee, financial_year=fy,
     ).first()
     regime = declaration.regime if declaration else "new"
 
-    annual_gross = D(gross_monthly) * 12
-    annual_basic = D(basic_monthly) * 12
-    annual_hra = D(hra_monthly) * 12
+    # Earnings & TDS already recorded for this employee earlier in this FY.
+    prior_pairs = fy_months_before(fy, today.year, today.month)
+    months_remaining = max(1, 12 - len(prior_pairs))
+    ytd_gross = ytd_basic = ytd_hra = ytd_tds = Z
+    if prior_pairs:
+        q = Q()
+        for yy, mm in prior_pairs:
+            q |= Q(payroll_run__year=yy, payroll_run__month=mm)
+        agg = (
+            PayrollRecord.objects
+            .filter(tenant=tenant, employee=employee)
+            .filter(q)
+            .aggregate(g=Sum("gross_earnings"), b=Sum("basic"), h=Sum("hra"), t=Sum("tds"))
+        )
+        ytd_gross = D(agg["g"] or 0)
+        ytd_basic = D(agg["b"] or 0)
+        ytd_hra = D(agg["h"] or 0)
+        ytd_tds = D(agg["t"] or 0)
+
+    # Project full-year figures from YTD actuals + current run × remaining months.
+    annual_gross = ytd_gross + D(gross_monthly) * months_remaining
+    annual_basic = ytd_basic + D(basic_monthly) * months_remaining
+    annual_hra = ytd_hra + D(hra_monthly) * months_remaining
     other_income = declaration.other_income_annual if declaration else Z
 
     result = compute_annual_tax(
@@ -234,5 +291,4 @@ def monthly_tds(tenant, employee, gross_monthly: Decimal,
         other_income_annual=other_income,
     )
 
-    # Spread remaining liability evenly over remaining months
-    return round2(result["total_tax"] / 12)
+    return _spread_monthly_tds(result["total_tax"], ytd_tds, months_remaining)

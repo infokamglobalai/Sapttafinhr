@@ -45,6 +45,31 @@ class Company(TimeStampedModel):
         help_text="Standard VAT rate for the jurisdiction (GCC). Unused for India GST.",
     )
 
+    # Document branding — applied to generated invoices, receipts and reports.
+    # The logo is stored as a small base64 data URL so it embeds straight into
+    # the client-side PDF/print pipeline without per-tenant media storage.
+    class DocTemplate(models.TextChoices):
+        CLASSIC = "CLASSIC", "Classic"
+        MODERN = "MODERN", "Modern"
+
+    logo = models.TextField(blank=True, help_text="Company logo as a base64 data URL (PNG/JPG/SVG).")
+    document_header = models.CharField(
+        max_length=120, blank=True,
+        help_text="Short note shown under the company name on documents (e.g. tagline).",
+    )
+    document_footer = models.CharField(
+        max_length=240, blank=True,
+        help_text="Footer note shown at the bottom of documents (terms, thanks, etc.).",
+    )
+    brand_color = models.CharField(
+        max_length=7, blank=True,
+        help_text="Accent colour as hex (e.g. #4f46e5) for document headings and table headers.",
+    )
+    document_template = models.CharField(
+        max_length=8, choices=DocTemplate.choices, default=DocTemplate.CLASSIC,
+        help_text="Layout style applied to generated documents.",
+    )
+
     books_closed_until = models.DateField(null=True, blank=True)
     # First-run setup gate: the Finance app shows the setup wizard until the
     # admin marks this complete. Set by the setup endpoint, not by signup.

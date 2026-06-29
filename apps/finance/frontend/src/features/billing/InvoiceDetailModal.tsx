@@ -48,6 +48,8 @@ export default function InvoiceDetailModal({ id, onClose, onRecordPayment }: Pro
       name: company.name, legal_name: company.legal_name, gstin: company.gstin,
       state_code: company.state_code, base_currency: company.base_currency,
       tax_regime: company.tax_regime, tax_id: company.tax_id,
+      logo: company.logo, document_header: company.document_header,
+      document_footer: company.document_footer, brand_color: company.brand_color,
     }, customer ? {
       name: customer.name, gstin: customer.gstin, billing_address: customer.billing_address,
       state_code: customer.state_code, email: customer.email,
@@ -70,6 +72,8 @@ export default function InvoiceDetailModal({ id, onClose, onRecordPayment }: Pro
     const ok = printBilingualInvoice(inv, {
       name: company.name, legal_name: company.legal_name,
       tax_id: company.tax_id, base_currency: company.base_currency,
+      logo: company.logo, document_header: company.document_header,
+      document_footer: company.document_footer, brand_color: company.brand_color,
     }, customer
       ? { name: customer.name, gstin: customer.gstin, billing_address: customer.billing_address }
       : { name: inv.customer_name });

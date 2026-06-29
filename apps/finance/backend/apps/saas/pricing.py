@@ -12,12 +12,24 @@ COMPLETE_PRICE = Decimal("7999")
 
 GST_RATE_PERCENT = Decimal("18")
 
+# Discount applied when billing annually instead of monthly (mirrors web ANNUAL_DISCOUNT_RATE).
+ANNUAL_DISCOUNT_RATE = Decimal("0.20")
+
 HR_PLANS = frozenset({"hrms", "saptta-hrms", "saptta-complete", "complete"})
 COMPLETE_PLANS = frozenset({"saptta-complete", "complete"})
 
 
 def _money(amount) -> Decimal:
     return Decimal(str(amount)).quantize(Decimal("0.01"), ROUND_HALF_UP)
+
+
+def annual_from_monthly(monthly) -> Decimal:
+    """Annual (ex-GST) total for a monthly rate, with the annual discount applied.
+
+    Rounded to whole rupees to match the web `annualFromMonthly` (Math.round).
+    """
+    m = _money(monthly)
+    return (m * 12 * (Decimal("1") - ANNUAL_DISCOUNT_RATE)).quantize(Decimal("1"), ROUND_HALF_UP)
 
 
 def gst_on_excluding(amount_ex: Decimal) -> Decimal:

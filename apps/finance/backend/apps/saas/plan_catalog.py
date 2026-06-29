@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from apps.saas.models import Plan, ProductCode
-from apps.saas.pricing import COMPLETE_PRICE, FINANCE_PRICE, HRMS_PRICE
+from apps.saas.pricing import COMPLETE_PRICE, FINANCE_PRICE, HRMS_PRICE, annual_from_monthly
 
 CATALOG_PLANS: tuple[dict, ...] = (
     {
@@ -10,7 +10,7 @@ CATALOG_PLANS: tuple[dict, ...] = (
         "name": "Saptta HRMS",
         "description": "Complete HR, attendance & payroll — flat for up to 30 employees.",
         "monthly_price": HRMS_PRICE,
-        "annual_price": HRMS_PRICE * 12,
+        "annual_price": annual_from_monthly(HRMS_PRICE),
         "features": {"products": [ProductCode.HR]},
     },
     {
@@ -18,7 +18,7 @@ CATALOG_PLANS: tuple[dict, ...] = (
         "name": "Saptta Finance",
         "description": "GST-ready accounting — flat price, unlimited users.",
         "monthly_price": FINANCE_PRICE,
-        "annual_price": FINANCE_PRICE * 12,
+        "annual_price": annual_from_monthly(FINANCE_PRICE),
         "features": {"products": [ProductCode.FIN]},
     },
     {
@@ -26,7 +26,7 @@ CATALOG_PLANS: tuple[dict, ...] = (
         "name": "Saptta Complete",
         "description": "HRMS + Finance together.",
         "monthly_price": COMPLETE_PRICE,
-        "annual_price": COMPLETE_PRICE * 12,
+        "annual_price": annual_from_monthly(COMPLETE_PRICE),
         "features": {"products": [ProductCode.FIN, ProductCode.HR]},
     },
 )

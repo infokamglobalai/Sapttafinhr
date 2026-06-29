@@ -177,7 +177,7 @@ export const termsSections: LegalSection[] = [
     title: '4. Subscriptions & payment',
     paragraphs: [
       'Paid plans are billed monthly or annually in INR unless otherwise agreed. Fees are non-refundable except as required by law or stated in your order form.',
-      'Free trials convert to paid subscriptions unless cancelled before the trial ends. We may change pricing with notice before renewal.',
+      'Access to paid features begins once your subscription is activated by payment; new workspaces remain pending until the first payment is received. You can cancel anytime to stop future renewals. We may change pricing with notice before renewal.',
       'Failure to pay may result in suspension of access after reasonable notice.',
     ],
   },

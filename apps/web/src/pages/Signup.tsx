@@ -12,7 +12,7 @@ import {
 import ScrollReveal from '../components/shared/ScrollReveal';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchProvisioningStatus } from '../lib/api';
-import { PLANS, planMonthly, extraEmployees, EXTRA_EMPLOYEE_PRICE, GST_RATE } from '../types';
+import { PLANS, planMonthly, annualFromMonthly, extraEmployees, EXTRA_EMPLOYEE_PRICE, GST_RATE } from '../types';
 
 /**
  * Poll the backend until the new workspace's schema is built. Signup now returns
@@ -159,7 +159,7 @@ export default function Signup() {
     const plan = PLANS.find(p => p.id === planId);
     if (!plan) return 0;
     const monthlyRate = planMonthly(plan, headcount);
-    return billingCycle === 'annual' ? monthlyRate * 12 : monthlyRate;
+    return billingCycle === 'annual' ? annualFromMonthly(monthlyRate) : monthlyRate;
   };
 
   // Password strength logic
@@ -174,13 +174,6 @@ export default function Signup() {
   };
 
   const pwdStrength = getPasswordStrength(passwordValue);
-
-  // Trial end date helper (14 days from now)
-  const trialEndDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
 
   return (
     <div style={{
@@ -458,7 +451,7 @@ export default function Signup() {
                 const isComplete = plan.id === 'saptta-complete';
                 const isSelected = selectedPlanId === plan.id;
                 const monthlyPriceCalc = planMonthly(plan, headcount);
-                const displayPrice = billingCycle === 'annual' ? monthlyPriceCalc * 12 : monthlyPriceCalc;
+                const displayPrice = billingCycle === 'annual' ? annualFromMonthly(monthlyPriceCalc) : monthlyPriceCalc;
                 const extraCount = extraEmployees(plan, headcount);
 
                 return (

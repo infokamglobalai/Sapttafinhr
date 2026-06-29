@@ -231,7 +231,13 @@ class CreateOrderView(APIView):
             employees = None
 
         from .models import Plan
-        from .pricing import INCLUDED_EMPLOYEES, gst_on_excluding, plan_monthly_inr, with_gst
+        from .pricing import (
+            INCLUDED_EMPLOYEES,
+            annual_from_monthly,
+            gst_on_excluding,
+            plan_monthly_inr,
+            with_gst,
+        )
 
         plan = Plan.objects.filter(code=plan_code, is_active=True).first()
         if not plan:
@@ -239,7 +245,7 @@ class CreateOrderView(APIView):
 
         headcount = employees or INCLUDED_EMPLOYEES
         monthly = plan_monthly_inr(plan.code, headcount)
-        amount = monthly * 12 if billing_cycle == "annual" else monthly
+        amount = annual_from_monthly(monthly) if billing_cycle == "annual" else monthly
         from apps.core.models import Tenant
 
         tenant = (
@@ -415,7 +421,13 @@ class ValidateCouponView(APIView):
 
         from .coupons import CouponError, apply_coupon
         from .models import Plan
-        from .pricing import INCLUDED_EMPLOYEES, gst_on_excluding, plan_monthly_inr, with_gst
+        from .pricing import (
+            INCLUDED_EMPLOYEES,
+            annual_from_monthly,
+            gst_on_excluding,
+            plan_monthly_inr,
+            with_gst,
+        )
         from apps.core.models import Tenant
 
         coupon_code = (request.data.get("coupon_code") or "").strip()
@@ -435,7 +447,7 @@ class ValidateCouponView(APIView):
             employees = None
         headcount = employees or INCLUDED_EMPLOYEES
         monthly = plan_monthly_inr(plan.code, headcount)
-        amount = monthly * 12 if billing_cycle == "annual" else monthly
+        amount = annual_from_monthly(monthly) if billing_cycle == "annual" else monthly
 
         tenant = (
             Tenant.objects.exclude(schema_name="public")

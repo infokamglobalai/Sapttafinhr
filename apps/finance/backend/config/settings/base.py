@@ -67,6 +67,7 @@ TENANT_DOMAIN_MODEL = "core.Domain"
 MIDDLEWARE = [
     "apps.core.middleware.HeaderTenantMiddleware",
     "apps.saas.middleware.ProductEntitlementMiddleware",
+    "apps.saas.middleware.SetupRequiredMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",

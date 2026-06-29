@@ -235,7 +235,7 @@ export default function Navbar() {
                   Login
                 </Button>
                 <button type="button" className="saptta-navbar__cta" onClick={() => navigate('/signup')}>
-                  Get free trial
+                  Get started
                 </button>
               </>
             ))}
@@ -369,7 +369,7 @@ export default function Navbar() {
                   className="saptta-navbar__cta saptta-navbar__cta--block"
                   onClick={() => { navigate('/signup'); setDrawerOpen(false); }}
                 >
-                  Get free trial
+                  Get started
                 </button>
               </>
             )}

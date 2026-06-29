@@ -9,7 +9,7 @@ import {
   CheckOutlined
 } from '@ant-design/icons';
 import { useAuth } from '../../contexts/AuthContext';
-import { PLANS, planMonthly, withGst, GST_RATE, INCLUDED_EMPLOYEES, EXTRA_EMPLOYEE_PRICE } from '../../types';
+import { PLANS, planMonthly, annualFromMonthly, withGst, GST_RATE, INCLUDED_EMPLOYEES, EXTRA_EMPLOYEE_PRICE } from '../../types';
 import { startCheckout } from '../../lib/billing';
 import { validateBillingCoupon, fetchMySubscription, type MySubscription } from '../../lib/api';
 import type { SaasInvoiceDTO } from '../../lib/api';
@@ -373,7 +373,7 @@ export default function Billing() {
               borderRadius: '10px',
               marginLeft: '6px',
               fontWeight: 800
-            }}>Billed yearly</span>
+            }}>Save 20%</span>
           </Button>
         </div>
       </div>
@@ -456,7 +456,7 @@ export default function Billing() {
 
           const displayPrice = planMonthly(plan, employees);
           const monthlyPayable = withGst(displayPrice);
-          const annualEx = displayPrice * 12;
+          const annualEx = annualFromMonthly(displayPrice);
           const annualPayable = withGst(annualEx);
           const unitLabel =
             plan.includedEmployees != null

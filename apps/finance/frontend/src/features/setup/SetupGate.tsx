@@ -9,15 +9,26 @@ import SetupWizard from './SetupWizard';
  * refetch race.
  */
 export default function SetupGate({ children }: { children: React.ReactNode }) {
-  const { data, isLoading, isError } = useSetupStatus();
+  const { data, isLoading, isError, isFetching, refetch } = useSetupStatus();
   const [doneLocally, setDoneLocally] = useState(false);
 
   if (isLoading) {
-    return <div className="flex min-h-screen items-center justify-center text-slate-400">Loading…</div>;
+    return <div className="flex min-h-screen items-center justify-center bg-ink-50 text-ink-400">Loading…</div>;
   }
-  // If the status check fails (e.g. transient), don't trap the user — let the app
-  // render; the in-app profile banner still nudges them.
-  if (isError) return <>{children}</>;
+  // Setup is compulsory, so fail CLOSED: if the status check fails we must not
+  // let the product render (the server enforces this too — data calls 403 with
+  // setup_required until setup is done). Offer a retry so a transient blip
+  // doesn't permanently trap the user.
+  if (isError) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-ink-50 text-ink-500">
+        <p className="text-sm">Couldn't load your setup status.</p>
+        <button className="btn-primary" onClick={() => refetch()} disabled={isFetching}>
+          {isFetching ? 'Retrying…' : 'Retry'}
+        </button>
+      </div>
+    );
+  }
 
   if (data && !data.setup_complete && !doneLocally) {
     return <SetupWizard onComplete={() => setDoneLocally(true)} />;

@@ -42,6 +42,19 @@ class HeaderTenantMiddleware:
                     from rest_framework_simplejwt.tokens import AccessToken
                     token = AccessToken(token_str)
                     workspace = token.get("workspace")
+                    # Fallback for tokens minted without a workspace claim (e.g.
+                    # signup tokens, or older tokens): resolve the owner's tenant
+                    # from the user id, the same way the login serializer does.
+                    # Without this such tokens fall back to the public schema and
+                    # every tenant API call 500s ("relation does not exist").
+                    if not workspace:
+                        uid = token.get("user_id")
+                        if uid:
+                            from apps.identity.jwt import resolve_workspace_for
+                            from apps.identity.models import User
+                            owner = User.objects.filter(pk=uid).first()
+                            if owner:
+                                workspace = resolve_workspace_for(owner)
                 except Exception:
                     pass
 

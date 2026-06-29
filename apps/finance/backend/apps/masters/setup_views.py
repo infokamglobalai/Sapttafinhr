@@ -85,4 +85,12 @@ class SetupCompleteView(APIView):
 
         company.setup_complete = True
         company.save(update_fields=["setup_complete", "updated_at"])
+
+        # Let the setup-enforcement middleware through immediately on the next
+        # request, without waiting for its cache to expire / re-query.
+        from django.db import connection
+
+        from apps.saas.middleware import mark_setup_complete
+
+        mark_setup_complete(connection.schema_name)
         return Response({"setup_complete": True, "company_id": company.id})

@@ -27,6 +27,12 @@ export interface Company {
   tax_regime_display?: string;   // read-only
   tax_id_label?: string;         // read-only (GSTIN / TRN / …)
   jurisdiction?: Jurisdiction | null; // read-only rule set for country
+  // Document branding (applied to generated invoices, receipts, reports)
+  logo?: string;                 // base64 data URL
+  document_header?: string;      // tagline under the company name
+  document_footer?: string;      // footer note (terms / thanks)
+  brand_color?: string;          // accent hex, e.g. #4f46e5
+  document_template?: 'CLASSIC' | 'MODERN';
   books_closed_until?: string | null;
   setup_complete?: boolean;
 }
@@ -257,5 +263,121 @@ export const useDeleteItem = () => {
   return useMutation({
     mutationFn: async (id: number) => (await api.delete(`/masters/items/${id}/`)).data,
     onSuccess: () => qc.invalidateQueries({ queryKey: ['items'] }),
+  });
+};
+
+// ── Master-data CSV import (self-serve migration) ───────────────────────────
+export type ImportEntity = 'account' | 'party' | 'item';
+
+const ENTITY_QUERY_KEY: Record<ImportEntity, string> = {
+  account: 'accounts',
+  party: 'parties',
+  item: 'items',
+};
+
+export interface ImportReportRow {
+  row: number;
+  status: 'ok' | 'error' | 'duplicate';
+  messages: string[];
+  label: string;
+}
+export interface ImportReport {
+  entity: ImportEntity;
+  label: string;
+  company: number;
+  commit: boolean;
+  total_rows: number;
+  ok: number;
+  errors: number;
+  duplicates: number;
+  created: number;
+  rows: ImportReportRow[];
+}
+
+/** Trigger a browser "save as" for a downloaded blob. */
+function saveBlob(data: Blob, filename: string): void {
+  const url = URL.createObjectURL(data);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+/** Download the CSV template for an entity (triggers a browser save). */
+export async function downloadImportTemplate(entity: ImportEntity): Promise<void> {
+  const res = await api.get(`/masters/import/template/`, { params: { entity }, responseType: 'blob' });
+  saveBlob(res.data as Blob, `${entity}_import_template.csv`);
+}
+
+/** Validate a CSV (commit=false → dry-run preview) or import it (commit=true). */
+export const useImportMasters = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (vars: { entity: ImportEntity; company: number; file: File; commit: boolean }) => {
+      const form = new FormData();
+      form.append('file', vars.file);
+      const res = await api.post<ImportReport>('/masters/import/', form, {
+        params: { entity: vars.entity, company: vars.company, commit: vars.commit },
+      });
+      return res.data;
+    },
+    onSuccess: (report) => {
+      if (report.commit && report.created > 0) {
+        qc.invalidateQueries({ queryKey: [ENTITY_QUERY_KEY[report.entity]] });
+      }
+    },
+  });
+};
+
+// ── Opening-balance import (trial balance → one opening journal entry) ───────
+export interface OpeningReportRow {
+  row: number;
+  status: 'ok' | 'error';
+  messages: string[];
+  label: string;
+}
+export interface OpeningBalanceReport {
+  kind: 'opening-balances';
+  company: number;
+  fiscal_year: string;
+  commit: boolean;
+  total_rows: number;
+  ok: number;
+  errors: number;
+  total_debit: string;
+  total_credit: string;
+  difference: string;
+  balanced: boolean;
+  posted_voucher: string | null;
+  error?: string;
+  rows: OpeningReportRow[];
+}
+
+export async function downloadOpeningTemplate(): Promise<void> {
+  const res = await api.get('/masters/import/opening-balances/template/', { responseType: 'blob' });
+  saveBlob(res.data as Blob, 'opening_balances_template.csv');
+}
+
+/** Preview (commit=false) or post (commit=true) the opening balances. */
+export const useImportOpeningBalances = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (vars: { company: number; file: File; commit: boolean }) => {
+      const form = new FormData();
+      form.append('file', vars.file);
+      const res = await api.post<OpeningBalanceReport>('/masters/import/opening-balances/', form, {
+        params: { company: vars.company, commit: vars.commit },
+      });
+      return res.data;
+    },
+    onSuccess: (r) => {
+      if (r.commit && r.posted_voucher) {
+        qc.invalidateQueries({ queryKey: ['trial-balance'] });
+        qc.invalidateQueries({ queryKey: ['journal-entries'] });
+      }
+    },
   });
 };

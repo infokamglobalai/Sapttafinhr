@@ -25,6 +25,17 @@ export default function CompanyProfilePage() {
 
   const upd = (patch: Partial<Company>) => setForm((p) => ({ ...p, ...patch }));
 
+  const onLogoFile = (file?: File | null) => {
+    setErr(null);
+    if (!file) return;
+    if (file.type !== 'image/png' && file.type !== 'image/jpeg') { setErr('Logo must be a PNG or JPG image.'); return; }
+    if (file.size > 512 * 1024) { setErr('Logo must be under 512 KB.'); return; }
+    const reader = new FileReader();
+    reader.onload = () => upd({ logo: String(reader.result) });
+    reader.onerror = () => setErr('Could not read that image — try another file.');
+    reader.readAsDataURL(file);
+  };
+
   const save = async () => {
     setErr(null);
     if (!companyId) return;
@@ -97,7 +108,66 @@ export default function CompanyProfilePage() {
         </div>
       </div>
 
-      <div className="card bg-slate-50 text-sm text-slate-600">
+      <div className="card">
+        <div className="mb-4">
+          <h3 className="text-ink-900">Document branding</h3>
+          <p className="text-sm text-ink-500">Logo, accent and notes applied to the invoices, receipts and reports you generate.</p>
+        </div>
+        <div className="space-y-5">
+          <div>
+            <label className="label">Company logo</label>
+            <div className="flex items-center gap-4">
+              <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-ink-200 bg-ink-50">
+                {form.logo
+                  ? <img src={form.logo} alt="Logo preview" className="max-h-full max-w-full object-contain" />
+                  : <span className="text-[11px] text-ink-400">No logo</span>}
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="btn-ghost cursor-pointer">
+                  {form.logo ? 'Replace logo' : 'Upload logo'}
+                  <input type="file" accept="image/png,image/jpeg" className="hidden" onChange={(e) => onLogoFile(e.target.files?.[0])} />
+                </label>
+                {form.logo && (
+                  <button type="button" className="text-xs text-ink-500 transition-colors hover:text-brand-600" onClick={() => upd({ logo: '' })}>Remove</button>
+                )}
+                <span className="text-[11px] text-ink-400">PNG or JPG · up to 512 KB.</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div><label className="label">Header note</label>
+              <input className="input" maxLength={120} placeholder="e.g. Chartered Accountants & Tax Advisors"
+                value={form.document_header ?? ''} onChange={(e) => upd({ document_header: e.target.value })} /></div>
+            <div><label className="label">Footer note</label>
+              <input className="input" maxLength={240} placeholder="e.g. Thank you for your business."
+                value={form.document_footer ?? ''} onChange={(e) => upd({ document_footer: e.target.value })} /></div>
+            <div><label className="label">Accent colour</label>
+              <div className="flex items-center gap-2">
+                <input type="color" className="h-9 w-12 cursor-pointer rounded border border-ink-200 bg-white p-0.5"
+                  value={form.brand_color || '#4f46e5'} onChange={(e) => upd({ brand_color: e.target.value })} />
+                <input className="input font-mono" maxLength={7} placeholder="#4f46e5"
+                  value={form.brand_color ?? ''} onChange={(e) => upd({ brand_color: e.target.value })} />
+              </div></div>
+            <div><label className="label">Template style</label>
+              <div className="grid grid-cols-2 gap-2">
+                {(['CLASSIC', 'MODERN'] as const).map((t) => (
+                  <button key={t} type="button" onClick={() => upd({ document_template: t })}
+                    className={`rounded-xl border px-3 py-2 text-sm capitalize transition-colors ${(form.document_template ?? 'CLASSIC') === t ? 'border-brand-500 bg-brand-50 font-semibold text-brand-700' : 'border-ink-200 text-ink-600 hover:border-ink-300'}`}>
+                    {t.toLowerCase()}
+                  </button>
+                ))}
+              </div></div>
+          </div>
+        </div>
+        <div className="mt-5 flex justify-end">
+          <button className="btn-primary" onClick={save} disabled={update.isPending || !form.name}>
+            {update.isPending ? 'Saving…' : 'Save changes'}
+          </button>
+        </div>
+      </div>
+
+      <div className="card bg-ink-50 text-sm text-ink-600">
         <strong>Why these matter:</strong>
         <ul className="ml-5 mt-2 list-disc space-y-1">
           <li><strong>GSTIN + State Code</strong> drive the CGST/SGST vs IGST split on every invoice.</li>

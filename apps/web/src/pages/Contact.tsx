@@ -272,7 +272,7 @@ export default function Contact() {
               {isAuthenticated ? (
                 <Link to="/app" className="contact-page__link-item">Go to your dashboard →</Link>
               ) : (
-                <Link to="/signup" className="contact-page__link-item">Start a free trial →</Link>
+                <Link to="/signup" className="contact-page__link-item">Get started →</Link>
               )}
               <Link to="/security" className="contact-page__link-item">
                 <SafetyCertificateOutlined aria-hidden />

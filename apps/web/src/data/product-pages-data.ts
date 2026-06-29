@@ -476,13 +476,13 @@ export const mobileAppPage: ProductPageConfig = {
     title: 'HR in every pocket',
     titleHighlight: 'for field teams',
     subtitle:
-      'Android & iOS apps for attendance, leave, payslips, and manager approvals — synced in real time with your Saptta HRMS.',
+      'Attendance, leave, payslips, and manager approvals from any phone — a mobile-responsive HRMS today, with native Android & iOS companion apps on our roadmap.',
     stats: [
       { value: 'GPS', label: 'Geofence punch' },
       { value: 'PDF', label: 'Instant payslips' },
       { value: 'Push', label: 'Live alerts' },
     ],
-    primaryLabel: 'Get the app',
+    primaryLabel: 'Request mobile access',
     primaryTo: '/contact',
     secondaryLabel: 'See HRMS features',
     secondaryTo: '/hrms',
@@ -556,7 +556,7 @@ export const mobileAppPage: ProductPageConfig = {
     title: 'Secure mobile',
     titleHighlight: 'deployment',
     subtitle: 'TLS encryption, offline punch cache, and privacy-first location checks.',
-    badges: ['Android & iOS', 'Offline mode', 'Biometrics', 'TLS 1.3', 'Regional languages', 'MDM friendly'],
+    badges: ['Mobile-responsive', 'Native apps on roadmap', 'Biometrics', 'TLS 1.3', 'Regional languages', 'MDM friendly'],
   },
   featuredModuleCode: 'GP',
   workflow: {

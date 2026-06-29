@@ -27,7 +27,6 @@ from rest_framework import serializers, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.core.models import Domain, Tenant
 from apps.identity.models import User
@@ -191,7 +190,12 @@ class SignupView(APIView):
 
         # 4) Tokens for immediate sign-in. Products are filled in by the SPA once
         #    provisioning is READY (poll → refresh), so they're empty here.
-        refresh = RefreshToken.for_user(user)
+        #    Use the workspace-aware serializer so the token carries the tenant
+        #    claim — the Finance app resolves the tenant from this claim, and
+        #    without it every tenant API call falls back to the public schema.
+        from apps.identity.jwt import SapttaTokenObtainPairSerializer
+
+        refresh = SapttaTokenObtainPairSerializer.get_token(user)
         return Response(
             {
                 "access": str(refresh.access_token),

@@ -13,7 +13,7 @@ export interface Plan {
   products: ('hrms' | 'finance')[];
   /** Base monthly price, exclusive of GST. */
   monthlyPrice: number;
-  /** Annual billing total (12 × base), exclusive of GST. */
+  /** Annual billing total (12 × base less the annual discount), exclusive of GST. */
   annualPrice: number;
   /** Employees covered by the base price; extra employees cost EXTRA_EMPLOYEE_PRICE each.
    *  Omitted for Finance (no per-employee component). */
@@ -59,6 +59,21 @@ export function planMonthly(plan: Plan, employees: number = INCLUDED_EMPLOYEES):
 export function extraEmployees(plan: Plan, employees: number): number {
   if (plan.includedEmployees == null) return 0;
   return Math.max(0, Math.round(employees) - plan.includedEmployees);
+}
+
+/** Discount applied when billing annually instead of monthly. */
+export const ANNUAL_DISCOUNT_RATE = 0.2;
+/** Annual discount as a percentage, for marketing copy ("Save 20%"). */
+export const ANNUAL_DISCOUNT_PCT = Math.round(ANNUAL_DISCOUNT_RATE * 100); // 20
+
+/** Annual (ex-GST) total for a monthly rate, with the annual discount applied. */
+export function annualFromMonthly(monthly: number): number {
+  return Math.round(monthly * 12 * (1 - ANNUAL_DISCOUNT_RATE));
+}
+
+/** Annual (ex-GST) price for a plan at a given headcount, with the annual discount applied. */
+export function planAnnual(plan: Plan, employees: number = INCLUDED_EMPLOYEES): number {
+  return annualFromMonthly(planMonthly(plan, employees));
 }
 
 /** List price of buying HRMS + Finance separately at base headcount (ex-GST). */
@@ -126,7 +141,7 @@ export const PLANS: Plan[] = [
     description: 'Complete HR, attendance & payroll — flat for up to 30 employees.',
     products: ['hrms'],
     monthlyPrice: HRMS_PRICE,
-    annualPrice: HRMS_PRICE * 12,
+    annualPrice: annualFromMonthly(HRMS_PRICE),
     includedEmployees: INCLUDED_EMPLOYEES,
     tier: 'hrms',
     features: [
@@ -147,7 +162,7 @@ export const PLANS: Plan[] = [
     description: 'GST-ready accounting for your whole company — flat price, unlimited users.',
     products: ['finance'],
     monthlyPrice: FINANCE_PRICE,
-    annualPrice: FINANCE_PRICE * 12,
+    annualPrice: annualFromMonthly(FINANCE_PRICE),
     tier: 'finance',
     features: [
       'Unlimited finance users',
@@ -167,7 +182,7 @@ export const PLANS: Plan[] = [
     description: 'HRMS + Finance together — save ₹1,999 every month vs buying separately.',
     products: ['hrms', 'finance'],
     monthlyPrice: COMPLETE_PRICE,
-    annualPrice: COMPLETE_PRICE * 12,
+    annualPrice: annualFromMonthly(COMPLETE_PRICE),
     includedEmployees: INCLUDED_EMPLOYEES,
     tier: 'complete',
     highlighted: true,

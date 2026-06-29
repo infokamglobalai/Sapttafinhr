@@ -23,6 +23,7 @@ import TrialBalancePage from '@/features/ledger/TrialBalancePage';
 import ManualEntryPage from '@/features/ledger/ManualEntryPage';
 import PartiesPage from '@/features/masters/PartiesPage';
 import ItemsPage from '@/features/masters/ItemsPage';
+import ImportPage from '@/features/masters/ImportPage';
 import InvoicesPage from '@/features/billing/InvoicesPage';
 import CreditNotesPage from '@/features/billing/CreditNotesPage';
 import QuotationsPage from '@/features/billing/QuotationsPage';
@@ -79,7 +80,7 @@ import UncategorizedPage from '@/features/ledger/UncategorizedPage';
 
 type RouteId =
   | 'dashboard'
-  | 'parties' | 'items' | 'cost-centers' | 'projects'
+  | 'parties' | 'items' | 'import-data' | 'cost-centers' | 'projects'
   | 'quotations' | 'sales-crm' | 'sales-orders' | 'client-documents' | 'invoices' | 'credit-notes' | 'receipts' | 'recurring-invoices' | 'portal-access'
   | 'purchase-orders' | 'grns' | 'vendor-bills' | 'vendor-payments'
   | 'bank-accounts' | 'pdcs' | 'reconciliation'
@@ -110,6 +111,7 @@ const SECTIONS: Section[] = [
     id: 'masters', label: 'Masters', icon: BookCopy, children: [
       { id: 'parties', label: 'Customers & Vendors', icon: Users, description: 'People you sell to and buy from' },
       { id: 'items', label: 'Items', icon: Package, description: 'Products and services you trade' },
+      { id: 'import-data', label: 'Import Data', icon: FileInput, description: 'Bulk-import customers, vendors & accounts from CSV' },
       { id: 'cost-centers', label: 'Cost Centers', icon: BookCopy, description: 'Tag JE lines for cost slicing' },
       { id: 'projects', label: 'Projects', icon: Briefcase, description: 'Group expenses + revenue by project' },
     ]
@@ -557,6 +559,7 @@ export default function AppShell() {
             {route === 'dashboard' && <Dashboard onGo={(r) => go(r as RouteId)} />}
             {route === 'parties' && <PartiesPage />}
             {route === 'items' && <ItemsPage />}
+            {route === 'import-data' && <ImportPage />}
             {route === 'quotations' && <QuotationsPage />}
             {route === 'sales-crm' && <SalesCrmPage />}
             {route === 'client-documents' && <ClientDocumentsPage />}

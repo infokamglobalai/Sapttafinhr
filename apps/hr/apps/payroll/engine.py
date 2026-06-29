@@ -9,9 +9,12 @@ Calculation order:
   5. Compute reimbursements to add
   6. Final net payable
 
-LEGAL FLAG: TDS is calculated as a flat slab (simplified).
-  Full regime-based TDS with 80C declarations is deferred to v2.
-  Recommend clients verify final TDS with their CA before filing Form 24Q.
+TDS is regime-based and declaration-aware (Section 192 average-tax method — see
+  tax.monthly_tds): it honours the employee's old/new regime choice and
+  Chapter VI-A / HRA declarations, with new-regime marginal relief at the 87A
+  ceiling. Statutory edge cases (surcharge above 50L, employer-perquisite
+  valuation) are out of scope, so clients should still have their CA verify the
+  annual liability before filing Form 24Q.
 """
 import calendar
 import datetime
@@ -72,44 +75,19 @@ def calculate_pt(gross_salary: Decimal, slabs: list) -> Decimal:
 
 
 # ---------------------------------------------------------------------------
-# TDS flat-slab (simplified — v1 only)
-# LEGAL FLAG: This is a rough estimate. Do not use for Form 24Q filing.
+# TDS fallback — last resort when the declaration-aware calculator errors.
+# Delegates to tax.compute_annual_tax so there is ONE slab source of truth
+# (current FY new regime), not a separate/stale table that can drift.
 # ---------------------------------------------------------------------------
 def calculate_tds_flat(annual_gross: Decimal) -> Decimal:
+    """New-regime monthly TDS from a projected annual gross (no declaration).
+
+    Used only if :func:`tax.monthly_tds` raises. Returns MONTHLY TDS.
     """
-    Flat-slab TDS per new tax regime (FY 2024-25 slabs, India).
-    Returns MONTHLY TDS amount.
-    """
-    slabs = [
-        (Decimal("300000"), Decimal("0")),
-        (Decimal("600000"), Decimal("0.05")),
-        (Decimal("900000"), Decimal("0.10")),
-        (Decimal("1200000"), Decimal("0.15")),
-        (Decimal("1500000"), Decimal("0.20")),
-    ]
-    annual_tax = Decimal("0")
-    remaining = annual_gross
-    prev_limit = Decimal("0")
+    from .tax import compute_annual_tax
 
-    for limit, rate in slabs:
-        taxable = min(remaining, limit - prev_limit)
-        if taxable <= 0:
-            break
-        annual_tax += taxable * rate
-        remaining -= taxable
-        prev_limit = limit
-
-    if remaining > 0:
-        annual_tax += remaining * Decimal("0.30")
-
-    # Rebate u/s 87A (income ≤ 7L pays 0 tax)
-    if annual_gross <= Decimal("700000"):
-        annual_tax = Decimal("0")
-
-    # 4% health & education cess
-    annual_tax *= Decimal("1.04")
-
-    return round2(annual_tax / 12)
+    result = compute_annual_tax(regime="new", gross_salary_annual=annual_gross)
+    return round2(result["total_tax"] / 12)
 
 
 # ---------------------------------------------------------------------------

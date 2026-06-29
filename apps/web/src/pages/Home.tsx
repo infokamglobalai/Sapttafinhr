@@ -77,7 +77,7 @@ const HOME_PRICING_PLANS = (() => {
       features: ['Everything in HRMS & Finance', 'Payroll-to-ledger sync', 'Unified reports & portal'],
       path: '/complete',
       featured: true,
-      cta: 'Start free trial',
+      cta: 'Get started',
     },
     {
       title: 'Finance',
@@ -99,7 +99,7 @@ const HERO_TRUST = [
   { icon: <TeamOutlined />, text: '10–500+ Employees' },
 ];
 
-const HERO_BENEFITS = ['14-Day Free Trial', 'No Credit Card Required', 'Quick Onboarding'];
+const HERO_BENEFITS = ['No Lock-in — Cancel Anytime', 'Go Live in a Day', 'Free Guided Onboarding'];
 
 const AUTOMATION_WORKFLOW: {
   label: string;
@@ -650,7 +650,7 @@ function MetricsSection({ isMobile }: { isMobile: boolean }) {
               (e.target as HTMLButtonElement).style.boxShadow = '0 10px 24px rgba(255,109,0,0.26)';
             }}
           >
-            Start Free Trial →
+            Get Started →
           </button>
         </div>
       </div>
@@ -1065,8 +1065,8 @@ export default function Home() {
           </ScrollReveal>
 
           <div className="home-pricing__trust" role="list" aria-label="Pricing guarantees">
-            <span className="home-pricing__trust-item" role="listitem">14-day free trial</span>
             <span className="home-pricing__trust-item" role="listitem">No setup fees</span>
+            <span className="home-pricing__trust-item" role="listitem">No lock-in contracts</span>
             <span className="home-pricing__trust-item" role="listitem">Cancel anytime</span>
           </div>
 

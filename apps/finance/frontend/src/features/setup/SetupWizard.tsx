@@ -35,13 +35,23 @@ import {
  * Signup already seeds Company + COA, so this fills the gaps rather than creating
  * from scratch.
  */
-type StepId = 'company' | 'fy' | 'bank' | 'done';
+type StepId = 'company' | 'fy' | 'branding' | 'bank' | 'done';
 const STEPS: { id: StepId; label: string }[] = [
   { id: 'company', label: 'Company profile' },
   { id: 'fy', label: 'Fiscal year' },
+  { id: 'branding', label: 'Branding' },
   { id: 'bank', label: 'Bank account' },
   { id: 'done', label: 'Finish' },
 ];
+
+const LOGO_MAX_BYTES = 512 * 1024; // 512 KB; embedded as a data URL in PDFs.
+type BrandForm = {
+  logo: string;
+  document_header: string;
+  document_footer: string;
+  brand_color: string;
+  document_template: 'CLASSIC' | 'MODERN';
+};
 
 function fyDefaults() {
   const today = new Date();
@@ -75,6 +85,42 @@ export default function SetupWizard({ onComplete }: { onComplete: () => void }) 
 
   const [bank, setBank] = useState({ name: '', bank_name: '', account_number: '', ifsc: '', branch: '', opening_balance: '0', ledger_account: '' });
   const ifscLookup = useIfscLookup(bank.ifsc);
+
+  const [brandForm, setBrandForm] = useState<BrandForm>({
+    logo: '', document_header: '', document_footer: '', brand_color: '#4f46e5', document_template: 'CLASSIC',
+  });
+  // Seed from the server once it loads. Use ?? / || so a not-yet-saved null from
+  // a mid-wizard refetch never wipes what the admin has just typed.
+  useEffect(() => {
+    if (!company) return;
+    setBrandForm((p) => ({
+      logo: company.logo ?? p.logo,
+      document_header: company.document_header ?? p.document_header,
+      document_footer: company.document_footer ?? p.document_footer,
+      brand_color: company.brand_color || p.brand_color,
+      document_template: company.document_template ?? p.document_template,
+    }));
+  }, [company]);
+
+  function onLogoFile(file?: File | null) {
+    setErr(null);
+    if (!file) return;
+    if (file.type !== 'image/png' && file.type !== 'image/jpeg') { setErr('Logo must be a PNG or JPG image.'); return; }
+    if (file.size > LOGO_MAX_BYTES) { setErr('Logo must be under 512 KB.'); return; }
+    const reader = new FileReader();
+    reader.onload = () => setBrandForm((p) => ({ ...p, logo: String(reader.result) }));
+    reader.onerror = () => setErr('Could not read that image — try another file.');
+    reader.readAsDataURL(file);
+  }
+
+  async function saveBranding() {
+    setErr(null);
+    if (!companyId) return;
+    try {
+      await updateCompany.mutateAsync({ id: companyId, ...brandForm });
+      setStep('bank');
+    } catch (e) { fail(e); }
+  }
 
   useEffect(() => {
     if (ifscLookup.status !== 'found' || !ifscLookup.details) return;
@@ -154,10 +200,10 @@ export default function SetupWizard({ onComplete }: { onComplete: () => void }) 
 
   async function saveFY() {
     setErr(null);
-    if (hasActiveFY) { setStep('bank'); return; }
+    if (hasActiveFY) { setStep('branding'); return; }
     try {
       await createFY.mutateAsync({ company: companyId, ...fyForm, is_active: true });
-      setStep('bank');
+      setStep('branding');
     } catch (e) { fail(e); }
   }
 
@@ -206,25 +252,25 @@ export default function SetupWizard({ onComplete }: { onComplete: () => void }) 
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 px-4 py-10">
+    <div className="min-h-screen bg-ink-50 px-4 py-10">
       <div className="mx-auto max-w-2xl">
         <div className="mb-6 text-center">
-          <div className="text-2xl font-bold text-slate-900">Set up {company?.name ?? 'your company'}</div>
-          <p className="text-sm text-slate-500">A few details and your accounting workspace is ready.</p>
+          <h1 className="text-[26px] leading-tight">Set up {company?.name ?? 'your company'}</h1>
+          <p className="mt-1 text-sm text-ink-500">A few details and your accounting workspace is ready.</p>
         </div>
 
         {/* Stepper */}
         <div className="mb-6 flex items-center justify-center gap-2">
           {STEPS.map((s, i) => (
             <div key={s.id} className="flex items-center gap-2">
-              <div className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${i <= idx ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-500'}`}>{i + 1}</div>
-              <span className={`text-xs ${i === idx ? 'font-semibold text-slate-900' : 'text-slate-400'}`}>{s.label}</span>
-              {i < STEPS.length - 1 && <span className="mx-1 h-px w-6 bg-slate-200" />}
+              <div className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-all ${i < idx ? 'bg-brand-600 text-white' : i === idx ? 'bg-brand-600 text-white ring-4 ring-brand-100' : 'bg-ink-200 text-ink-500'}`}>{i < idx ? '✓' : i + 1}</div>
+              <span className={`text-xs ${i === idx ? 'font-semibold text-ink-900' : 'text-ink-400'}`}>{s.label}</span>
+              {i < STEPS.length - 1 && <span className="mx-1 h-px w-6 bg-ink-200" />}
             </div>
           ))}
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="card">
           {step === 'company' && (
             <div className="space-y-4">
               <Field label="Display Name *"><input className="input" value={cForm.name ?? ''} onChange={(e) => setCForm((p) => ({ ...p, name: e.target.value }))} /></Field>
@@ -239,7 +285,7 @@ export default function SetupWizard({ onComplete }: { onComplete: () => void }) 
                     value={cForm.gstin ?? ''}
                     onChange={(e) => onGstinChange(e.target.value)}
                   />
-                  <p id="gstin-hint" className="mt-1 text-[11px] leading-snug text-slate-500">{GSTIN_HINT}</p>
+                  <p id="gstin-hint" className="mt-1 text-[11px] leading-snug text-ink-500">{GSTIN_HINT}</p>
                 </Field>
                 <Field label="PAN">
                   <input
@@ -268,7 +314,7 @@ export default function SetupWizard({ onComplete }: { onComplete: () => void }) 
           {step === 'fy' && (
             <div className="space-y-4">
               {hasActiveFY ? (
-                <p className="text-sm text-slate-600">An active fiscal year already exists (<strong>{fiscalYears?.[0]?.name}</strong>). You can continue.</p>
+                <p className="text-sm text-ink-600">An active fiscal year already exists (<strong>{fiscalYears?.[0]?.name}</strong>). You can continue.</p>
               ) : (
                 <div className="grid grid-cols-3 gap-4">
                   <Field label="Name"><input className="input" value={fyForm.name} onChange={(e) => setFyForm((p) => ({ ...p, name: e.target.value }))} /></Field>
@@ -280,9 +326,101 @@ export default function SetupWizard({ onComplete }: { onComplete: () => void }) 
             </div>
           )}
 
+          {step === 'branding' && (
+            <div className="space-y-5">
+              <p className="text-sm text-ink-500">
+                Add your logo and a few details — these are applied to the invoices, receipts and reports
+                you generate. You can change them later in Settings.
+              </p>
+
+              <Field label="Company logo">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-ink-200 bg-ink-50">
+                    {brandForm.logo
+                      ? <img src={brandForm.logo} alt="Logo preview" className="max-h-full max-w-full object-contain" />
+                      : <span className="text-[11px] text-ink-400">No logo</span>}
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="btn-ghost cursor-pointer">
+                      {brandForm.logo ? 'Replace logo' : 'Upload logo'}
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg"
+                        className="hidden"
+                        onChange={(e) => onLogoFile(e.target.files?.[0])}
+                      />
+                    </label>
+                    {brandForm.logo && (
+                      <button type="button" className="text-xs text-ink-500 hover:text-brand-600 transition-colors" onClick={() => setBrandForm((p) => ({ ...p, logo: '' }))}>
+                        Remove
+                      </button>
+                    )}
+                    <span className="text-[11px] text-ink-400">PNG or JPG · up to 512 KB.</span>
+                  </div>
+                </div>
+              </Field>
+
+              <Field label="Header note">
+                <input
+                  className="input"
+                  maxLength={120}
+                  placeholder="e.g. Chartered Accountants & Tax Advisors"
+                  value={brandForm.document_header}
+                  onChange={(e) => setBrandForm((p) => ({ ...p, document_header: e.target.value }))}
+                />
+                <p className="mt-1 text-[11px] text-ink-500">Shown under your company name on documents.</p>
+              </Field>
+
+              <Field label="Footer note">
+                <textarea
+                  className="input min-h-[64px]"
+                  maxLength={240}
+                  placeholder="e.g. Thank you for your business. Payable within 15 days."
+                  value={brandForm.document_footer}
+                  onChange={(e) => setBrandForm((p) => ({ ...p, document_footer: e.target.value }))}
+                />
+              </Field>
+
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Accent colour">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      className="h-9 w-12 cursor-pointer rounded border border-ink-200 bg-white p-0.5"
+                      value={brandForm.brand_color}
+                      onChange={(e) => setBrandForm((p) => ({ ...p, brand_color: e.target.value }))}
+                    />
+                    <input
+                      className="input font-mono"
+                      maxLength={7}
+                      value={brandForm.brand_color}
+                      onChange={(e) => setBrandForm((p) => ({ ...p, brand_color: e.target.value }))}
+                    />
+                  </div>
+                </Field>
+                <Field label="Template style">
+                  <div className="grid grid-cols-2 gap-2">
+                    {(['CLASSIC', 'MODERN'] as const).map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setBrandForm((p) => ({ ...p, document_template: t }))}
+                        className={`rounded-xl border px-3 py-2 text-sm capitalize transition-colors ${brandForm.document_template === t ? 'border-brand-500 bg-brand-50 font-semibold text-brand-700' : 'border-ink-200 text-ink-600 hover:border-ink-300'}`}
+                      >
+                        {t.toLowerCase()}
+                      </button>
+                    ))}
+                  </div>
+                </Field>
+              </div>
+
+              <Nav onBack={() => setStep('fy')} onNext={saveBranding} nextLabel={updateCompany.isPending ? 'Saving…' : 'Continue'} disabled={updateCompany.isPending} />
+            </div>
+          )}
+
           {step === 'bank' && (
             <div className="space-y-4">
-              <p className="text-sm text-slate-500">Add a bank account now, or skip and add it later. Enter IFSC first — bank and branch details are filled automatically.</p>
+              <p className="text-sm text-ink-500">Add a bank account now, or skip and add it later. Enter IFSC first — bank and branch details are filled automatically.</p>
               <div className="grid grid-cols-2 gap-4">
                 <Field label="IFSC *">
                   <div className="relative">
@@ -294,13 +432,13 @@ export default function SetupWizard({ onComplete }: { onComplete: () => void }) 
                       onChange={(e) => setBank((p) => ({ ...p, ifsc: sanitizeIfscInput(e.target.value) }))}
                     />
                     {ifscLookup.status === 'loading' && (
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">…</span>
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-400">…</span>
                     )}
                     {ifscLookup.status === 'found' && (
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-600" aria-hidden>✓</span>
                     )}
                   </div>
-                  <p className="mt-1 text-[11px] leading-snug text-slate-500">11 characters — 4 letters, 0, then 6 alphanumeric (e.g. HDFC0001234).</p>
+                  <p className="mt-1 text-[11px] leading-snug text-ink-500">11 characters — 4 letters, 0, then 6 alphanumeric (e.g. HDFC0001234).</p>
                   {(ifscLookup.status === 'invalid' || ifscLookup.status === 'error') && ifscLookup.error && (
                     <p className="mt-1 text-[11px] text-red-600">{ifscLookup.error}</p>
                   )}
@@ -364,7 +502,7 @@ export default function SetupWizard({ onComplete }: { onComplete: () => void }) 
                 </Field>
               </div>
               <div className="flex items-center justify-between">
-                <button className="text-sm text-slate-500 hover:underline" onClick={() => setStep('fy')}>← Back</button>
+                <button className="text-sm text-ink-500 hover:text-brand-600 transition-colors" onClick={() => setStep('branding')}>← Back</button>
                 <div className="flex gap-2">
                   <button className="btn-ghost" onClick={() => saveBank(true)}>Skip for now</button>
                   <button className="btn-primary" onClick={() => saveBank(false)} disabled={createBank.isPending}>{createBank.isPending ? 'Saving…' : 'Add & continue'}</button>
@@ -375,8 +513,8 @@ export default function SetupWizard({ onComplete }: { onComplete: () => void }) 
 
           {step === 'done' && (
             <div className="space-y-4 text-center">
-              <div className="text-lg font-semibold text-slate-900">You're all set 🎉</div>
-              <p className="text-sm text-slate-600">Your company profile and fiscal year are configured. Finish to start invoicing.</p>
+              <h3 className="text-ink-900">You're all set 🎉</h3>
+              <p className="text-sm text-ink-600">Your company profile and fiscal year are configured. Finish to start invoicing.</p>
               <div className="flex justify-center gap-2">
                 <button className="btn-ghost" onClick={() => setStep('bank')}>← Back</button>
                 <button className="btn-primary" onClick={finish} disabled={complete.isPending}>{complete.isPending ? 'Finishing…' : 'Enter fin-saptta'}</button>
@@ -384,7 +522,7 @@ export default function SetupWizard({ onComplete }: { onComplete: () => void }) 
             </div>
           )}
 
-          {err && <div className="mt-4 rounded bg-red-50 p-2 text-xs text-red-700">{err}</div>}
+          {err && <div className="mt-4 rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs text-red-700">{err}</div>}
         </div>
       </div>
     </div>
@@ -397,7 +535,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function Nav({ onBack, onNext, nextLabel, disabled }: { onBack?: () => void; onNext: () => void; nextLabel: string; disabled?: boolean }) {
   return (
     <div className="flex items-center justify-between pt-2">
-      {onBack ? <button className="text-sm text-slate-500 hover:underline" onClick={onBack}>← Back</button> : <span />}
+      {onBack ? <button className="text-sm text-ink-500 hover:text-brand-600 transition-colors" onClick={onBack}>← Back</button> : <span />}
       <button className="btn-primary" onClick={onNext} disabled={disabled}>{nextLabel}</button>
     </div>
   );
