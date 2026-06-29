@@ -149,9 +149,52 @@ def org_chart(request):
 
     tenant = request.tenant
     chart = build_org_chart(tenant)
+    can_manage = bool(
+        request.user.is_hr_admin
+        and getattr(request.user, "has_perm_code", lambda _c: False)("employees.edit")
+    )
     return render(request, "employees/org_chart.html", {
         "chart": chart,
+        "can_manage_org": can_manage,
     })
+
+
+@perm_required("employees.edit")
+def org_chart_reassign(request, pk):
+    """Change reporting manager from the org chart (HR)."""
+    from .org_chart_services import OrgChartError, manager_choices, reassign_reporting_manager
+
+    tenant = request.tenant
+    employee = get_object_or_404(Employee, pk=pk, tenant=tenant, is_active=True)
+
+    if request.method == "GET":
+        return render(request, "employees/partials/org_chart_reassign_form.html", {
+            "employee": employee,
+            "managers": manager_choices(tenant, employee),
+        })
+
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    raw = (request.POST.get("reporting_manager") or "").strip()
+    new_manager = None
+    if raw:
+        new_manager = get_object_or_404(
+            Employee, pk=int(raw), tenant=tenant, is_active=True
+        )
+    try:
+        reassign_reporting_manager(employee, new_manager, updated_by=request.user)
+    except OrgChartError as exc:
+        return JsonResponse({"error": str(exc)}, status=400)
+    except ValueError:
+        return JsonResponse({"error": "Invalid manager selected."}, status=400)
+
+    messages.success(
+        request,
+        f"Updated reporting line for {employee.directory_name}."
+        + (f" Now reports to {new_manager.directory_name}." if new_manager else " Now a top-level leader."),
+    )
+    return JsonResponse({"ok": True})
 
 
 @tenant_login_required
@@ -287,7 +330,7 @@ def bulk_provision_logins(request):
         messages.warning(request, f"Could not provision logins for {len(skipped)} employee(s) — add their email first.")
     else:
         messages.info(request, "All employees already have login accounts.")
-    return redirect("employees:list")
+    return redirect("employees:team_access")
 
 
 @perm_required("employees.edit")
@@ -368,12 +411,16 @@ def team_access(request):
             hr_admin_count += 1
         if not access["is_active"]:
             inactive_count += 1
+    pending_login = Employee.objects.filter(tenant=tenant, is_active=True).filter(
+        Q(user__isnull=True) | Q(user__password__startswith="!")
+    ).count()
     return render(request, "employees/team_access.html", {
         "rows": rows,
         "stats_total": len(rows),
         "stats_managers": manager_count,
         "stats_hr_admins": hr_admin_count,
         "stats_inactive": inactive_count,
+        "stats_pending_login": pending_login,
     })
 
 
@@ -484,16 +531,31 @@ def bulk_import(request):
 # ---------------------------------------------------------------------------
 # Org structure management
 # ---------------------------------------------------------------------------
+def _org_list_response(request, *, partial_template, context, redirect_name, success_msg=None, error_msg=None):
+    tenant = request.tenant
+    if error_msg:
+        messages.error(request, error_msg)
+    elif success_msg:
+        messages.success(request, success_msg)
+    if request.htmx:
+        return render(request, partial_template, context)
+    return redirect(redirect_name)
+
+
 @perm_required("employees.edit")
 def department_list(request):
+    from .org_structure_services import departments_queryset
+
     tenant = request.tenant
-    departments = Department.objects.filter(tenant=tenant).order_by("name")
+    departments = departments_queryset(tenant)
     form = DepartmentForm(tenant)
     return render(request, "employees/departments.html", {"departments": departments, "form": form})
 
 
 @perm_required("employees.edit")
 def department_create(request):
+    from .org_structure_services import departments_queryset
+
     tenant = request.tenant
     if request.method == "POST":
         form = DepartmentForm(tenant, request.POST)
@@ -502,22 +564,65 @@ def department_create(request):
             dept.tenant = tenant
             dept.save()
             if request.htmx:
-                departments = Department.objects.filter(tenant=tenant).order_by("name")
-                return render(request, "employees/partials/departments_list.html", {"departments": departments})
+                return render(
+                    request,
+                    "employees/partials/departments_list.html",
+                    {"departments": departments_queryset(tenant)},
+                )
             return redirect("employees:departments")
     return redirect("employees:departments")
 
 
 @perm_required("employees.edit")
-def designation_list(request):
+@require_POST
+def department_deactivate(request, pk):
+    from .org_structure_services import deactivate_department, departments_queryset
+
     tenant = request.tenant
-    designations = Designation.objects.filter(tenant=tenant).order_by("level", "name")
+    dept = get_object_or_404(Department, pk=pk, tenant=tenant)
+    err = deactivate_department(dept)
+    return _org_list_response(
+        request,
+        partial_template="employees/partials/departments_list.html",
+        context={"departments": departments_queryset(tenant), "list_error": err},
+        redirect_name="employees:departments",
+        success_msg=None if err else f"Department «{dept.name}» deactivated.",
+        error_msg=err,
+    )
+
+
+@perm_required("employees.edit")
+@require_POST
+def department_restore(request, pk):
+    from .org_structure_services import departments_queryset, restore_department
+
+    tenant = request.tenant
+    dept = get_object_or_404(Department, pk=pk, tenant=tenant)
+    err = restore_department(dept)
+    return _org_list_response(
+        request,
+        partial_template="employees/partials/departments_list.html",
+        context={"departments": departments_queryset(tenant), "list_error": err},
+        redirect_name="employees:departments",
+        success_msg=None if err else f"Department «{dept.name}» restored.",
+        error_msg=err,
+    )
+
+
+@perm_required("employees.edit")
+def designation_list(request):
+    from .org_structure_services import designations_queryset
+
+    tenant = request.tenant
+    designations = designations_queryset(tenant)
     form = DesignationForm()
     return render(request, "employees/designations.html", {"designations": designations, "form": form})
 
 
 @perm_required("employees.edit")
 def designation_create(request):
+    from .org_structure_services import designations_queryset
+
     tenant = request.tenant
     if request.method == "POST":
         form = DesignationForm(request.POST)
@@ -526,22 +631,65 @@ def designation_create(request):
             desig.tenant = tenant
             desig.save()
             if request.htmx:
-                designations = Designation.objects.filter(tenant=tenant).order_by("level", "name")
-                return render(request, "employees/partials/designations_list.html", {"designations": designations})
+                return render(
+                    request,
+                    "employees/partials/designations_list.html",
+                    {"designations": designations_queryset(tenant)},
+                )
             return redirect("employees:designations")
     return redirect("employees:designations")
 
 
 @perm_required("employees.edit")
-def location_list(request):
+@require_POST
+def designation_deactivate(request, pk):
+    from .org_structure_services import deactivate_designation, designations_queryset
+
     tenant = request.tenant
-    locations = OfficeLocation.objects.filter(tenant=tenant).order_by("name")
+    desig = get_object_or_404(Designation, pk=pk, tenant=tenant)
+    err = deactivate_designation(desig)
+    return _org_list_response(
+        request,
+        partial_template="employees/partials/designations_list.html",
+        context={"designations": designations_queryset(tenant), "list_error": err},
+        redirect_name="employees:designations",
+        success_msg=None if err else f"Designation «{desig.name}» deactivated.",
+        error_msg=err,
+    )
+
+
+@perm_required("employees.edit")
+@require_POST
+def designation_restore(request, pk):
+    from .org_structure_services import designations_queryset, restore_designation
+
+    tenant = request.tenant
+    desig = get_object_or_404(Designation, pk=pk, tenant=tenant)
+    err = restore_designation(desig)
+    return _org_list_response(
+        request,
+        partial_template="employees/partials/designations_list.html",
+        context={"designations": designations_queryset(tenant), "list_error": err},
+        redirect_name="employees:designations",
+        success_msg=None if err else f"Designation «{desig.name}» restored.",
+        error_msg=err,
+    )
+
+
+@perm_required("employees.edit")
+def location_list(request):
+    from .org_structure_services import locations_queryset
+
+    tenant = request.tenant
+    locations = locations_queryset(tenant)
     form = OfficeLocationForm()
     return render(request, "employees/locations.html", {"locations": locations, "form": form})
 
 
 @perm_required("employees.edit")
 def location_create(request):
+    from .org_structure_services import locations_queryset
+
     tenant = request.tenant
     if request.method == "POST":
         form = OfficeLocationForm(request.POST)
@@ -550,10 +698,49 @@ def location_create(request):
             loc.tenant = tenant
             loc.save()
             if request.htmx:
-                locations = OfficeLocation.objects.filter(tenant=tenant).order_by("name")
-                return render(request, "employees/partials/locations_list.html", {"locations": locations})
+                return render(
+                    request,
+                    "employees/partials/locations_list.html",
+                    {"locations": locations_queryset(tenant)},
+                )
             return redirect("employees:locations")
     return redirect("employees:locations")
+
+
+@perm_required("employees.edit")
+@require_POST
+def location_deactivate(request, pk):
+    from .org_structure_services import deactivate_location, locations_queryset
+
+    tenant = request.tenant
+    loc = get_object_or_404(OfficeLocation, pk=pk, tenant=tenant)
+    err = deactivate_location(loc)
+    return _org_list_response(
+        request,
+        partial_template="employees/partials/locations_list.html",
+        context={"locations": locations_queryset(tenant), "list_error": err},
+        redirect_name="employees:locations",
+        success_msg=None if err else f"Location «{loc.name}» deactivated.",
+        error_msg=err,
+    )
+
+
+@perm_required("employees.edit")
+@require_POST
+def location_restore(request, pk):
+    from .org_structure_services import locations_queryset, restore_location
+
+    tenant = request.tenant
+    loc = get_object_or_404(OfficeLocation, pk=pk, tenant=tenant)
+    err = restore_location(loc)
+    return _org_list_response(
+        request,
+        partial_template="employees/partials/locations_list.html",
+        context={"locations": locations_queryset(tenant), "list_error": err},
+        redirect_name="employees:locations",
+        success_msg=None if err else f"Location «{loc.name}» restored.",
+        error_msg=err,
+    )
 
 
 # ─────────────────────────────────────────────────────────────────────────

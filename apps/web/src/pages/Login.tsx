@@ -488,42 +488,26 @@ export default function Login() {
 
 
 
-  const handleSubmit = async (e: React.FormEvent) => {
-
-    e.preventDefault();
-
+  const signInWithCredentials = async (loginEmail: string, loginPassword: string) => {
     setError('');
-
     handoffOnceRef.current = true;
 
     try {
-
-      const platformRes = await apiLogin(email, password, workspaceParam);
+      const platformRes = await apiLogin(loginEmail, loginPassword, workspaceParam);
 
       if (platformRes.kind === 'mfa') {
-
         setMfaChallenge(platformRes);
-
         if (platformRes.setup) {
-
           const setup = await mfaSetupStart(platformRes.challenge_token);
-
           setMfaSetup(setup);
-
         }
-
         return;
-
       }
 
       const u = await hydrateSession(platformRes.workspace ?? workspaceParam);
-
       if (redirectTarget) await performRedirect();
-
       else navigate(landingFor(u), { replace: true });
-
     } catch (platformErr) {
-
       if (platformErr instanceof ApiError && platformErr.message.toLowerCase().includes('verify your email')) {
         setError(`${platformErr.message} Use the code from your email or open Sign up → verify.`);
         handoffOnceRef.current = false;
@@ -531,51 +515,39 @@ export default function Login() {
       }
 
       try {
-
         const hrRes = await hrStaffLogin(
-
-          email,
-
-          password,
-
+          loginEmail,
+          loginPassword,
           workspaceParam,
-
           redirectTarget === 'hr' ? '/' : '/',
-
         );
 
         if (hrRes.kind === 'mfa') {
-
           setMfaChallenge(hrRes);
-
           if (hrRes.setup) {
-
-            const setup = await hrStaffLoginMfa('setup_start', hrRes.challenge_token, '', redirectTarget === 'hr' ? '/' : '/') as MfaSetupPayload;
-
+            const setup = await hrStaffLoginMfa(
+              'setup_start',
+              hrRes.challenge_token,
+              '',
+              redirectTarget === 'hr' ? '/' : '/',
+            ) as MfaSetupPayload;
             setMfaSetup(setup);
-
           }
-
           return;
-
         }
 
         if (hrRes.workspace) setWorkspace(hrRes.workspace);
-
         window.location.href = hrRes.redirect_url;
-
-        return;
-
       } catch {
-
         handoffOnceRef.current = false;
-
         setError('Invalid email or password.');
-
       }
-
     }
+  };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await signInWithCredentials(email, password);
   };
 
 
@@ -663,9 +635,7 @@ export default function Login() {
 
 
   const handleDemoLogin = async (type: 'admin' | 'saas' | 'kuwit') => {
-    setError('');
     setHandoffFailed(null);
-    handoffOnceRef.current = true;
     let dEmail = '';
     let dPass = '';
     if (type === 'admin') {
@@ -680,23 +650,7 @@ export default function Login() {
     }
     setEmail(dEmail);
     setPassword(dPass);
-    try {
-      const platformRes = await apiLogin(dEmail, dPass, workspaceParam);
-      if (platformRes.kind === 'mfa') {
-        setMfaChallenge(platformRes);
-        if (platformRes.setup) {
-          const setup = await mfaSetupStart(platformRes.challenge_token);
-          setMfaSetup(setup);
-        }
-        return;
-      }
-      const u = await hydrateSession(platformRes.workspace ?? workspaceParam);
-      if (redirectTarget) await performRedirect();
-      else navigate(landingFor(u), { replace: true });
-    } catch {
-      handoffOnceRef.current = false;
-      setError('Demo login unavailable. Check that the API is running.');
-    }
+    await signInWithCredentials(dEmail, dPass);
   };
 
 

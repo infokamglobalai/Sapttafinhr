@@ -190,14 +190,23 @@ REST_FRAMEWORK = {
 }
 
 # ===== Email =====
-# Dev defaults to console (prints to logs). Set EMAIL_BACKEND + SMTP/SES vars in
-# prod so password-reset / verification / dunning mail actually sends.
-EMAIL_BACKEND = env("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
-EMAIL_HOST = env("EMAIL_HOST", default="")
-EMAIL_PORT = env.int("EMAIL_PORT", default=587)
-EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
-EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
+# SMTP login (EMAIL_HOST_USER) ≠ visible From (DEFAULT_FROM_EMAIL). Example:
+#   EMAIL_HOST_USER=contact@saptta.com  (Gmail app password)
+#   DEFAULT_FROM_EMAIL=Saptta <no-reply@saptta.com>
+_email_host = env("EMAIL_HOST", default="") or env("SMTP_HOST", default="")
+EMAIL_HOST = _email_host
+EMAIL_PORT = env.int("EMAIL_PORT", default=env.int("SMTP_PORT", default=587))
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="") or env("SMTP_USER", default="")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="") or env("SMTP_PASS", default="")
 EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
+EMAIL_BACKEND = env(
+    "EMAIL_BACKEND",
+    default=(
+        "django.core.mail.backends.smtp.EmailBackend"
+        if _email_host
+        else "django.core.mail.backends.console.EmailBackend"
+    ),
+)
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="Saptta <no-reply@saptta.com>")
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 

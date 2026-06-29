@@ -9,7 +9,15 @@
     <p class="hr-page-header__sub">Assign Manager / HR Admin roles and review login status for {{ stats_total }} account(s)</p>
   </div>
   <div class="hr-page-header__actions">
-    <a href="{% url 'employees:bulk_provision' %}" class="btn btn-outline btn-sm">Bulk provision logins</a>
+    <form method="post" action="{% url 'employees:bulk_provision' %}" class="inline">
+      {% csrf_token %}
+      <button type="button" class="btn btn-outline btn-sm" data-hr-confirm
+        data-hr-confirm-title="Bulk provision logins"
+        data-hr-confirm-message="{% if stats_pending_login %}Create login accounts for {{ stats_pending_login }} employee(s) without an account?{% else %}All employees appear to have logins — run again to catch any missing accounts.{% endif %} Employees need an email on file to receive an invite."
+        data-hr-confirm-ok="Provision logins">
+        Bulk provision logins{% if stats_pending_login %} ({{ stats_pending_login }}){% endif %}
+      </button>
+    </form>
   </div>
 </div>
 
@@ -87,7 +95,14 @@
 {% empty %}
 <div class="people-table-card p-12 text-center text-base-content/40">
   No employees with login accounts yet.<br>
-  <a href="{% url 'employees:bulk_provision' %}" class="link mt-2 inline-block">Bulk provision logins</a> or create logins from employee profiles.
+  <form method="post" action="{% url 'employees:bulk_provision' %}" class="inline mt-3">
+    {% csrf_token %}
+    <button type="button" class="link" data-hr-confirm
+      data-hr-confirm-title="Bulk provision logins"
+      data-hr-confirm-message="Create login accounts for employees without one? Each employee needs an email on file."
+      data-hr-confirm-ok="Provision logins">Bulk provision logins</button>
+  </form>
+  or create logins from employee profiles.
 </div>
 {% endfor %}
 

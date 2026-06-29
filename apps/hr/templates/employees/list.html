@@ -24,9 +24,9 @@
 
     {% if at_employee_cap %}
 
-    <a href="{{ billing_settings_url }}" class="btn btn-outline btn-sm" target="_blank" rel="noopener">Upgrade seats</a>
+    <a href="{{ platform_billing_url }}" class="btn btn-outline btn-sm" target="_blank" rel="noopener">Upgrade seats</a>
 
-    <span class="btn btn-primary btn-sm btn-disabled">+ Add Employee</span>
+    <span class="btn btn-primary btn-sm btn-disabled" title="Employee limit reached — upgrade seats in Billing">+ Add Employee</span>
 
     {% else %}
 
@@ -90,7 +90,11 @@
 
   Employee limit reached ({{ active_employee_count }}/{{ employee_limit }}).
 
-  <a href="{{ billing_settings_url }}" class="link font-semibold" target="_blank" rel="noopener">Add seats in Billing</a>
+  {% if is_workspace_owner %}
+  <a href="{{ platform_billing_url }}" class="link font-semibold" target="_blank" rel="noopener">Add seats in Billing</a>
+  {% else %}
+  <a href="{{ billing_settings_url }}" class="link font-semibold">View billing</a> or ask your workspace owner to upgrade seats.
+  {% endif %}
 
 </div>
 

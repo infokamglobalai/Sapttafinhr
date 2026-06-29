@@ -70,8 +70,11 @@ class EmailTestForm(forms.Form):
 
 def get_subscription_snapshot(tenant) -> dict:
     """Read-only billing snapshot from HR entitlements (owner-facing)."""
+    from apps.tenants.limits import active_employee_count, sync_employee_count
     from apps.tenants.models import ProductEntitlement, ProductCode
 
+    sync_employee_count(tenant)
+    seats_used = active_employee_count(tenant)
     ent = (
         tenant.product_entitlements.filter(product=ProductCode.HR)
         .order_by("-updated_at")
@@ -85,7 +88,7 @@ def get_subscription_snapshot(tenant) -> dict:
         "entitlement_status": ent.get_status_display() if ent else "—",
         "period_start": ent.current_period_start if ent else None,
         "period_end": ent.current_period_end if ent else None,
-        "seats_used": tenant.employee_count,
+        "seats_used": seats_used,
         "seats_max": tenant.max_employees,
         "subdomain": tenant.subdomain,
         "has_entitlement": ent is not None and ent.is_active,

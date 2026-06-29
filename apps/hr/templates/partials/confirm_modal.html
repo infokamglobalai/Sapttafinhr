@@ -1,0 +1,16 @@
+{% load static %}
+<dialog id="hr-confirm-dialog" class="modal" aria-labelledby="hr-confirm-title" aria-describedby="hr-confirm-message">
+  <div class="modal-box hr-confirm-modal">
+    <div class="hr-confirm-modal__icon" id="hr-confirm-icon" aria-hidden="true">?</div>
+    <h3 class="hr-confirm-modal__title" id="hr-confirm-title">Confirm</h3>
+    <p class="hr-confirm-modal__message" id="hr-confirm-message"></p>
+    <div class="hr-confirm-modal__actions">
+      <button type="button" class="btn btn-ghost btn-sm" id="hr-confirm-cancel">Cancel</button>
+      <button type="button" class="btn btn-primary btn-sm" id="hr-confirm-ok">Continue</button>
+    </div>
+  </div>
+  <form method="dialog" class="modal-backdrop">
+    <button type="submit" aria-label="Close">close</button>
+  </form>
+</dialog>
+<script src="{% static 'js/hr-confirm.js' %}?v=1"></script>

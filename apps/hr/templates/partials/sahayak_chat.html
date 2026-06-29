@@ -1,5 +1,6 @@
 {% load static %}
-<link rel="stylesheet" href="{% static 'css/sahayak-chat.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'css/sahayak-chat.css' %}?v=4">
+<script src="{% static 'js/sahayak-markdown.js' %}?v=2"></script>
 
 <button type="button" id="sahayak-fab" aria-label="Open Sahayak" title="Sahayak — your HR assistant"
   data-icon-url="{% static 'images/sahayak-s-mark.png' %}">
@@ -16,7 +17,7 @@
         <strong>Sahayak</strong>
         <span class="sahayak-badge">HR</span>
       </div>
-      <div class="sahayak-header-sub">Your Saptta HR assistant</div>
+      <div class="sahayak-header-sub">Your Saptta HR assistant{% if nav_role_hint %} · {{ nav_role_hint }}{% endif %}</div>
     </div>
     <button type="button" class="sahayak-close-btn" id="sahayak-close" aria-label="Close Sahayak">×</button>
   </div>
@@ -24,23 +25,35 @@
   <div class="sahayak-msgs" id="sahayak-msgs">
     <div class="sahayak-welcome" id="sahayak-welcome">
       <div class="sahayak-welcome-emoji">👋</div>
-      <div class="sahayak-welcome-title">Ask Sahayak anything HR</div>
+      <div class="sahayak-welcome-title">Hi{% if user.first_name %}, {{ user.first_name }}{% endif %} — how can I help?</div>
       <div class="sahayak-welcome-desc">
-        Leave balance, attendance, payslips, policies, holidays — I answer from your workspace data when I can.
+        {% if user.is_hr_admin %}
+        Ask about your workforce, leave queue, attendance, or last payroll run. I only use data you’re allowed to see in Saptta HR.
+        {% elif user.is_manager %}
+        Ask about your team, your own leave, attendance, or payslip. I can’t access other departments or run payroll.
+        {% else %}
+        Ask about your leave balance, attendance, payslip, or company holidays. I can’t access other employees’ data.
+        {% endif %}
       </div>
       <div class="sahayak-starters" id="sahayak-starters">
         {% if user.is_hr_admin %}
         <button type="button" class="sahayak-starter" data-msg="How many active employees do we have?">👥 Headcount</button>
         <button type="button" class="sahayak-starter" data-msg="Who is absent today?">📅 Absent today</button>
         <button type="button" class="sahayak-starter" data-msg="Show pending leave requests">✋ Pending leaves</button>
-        <button type="button" class="sahayak-starter" data-msg="Payroll summary for last run">💸 Last payroll</button>
+        <button type="button" class="sahayak-starter" data-msg="Summarise our last payroll run">💸 Last payroll</button>
+        {% elif user.is_manager %}
+        <button type="button" class="sahayak-starter" data-msg="Who on my team is on leave today?">👥 Team on leave</button>
+        <button type="button" class="sahayak-starter" data-msg="What is my leave balance?">📅 My leave</button>
+        <button type="button" class="sahayak-starter" data-msg="Show my attendance this month">🕐 My attendance</button>
+        <button type="button" class="sahayak-starter" data-msg="Summarise my latest payslip">💸 My payslip</button>
         {% else %}
         <button type="button" class="sahayak-starter" data-msg="What is my leave balance?">📅 Leave balance</button>
-        <button type="button" class="sahayak-starter" data-msg="When is my next holiday?">🎉 Upcoming holidays</button>
+        <button type="button" class="sahayak-starter" data-msg="When is my next holiday?">🎉 Holidays</button>
         <button type="button" class="sahayak-starter" data-msg="How do I apply for leave?">✋ Apply leave</button>
-        <button type="button" class="sahayak-starter" data-msg="Where can I download my payslip?">💸 My payslip</button>
+        <button type="button" class="sahayak-starter" data-msg="Summarise my latest payslip">💸 My payslip</button>
         {% endif %}
       </div>
+      <p class="sahayak-welcome-foot">Off-topic or outside your role? I’ll politely decline and suggest what I can help with.</p>
     </div>
   </div>
 
@@ -76,11 +89,22 @@
     if (welcome) welcome.style.display = 'none';
   }
 
+  function renderAiContent(text) {
+    if (window.SahayakMarkdown && typeof window.SahayakMarkdown.render === 'function') {
+      return '<div class="sahayak-md">' + window.SahayakMarkdown.render(text) + '</div>';
+    }
+    return text;
+  }
+
   function addMsg(text, from) {
     hideWelcome();
     var div = document.createElement('div');
     div.className = 'sahayak-msg sahayak-msg--' + (from === 'user' ? 'user' : 'ai');
-    div.textContent = text;
+    if (from === 'user') {
+      div.textContent = text;
+    } else {
+      div.innerHTML = renderAiContent(text);
+    }
     msgs.appendChild(div);
     msgs.scrollTop = msgs.scrollHeight;
     return div;

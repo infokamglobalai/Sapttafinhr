@@ -61,8 +61,8 @@
   <link rel="stylesheet" href="{% static 'css/saptta-theme.css' %}?v=2">
   <link rel="stylesheet" href="{% static 'css/saptta-responsive.css' %}?v=12">
   <link rel="stylesheet" href="{% static 'css/saptta-sidebar.css' %}?v=18">
-  <link rel="stylesheet" href="{% static 'css/saptta-unified-sidebar.css' %}?v=10">
-  <link rel="stylesheet" href="{% static 'css/hr-ui-v2.css' %}?v=12">
+  <link rel="stylesheet" href="{% static 'css/saptta-unified-sidebar.css' %}?v=13">
+  <link rel="stylesheet" href="{% static 'css/hr-ui-v2.css' %}?v=16">
   <link rel="stylesheet" href="{% static 'css/people-hub.css' %}?v=3">
   <link rel="stylesheet" href="{% static 'css/my-space-hub.css' %}?v=3">
   <link rel="stylesheet" href="{% static 'css/saptta-pages.css' %}?v=3">
@@ -116,7 +116,7 @@
   </script>
   {% block extra_head %}{% endblock %}
   {% if user.is_authenticated %}
-  <link rel="stylesheet" href="{% static 'css/dashboard-soft-ui.css' %}?v=35">
+  <link rel="stylesheet" href="{% static 'css/dashboard-soft-ui.css' %}?v=36">
   <link rel="stylesheet" href="{% static 'css/dashboard-calendar.css' %}?v=3">
   {% endif %}
 </head>
@@ -130,6 +130,7 @@
   <div class="app-shell" x-data="{
   sidebarOpen: false,
   dockHubOpen: false,
+  activeCategory: '{{ nav_active_category|default:'dashboard' }}',
   activeGroups: {
     mySpace: {% if nav_active_category == 'mySpace' %}true{% else %}false{% endif %},
     team: {% if nav_active_category == 'team' %}true{% else %}false{% endif %},
@@ -140,8 +141,29 @@
     hrOps: {% if nav_active_category == 'hrOps' %}true{% else %}false{% endif %},
     reports: {% if nav_active_category == 'reports' %}true{% else %}false{% endif %},
     settings: {% if nav_active_category == 'settings' %}true{% else %}false{% endif %}
+  },
+  toggleGroup(key) {
+    const willOpen = !this.activeGroups[key];
+    Object.keys(this.activeGroups).forEach((k) => { this.activeGroups[k] = false; });
+    if (willOpen) this.activeGroups[key] = true;
+  },
+  closeMobileSidebar() {
+    this.sidebarOpen = false;
+  },
+  init() {
+    if (this.activeCategory && this.activeCategory !== 'dashboard') {
+      Object.keys(this.activeGroups).forEach((k) => { this.activeGroups[k] = false; });
+      if (this.activeGroups[this.activeCategory] !== undefined) {
+        this.activeGroups[this.activeCategory] = true;
+      }
+    }
+    this.$nextTick(() => {
+      document.querySelectorAll('.sidebar-unified__nav .nav-item.active, .sidebar-nav .nav-item.active').forEach((el) => {
+        el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      });
+    });
   }
-}">
+}" x-init="init()">
 
     {% include "partials/unified_sidebar_desktop.html" %}
 
@@ -153,7 +175,7 @@
         </a>
       </div>
 
-      <nav class="sidebar-nav">
+      <nav class="sidebar-nav" @click="if ($event.target.closest('a.nav-item')) closeMobileSidebar()">
         {% include "partials/unified_sidebar_nav.html" %}
       </nav>
 
@@ -246,6 +268,7 @@
 
   {% if user.is_authenticated and not hide_app_chrome %}
   {% include "partials/sahayak_chat.html" %}
+  {% include "partials/confirm_modal.html" %}
   {% if command_palette_links %}
   {% include "dashboard/partials/command_palette.html" %}
   {% endif %}

@@ -307,6 +307,10 @@ class ExitRequest(models.Model):
         ("rejected", "Rejected"),
         ("withdrawn", "Withdrawn"),
     ]
+    ACK_METHOD_CHOICES = [
+        ("online", "Online in Saptta HR"),
+        ("offline", "Signed offline (paper)"),
+    ]
 
     tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
     employee = models.OneToOneField("employees.Employee", on_delete=models.CASCADE, related_name="exit_request")
@@ -321,6 +325,13 @@ class ExitRequest(models.Model):
     settlement_label = models.CharField(max_length=64, blank=True)
     settlement_note = models.TextField(blank=True)
     settlement_computed_at = models.DateTimeField(null=True, blank=True)
+    hr_acknowledged_by = models.ForeignKey(
+        "accounts.User", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    hr_acknowledged_at = models.DateTimeField(null=True, blank=True)
+    hr_acknowledgement_method = models.CharField(max_length=20, choices=ACK_METHOD_CHOICES, blank=True)
+    employee_acknowledged_at = models.DateTimeField(null=True, blank=True)
+    employee_acknowledgement_method = models.CharField(max_length=20, choices=ACK_METHOD_CHOICES, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -328,6 +339,18 @@ class ExitRequest(models.Model):
 
     def __str__(self):
         return f"Exit: {self.employee} ({self.resignation_date})"
+
+    @property
+    def hr_acknowledged(self) -> bool:
+        return bool(self.hr_acknowledged_at)
+
+    @property
+    def employee_acknowledged(self) -> bool:
+        return bool(self.employee_acknowledged_at)
+
+    @property
+    def settlement_fully_acknowledged(self) -> bool:
+        return self.hr_acknowledged and self.employee_acknowledged
 
 
 # ---------------------------------------------------------------------------

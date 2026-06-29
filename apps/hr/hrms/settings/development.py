@@ -39,7 +39,9 @@ INTERNAL_IPS = ["127.0.0.1"]
 # Disable Whitenoise compression in dev
 STATICFILES_STORAGE = "django.contrib.staticfiles.storage.StaticFilesStorage"
 
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+# Console unless SMTP is configured in .env / docker (see EMAIL_HOST or SMTP_HOST).
+if not EMAIL_HOST:  # noqa: F405
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 # Native Vite dev defaults (platform :5173, HR :8001). Override via env for Docker/nginx.
 PLATFORM_BASE_URL = config("PLATFORM_BASE_URL", default="http://127.0.0.1:5173")

@@ -672,13 +672,18 @@ class DevActivateView(APIView):
         from .models import Subscription, SubscriptionEntitlement
 
         sub = Subscription.objects.filter(tenant=tenant).select_related("plan").first()
+        from .admin_ops import _hr_headcount_one
+        from .pricing import INCLUDED_EMPLOYEES
+
+        headcount = _hr_headcount_one(tenant.schema_name) or INCLUDED_EMPLOYEES
+        headcount = max(int(headcount), INCLUDED_EMPLOYEES)
         activated = activate_subscription_for_tenant(
             tenant.schema_name,
             period_days=30,
             notes={
                 "plan": sub.plan.code if sub else "saptta-complete",
-                "max_employees": "30",
-                "employees": "30",
+                "max_employees": str(headcount),
+                "employees": str(headcount),
             },
         )
         if not activated:

@@ -2293,6 +2293,24 @@
   height: 100%;
 }
 
+.dash-chart-card--fill {
+  display: flex;
+  flex-direction: column;
+  min-height: 320px;
+}
+
+.dash-chart-wrap--fill {
+  flex: 1 1 auto;
+  min-height: 180px;
+  position: relative;
+}
+
+.dash-chart-wrap--fill canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
 .dash-presence-card {
   background: var(--dash-surface);
   border: 1px solid var(--dash-border);
@@ -3861,9 +3879,6 @@ body.cmd-palette-open {
 /* ═══════════════════════════════════════════════════════════
    HR ADMIN DASHBOARD — compact, no nested scroll
    ═══════════════════════════════════════════════════════════ */
-body:has(.dash-refresh--admin) #sahayak-fab {
-  display: none !important;
-}
 
 .app-main.app-main--unified .page:has(.dash-refresh--admin) {
   padding: 10px 16px 16px !important;
@@ -3933,6 +3948,14 @@ body:has(.dash-refresh--admin) #sahayak-fab {
   padding: 12px 14px;
   margin-bottom: 0;
   border-radius: 14px;
+}
+
+.dash-refresh--admin .dash-chart-card--fill {
+  min-height: 0;
+}
+
+.dash-refresh--admin .dash-chart-wrap--fill {
+  min-height: 160px;
 }
 
 .dash-refresh--admin .dash-chart-card__title,

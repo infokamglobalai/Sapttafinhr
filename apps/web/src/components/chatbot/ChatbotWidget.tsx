@@ -6,6 +6,7 @@ import { useChatbotContext } from './useChatbotContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { SAPTTA_PHONES } from '../../data/contact-info';
 import SahayakIcon from './SahayakIcon';
+import { renderChatMarkdown } from '../../lib/chatMarkdown';
 
 /** Product name for the floating assistant — update here to rebrand */
 export const CHATBOT_NAME = 'Sahayak';
@@ -175,12 +176,19 @@ function MessageBubble({ role, content, context }: { role: 'user' | 'assistant';
             ? `0 4px 14px ${theme.shadow}`
             : '0 2px 10px rgba(10,17,40,0.05)',
           border: isUser ? 'none' : '1px solid rgba(10,17,40,0.06)',
-          whiteSpace: 'pre-wrap',
+          whiteSpace: isUser ? 'pre-wrap' : 'normal',
           wordBreak: 'break-word',
           backdropFilter: isUser ? 'none' : 'blur(8px)',
         }}
       >
-        {content}
+        {isUser ? (
+          content
+        ) : (
+          <div
+            className="chat-md"
+            dangerouslySetInnerHTML={{ __html: renderChatMarkdown(content) }}
+          />
+        )}
       </div>
     </div>
   );

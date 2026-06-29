@@ -4,7 +4,7 @@
 {% block page_title %}Organization Chart{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/org-chart.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'css/org-chart.css' %}?v=2">
 {% endblock %}
 
 {% block content %}
@@ -20,6 +20,23 @@
     {% endif %}
   </div>
 </div>
+
+{% if can_manage_org %}
+<div class="org-chart-toolbar">
+  <div class="org-chart-toolbar__search">
+    <input type="search" id="org-chart-search" class="input input-bordered input-sm w-full max-w-xs" placeholder="Find someone on the chart…" autocomplete="off">
+  </div>
+  <label class="org-chart-manage-toggle">
+    <input type="checkbox" id="org-chart-manage-toggle">
+    <span>Manage structure</span>
+  </label>
+</div>
+<p class="org-chart-help text-sm text-base-content/60 mb-4">
+  Turn on <strong>Manage structure</strong> to change who reports to whom. You can also edit department, designation, and manager on each employee profile.
+  <a href="{% url 'employees:departments' %}" class="link link-primary">Departments</a> ·
+  <a href="{% url 'employees:designations' %}" class="link link-primary">Designations</a>
+</p>
+{% endif %}
 
 {% if chart.total == 0 %}
 <div class="rounded-xl border border-dashed border-base-300 p-8 text-center text-sm text-base-content/70">
@@ -42,6 +59,9 @@
 {% else %}
 <div class="alert alert-info text-sm">
   <p>No reporting structure yet. Assign <strong>Reporting manager</strong> on employee profiles to connect the chart.</p>
+  {% if can_manage_org %}
+  <a href="{% url 'employees:list' %}" class="btn btn-primary btn-sm mt-3">Open employee list</a>
+  {% endif %}
 </div>
 {% endif %}
 
@@ -50,9 +70,27 @@
   <h2 class="text-sm font-semibold mb-2">Employees with manager outside active list ({{ chart.unassigned_count }})</h2>
   <ul class="text-sm text-base-content/70 space-y-1">
     {% for emp in chart.unassigned %}
-    <li>{{ emp.directory_name }} — manager not in active roster</li>
+    <li>
+      {{ emp.directory_name }}
+      {% if can_manage_org %}
+      <button type="button" class="link link-primary text-xs org-card__edit ml-1" data-employee-id="{{ emp.pk }}">Fix manager</button>
+      {% else %}
+      — manager not in active roster
+      {% endif %}
+    </li>
     {% endfor %}
   </ul>
 </div>
+{% endif %}
+
+{% if can_manage_org %}
+<dialog id="org-reassign-dialog" class="modal org-reassign-dialog">
+  <div class="modal-box max-w-md">
+    <h3 class="font-bold text-lg mb-2">Change reporting manager</h3>
+    <div id="org-reassign-form-host"></div>
+  </div>
+  <form method="dialog" class="modal-backdrop"><button type="submit" aria-label="Close">close</button></form>
+</dialog>
+<script src="{% static 'js/org-chart.js' %}?v=1"></script>
 {% endif %}
 {% endblock %}

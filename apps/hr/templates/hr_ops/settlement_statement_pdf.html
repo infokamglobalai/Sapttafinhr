@@ -19,7 +19,10 @@
   .note { font-size: 9pt; color: #555; line-height: 1.5; margin-top: 12px; padding: 10px; background: #f5f8ff; border-left: 3px solid #1a3a5c; }
   .footer { margin-top: 32px; font-size: 8pt; color: #999; border-top: 1px solid #eee; padding-top: 10px; }
   .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 48px; }
-  .sig-line { border-top: 1px solid #333; padding-top: 6px; font-size: 9pt; }
+  .sig-line { border-top: 1px solid #333; padding-top: 6px; font-size: 9pt; min-height: 42px; }
+  .sig-name { font-weight: 600; color: #1a3a5c; }
+  .sig-meta { font-size: 8pt; color: #666; margin-top: 4px; }
+  .sig-pending { font-size: 8pt; color: #999; font-style: italic; margin-top: 4px; }
 </style>
 </head>
 <body>
@@ -81,8 +84,28 @@
   </div>
 
   <div class="signatures">
-    <div><div class="sig-line">HR Manager</div></div>
-    <div><div class="sig-line">Employee acknowledgement</div></div>
+    <div>
+      <div class="sig-line">
+        {% if exit_req.hr_acknowledged %}
+        <div class="sig-name">{{ exit_req.hr_acknowledged_by.get_full_name|default:"HR Representative" }}</div>
+        <div class="sig-meta">HR Manager · {{ exit_req.hr_acknowledged_at|date:"d M Y, H:i" }} · {{ exit_req.get_hr_acknowledgement_method_display }}</div>
+        {% else %}
+        <div class="sig-name">HR Manager</div>
+        <div class="sig-pending">Signature pending — acknowledge in Saptta HR or sign printed copy</div>
+        {% endif %}
+      </div>
+    </div>
+    <div>
+      <div class="sig-line">
+        {% if exit_req.employee_acknowledged %}
+        <div class="sig-name">{{ employee.full_name }}</div>
+        <div class="sig-meta">Employee · {{ exit_req.employee_acknowledged_at|date:"d M Y, H:i" }} · {{ exit_req.get_employee_acknowledgement_method_display }}</div>
+        {% else %}
+        <div class="sig-name">Employee acknowledgement</div>
+        <div class="sig-pending">Signature pending — employee acknowledges online or signs printed copy</div>
+        {% endif %}
+      </div>
+    </div>
   </div>
 
   <div class="footer">

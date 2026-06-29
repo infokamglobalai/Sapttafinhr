@@ -193,6 +193,113 @@ def _chart_is_informative(chart: dict, *, placeholder_labels: frozenset) -> bool
     return True
 
 
+def _grouped_chart_is_informative(chart: dict, *, placeholder_labels: frozenset | None = None) -> bool:
+    """True when a multi-dataset chart has meaningful data."""
+    labels = chart.get("labels") or []
+    datasets = chart.get("datasets") or []
+    if not labels or not datasets:
+        return False
+    total = sum(sum(ds.get("data") or []) for ds in datasets)
+    if total == 0:
+        return False
+    if placeholder_labels and len(labels) == 1 and labels[0] in placeholder_labels:
+        return False
+    return True
+
+
+def _gender_bucket(gender_value: str | None) -> str:
+    if gender_value == "male":
+        return "male"
+    if gender_value == "female":
+        return "female"
+    return "other"
+
+
+def _build_dept_gender_chart(active_emps) -> dict:
+    """Stacked horizontal bar: departments with Male / Female / Not Specified segments."""
+    dept_rows = list(
+        active_emps.values("department_id", "department__name")
+        .annotate(count=Count("id"))
+        .order_by("-count")[:8]
+    )
+    if not dept_rows:
+        return {"labels": [], "datasets": []}
+
+    labels = [row["department__name"] or "Unassigned" for row in dept_rows]
+    dept_ids = [row["department_id"] for row in dept_rows]
+
+    lookup: dict[tuple, int] = {}
+    for row in active_emps.values("department_id", "gender").annotate(count=Count("id")):
+        bucket = _gender_bucket(row["gender"] or "")
+        key = (row["department_id"], bucket)
+        lookup[key] = lookup.get(key, 0) + row["count"]
+
+    groups = [
+        ("male", "Male", "#3B82F6"),
+        ("female", "Female", "#EC4899"),
+        ("other", "Not Specified", "#94A3B8"),
+    ]
+    datasets = [
+        {
+            "label": label,
+            "data": [lookup.get((dept_id, key), 0) for dept_id in dept_ids],
+            "backgroundColor": color,
+        }
+        for key, label, color in groups
+    ]
+    return {"labels": labels, "datasets": datasets}
+
+
+def _build_gender_diversity_chart(active_emps) -> dict:
+    """Doughnut chart: gender distribution with counts and percentages."""
+    from apps.employees.models import Employee
+
+    segments = [
+        ("male", "Male", "#3B82F6"),
+        ("female", "Female", "#EC4899"),
+        ("other", "Not Specified", "#CBD5E1"),
+    ]
+    lookup: dict[str, int] = {"male": 0, "female": 0, "other": 0}
+    for row in active_emps.values("gender").annotate(count=Count("id")):
+        bucket = _gender_bucket(row["gender"] or "")
+        lookup[bucket] = lookup.get(bucket, 0) + row["count"]
+
+    total = sum(lookup.values())
+    emp_type_labels = dict(Employee.EMPLOYMENT_TYPE_CHOICES)
+    employment_types = [
+        {"label": emp_type_labels.get(row["employment_type"], row["employment_type"]), "count": row["count"]}
+        for row in active_emps.values("employment_type").annotate(count=Count("id")).order_by("-count")
+        if row["count"]
+    ][:4]
+
+    labels: list[str] = []
+    data: list[int] = []
+    colors: list[str] = []
+    items: list[dict] = []
+    for key, label, color in segments:
+        count = lookup.get(key, 0)
+        if not count:
+            continue
+        labels.append(label)
+        data.append(count)
+        colors.append(color)
+        items.append({
+            "label": label,
+            "count": count,
+            "color": color,
+            "pct": round(count / total * 100) if total else 0,
+        })
+
+    return {
+        "labels": labels,
+        "data": data,
+        "colors": colors,
+        "items": items,
+        "total": total,
+        "employment_types": employment_types,
+    }
+
+
 def _emp_presence_row(emp, extra=""):
     dept = emp.department.name if getattr(emp, "department", None) else "—"
     desig = emp.designation.name if getattr(emp, "designation", None) else "—"
@@ -571,26 +678,17 @@ def _hr_admin_analytics(tenant, today, month_start):
         ).count(),
     }
 
-    # Department-wise headcount
-    dept_data = list(
-        active_emps.values("department__name")
-        .annotate(count=Count("id"))
-        .order_by("-count")[:8]
+    # Department headcount — stacked by gender group
+    dept_chart = _build_dept_gender_chart(active_emps)
+    dept_chart_ready = _grouped_chart_is_informative(
+        dept_chart, placeholder_labels=frozenset({"Unassigned"})
     )
-    dept_chart = {
-        "labels": [d["department__name"] or "Unassigned" for d in dept_data],
-        "data": [d["count"] for d in dept_data],
-    }
-    dept_chart_ready = _chart_is_informative(dept_chart, placeholder_labels=frozenset({"Unassigned"}))
 
-    # Gender ratio
-    gender_data = list(active_emps.values("gender").annotate(count=Count("id")))
-    gender_chart = {
-        "labels": [(d["gender"] or "Not Specified").title() for d in gender_data],
-        "data": [d["count"] for d in gender_data],
-    }
-    gender_chart_ready = _chart_is_informative(
-        gender_chart, placeholder_labels=frozenset({"Not Specified", ""})
+    # Gender diversity — doughnut by gender
+    gender_chart = _build_gender_diversity_chart(active_emps)
+    gender_chart_ready = (
+        gender_chart.get("total", 0) > 0
+        and active_emps.filter(gender__in=["male", "female"]).exists()
     )
 
     # Attendance trend — 7 / 14 / 30 day ranges for dashboard filter

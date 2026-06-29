@@ -1,6 +1,9 @@
 {% load static %}
 <li class="org-node">
-  <div class="org-card">
+  <div class="org-card" data-search-name="{{ node.employee.directory_name }} {{ node.employee.employee_code }}">
+    {% if can_manage_org %}
+    <button type="button" class="org-card__edit" data-employee-id="{{ node.employee.pk }}" title="Change reporting manager" aria-label="Change manager for {{ node.employee.directory_name }}">✎</button>
+    {% endif %}
     <a href="{% if user.is_hr_admin %}{% url 'employees:detail' node.employee.pk %}{% else %}{% url 'employees:colleague' node.employee.pk %}{% endif %}" class="org-card__link">
       <div class="org-card__avatar">
         {% if node.employee.profile_photo %}
@@ -10,10 +13,10 @@
         {% endif %}
       </div>
       <div class="org-card__body">
-        <p class="org-card__name">{{ node.employee.directory_name }}</p>
-        <p class="org-card__role">{{ node.employee.designation.name|default:"—" }}</p>
+        <p class="org-card__name" title="{{ node.employee.directory_name }}">{{ node.employee.directory_name }}</p>
+        <p class="org-card__role" title="{{ node.employee.designation.name|default:'—' }}">{{ node.employee.designation.name|default:"—" }}</p>
         {% if node.employee.department %}
-        <p class="org-card__dept">{{ node.employee.department.name }}</p>
+        <p class="org-card__dept" title="{{ node.employee.department.name }}">{{ node.employee.department.name }}</p>
         {% endif %}
       </div>
     </a>
@@ -22,10 +25,26 @@
     {% endif %}
   </div>
   {% if node.children %}
-  <ul class="org-children">
-    {% for child in node.children %}
-    {% include "employees/partials/org_chart_node.html" with node=child %}
-    {% endfor %}
-  </ul>
+  {% with total=node.children|length %}
+  <div class="org-children-wrap{% if total > 12 %} org-children-wrap--truncated{% endif %}">
+    <ul class="org-children">
+      {% for child in node.children %}
+      {% if forloop.counter <= 12 or total <= 12 %}
+      {% include "employees/partials/org_chart_node.html" with node=child %}
+      {% endif %}
+      {% endfor %}
+    </ul>
+    {% if total > 12 %}
+    <button type="button" class="org-more-btn">Show {{ total|add:"-12" }} more</button>
+    <ul class="org-children org-children--overflow" hidden>
+      {% for child in node.children %}
+      {% if forloop.counter > 12 %}
+      {% include "employees/partials/org_chart_node.html" with node=child %}
+      {% endif %}
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+  {% endwith %}
   {% endif %}
 </li>

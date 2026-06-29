@@ -310,7 +310,9 @@ Nav uses `user.is_hr_admin`, `user.is_manager`, and linked `employee_profile`.
 
 **Required production env vars:** `FIN_SECRET_KEY`, `HR_SECRET_KEY`, `HR_FIELD_ENCRYPTION_KEY`, `SSO_SHARED_SECRET`, `REQUIRE_EMAIL_VERIFICATION=True`, `MFA_REQUIRED=True`.
 
-**Dev only:** Set `MFA_REQUIRED=False` or `REQUIRE_EMAIL_VERIFICATION=False` to simplify local testing.
+**Dev only:** `docker-compose.yml` defaults to `MFA_REQUIRED=False` and `REQUIRE_EMAIL_VERIFICATION=False` (password-only login). Set both to `True` in `.env` when testing auth flows locally.
+
+**Production (`.env.prod`):** `MFA_REQUIRED=True`, `REQUIRE_EMAIL_VERIFICATION=True`, plus SMTP, secrets, and TLS — see `.env.prod.example`.
 
 ---
 

@@ -2,43 +2,41 @@
 
 {% load static %}
 
-{% block page_title %}Account &amp; Settings{% endblock %}
+{% block page_title %}{% if tab == 'company' %}Company settings{% elif tab == 'billing' %}Billing &amp; plan{% elif tab == 'profile' %}My profile{% else %}Account &amp; settings{% endif %}{% endblock %}
 
 {% block content %}
 
-<div class="settings-shell">
+<div class="settings-shell settings-shell--v2">
 
-  <header class="settings-hero">
-
-    <h1>Account &amp; Settings</h1>
-
-    <p>Manage your profile, company branding, billing, and support.</p>
-
+  <header class="settings-hero settings-hero--v2">
+    <div class="settings-hero__content">
+      <p class="settings-hero__eyebrow">Account &amp; workspace</p>
+      <h1>{% if tab == 'company' %}Company &amp; branding{% elif tab == 'billing' %}Billing &amp; plan{% elif tab == 'profile' %}My profile{% elif tab == 'email' %}Email &amp; invites{% elif tab == 'security' %}Security &amp; trust{% elif tab == 'support' %}Help &amp; support{% else %}Settings{% endif %}</h1>
+      <p>{% if tab == 'company' %}How your organisation appears to every employee in this HR workspace.{% elif tab == 'billing' %}Your subscription, seat usage, and GST invoices — visible only to the workspace owner.{% elif tab == 'profile' %}Your photo, preferred name, and contact details.{% else %}Manage your profile, company branding, billing, and support.{% endif %}</p>
+    </div>
+    {% if tab == 'company' and tenant %}
+    <div class="settings-hero__badge" aria-hidden="true">
+      {% if tenant_logo_url %}
+      <img src="{{ tenant_logo_url }}" alt="" class="settings-hero__badge-logo">
+      {% else %}
+      <span class="settings-hero__badge-fallback">{{ tenant.name|slice:":1"|upper }}</span>
+      {% endif %}
+      <span class="settings-hero__badge-name">{{ tenant.name|truncatechars:22 }}</span>
+    </div>
+    {% elif tab == 'billing' and subscription %}
+    <div class="settings-hero__badge settings-hero__badge--billing" aria-hidden="true">
+      <span class="settings-hero__badge-plan">{{ subscription.plan }}</span>
+      <span class="settings-billing-status settings-billing-status--{% if subscription.is_active %}active{% else %}inactive{% endif %}">{{ subscription.status }}</span>
+    </div>
+    {% endif %}
   </header>
 
+  <div class="settings-layout">
+    <aside class="settings-aside">
+      {% include "partials/settings_page_nav.html" %}
+    </aside>
 
-
-  <nav class="settings-tabs" aria-label="Settings sections">
-
-    <a href="{% url 'accounts:settings' %}?tab=profile" class="settings-tab {% if tab == 'profile' %}is-active{% endif %}">My Profile</a>
-
-    {% if is_owner %}
-
-    <a href="{% url 'accounts:settings' %}?tab=company" class="settings-tab {% if tab == 'company' %}is-active{% endif %}">Company</a>
-
-    <a href="{% url 'accounts:settings' %}?tab=billing" class="settings-tab {% if tab == 'billing' %}is-active{% endif %}">Billing &amp; Plan</a>
-
-    <a href="{% url 'accounts:settings' %}?tab=email" class="settings-tab {% if tab == 'email' %}is-active{% endif %}">Email &amp; Invites</a>
-
-    {% endif %}
-
-    <a href="{% url 'accounts:settings' %}?tab=support" class="settings-tab {% if tab == 'support' %}is-active{% endif %}">Help &amp; Support</a>
-
-    <a href="{% url 'accounts:settings' %}?tab=security" class="settings-tab {% if tab == 'security' %}is-active{% endif %}">Security &amp; Trust</a>
-
-  </nav>
-
-
+    <div class="settings-main">
 
   {% if tab == 'profile' %}
 
@@ -193,122 +191,90 @@
 
   {% elif tab == 'company' and is_owner and company_form %}
 
-  <div class="grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-6 items-start">
+  <div class="settings-company-grid">
 
-    <div>
-
-      <p class="text-xs font-semibold uppercase tracking-wide text-base-content/50 mb-3">Sidebar preview</p>
-
-      <div class="settings-sidebar-mock" aria-hidden="true">
-
-        <div class="settings-sidebar-mock-top">
-          <img src="{% static 'images/saptta-hr-logo.png' %}?v=3" alt="Saptta HR" style="height:22px;width:auto;max-width:110px;object-fit:contain">
-        </div>
-
-        <div class="settings-sidebar-mock-rail">
-
-          <div class="settings-sidebar-mock-dot is-active"></div>
-
-          <div class="settings-sidebar-mock-dot"></div>
-
-          <div class="settings-sidebar-mock-dot"></div>
-
-        </div>
-
-        <div class="settings-sidebar-mock-bottom">
-          <div class="dock-hub-trigger" style="pointer-events:none;cursor:default">
-            {% if tenant_logo_url %}
-            <img src="{{ tenant_logo_url }}" alt="" class="dock-hub-logo">
-            {% else %}
-            <span class="dock-hub-initial">{{ tenant.name|slice:":1"|upper }}</span>
-            {% endif %}
-            <span class="dock-hub-text">
-              <span class="dock-hub-kicker">Your company</span>
-              <span class="dock-hub-name">{{ tenant.name|truncatechars:18 }}</span>
-            </span>
-            <svg class="dock-hub-chevron" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+    <div class="settings-company-preview">
+      <div class="settings-preview-card">
+        <p class="settings-preview-card__label">Live preview</p>
+        <div class="settings-sidebar-mock settings-sidebar-mock--v2" aria-hidden="true">
+          <div class="settings-sidebar-mock-top">
+            <img src="{% static 'images/saptta-hr-logo.png' %}?v=3" alt="Saptta HR" width="110" height="28">
+          </div>
+          <div class="settings-sidebar-mock-rail">
+            <div class="settings-sidebar-mock-line is-short"></div>
+            <div class="settings-sidebar-mock-line"></div>
+            <div class="settings-sidebar-mock-line is-muted"></div>
+          </div>
+          <div class="settings-sidebar-mock-bottom">
+            <div class="dock-hub-trigger" style="pointer-events:none;cursor:default">
+              {% if tenant_logo_url %}
+              <img src="{{ tenant_logo_url }}" alt="" class="dock-hub-logo">
+              {% else %}
+              <span class="dock-hub-initial">{{ tenant.name|slice:":1"|upper }}</span>
+              {% endif %}
+              <span class="dock-hub-text">
+                <span class="dock-hub-kicker">Your company</span>
+                <span class="dock-hub-name">{{ tenant.name|truncatechars:18 }}</span>
+              </span>
+              <svg class="dock-hub-chevron" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+            </div>
           </div>
         </div>
-
+        <p class="settings-preview-card__hint">Saptta stays at the top. Your logo and company name appear in the bottom company chip for every employee.</p>
       </div>
 
-      <p class="text-xs text-base-content/50 mt-3 leading-relaxed">Saptta stays at the top. Tap the company chip at the bottom to open account, help, and pin options in one menu.</p>
-
+      <ul class="settings-company-tips">
+        <li>Use a square PNG or JPG for the logo (min 128×128 px).</li>
+        <li>Timezone affects attendance dates and payroll cut-offs.</li>
+        <li>Arabic UI enables right-to-left layout for your team.</li>
+      </ul>
     </div>
 
+    <form method="post" enctype="multipart/form-data" class="settings-company-form">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="save_company">
+      <input type="hidden" name="tab" value="company">
 
-
-    <div class="settings-panel">
-
-      <div class="settings-panel-body space-y-5">
-
-        <div>
-
-          <h2 class="settings-panel-title">Company branding</h2>
-
-          <p class="settings-panel-desc">Set how your organisation appears to employees. Changes apply to everyone in this HR workspace.</p>
-
+      <section class="settings-card">
+        <div class="settings-card__head">
+          <h2 class="settings-card__title">Brand identity</h2>
+          <p class="settings-card__desc">Name and logo shown across the workspace.</p>
         </div>
-
-
-
-        <form method="post" enctype="multipart/form-data" class="space-y-4">
-
-          {% csrf_token %}
-
-          <input type="hidden" name="action" value="save_company">
-
-          <input type="hidden" name="tab" value="company">
-
-
-
+        <div class="settings-card__body space-y-4">
           <div class="form-control">
-
             <label class="label"><span class="label-text font-medium">Company name</span></label>
-
             {{ company_form.name }}
-
           </div>
-
-
-
           <div class="form-control">
-
             <label class="label"><span class="label-text font-medium">Company logo</span></label>
-
-            <div class="settings-logo-upload">
-
+            <div class="settings-logo-upload settings-logo-upload--v2">
               {% if tenant_logo_url %}
-
-              <img src="{{ tenant_logo_url }}" alt="{{ tenant.name }}" class="settings-logo-thumb">
-
+              <img src="{{ tenant_logo_url }}" alt="{{ tenant.name }}" class="settings-logo-thumb settings-logo-thumb--lg">
               {% else %}
-
-              <div class="settings-logo-thumb settings-logo-thumb--fallback">{{ tenant.name|slice:":1"|upper }}</div>
-
+              <div class="settings-logo-thumb settings-logo-thumb--lg settings-logo-thumb--fallback">{{ tenant.name|slice:":1"|upper }}</div>
               {% endif %}
-
               <div class="flex-1 min-w-0">
-
                 {{ company_form.company_logo }}
-
-                <p class="text-xs text-base-content/50 mt-2">PNG or JPG, square works best. Shown as a small badge at the bottom of the sidebar.</p>
-
+                <p class="text-xs text-base-content/50 mt-2">Recommended: square image, transparent PNG works best.</p>
               </div>
-
             </div>
-
           </div>
+        </div>
+      </section>
 
-
-
-          <div class="form-control"><label class="label"><span class="label-text font-medium">Registered address</span></label>{{ company_form.address }}</div>
-
+      <section class="settings-card">
+        <div class="settings-card__head">
+          <h2 class="settings-card__title">Registered details</h2>
+          <p class="settings-card__desc">Used on payslips, letters, and statutory filings.</p>
+        </div>
+        <div class="settings-card__body space-y-4">
+          <div class="form-control">
+            <label class="label"><span class="label-text font-medium">Registered address</span></label>
+            {{ company_form.address }}
+          </div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-
             {% if tenant_is_india_payroll %}
             <div class="form-control"><label class="label"><span class="label-text font-medium">GSTIN</span></label>{{ company_form.gstin }}</div>
-
             <div class="form-control"><label class="label"><span class="label-text font-medium">PAN</span></label>{{ company_form.pan }}</div>
             {% else %}
             <div class="form-control"><label class="label"><span class="label-text font-medium">Jurisdiction</span></label>
@@ -318,23 +284,30 @@
               <input type="text" class="input input-bordered w-full" value="{{ tenant.currency }}" readonly disabled />
             </div>
             {% endif %}
-
           </div>
+        </div>
+      </section>
 
+      <section class="settings-card">
+        <div class="settings-card__head">
+          <h2 class="settings-card__title">Regional settings</h2>
+          <p class="settings-card__desc">Timezone and interface language for your organisation.</p>
+        </div>
+        <div class="settings-card__body space-y-4">
           <div class="form-control"><label class="label"><span class="label-text font-medium">Timezone</span></label>{{ company_form.timezone }}</div>
           <div class="form-control">
             <label class="label"><span class="label-text font-medium">Interface language</span></label>
             {{ company_form.ui_language }}
-            <p class="text-xs text-base-content/50 mt-1">Arabic enables right-to-left layout. Screen labels remain English until full translation ships.</p>
+            <p class="text-xs text-base-content/50 mt-1">Arabic enables RTL layout. Screen labels remain English until full translation ships.</p>
           </div>
+        </div>
+      </section>
 
-          <div class="flex justify-end pt-2"><button type="submit" class="btn btn-primary">Save company</button></div>
-
-        </form>
-
+      <div class="settings-form-actions">
+        <p class="text-xs text-base-content/50">Changes apply to everyone in this HR workspace immediately after saving.</p>
+        <button type="submit" class="btn btn-primary">Save company settings</button>
       </div>
-
-    </div>
+    </form>
 
   </div>
 
@@ -342,193 +315,139 @@
 
   {% elif tab == 'billing' and is_owner and subscription %}
 
-  <div class="settings-panel">
-
-    <div class="settings-panel-body space-y-5">
-
-      <div>
-
-        <h2 class="settings-panel-title">Subscription &amp; billing</h2>
-
-        <p class="settings-panel-desc">View your plan, renewal date, and past invoices here — no need to leave Saptta HR.</p>
-
-      </div>
-
-
-
-      {% if subscription.renewal %}
-
-      <div class="alert {% if subscription.renewal.tone == 'danger' %}alert-error{% elif subscription.renewal.tone == 'warning' %}alert-warning{% else %}alert-info{% endif %} text-sm">
-
-        <div>
-
-          <p class="font-semibold">{{ subscription.renewal.label }}</p>
-
-          <p>{{ subscription.renewal.message }}</p>
-
-        </div>
-
-      </div>
-
-      {% endif %}
-
-
-
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-
-        <div class="stat bg-base-200/60 rounded-xl p-4"><div class="stat-title text-xs">Plan</div><div class="stat-value text-lg">{{ subscription.plan }}</div></div>
-
-        <div class="stat bg-base-200/60 rounded-xl p-4"><div class="stat-title text-xs">Status</div><div class="stat-value text-lg">{{ subscription.status }}</div></div>
-
-        <div class="stat bg-base-200/60 rounded-xl p-4"><div class="stat-title text-xs">Seats used</div><div class="stat-value text-lg">{{ subscription.seats_used }} / {{ subscription.seats_max }}</div></div>
-
-        <div class="stat bg-base-200/60 rounded-xl p-4"><div class="stat-title text-xs">Workspace</div><div class="stat-value text-sm font-mono">{{ subscription.subdomain }}</div></div>
-
-      </div>
-
-
-
-      {% if subscription.period_start or subscription.period_end %}
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-
-        {% if subscription.period_start %}
-
-        <p class="text-base-content/70">Current period started: <strong>{{ subscription.period_start|date:"d M Y" }}</strong></p>
-
-        {% endif %}
-
-        {% if subscription.period_end %}
-
-        <p class="text-base-content/70">Current period ends: <strong>{{ subscription.period_end|date:"d M Y" }}</strong></p>
-
-        {% endif %}
-
-      </div>
-
-      {% endif %}
-
-
-
-      {% if subscription.products %}
-
-      <p class="text-sm text-base-content/70">Products on your subscription: <strong>{{ subscription.products|join:", " }}</strong></p>
-
-      {% endif %}
-
-
-
-      <div class="divider">Invoices</div>
-
-
-
-      {% if subscription.invoices %}
-
-      <div class="overflow-x-auto rounded-xl border border-base-300">
-
-        <table class="table table-sm">
-
-          <thead>
-
-            <tr>
-
-              <th>Invoice</th>
-
-              <th>Period</th>
-
-              <th>Amount</th>
-
-              <th>Status</th>
-
-              <th class="text-right">Actions</th>
-
-            </tr>
-
-          </thead>
-
-          <tbody>
-
-            {% for inv in subscription.invoices %}
-
-            <tr>
-
-              <td class="font-mono text-xs">{{ inv.number }}</td>
-
-              <td class="text-xs">{{ inv.period_start|date:"d M Y" }} – {{ inv.period_end|date:"d M Y" }}</td>
-
-              <td>₹{{ inv.amount|floatformat:2 }}</td>
-
-              <td><span class="badge badge-sm {% if inv.status == 'PAID' %}badge-success{% elif inv.status == 'OPEN' %}badge-warning{% else %}badge-ghost{% endif %}">{{ inv.status }}</span></td>
-
-              <td class="text-right whitespace-nowrap">
-
-                <a href="{% url 'accounts:invoice_view' invoice_id=inv.id %}" class="link link-primary text-xs" target="_blank" rel="noopener">View</a>
-
-                <span class="text-base-content/30 mx-1">·</span>
-
-                <a href="{% url 'accounts:invoice_pdf' invoice_id=inv.id %}" class="link link-primary text-xs">Download PDF</a>
-
-              </td>
-
-            </tr>
-
-            {% endfor %}
-
-          </tbody>
-
-        </table>
-
-      </div>
-
-      {% else %}
-
-      <div class="rounded-xl border border-dashed border-base-300 p-6 text-sm text-base-content/70">
-
-        <p>No invoices yet. After your first payment, GST invoices will appear here for download.</p>
-
-        {% if not subscription.platform_connected %}
-
-        <p class="mt-2 text-xs">Invoice history syncs from the platform billing service when it is connected.</p>
-
-        {% endif %}
-
-      </div>
-
-      {% endif %}
-
-
-
-      <div class="flex flex-wrap gap-3 pt-2">
-
-        <a href="{{ billing_url }}" class="btn btn-outline btn-sm" target="_blank" rel="noopener">Change plan or payment method →</a>
-
-        {% if can_access_finance %}
-        <a href="{{ finance_url }}" class="btn btn-ghost btn-sm">Open fin-saptta</a>
-        {% endif %}
-
-      </div>
-
-
-
-      <div class="divider">What makes Saptta different</div>
-
-      <ul class="text-sm space-y-2 text-base-content/80">
-
-        <li>✓ <strong>HR + Finance on one login</strong> — Tally XML export + payroll journal auto-sync to Finance on publish</li>
-
-        <li>✓ <strong>India-ready payroll</strong> — PF, ESI, PT, Form 16 built in</li>
-
-        <li>✓ <strong>AI recruitment scoring</strong> — rank candidates against job requirements</li>
-
-        <li>✓ <strong>Policy Q&amp;A bot</strong> — employees ask HR policies in plain English</li>
-
-        <li>✓ <strong>Smart setup checklist</strong> — guided config so nothing is missed</li>
-
-        <li>✓ <strong>Secure invite-only onboarding</strong> — no shared passwords for employees</li>
-
-      </ul>
-
+  <div class="settings-billing">
+
+    <div class="settings-billing-trust" role="note">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+      <span>Owner-only · Invoices scoped to <strong>{{ subscription.subdomain }}</strong> · Payments open Saptta platform (secure link)</span>
     </div>
+
+    {% if subscription.renewal %}
+    <div class="settings-billing-renewal settings-billing-renewal--{{ subscription.renewal.tone }}">
+      <div class="settings-billing-renewal__icon" aria-hidden="true">{% if subscription.renewal.tone == 'danger' %}⚠{% elif subscription.renewal.tone == 'warning' %}⏳{% else %}✓{% endif %}</div>
+      <div>
+        <p class="settings-billing-renewal__label">{{ subscription.renewal.label }}</p>
+        <p class="settings-billing-renewal__msg">{{ subscription.renewal.message }}</p>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="settings-billing-kpis">
+      <div class="settings-billing-kpi">
+        <span class="settings-billing-kpi__label">Plan</span>
+        <span class="settings-billing-kpi__value">{{ subscription.plan }}</span>
+        {% if subscription.products %}<span class="settings-billing-kpi__sub">{{ subscription.products|join:" · " }}</span>{% endif %}
+      </div>
+      <div class="settings-billing-kpi">
+        <span class="settings-billing-kpi__label">Status</span>
+        <span class="settings-billing-kpi__value">{{ subscription.status }}</span>
+      </div>
+      <div class="settings-billing-kpi settings-billing-kpi--seats{% if subscription.seats_used > subscription.seats_max %} is-over{% endif %}">
+        <span class="settings-billing-kpi__label">Seats used</span>
+        <span class="settings-billing-kpi__value">{{ subscription.seats_used }} <span class="settings-billing-kpi__of">/ {{ subscription.seats_max }}</span></span>
+        {% if subscription.seats_max > 0 %}
+        <div class="settings-billing-seats-bar" role="progressbar" aria-valuenow="{{ subscription.seats_used }}" aria-valuemin="0" aria-valuemax="{{ subscription.seats_max }}" aria-label="Seat usage">
+          <div class="settings-billing-seats-bar__fill" style="width: {% widthratio subscription.seats_used subscription.seats_max 100 %}%;"></div>
+        </div>
+        {% endif %}
+        {% if subscription.seats_used > subscription.seats_max %}
+        <span class="settings-billing-kpi__warn">Over plan limit — upgrade seats to add employees</span>
+        {% endif %}
+      </div>
+      <div class="settings-billing-kpi">
+        <span class="settings-billing-kpi__label">Workspace</span>
+        <span class="settings-billing-kpi__value settings-billing-kpi__value--mono">{{ subscription.subdomain }}</span>
+      </div>
+    </div>
+
+    {% if subscription.period_start or subscription.period_end %}
+    <div class="settings-billing-period">
+      {% if subscription.period_start %}
+      <div class="settings-billing-period__item">
+        <span class="settings-billing-period__label">Period started</span>
+        <span class="settings-billing-period__date">{{ subscription.period_start|date:"d M Y" }}</span>
+      </div>
+      {% endif %}
+      {% if subscription.period_end %}
+      <div class="settings-billing-period__item">
+        <span class="settings-billing-period__label">Period ends</span>
+        <span class="settings-billing-period__date">{{ subscription.period_end|date:"d M Y" }}</span>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <section class="settings-card">
+      <div class="settings-card__head settings-card__head--row">
+        <div>
+          <h2 class="settings-card__title">Invoices</h2>
+          <p class="settings-card__desc">GST invoices for your Saptta subscription.</p>
+        </div>
+        {% if subscription.invoices %}
+        <span class="settings-billing-invoice-count">{{ subscription.invoices|length }} invoice{{ subscription.invoices|length|pluralize }}</span>
+        {% endif %}
+      </div>
+      <div class="settings-card__body settings-card__body--flush">
+        {% if subscription.invoices %}
+        <div class="settings-billing-table-wrap">
+          <table class="settings-billing-table">
+            <thead>
+              <tr>
+                <th>Invoice</th>
+                <th>Period</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th class="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for inv in subscription.invoices %}
+              <tr>
+                <td><span class="settings-billing-inv-num">{{ inv.number }}</span></td>
+                <td class="settings-billing-inv-period">{{ inv.period_start|date:"d M Y" }} – {{ inv.period_end|date:"d M Y" }}</td>
+                <td><span class="settings-billing-inv-amount">₹{{ inv.amount|floatformat:2 }}</span></td>
+                <td><span class="settings-billing-badge settings-billing-badge--{{ inv.status|lower }}">{{ inv.status }}</span></td>
+                <td class="text-right">
+                  <a href="{% url 'accounts:invoice_view' invoice_id=inv.id %}" class="settings-billing-link" target="_blank" rel="noopener noreferrer">View</a>
+                  <a href="{% url 'accounts:invoice_pdf' invoice_id=inv.id %}" class="settings-billing-link">PDF</a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="settings-billing-empty">
+          <p>No invoices yet. After your first payment, GST invoices will appear here.</p>
+          {% if not subscription.platform_connected %}
+          <p class="settings-billing-empty__sub">Invoice history syncs when the platform billing service is connected.</p>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+    </section>
+
+    <div class="settings-form-actions">
+      <p class="text-xs text-base-content/50">Plan changes use your Saptta platform account (same login).</p>
+      <div class="flex flex-wrap gap-2">
+        <a href="{{ billing_url }}" class="btn btn-primary btn-sm" target="_blank" rel="noopener noreferrer">Manage plan &amp; payment</a>
+        {% if can_access_finance %}
+        <a href="{{ finance_url }}" class="btn btn-outline btn-sm">Open fin-saptta</a>
+        {% endif %}
+      </div>
+    </div>
+
+    <details class="settings-billing-features">
+      <summary>What’s included in Saptta HR</summary>
+      <ul class="settings-billing-features__list">
+        <li><strong>HR + Finance</strong> — payroll journal sync to Finance on publish</li>
+        <li><strong>India-ready payroll</strong> — PF, ESI, PT, Form 16</li>
+        <li><strong>AI recruitment</strong> — rank candidates against requirements</li>
+        <li><strong>Policy Q&amp;A</strong> — Sahayak answers HR questions</li>
+        <li><strong>Guided setup</strong> — checklist so nothing is missed</li>
+        <li><strong>Secure invites</strong> — employees set their own passwords</li>
+      </ul>
+    </details>
 
   </div>
 
@@ -806,6 +725,9 @@
   </div>
 
   {% endif %}
+
+    </div>{# .settings-main #}
+  </div>{# .settings-layout #}
 
 </div>
 

@@ -1,0 +1,75 @@
+{% load money_tags %}
+{# Settlement acknowledgement — HR list + employee self-service #}
+<div class="exit-ack-block text-xs">
+  <div class="font-semibold text-base-content/70 mb-1">Settlement signatures</div>
+
+  <div class="exit-ack-row">
+    <span class="exit-ack-label">HR</span>
+    {% if exit.hr_acknowledged %}
+    <span class="badge badge-success badge-xs">Done</span>
+    <span class="text-base-content/50">{{ exit.get_hr_acknowledgement_method_display }}</span>
+    {% elif show_hr_actions %}
+    <div class="flex flex-col gap-1 mt-1">
+      <form method="post" action="{% url 'hr_ops:exit_acknowledge_hr' exit.pk %}">
+        {% csrf_token %}
+        <input type="hidden" name="method" value="online">
+        <button type="button" class="btn btn-primary btn-xs w-full"
+                data-hr-confirm
+                data-hr-confirm-title="HR settlement acknowledgement"
+                data-hr-confirm-message="Confirm that you (HR) have reviewed this settlement estimate for {{ exit.employee.full_name }}?"
+                data-hr-confirm-ok="Acknowledge online"
+                data-hr-confirm-tone="primary">Acknowledge online</button>
+      </form>
+      <form method="post" action="{% url 'hr_ops:exit_acknowledge_hr' exit.pk %}">
+        {% csrf_token %}
+        <input type="hidden" name="method" value="offline">
+        <button type="button" class="btn btn-ghost btn-xs w-full"
+                data-hr-confirm
+                data-hr-confirm-title="Signed on paper?"
+                data-hr-confirm-message="Mark HR signature as collected offline (printed PDF / wet ink)?"
+                data-hr-confirm-ok="Mark offline signed"
+                data-hr-confirm-tone="warning">Mark signed offline</button>
+      </form>
+    </div>
+    {% else %}
+    <span class="badge badge-ghost badge-xs">Pending</span>
+    {% endif %}
+  </div>
+
+  <div class="exit-ack-row mt-2">
+    <span class="exit-ack-label">Employee</span>
+    {% if exit.employee_acknowledged %}
+    <span class="badge badge-success badge-xs">Done</span>
+    <span class="text-base-content/50">{{ exit.get_employee_acknowledgement_method_display }}</span>
+    {% elif show_employee_self_action %}
+    <form method="post" action="{% url 'hr_ops:exit_acknowledge_employee' exit.pk %}" class="mt-1">
+      {% csrf_token %}
+      <input type="hidden" name="method" value="online">
+      <button type="button" class="btn btn-primary btn-sm w-full"
+              data-hr-confirm
+              data-hr-confirm-title="Acknowledge settlement"
+              data-hr-confirm-message="I have reviewed this settlement estimate and acknowledge receipt of this statement."
+              data-hr-confirm-ok="I acknowledge"
+              data-hr-confirm-tone="primary">Acknowledge online</button>
+    </form>
+    {% elif show_hr_actions %}
+    <div class="flex flex-col gap-1 mt-1">
+      <span class="badge badge-warning badge-xs">Awaiting employee</span>
+      <form method="post" action="{% url 'hr_ops:exit_acknowledge_employee' exit.pk %}">
+        {% csrf_token %}
+        <input type="hidden" name="method" value="offline">
+        <button type="button" class="btn btn-ghost btn-xs w-full"
+                data-hr-confirm
+                data-hr-confirm-title="Employee signed offline?"
+                data-hr-confirm-message="Mark that {{ exit.employee.full_name }} signed the printed settlement on paper?"
+                data-hr-confirm-ok="Mark offline signed"
+                data-hr-confirm-tone="warning">Mark employee signed offline</button>
+      </form>
+    </div>
+    {% else %}
+    <span class="badge badge-ghost badge-xs">Pending</span>
+    {% endif %}
+  </div>
+
+  <a href="{% url 'hr_ops:exit_settlement_pdf' exit.pk %}" class="link link-primary link-hover mt-2 inline-block" target="_blank">View / print PDF</a>
+</div>

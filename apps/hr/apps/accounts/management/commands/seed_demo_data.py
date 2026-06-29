@@ -151,6 +151,11 @@ class Command(BaseCommand):
             tenant.setup_complete = True
             tenant.save(update_fields=["employee_count", "setup_complete"])
 
+        from apps.tenants.limits import ensure_seat_cap_covers_active
+
+        # Demo seeds ~100 employees; default plan cap is 30 — leave room to add more.
+        ensure_seat_cap_covers_active(tenant, headroom=25)
+
         call_command("seed_payroll", tenant=subdomain)
         from apps.payroll.models import EmployeeSalary, SalaryStructure
 

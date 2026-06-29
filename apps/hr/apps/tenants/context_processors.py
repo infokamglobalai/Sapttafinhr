@@ -5,21 +5,14 @@ from django.urls import reverse
 from apps.accounts.platform import platform_base_for_request
 from utils.money import CURRENCY_SYMBOLS, currency_decimal_places
 from .jurisdiction import is_gcc_payroll, is_india_payroll, jurisdiction_label
-from .limits import DEFAULT_INCLUDED_EMPLOYEES, employee_limit, seats_remaining
+from .limits import DEFAULT_INCLUDED_EMPLOYEES, active_employee_count, employee_limit, seats_remaining
 
+# Setup & Config only — org/people and HR Ops pages use their own nav sections.
 SETTINGS_URL_NAMES = frozenset({
-    "departments", "department_create", "designations", "designation_create",
-    "locations", "location_create",
     "leave_types", "leave_type_create", "leave_type_edit", "holidays", "holiday_create",
     "shifts", "shift_create", "shift_edit",
     "structures", "structure_create", "structure_edit",
     "statutory", "statutory_create", "statutory_edit",
-    "policy_list", "policy_create", "policy_edit",
-    "announcements", "announcement_create", "announcement_edit",
-    "onboarding_templates", "onboarding_template_create", "onboarding_template_edit",
-    "team_access", "team_access_update",
-    "letter_templates", "letter_template_create", "letter_template_edit",
-    "letter_company_settings", "letter_history", "letter_detail", "letter_edit_draft",
 })
 
 
@@ -37,6 +30,20 @@ NAV_CATEGORY_LABELS = {
 }
 
 
+def _settings_tab(request) -> str:
+    """Active tab on /auth/settings/ (empty when not on that page)."""
+    match = getattr(request, "resolver_match", None)
+    if not match or match.app_name != "accounts" or match.url_name != "settings":
+        return ""
+    tab = (request.GET.get("tab") or "profile").strip().lower()
+    if tab not in {"profile", "company", "billing", "email", "security", "support"}:
+        return "profile"
+    return tab
+
+
+_OWNER_SETTINGS_TABS = frozenset({"company", "billing", "email"})
+
+
 def _nav_active_category(request) -> str:
     """Desktop nav category — mirrors activeCategory in base.html."""
     match = getattr(request, "resolver_match", None)
@@ -50,8 +57,28 @@ def _nav_active_category(request) -> str:
     is_mgr = is_auth and user.is_manager and not user.is_hr_admin
 
     if app_name == "tenants":
+        if url_name == "company_overview":
+            return "hrOps"
+        if url_name in ("setup", "setup_complete"):
+            return "settings"
         return "dashboard"
+    if app_name == "accounts":
+        if url_name == "settings":
+            tab = _settings_tab(request)
+            if tab in _OWNER_SETTINGS_TABS and is_auth and getattr(user, "is_company_owner", False):
+                return "settings"
+            return "mySpace"
+        if url_name in ("invoice_view", "invoice_pdf"):
+            return "settings"
+        if url_name in (
+            "profile", "change_password", "launch_finance",
+        ):
+            return "mySpace"
+    if app_name == "employees":
+        return "people"
     if url_name in SETTINGS_URL_NAMES:
+        return "settings"
+    if app_name == "attendance" and "shift" in url_name:
         return "settings"
     if url_name in {
         "my_work", "my_attendance", "regularization", "apply", "comp_off", "my_leaves",
@@ -61,6 +88,8 @@ def _nav_active_category(request) -> str:
         "my_assets", "my_onboarding", "my_onboarding_item_complete",
         "my_service_requests", "my_service_request_detail", "request_create",
         "my_projects", "my_timesheet",
+        "my_company_doc_requests", "my_company_doc_request_detail", "company_doc_request_create",
+        "directory", "colleague",
     } or (app_name == "projects" and url_name in ("detail", "upload_document", "add_update")):
         return "mySpace"
     if app_name == "hr_ops" and url_name in ("notifications", "notification_open", "notification_dropdown"):
@@ -79,8 +108,6 @@ def _nav_active_category(request) -> str:
         or (url_name == "comp_off_pending" and is_mgr)
     ):
         return "team"
-    if app_name == "employees":
-        return "people"
     if app_name == "recruitment":
         return "hrOps"
     if app_name == "reports":
@@ -91,15 +118,12 @@ def _nav_active_category(request) -> str:
         or url_name in ("balances", "anomaly", "anomaly_scan")
         or (url_name == "regularizations" and is_hr)
         or (url_name == "comp_off_pending" and is_hr)
-        or ("shift" in url_name and app_name == "attendance")
     ):
         return "timeLeave"
     if (
         url_name in ("run_list", "run_detail", "run_create", "tax_declarations_admin", "form16_admin", "monthly_review")
         or "loan" in url_name
         or ("expense" in url_name and is_hr and app_name == "payroll")
-        or ("structure" in url_name and app_name == "payroll")
-        or ("statutory" in url_name and app_name == "payroll")
     ):
         return "payroll"
     if app_name == "performance":
@@ -117,12 +141,16 @@ def _nav_active_category(request) -> str:
             "letter_templates", "letter_history", "letter_detail", "letter_edit_draft",
             "assets", "exit_list", "letter_company_settings",
             "policy_list", "announcements", "company_overview",
+            "company_vault_list", "company_vault_upload", "company_vault_edit",
+            "company_vault_download", "company_vault_archive", "company_vault_requests",
+            "company_vault_request_review", "service_request_queue", "service_request_admin_detail",
         )
         or (app_name == "hr_ops" and "celebration" in url_name and is_hr)
         or app_name == "recruitment"
         or ("service_request" in url_name and app_name == "hr_ops" and is_hr)
         or "letter_template" in url_name
         or (url_name and "letter" in url_name and app_name == "hr_ops")
+        or (url_name and "company_vault" in url_name)
         or ("policy" in url_name and app_name == "hr_ops")
         or ("announcement" in url_name and app_name == "hr_ops")
         or ("exit" in url_name and app_name == "hr_ops")
@@ -221,6 +249,7 @@ def tenant_context(request):
         "tenant": getattr(request, "tenant", None),
         "unread_notif_count": 0,
         "nav_is_settings": url_name in SETTINGS_URL_NAMES,
+        "settings_tab": _settings_tab(request),
         "nav_active_category": _nav_active_category(request),
         "nav_category_label": NAV_CATEGORY_LABELS.get(_nav_active_category(request), ""),
         "nav_secondary_open": _nav_secondary_open(request),
@@ -243,8 +272,15 @@ def tenant_context(request):
         ctx["tenant_ui_direction"] = "rtl" if ctx["tenant_ui_language"] == "ar" else "ltr"
         ctx["seats_remaining"] = seats_remaining(tenant)
         ctx["employee_limit"] = employee_limit(tenant)
+        ctx["active_employee_count"] = active_employee_count(tenant)
         ctx["at_employee_cap"] = ctx["seats_remaining"] == 0
         ctx["billing_settings_url"] = "/auth/settings/?tab=billing"
+        suggested_seats = max(
+            ctx["active_employee_count"] + 10,
+            ctx["employee_limit"] + 10,
+            DEFAULT_INCLUDED_EMPLOYEES,
+        )
+        ctx["billing_upgrade_seats"] = suggested_seats
     else:
         ctx["tenant_logo_url"] = ""
         ctx["tenant_is_india_payroll"] = True
@@ -303,7 +339,9 @@ def tenant_context(request):
         ctx["can_access_hr"] = tenant_has_hr(tenant)
         ctx["product_menu_label"] = product_menu_label(tenant)
         ctx["is_workspace_owner"] = user.is_company_owner
-        ctx["platform_billing_url"] = f"{ctx['PLATFORM_BASE_URL']}/app/billing"
+        ctx["platform_billing_url"] = (
+            f"{ctx['PLATFORM_BASE_URL']}/app/billing?employees={ctx.get('billing_upgrade_seats', DEFAULT_INCLUDED_EMPLOYEES)}"
+        )
     else:
         ctx["can_access_finance"] = False
         ctx["can_access_hr"] = False

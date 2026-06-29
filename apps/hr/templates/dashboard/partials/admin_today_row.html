@@ -1,5 +1,5 @@
 <div class="dash-today-row stagger">
-  <div class="dash-chart-card dash-chart-card--half" x-data="{ trendRange: '14' }">
+  <div class="dash-chart-card dash-chart-card--half dash-chart-card--fill" x-data="{ trendRange: '14' }">
     <div class="dash-chart-card__head dash-chart-card__head--split">
       <div>
         <h2 class="dash-chart-card__title">Attendance trend</h2>
@@ -16,7 +16,7 @@
         </select>
       </label>
     </div>
-    <div class="chart-wrap dash-chart-wrap dash-chart-wrap--compact" style="height: 150px; position: relative;">
+    <div class="dash-chart-wrap dash-chart-wrap--fill">
       <canvas id="attendanceTrendChart" aria-label="Attendance trend chart"></canvas>
       <div id="attendanceTrendEmpty" class="dash-chart-empty{% if insights.avg_daily_present %} is-hidden{% endif %}" aria-hidden="{% if insights.avg_daily_present %}true{% else %}false{% endif %}">
         <span class="dash-chart-empty__icon" aria-hidden="true">

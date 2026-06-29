@@ -283,6 +283,16 @@
     box-shadow: inset 0 0 0 1px rgba(79, 70, 229, 0.1);
   }
 
+  /* Active section but collapsed — subtle ring, no full open tint */
+  .nav-module__header.is-active:not(.is-open) {
+    background: rgba(79, 70, 229, 0.05);
+    box-shadow: inset 0 0 0 1px rgba(79, 70, 229, 0.08);
+  }
+
+  .nav-module__header.is-active:not(.is-open) .nav-module__icon {
+    box-shadow: inset 0 0 0 1px rgba(79, 70, 229, 0.15);
+  }
+
   .nav-module__header.is-open .nav-module__chevron,
   .nav-module__header.is-active .nav-module__chevron {
     opacity: 1;
@@ -400,6 +410,8 @@
     color: var(--sidebar-nav-accent) !important;
     font-weight: 600 !important;
     box-shadow: inset 0 0 0 1px rgba(79, 70, 229, 0.1) !important;
+    border-left: 3px solid var(--sidebar-nav-accent);
+    padding-left: 8px !important;
   }
 
   /* Hide legacy direct SVGs on flat nav links — keep capsule icons */
@@ -498,6 +510,26 @@
 
   .sidebar .nav-module__body.is-open {
     display: flex;
+  }
+
+  .sidebar .nav-module__header.is-active,
+  .sidebar .nav-module__header.is-open {
+    background: var(--sidebar-nav-accent-soft);
+    color: var(--sidebar-nav-accent);
+  }
+
+  .sidebar .nav-module__header.is-active .nav-module__label,
+  .sidebar .nav-module__header.is-open .nav-module__label {
+    color: var(--sidebar-nav-accent);
+    font-weight: 600;
+  }
+
+  .sidebar .nav-item.active {
+    background: var(--sidebar-nav-accent-soft) !important;
+    color: var(--sidebar-nav-accent) !important;
+    font-weight: 600 !important;
+    border-left: 3px solid var(--sidebar-nav-accent);
+    padding-left: 9px !important;
   }
 
   .sidebar .nav-module__header.is-open .nav-module__chevron {

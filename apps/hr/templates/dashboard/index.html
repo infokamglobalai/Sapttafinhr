@@ -16,10 +16,48 @@
   Chart.defaults.plugins.legend.labels.usePointStyle = true;
   Chart.defaults.plugins.legend.labels.boxWidth = 6;
   Chart.defaults.animation.duration = 600;
-  const PALETTE = ['#4f46e5', '#6366f1', '#818cf8', '#6366F1', '#818CF8', '#a5b4fc', '#4338ca', '#4F46E5'];
+  const PALETTE = ['#4F46E5', '#06B6D4', '#10B981', '#F59E0B', '#EC4899', '#8B5CF6', '#14B8A6', '#F97316'];
+  const GENDER_COLORS = { male: '#3B82F6', female: '#EC4899', other: '#94A3B8' };
   const BRAND_ORANGE = (window.SAPTTA_THEME && window.SAPTTA_THEME.primary) || '#6366f1';
   const BRAND_BLUE = (window.SAPTTA_THEME && window.SAPTTA_THEME.secondary) || '#4f46e5';
   const DASH_PRIMARY = '#4f46e5';
+
+  function applyBarStyle(datasets, { stacked = false, radius = 5 } = {}) {
+    return datasets.map((ds, i, arr) => ({
+      ...ds,
+      borderWidth: 0,
+      borderRadius: stacked
+        ? (i === arr.length - 1 ? { topRight: radius, bottomRight: radius } : i === 0 ? { topLeft: radius, bottomLeft: radius } : 0)
+        : radius,
+      borderSkipped: false,
+      maxBarThickness: stacked ? 22 : 28,
+    }));
+  }
+
+  function groupedChartLegend() {
+    return {
+      position: 'bottom',
+      labels: {
+        padding: 14,
+        font: { size: 11, weight: '600' },
+        color: '#475569',
+        usePointStyle: true,
+        pointStyle: 'circle',
+      },
+    };
+  }
+
+  function groupedChartTooltip() {
+    return {
+      backgroundColor: 'rgba(15, 23, 42, 0.92)',
+      titleFont: { size: 12, weight: '700' },
+      bodyFont: { size: 11, weight: '600' },
+      padding: 12,
+      cornerRadius: 10,
+      mode: 'index',
+      intersect: false,
+    };
+  }
 </script>
 <style>
   .dash-refresh {
@@ -483,6 +521,134 @@
     min-width: 0;
     position: relative;
   }
+  .dash-refresh .dash-chart-wrap--grouped {
+    padding: 4px 2px 0;
+  }
+  .dash-refresh .dash-chart-wrap--grouped canvas {
+    filter: drop-shadow(0 8px 16px rgba(15, 23, 42, 0.04));
+  }
+
+  .dash-refresh .dash-diversity {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    min-height: 240px;
+  }
+
+  @media (min-width: 480px) {
+    .dash-refresh .dash-diversity:not(.is-empty) {
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+      align-items: center;
+    }
+  }
+
+  .dash-refresh .dash-diversity__chart {
+    position: relative;
+    min-height: 200px;
+    height: 220px;
+  }
+
+  .dash-refresh .dash-diversity__chart canvas {
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  .dash-refresh .dash-diversity__center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    text-align: center;
+  }
+
+  .dash-refresh .dash-diversity__total {
+    font-size: 1.75rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: #0f172a;
+    line-height: 1;
+  }
+
+  .dash-refresh .dash-diversity__total-label {
+    margin-top: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #94a3b8;
+  }
+
+  .dash-refresh .dash-diversity__legend {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .dash-refresh .dash-diversity__legend-item {
+    display: grid;
+    grid-template-columns: 12px 1fr auto;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: rgba(248, 250, 252, 0.9);
+    border: 1px solid rgba(15, 23, 42, 0.06);
+  }
+
+  .dash-refresh .dash-diversity__swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 999px;
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
+  }
+
+  .dash-refresh .dash-diversity__legend-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+  }
+
+  .dash-refresh .dash-diversity__legend-meta {
+    font-size: 12px;
+    font-weight: 700;
+    color: #64748b;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .dash-refresh .dash-diversity__chips {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-top: 4px;
+  }
+
+  .dash-refresh .dash-diversity__chip {
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: rgba(79, 70, 229, 0.06);
+    border: 1px solid rgba(79, 70, 229, 0.1);
+  }
+
+  .dash-refresh .dash-diversity__chip strong {
+    color: #4338ca;
+    font-weight: 700;
+  }
+
+  .dash-refresh .dash-diversity.is-empty .dash-diversity__chart {
+    grid-column: 1 / -1;
+    min-height: 180px;
+    height: 180px;
+  }
   .dash-panel-grid.is-editing .dash-panel {
     outline: 2px dashed rgba(99, 102, 241, 0.35);
     outline-offset: 4px;
@@ -583,32 +749,50 @@
     const deptData = JSON.parse(document.getElementById('dept-chart-data').textContent);
     const genderData = JSON.parse(document.getElementById('gender-chart-data').textContent);
 
-    if (genderReady && document.getElementById('genderChart') && genderData.labels.length) {
+    if (genderReady && document.getElementById('genderChart') && genderData.labels && genderData.labels.length) {
       document.getElementById('genderChart').hidden = false;
       const genderEmpty = document.getElementById('genderChartEmpty');
       if (genderEmpty) genderEmpty.classList.add('is-hidden');
+      const genderTotal = (genderData.data || []).reduce((a, b) => a + b, 0);
       new Chart(document.getElementById('genderChart'), {
         type: 'doughnut',
         data: {
           labels: genderData.labels,
           datasets: [{
             data: genderData.data,
-            backgroundColor: [DASH_PRIMARY, BRAND_BLUE, '#8B5CF6', '#06B6D4'],
-            borderWidth: 2,
+            backgroundColor: genderData.colors || ['#3B82F6', '#EC4899', '#CBD5E1'],
+            borderWidth: 4,
             borderColor: '#ffffff',
-            hoverOffset: 6
-          }]
+            hoverOffset: 12,
+            hoverBorderWidth: 0,
+          }],
         },
         options: {
           maintainAspectRatio: false,
           cutout: '68%',
+          layout: { padding: 4 },
           plugins: {
-            legend: {
-              position: 'bottom',
-              labels: { padding: 8, font: { size: 10, weight: '700' }, color: '#475569' }
-            }
-          }
-        }
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: 'rgba(15, 23, 42, 0.92)',
+              titleFont: { size: 12, weight: '700' },
+              bodyFont: { size: 11, weight: '600' },
+              padding: 12,
+              cornerRadius: 10,
+              displayColors: true,
+              boxWidth: 8,
+              boxHeight: 8,
+              usePointStyle: true,
+              callbacks: {
+                label(ctx) {
+                  const val = ctx.parsed || 0;
+                  const pct = genderTotal ? Math.round(val / genderTotal * 100) : 0;
+                  return ` ${ctx.label}: ${val} (${pct}%)`;
+                },
+              },
+            },
+          },
+        },
       });
     }
 
@@ -618,31 +802,32 @@
     const deptEmpty = document.getElementById('deptChartEmpty');
     if (deptEmpty) deptEmpty.classList.add('is-hidden');
     new Chart(deptEl, {
-      type: 'doughnut',
+      type: 'bar',
       data: {
         labels: deptData.labels,
-        datasets: [{
-          data: deptData.data,
-          backgroundColor: PALETTE,
-          borderWidth: 2,
-          borderColor: '#ffffff',
-          hoverOffset: 8
-        }]
+        datasets: applyBarStyle(deptData.datasets || [], { stacked: true, radius: 6 }),
       },
       options: {
+        indexAxis: 'y',
         maintainAspectRatio: false,
-        cutout: '72%',
+        scales: {
+          x: {
+            stacked: true,
+            beginAtZero: true,
+            grid: { color: 'rgba(0, 0, 0, 0.04)', drawBorder: false },
+            ticks: { precision: 0, font: { size: 10, weight: '600' }, color: '#94a3b8' },
+          },
+          y: {
+            stacked: true,
+            grid: { display: false },
+            ticks: { font: { size: 11, weight: '600' }, color: '#475569' },
+          },
+        },
         plugins: {
-          legend: {
-            position: 'bottom',
-            labels: {
-              padding: 8,
-              font: { size: 10, weight: '700' },
-              color: '#475569'
-            }
-          }
-        }
-      }
+          legend: groupedChartLegend(),
+          tooltip: groupedChartTooltip(),
+        },
+      },
     });
     }
 
@@ -650,12 +835,19 @@
     let trendChart = null;
 
     function makeTrendGradient(ctx) {
-      const grad = ctx.createLinearGradient(0, 0, 0, 220);
+      const h = ctx.canvas.parentElement?.clientHeight || ctx.canvas.height || 220;
+      const grad = ctx.createLinearGradient(0, 0, 0, h);
       grad.addColorStop(0, 'rgba(79, 70, 229, 0.22)');
       grad.addColorStop(0.5, 'rgba(79, 70, 229, 0.06)');
       grad.addColorStop(1, 'rgba(255, 255, 255, 0.01)');
       return grad;
     }
+
+    function resizeTrendChart() {
+      if (trendChart) trendChart.resize();
+    }
+
+    window.addEventListener('resize', resizeTrendChart);
 
     window.updateAttendanceTrend = function(days) {
       const key = String(days || '14');
@@ -734,6 +926,7 @@
           }
         }
       });
+      requestAnimationFrame(resizeTrendChart);
     };
 
     window.updateAttendanceTrend('14');

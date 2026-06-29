@@ -235,7 +235,7 @@ def exit_list(request):
     from apps.payroll.settlement import settlement_estimate
 
     exits = ExitRequest.objects.filter(tenant=tenant).select_related(
-        "employee", "employee__department", "employee__user"
+        "employee", "employee__department", "employee__user", "hr_acknowledged_by"
     ).order_by("-created_at")
     for exit_req in exits:
         lwd = exit_req.last_working_date or timezone.localdate()
@@ -381,11 +381,21 @@ def exit_finalize(request, pk):
     return redirect("hr_ops:exit_list")
 
 
-@perm_required("hr_ops.manage_exits")
+@login_required
 def exit_settlement_pdf(request, pk):
     """PDF settlement statement (indemnity / gratuity) for an exit request."""
     tenant = request.tenant
-    exit_req = get_object_or_404(ExitRequest, pk=pk, tenant=tenant)
+    exit_req = get_object_or_404(
+        ExitRequest.objects.select_related("employee", "hr_acknowledged_by"),
+        pk=pk,
+        tenant=tenant,
+    )
+    profile = getattr(request.user, "employee_profile", None)
+    is_self = profile and profile.pk == exit_req.employee_id
+    if not is_self and not request.user.has_perm_code("hr_ops.manage_exits"):
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden("You do not have access to this settlement statement.")
+
     from apps.payroll.settlement import settlement_estimate
 
     lwd = exit_req.last_working_date or timezone.localdate()
@@ -414,6 +424,70 @@ def exit_settlement_pdf(request, pk):
         },
         filename=f"settlement_{exit_req.employee.employee_code}.pdf",
     )
+
+
+@perm_required("hr_ops.manage_exits")
+@require_POST
+def exit_acknowledge_hr(request, pk):
+    """HR confirms settlement — online in app or marked signed on paper."""
+    tenant = request.tenant
+    exit_req = get_object_or_404(ExitRequest, pk=pk, tenant=tenant)
+    method = (request.POST.get("method") or "online").strip().lower()
+    if method not in ("online", "offline"):
+        messages.error(request, "Invalid acknowledgement method.")
+        return redirect("hr_ops:exit_list")
+
+    from .settlement_ack import acknowledge_settlement_hr
+
+    acknowledge_settlement_hr(exit_req, actor=request.user, method=method)
+    if method == "offline":
+        messages.success(
+            request,
+            f"Marked HR settlement acknowledgement as signed offline for {exit_req.employee.full_name}.",
+        )
+    else:
+        messages.success(
+            request,
+            f"HR settlement acknowledgement recorded for {exit_req.employee.full_name}.",
+        )
+    return redirect("hr_ops:exit_list")
+
+
+@login_required
+@require_POST
+def exit_acknowledge_employee(request, pk):
+    """Employee confirms settlement estimate — online or HR records offline on their behalf."""
+    tenant = request.tenant
+    exit_req = get_object_or_404(ExitRequest, pk=pk, tenant=tenant)
+    method = (request.POST.get("method") or "online").strip().lower()
+    if method not in ("online", "offline"):
+        messages.error(request, "Invalid acknowledgement method.")
+        return redirect("hr_ops:exit_list")
+
+    profile = getattr(request.user, "employee_profile", None)
+    is_self = profile and profile.pk == exit_req.employee_id
+    is_hr = request.user.has_perm_code("hr_ops.manage_exits")
+
+    if method == "offline" and not is_hr:
+        messages.error(request, "Only HR can record an offline (paper) employee signature.")
+        return redirect("employees:my_work")
+
+    if method == "online" and not is_self:
+        messages.error(request, "Only the employee can acknowledge online from their account.")
+        return redirect("hr_ops:exit_list")
+
+    from .settlement_ack import acknowledge_settlement_employee
+
+    acknowledge_settlement_employee(exit_req, method=method)
+    if method == "offline":
+        messages.success(
+            request,
+            f"Marked employee acknowledgement as signed offline for {exit_req.employee.full_name}.",
+        )
+        return redirect("hr_ops:exit_list")
+
+    messages.success(request, "Thank you — your settlement acknowledgement has been recorded.")
+    return redirect("employees:my_work")
 
 
 @perm_required("hr_ops.manage_exits")

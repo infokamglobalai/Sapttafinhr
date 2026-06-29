@@ -75,7 +75,7 @@ def account_settings(request):
                     messages.error(
                         request,
                         f"Could not send test email: {exc}. "
-                        "Check EMAIL_HOST / ANYMAIL settings in your server environment.",
+                        "Check EMAIL_HOST / SMTP settings in your server environment.",
                     )
                 return redirect("/auth/settings/?tab=email")
 

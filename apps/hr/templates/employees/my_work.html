@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load humanize static %}
+{% load humanize static money_tags %}
 {% block page_title %}My Profile{% endblock %}
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/attendance-mobile.css' %}?v=1">
@@ -58,6 +58,23 @@
   </div>
 
   {% include "attendance/partials/punch_card.html" %}
+
+  {% if exit_request %}
+  <div class="my-space-card my-space-card--highlight">
+    <h2 class="my-space-card__title">Exit &amp; settlement</h2>
+    <p class="text-sm text-base-content/70 mb-3">
+      Your exit is in progress. Review the settlement estimate below and acknowledge when ready.
+      You can acknowledge <strong>online here</strong> or sign a <strong>printed PDF</strong> collected by HR.
+    </p>
+    {% if settlement_info %}
+    <p class="text-sm mb-3">
+      Estimated <strong>{{ settlement_info.label }}</strong>:
+      <span class="font-semibold">{{ settlement_info.amount|money_format:settlement_info.currency }}</span>
+    </p>
+    {% endif %}
+    {% include "hr_ops/partials/exit_settlement_ack.html" with exit=exit_request show_hr_actions=False show_employee_self_action=True %}
+  </div>
+  {% endif %}
 
   <div class="my-space-grid">
     <div class="my-space-card">

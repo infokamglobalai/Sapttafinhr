@@ -1,0 +1,22 @@
+<form method="post" action="{% url 'employees:org_chart_reassign' employee.pk %}" class="org-reassign-form">
+  {% csrf_token %}
+  <p class="text-sm text-base-content/70 mb-4">
+  Move <strong>{{ employee.directory_name }}</strong> ({{ employee.employee_code }}) under a new manager, or set as a top-level leader.
+  </p>
+  <div class="form-control mb-4">
+    <label class="label" for="id_reporting_manager"><span class="label-text font-semibold">Reports to</span></label>
+    <select name="reporting_manager" id="id_reporting_manager" class="select select-bordered w-full">
+      <option value="">— No manager (top level) —</option>
+      {% for mgr in managers %}
+      <option value="{{ mgr.pk }}" {% if employee.reporting_manager_id == mgr.pk %}selected{% endif %}>
+        {{ mgr.directory_name }} · {{ mgr.designation.name|default:"—" }}{% if mgr.department %} · {{ mgr.department.name }}{% endif %}
+      </option>
+      {% endfor %}
+    </select>
+  </div>
+  <p class="org-reassign-error text-sm text-error mb-3" role="alert"></p>
+  <div class="flex justify-end gap-2">
+    <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('org-reassign-dialog').close()">Cancel</button>
+    <button type="submit" class="btn btn-primary btn-sm">Save</button>
+  </div>
+</form>

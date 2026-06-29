@@ -55,3 +55,17 @@ def sync_employee_count(tenant) -> int:
         tenant.employee_count = count
         tenant.save(update_fields=["employee_count", "updated_at"])
     return count
+
+
+def ensure_seat_cap_covers_active(tenant, *, headroom: int = 0) -> int:
+    """Raise max_employees when active headcount exceeds the paid cap.
+
+    Used after demo seeding so seeded workspaces can still add employees.
+    Production upgrades should go through billing (sync_subscription).
+    """
+    active = sync_employee_count(tenant)
+    needed = max(active + max(0, headroom), employee_limit(tenant))
+    if tenant.max_employees < needed:
+        tenant.max_employees = needed
+        tenant.save(update_fields=["max_employees", "updated_at"])
+    return tenant.max_employees

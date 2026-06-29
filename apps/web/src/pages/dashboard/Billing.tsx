@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button, Tag, message, Card, Table, Divider, InputNumber, Input, Checkbox } from 'antd';
 import {
   ArrowLeftOutlined,
@@ -24,6 +24,7 @@ const statusColor: Record<string, string> = { TRIAL: 'blue', ACTIVE: 'green', PA
 export default function Billing() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
   const [employees, setEmployees] = useState(INCLUDED_EMPLOYEES);
@@ -42,6 +43,14 @@ export default function Billing() {
   // Live subscription via platform API (works on localhost:8080 without tenant subdomain).
   const [sub, setSub] = useState<MySubscription | null>(null);
   const [subLoading, setSubLoading] = useState(true);
+
+  useEffect(() => {
+    const fromUrl = Number(searchParams.get('employees'));
+    if (Number.isFinite(fromUrl) && fromUrl >= INCLUDED_EMPLOYEES) {
+      setEmployees(Math.floor(fromUrl));
+    }
+  }, [searchParams]);
+
   useEffect(() => {
     let cancelled = false;
     setSubLoading(true);

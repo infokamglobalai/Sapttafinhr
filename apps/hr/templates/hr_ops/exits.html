@@ -24,6 +24,7 @@
         <th>Status</th>
         <th>Clearance</th>
         <th>{% if tenant_is_gcc_payroll %}Settlement est.{% else %}Gratuity est.{% endif %}</th>
+        <th>Signatures</th>
         {% if user.is_hr_admin %}<th>Actions</th>{% endif %}
       </tr>
     </thead>
@@ -99,7 +100,9 @@
           {% else %}
           <span class="text-base-content/40">{{ exit.gratuity_info.note|truncatechars:40 }}</span>
           {% endif %}
-          <a href="{% url 'hr_ops:exit_settlement_pdf' exit.pk %}" class="link link-primary link-hover text-xs mt-1 inline-block" target="_blank">PDF</a>
+        </td>
+        <td class="text-xs align-top" style="min-width: 11rem;">
+          {% include "hr_ops/partials/exit_settlement_ack.html" with exit=exit show_hr_actions=user.is_hr_admin show_employee_self_action=False %}
         </td>
         {% if user.is_hr_admin %}
         <td>
@@ -129,7 +132,7 @@
         {% endif %}
       </tr>
       {% empty %}
-      <tr><td colspan="{% if user.is_hr_admin %}8{% else %}7{% endif %}" class="text-center py-8 text-base-content/40">No exit requests. Initiate from an employee's profile page.</td></tr>
+      <tr><td colspan="{% if user.is_hr_admin %}9{% else %}8{% endif %}" class="text-center py-8 text-base-content/40">No exit requests. Initiate from an employee's profile page.</td></tr>
       {% endfor %}
     </tbody>
   </table>

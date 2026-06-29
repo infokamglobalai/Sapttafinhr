@@ -32,9 +32,9 @@
       </div>
       <div class="mb-4">
         <div class="ch-title">By Department</div>
-        <div class="ch-sub" style="margin-bottom:0;">Active headcount distribution</div>
+        <div class="ch-sub" style="margin-bottom:0;">Headcount by department · grouped by gender</div>
       </div>
-      <div class="dash-chart-wrap" style="height: 220px;">
+      <div class="dash-chart-wrap dash-chart-wrap--grouped" style="height: 280px;">
         <canvas id="deptChart"{% if not dept_chart_ready %} hidden{% endif %} aria-hidden="{% if dept_chart_ready %}false{% else %}true{% endif %}"></canvas>
         <div class="dash-chart-empty{% if dept_chart_ready %} is-hidden{% endif %}" id="deptChartEmpty">
           <span class="dash-chart-empty__icon" aria-hidden="true">
@@ -60,16 +60,42 @@
         <div class="ch-title">Workforce Diversity</div>
         <div class="ch-sub" style="margin-bottom:0;">Gender distribution · active employees</div>
       </div>
-      <div class="dash-chart-wrap" style="height: 200px;">
-        <canvas id="genderChart"{% if not gender_chart_ready %} hidden{% endif %} aria-hidden="{% if gender_chart_ready %}false{% else %}true{% endif %}"></canvas>
-        <div class="dash-chart-empty{% if gender_chart_ready %} is-hidden{% endif %}" id="genderChartEmpty">
-          <span class="dash-chart-empty__icon" aria-hidden="true">
-            <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-          </span>
-          <p class="dash-chart-empty__title">Gender not recorded</p>
-          <p class="dash-chart-empty__sub">Add gender on employee profiles for diversity insights.</p>
-          <a href="{% url 'employees:list' %}" class="dash-chart-empty__cta">Update employee profiles</a>
+      <div class="dash-diversity{% if not gender_chart_ready %} is-empty{% endif %}">
+        <div class="dash-diversity__chart">
+          <canvas id="genderChart"{% if not gender_chart_ready %} hidden{% endif %} aria-hidden="{% if gender_chart_ready %}false{% else %}true{% endif %}"></canvas>
+          {% if gender_chart_ready %}
+          <div class="dash-diversity__center" aria-hidden="true">
+            <span class="dash-diversity__total">{{ gender_chart.total }}</span>
+            <span class="dash-diversity__total-label">employees</span>
+          </div>
+          {% endif %}
+          <div class="dash-chart-empty{% if gender_chart_ready %} is-hidden{% endif %}" id="genderChartEmpty">
+            <span class="dash-chart-empty__icon" aria-hidden="true">
+              <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            </span>
+            <p class="dash-chart-empty__title">Gender not recorded</p>
+            <p class="dash-chart-empty__sub">Add gender on employee profiles for diversity insights.</p>
+            <a href="{% url 'employees:list' %}" class="dash-chart-empty__cta">Update employee profiles</a>
+          </div>
         </div>
+        {% if gender_chart_ready %}
+        <ul class="dash-diversity__legend" aria-label="Gender breakdown">
+          {% for item in gender_chart.items %}
+          <li class="dash-diversity__legend-item">
+            <span class="dash-diversity__swatch" style="background: {{ item.color }};"></span>
+            <span class="dash-diversity__legend-label">{{ item.label }}</span>
+            <span class="dash-diversity__legend-meta">{{ item.count }} · {{ item.pct }}%</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% if gender_chart.employment_types %}
+        <div class="dash-diversity__chips" aria-label="Employment types">
+          {% for et in gender_chart.employment_types %}
+          <span class="dash-diversity__chip">{{ et.label }} <strong>{{ et.count }}</strong></span>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% endif %}
       </div>
     </div>
 

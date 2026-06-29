@@ -69,11 +69,20 @@ services:
       SSO_SHARED_SECRET: ${SSO_SHARED_SECRET:-dev-sso-shared-secret-change-me}
       HR_INTERNAL_BASE_URL: http://hr-backend:8000
       FIELD_ENCRYPTION_KEY: ${HR_FIELD_ENCRYPTION_KEY:?set HR_FIELD_ENCRYPTION_KEY in .env (Fernet key)}
-      REQUIRE_EMAIL_VERIFICATION: ${REQUIRE_EMAIL_VERIFICATION:-True}
+      # Local dev: skip MFA + email OTP (password-only login). Override in .env if testing auth flows.
+      MFA_REQUIRED: ${MFA_REQUIRED:-False}
+      REQUIRE_EMAIL_VERIFICATION: ${REQUIRE_EMAIL_VERIFICATION:-False}
       RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
       RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-}
       RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      EMAIL_BACKEND: ${EMAIL_BACKEND:-}
+      EMAIL_HOST: ${EMAIL_HOST:-}
+      EMAIL_PORT: ${EMAIL_PORT:-587}
+      EMAIL_HOST_USER: ${EMAIL_HOST_USER:-}
+      EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:-}
+      EMAIL_USE_TLS: ${EMAIL_USE_TLS:-True}
+      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-Saptta <no-reply@saptta.com>}
     volumes:
       - ./apps/finance/backend:/app
     depends_on:
@@ -105,6 +114,13 @@ services:
       # silently skipped and new HR signups get no HR workspace (→ SSO loop).
       SSO_SHARED_SECRET: ${SSO_SHARED_SECRET:-dev-sso-shared-secret-change-me}
       HR_INTERNAL_BASE_URL: http://hr-backend:8000
+      EMAIL_BACKEND: ${EMAIL_BACKEND:-}
+      EMAIL_HOST: ${EMAIL_HOST:-}
+      EMAIL_PORT: ${EMAIL_PORT:-587}
+      EMAIL_HOST_USER: ${EMAIL_HOST_USER:-}
+      EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:-}
+      EMAIL_USE_TLS: ${EMAIL_USE_TLS:-True}
+      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-Saptta <no-reply@saptta.com>}
     volumes:
       - ./apps/finance/backend:/app
       - backups:/backups
@@ -146,11 +162,19 @@ services:
       # Docker-only flow — producing dead invite links.
       HR_PUBLIC_BASE_URL: ${HR_PUBLIC_BASE_URL:-http://hr.localhost:8080}
       FIELD_ENCRYPTION_KEY: ${HR_FIELD_ENCRYPTION_KEY:?set HR_FIELD_ENCRYPTION_KEY in .env (Fernet key)}
+      MFA_REQUIRED: ${MFA_REQUIRED:-False}
       # Same value as fin-backend so HR can verify FIN-minted SSO tokens.
       SSO_SHARED_SECRET: ${SSO_SHARED_SECRET:-dev-sso-shared-secret-change-me}
       FIN_INTERNAL_BASE_URL: http://fin-backend:8000
       REDIS_URL: redis://redis:6379/1
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      EMAIL_BACKEND: ${EMAIL_BACKEND:-}
+      EMAIL_HOST: ${EMAIL_HOST:-}
+      EMAIL_PORT: ${EMAIL_PORT:-587}
+      EMAIL_HOST_USER: ${EMAIL_HOST_USER:-}
+      EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:-}
+      EMAIL_USE_TLS: ${EMAIL_USE_TLS:-True}
+      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-Saptta <no-reply@saptta.com>}
     volumes:
       - ./apps/hr:/app
     depends_on:
@@ -187,10 +211,18 @@ services:
       REDIS_URL: redis://redis:6379/1
       CELERY_TASK_ALWAYS_EAGER: "false"
       FIELD_ENCRYPTION_KEY: ${HR_FIELD_ENCRYPTION_KEY:?set HR_FIELD_ENCRYPTION_KEY in .env (Fernet key)}
+      MFA_REQUIRED: ${MFA_REQUIRED:-False}
       SSO_SHARED_SECRET: ${SSO_SHARED_SECRET:-dev-sso-shared-secret-change-me}
       FIN_INTERNAL_BASE_URL: http://fin-backend:8000
       HR_PUBLIC_BASE_URL: ${HR_PUBLIC_BASE_URL:-http://hr.localhost:8080}
       PLATFORM_BASE_URL: ${PLATFORM_BASE_URL:-http://localhost:8080}
+      EMAIL_BACKEND: ${EMAIL_BACKEND:-}
+      EMAIL_HOST: ${EMAIL_HOST:-}
+      EMAIL_PORT: ${EMAIL_PORT:-587}
+      EMAIL_HOST_USER: ${EMAIL_HOST_USER:-}
+      EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:-}
+      EMAIL_USE_TLS: ${EMAIL_USE_TLS:-True}
+      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-Saptta <no-reply@saptta.com>}
     volumes:
       - ./apps/hr:/app
     depends_on:

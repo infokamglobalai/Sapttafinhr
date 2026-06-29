@@ -1,17 +1,42 @@
-<div class="card hr-table-wrap">
-  <table class="table table-sm">
-    <thead><tr><th>Name</th><th>Parent</th><th>Cost Center</th><th>Status</th></tr></thead>
-    <tbody>
-      {% for dept in departments %}
-      <tr>
-        <td class="font-medium">{{ dept.name }}</td>
-        <td>{{ dept.parent.name|default:"—" }}</td>
-        <td class="font-mono text-xs">{{ dept.cost_center_code|default:"—" }}</td>
-        <td><span class="badge badge-sm {% if dept.is_active %}badge-success{% else %}badge-ghost{% endif %}">{% if dept.is_active %}Active{% else %}Inactive{% endif %}</span></td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="4" class="text-center py-6 text-base-content/40">No departments yet.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
+<div class="card hr-table-wrap">
+  {% if list_error %}
+  <div class="alert alert-error text-sm mx-4 mt-4 py-2">{{ list_error }}</div>
+  {% endif %}
+  <table class="table table-sm">
+    <thead><tr><th>Name</th><th>Parent</th><th>Cost Center</th><th>Staff</th><th>Status</th><th class="text-right">Actions</th></tr></thead>
+    <tbody>
+      {% for dept in departments %}
+      <tr class="{% if not dept.is_active %}opacity-60{% endif %}">
+        <td class="font-medium">{{ dept.name }}</td>
+        <td>{{ dept.parent.name|default:"—" }}</td>
+        <td class="font-mono text-xs">{{ dept.cost_center_code|default:"—" }}</td>
+        <td class="text-xs text-base-content/60">{% if dept.employee_count %}{{ dept.employee_count }}{% else %}—{% endif %}</td>
+        <td><span class="badge badge-sm {% if dept.is_active %}badge-success{% else %}badge-ghost{% endif %}">{% if dept.is_active %}Active{% else %}Inactive{% endif %}</span></td>
+        <td class="text-right whitespace-nowrap">
+          {% if dept.is_active %}
+          <form method="post" action="{% url 'employees:department_deactivate' dept.pk %}" class="inline"
+                hx-post="{% url 'employees:department_deactivate' dept.pk %}"
+                hx-target="#dept-list" hx-swap="innerHTML">
+            {% csrf_token %}
+            <button type="button" class="btn btn-ghost btn-xs text-error" data-hr-confirm
+              data-hr-confirm-title="Remove department?"
+              data-hr-confirm-message="Deactivate «{{ dept.name }}»? It will be hidden from new employee assignments.{% if dept.employee_count %} {{ dept.employee_count }} employee(s) still reference it on their profile.{% endif %}"
+              data-hr-confirm-ok="Remove"
+              data-hr-confirm-tone="danger">Remove</button>
+          </form>
+          {% else %}
+          <form method="post" action="{% url 'employees:department_restore' dept.pk %}" class="inline"
+                hx-post="{% url 'employees:department_restore' dept.pk %}"
+                hx-target="#dept-list" hx-swap="innerHTML">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-ghost btn-xs text-primary">Restore</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="text-center py-6 text-base-content/40">No departments yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

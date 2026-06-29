@@ -31,6 +31,35 @@ def my_work(request):
     projects = projects_for_employee(employee).filter(status__in=("planning", "active"))[:6]
     shared_letters = employee.hr_letters.filter(is_shared=True).order_by("-shared_at")[:5]
 
+    exit_request = None
+    settlement_info = None
+    try:
+        from apps.hr_ops.models import ExitRequest
+        from apps.payroll.settlement import settlement_estimate
+
+        exit_request = (
+            ExitRequest.objects.select_related("hr_acknowledged_by")
+            .filter(employee=employee, tenant=request.tenant)
+            .first()
+        )
+        if exit_request:
+            lwd = exit_request.last_working_date or timezone.localdate()
+            if exit_request.settlement_amount is not None and exit_request.settlement_computed_at:
+                settlement_info = {
+                    "label": exit_request.settlement_label or "Settlement",
+                    "amount": exit_request.settlement_amount,
+                    "currency": request.tenant.currency,
+                }
+            else:
+                est = settlement_estimate(employee, lwd, tenant=request.tenant)
+                settlement_info = {
+                    "label": est.get("label") or "Settlement",
+                    "amount": est.get("amount"),
+                    "currency": est.get("currency", request.tenant.currency),
+                }
+    except Exception:
+        pass
+
     return render(request, "employees/my_work.html", {
         "employee": employee,
         "leave_balances": leave_balances,
@@ -38,4 +67,6 @@ def my_work(request):
         "onboarding": onboarding,
         "projects": projects,
         "shared_letters": shared_letters,
+        "exit_request": exit_request,
+        "settlement_info": settlement_info,
     })

@@ -184,16 +184,24 @@
           <p class="text-xs text-base-content/50">Login URL: <a href="{{ login_url }}" class="link link-primary" target="_blank">{{ login_url }}</a></p>
         </div>
         <div class="flex flex-col gap-2 mt-3">
-          <form method="post" action="{% url 'employees:create_login' employee.pk %}"
-                onsubmit="return confirm('Issue a new invite link? This locks the current login until the employee accepts the new link.');">
+          <form method="post" action="{% url 'employees:create_login' employee.pk %}">
             {% csrf_token %}
-            <button type="submit" class="btn btn-outline btn-sm w-full">Reset login &amp; new invite link</button>
+            <button type="button" class="btn btn-outline btn-sm w-full"
+                    data-hr-confirm
+                    data-hr-confirm-title="Reset login?"
+                    data-hr-confirm-message="Issue a new invite link? This locks the current login until {{ employee.full_name }} accepts the new link."
+                    data-hr-confirm-ok="Issue new invite"
+                    data-hr-confirm-tone="warning">Reset login &amp; new invite link</button>
           </form>
           {% if access.is_active %}
-          <form method="post" action="{% url 'employees:revoke_access' employee.pk %}"
-                onsubmit="return confirm('Disable application login for {{ employee.full_name }}? They will not be able to sign in.');">
+          <form method="post" action="{% url 'employees:revoke_access' employee.pk %}">
             {% csrf_token %}
-            <button type="submit" class="btn btn-error btn-outline btn-sm w-full">Disable access</button>
+            <button type="button" class="btn btn-error btn-outline btn-sm w-full"
+                    data-hr-confirm
+                    data-hr-confirm-title="Disable access?"
+                    data-hr-confirm-message="Disable application login for {{ employee.full_name }}? They will not be able to sign in until access is restored."
+                    data-hr-confirm-ok="Disable access"
+                    data-hr-confirm-tone="danger">Disable access</button>
           </form>
           {% else %}
           <form method="post" action="{% url 'employees:restore_access' employee.pk %}">
@@ -242,8 +250,12 @@
                 <input type="checkbox" name="disable_login" style="width: 14px; height: 14px;">
                 Disable application login immediately (instead of on last working day)
               </label>
-              <button class="btn btn-error btn-sm w-full"
-                      onclick="return confirm('This will mark {{ employee.full_name }} as on notice. Continue?')">
+              <button type="button" class="btn btn-error btn-sm w-full"
+                      data-hr-confirm
+                      data-hr-confirm-title="Confirm exit request"
+                      data-hr-confirm-message="This will mark {{ employee.full_name }} as on notice period. Do you want to continue?"
+                      data-hr-confirm-ok="Yes, mark on notice"
+                      data-hr-confirm-tone="danger">
                 Confirm Exit Request
               </button>
             </form>

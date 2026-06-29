@@ -1,18 +1,43 @@
-<div class="card hr-table-wrap">
-  <table class="table table-sm">
-    <thead><tr><th>Name</th><th>City</th><th>State</th><th>Geo-fence</th><th>Status</th></tr></thead>
-    <tbody>
-      {% for loc in locations %}
-      <tr>
-        <td class="font-medium">{{ loc.name }}</td>
-        <td>{{ loc.city|default:"—" }}</td>
-        <td>{{ loc.state_code|default:"—" }}</td>
-        <td>{{ loc.geo_fence_radius_m }}m{% if not loc.latitude %} <span class="badge badge-xs badge-warning">No GPS</span>{% endif %}</td>
-        <td><span class="badge badge-sm {% if loc.is_active %}badge-success{% else %}badge-ghost{% endif %}">{% if loc.is_active %}Active{% else %}Off{% endif %}</span></td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="5" class="text-center py-6 text-base-content/40">No locations yet.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
+<div class="card hr-table-wrap">
+  {% if list_error %}
+  <div class="alert alert-error text-sm mx-4 mt-4 py-2">{{ list_error }}</div>
+  {% endif %}
+  <table class="table table-sm">
+    <thead><tr><th>Name</th><th>City</th><th>State</th><th>Geo-fence</th><th>Staff</th><th>Status</th><th class="text-right">Actions</th></tr></thead>
+    <tbody>
+      {% for loc in locations %}
+      <tr class="{% if not loc.is_active %}opacity-60{% endif %}">
+        <td class="font-medium">{{ loc.name }}</td>
+        <td>{{ loc.city|default:"—" }}</td>
+        <td>{{ loc.state_code|default:"—" }}</td>
+        <td>{{ loc.geo_fence_radius_m }}m{% if not loc.latitude %} <span class="badge badge-xs badge-warning">No GPS</span>{% endif %}</td>
+        <td class="text-xs text-base-content/60">{% if loc.employee_count %}{{ loc.employee_count }}{% else %}—{% endif %}</td>
+        <td><span class="badge badge-sm {% if loc.is_active %}badge-success{% else %}badge-ghost{% endif %}">{% if loc.is_active %}Active{% else %}Off{% endif %}</span></td>
+        <td class="text-right whitespace-nowrap">
+          {% if loc.is_active %}
+          <form method="post" action="{% url 'employees:location_deactivate' loc.pk %}" class="inline"
+                hx-post="{% url 'employees:location_deactivate' loc.pk %}"
+                hx-target="#loc-list" hx-swap="innerHTML">
+            {% csrf_token %}
+            <button type="button" class="btn btn-ghost btn-xs text-error" data-hr-confirm
+              data-hr-confirm-title="Remove location?"
+              data-hr-confirm-message="Deactivate «{{ loc.name }}»? It will be hidden from new assignments.{% if loc.employee_count %} {{ loc.employee_count }} employee(s) still reference it.{% endif %}"
+              data-hr-confirm-ok="Remove"
+              data-hr-confirm-tone="danger">Remove</button>
+          </form>
+          {% else %}
+          <form method="post" action="{% url 'employees:location_restore' loc.pk %}" class="inline"
+                hx-post="{% url 'employees:location_restore' loc.pk %}"
+                hx-target="#loc-list" hx-swap="innerHTML">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-ghost btn-xs text-primary">Restore</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7" class="text-center py-6 text-base-content/40">No locations yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

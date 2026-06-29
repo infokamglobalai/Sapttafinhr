@@ -217,18 +217,29 @@ if USE_DO_SPACES:
     AWS_QUERYSTRING_EXPIRE = 3600  # signed URLs valid for 1 hour
 
 # ---------------------------------------------------------------------------
-# Email (AWS SES via anymail)
+# Email — SMTP auth (EMAIL_HOST_USER) can differ from visible From (DEFAULT_FROM_EMAIL).
+# Gmail: authenticate as contact@…; set From to no-reply@… only if that address is
+# added in Google Workspace as a “Send mail as” alias for the SMTP account.
 # ---------------------------------------------------------------------------
-ANYMAIL = {
-    "AMAZON_SES_CLIENT_PARAMS": {
-        "region_name": config("AWS_SES_REGION", default="ap-south-1"),
-    },
-}
+def _mail_setting(primary: str, fallback: str, default=""):
+    return config(primary, default="") or config(fallback, default=default)
+
+
+EMAIL_HOST = _mail_setting("EMAIL_HOST", "SMTP_HOST")
+_port = config("EMAIL_PORT", default="") or config("SMTP_PORT", default="587")
+EMAIL_PORT = int(_port)
+EMAIL_HOST_USER = _mail_setting("EMAIL_HOST_USER", "SMTP_USER")
+EMAIL_HOST_PASSWORD = _mail_setting("EMAIL_HOST_PASSWORD", "SMTP_PASS")
+EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
 EMAIL_BACKEND = config(
     "EMAIL_BACKEND",
-    default="django.core.mail.backends.console.EmailBackend",
+    default=(
+        "django.core.mail.backends.smtp.EmailBackend"
+        if EMAIL_HOST
+        else "django.core.mail.backends.console.EmailBackend"
+    ),
 )
-DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="noreply@yourbrand.com")
+DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="Saptta <no-reply@saptta.com>")
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
 # ---------------------------------------------------------------------------

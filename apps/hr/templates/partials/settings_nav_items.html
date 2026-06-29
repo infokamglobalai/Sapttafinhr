@@ -1,5 +1,14 @@
-{# Setup & Config — organization, policies, letters #}
-<div class="nav-section-title">Organization</div>
+{# Setup & Config — workspace account + organization #}
+{% if user.is_company_owner %}
+<div class="nav-section-title">Company account</div>
+<a href="{% url 'accounts:settings' %}?tab=company"
+   class="nav-item {% if settings_tab == 'company' %}active{% endif %}">Company &amp; branding</a>
+<a href="{% url 'accounts:settings' %}?tab=billing"
+   class="nav-item {% if settings_tab == 'billing' %}active{% endif %}">Billing &amp; plan</a>
+<a href="{% url 'accounts:settings' %}?tab=email"
+   class="nav-item {% if settings_tab == 'email' %}active{% endif %}">Email &amp; invites</a>
+{% endif %}
+<div class="nav-section-title{% if user.is_company_owner %} mt-2{% endif %}">Organization</div>
 <a href="{% url 'employees:departments' %}" class="nav-item {% if request.resolver_match.url_name == 'departments' or request.resolver_match.url_name == 'department_create' %}active{% endif %}">Departments</a>
 <a href="{% url 'employees:designations' %}" class="nav-item {% if request.resolver_match.url_name == 'designations' or request.resolver_match.url_name == 'designation_create' %}active{% endif %}">Designations</a>
 <a href="{% url 'employees:locations' %}" class="nav-item {% if request.resolver_match.url_name == 'locations' or request.resolver_match.url_name == 'location_create' %}active{% endif %}">Locations</a>

@@ -1,17 +1,42 @@
-<div class="card hr-table-wrap">
-  <table class="table table-sm">
-    <thead><tr><th>Name</th><th>Level</th><th>Grade</th><th>Status</th></tr></thead>
-    <tbody>
-      {% for d in designations %}
-      <tr>
-        <td class="font-medium">{{ d.name }}</td>
-        <td>{{ d.level|default:"—" }}</td>
-        <td class="font-mono text-xs">{{ d.grade|default:"—" }}</td>
-        <td><span class="badge badge-sm {% if d.is_active %}badge-success{% else %}badge-ghost{% endif %}">{% if d.is_active %}Active{% else %}Inactive{% endif %}</span></td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="4" class="text-center py-6 text-base-content/40">No designations yet.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
+<div class="card hr-table-wrap">
+  {% if list_error %}
+  <div class="alert alert-error text-sm mx-4 mt-4 py-2">{{ list_error }}</div>
+  {% endif %}
+  <table class="table table-sm">
+    <thead><tr><th>Name</th><th>Level</th><th>Grade</th><th>Staff</th><th>Status</th><th class="text-right">Actions</th></tr></thead>
+    <tbody>
+      {% for d in designations %}
+      <tr class="{% if not d.is_active %}opacity-60{% endif %}">
+        <td class="font-medium">{{ d.name }}</td>
+        <td>{{ d.level|default:"—" }}</td>
+        <td class="font-mono text-xs">{{ d.grade|default:"—" }}</td>
+        <td class="text-xs text-base-content/60">{% if d.employee_count %}{{ d.employee_count }}{% else %}—{% endif %}</td>
+        <td><span class="badge badge-sm {% if d.is_active %}badge-success{% else %}badge-ghost{% endif %}">{% if d.is_active %}Active{% else %}Inactive{% endif %}</span></td>
+        <td class="text-right whitespace-nowrap">
+          {% if d.is_active %}
+          <form method="post" action="{% url 'employees:designation_deactivate' d.pk %}" class="inline"
+                hx-post="{% url 'employees:designation_deactivate' d.pk %}"
+                hx-target="#desig-list" hx-swap="innerHTML">
+            {% csrf_token %}
+            <button type="button" class="btn btn-ghost btn-xs text-error" data-hr-confirm
+              data-hr-confirm-title="Remove designation?"
+              data-hr-confirm-message="Deactivate «{{ d.name }}»? It will be hidden from new assignments.{% if d.employee_count %} {{ d.employee_count }} employee(s) still use it on their profile.{% endif %}"
+              data-hr-confirm-ok="Remove"
+              data-hr-confirm-tone="danger">Remove</button>
+          </form>
+          {% else %}
+          <form method="post" action="{% url 'employees:designation_restore' d.pk %}" class="inline"
+                hx-post="{% url 'employees:designation_restore' d.pk %}"
+                hx-target="#desig-list" hx-swap="innerHTML">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-ghost btn-xs text-primary">Restore</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="text-center py-6 text-base-content/40">No designations yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
