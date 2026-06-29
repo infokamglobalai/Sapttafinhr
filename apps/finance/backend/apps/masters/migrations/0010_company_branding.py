@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('masters', '0008_company_country_company_standard_vat_rate_and_more'),
+        ('masters', '0009_sales_crm'),
     ]
 
     operations = [

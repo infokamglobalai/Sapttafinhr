@@ -33,7 +33,7 @@ def _drop_defaults(sql_lines):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("masters", "0009_company_branding"),
+        ("masters", "0010_company_branding"),
     ]
 
     operations = [
