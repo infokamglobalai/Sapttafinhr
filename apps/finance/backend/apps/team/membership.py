@@ -25,6 +25,10 @@ def resolve_tenant_role(user) -> str:
     if not user or not getattr(user, "is_authenticated", False):
         return TenantMember.Role.VIEWER
 
+    schema = getattr(connection, "schema_name", "public")
+    if not schema or schema == "public":
+        return TenantMember.Role.VIEWER
+
     member = (
         TenantMember.objects.filter(user_id=user.id, is_active=True).first()
         or TenantMember.objects.filter(email__iexact=user.email, is_active=True).first()
@@ -34,21 +38,19 @@ def resolve_tenant_role(user) -> str:
             TenantMember.objects.filter(pk=member.pk, user_id=0).update(user_id=user.id)
         return member.role
 
-    schema = getattr(connection, "schema_name", "public")
-    if schema and schema != "public":
-        try:
-            from apps.core.models import Tenant
+    try:
+        from apps.core.models import Tenant
 
-            tenant = Tenant.objects.filter(schema_name=schema).first()
-            if tenant and tenant.billing_email and tenant.billing_email.lower() == user.email.lower():
-                ensure_owner_member(
-                    user_id=user.id,
-                    email=user.email,
-                    full_name=getattr(user, "full_name", ""),
-                )
-                return TenantMember.Role.OWNER
-        except Exception:  # noqa: BLE001
-            pass
+        tenant = Tenant.objects.filter(schema_name=schema).first()
+        if tenant and tenant.billing_email and tenant.billing_email.lower() == user.email.lower():
+            ensure_owner_member(
+                user_id=user.id,
+                email=user.email,
+                full_name=getattr(user, "full_name", ""),
+            )
+            return TenantMember.Role.OWNER
+    except Exception:  # noqa: BLE001
+        pass
 
     return TenantMember.Role.VIEWER
 
