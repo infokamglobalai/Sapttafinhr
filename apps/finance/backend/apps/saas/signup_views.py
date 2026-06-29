@@ -133,12 +133,13 @@ class SignupView(APIView):
         # 1) Owner user (public/shared schema), created first so an email race
         #    is rejected before we provision anything. Email must be verified
         #    before login when REQUIRE_EMAIL_VERIFICATION is enabled (default in prod).
+        from django.conf import settings
         try:
             user = User.objects.create_user(
                 email=data["email"],
                 password=data["password"],
                 full_name=data.get("full_name", ""),
-                is_verified=False,
+                is_verified=not getattr(settings, "REQUIRE_EMAIL_VERIFICATION", True),
             )
         except IntegrityError:
             return Response(

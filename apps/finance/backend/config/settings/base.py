@@ -231,7 +231,7 @@ TRIAL_REMINDER_DAYS = env.int("TRIAL_REMINDER_DAYS", default=3)
 # Account security policy.
 # When True, unverified users cannot obtain JWT tokens (login is blocked until
 # they verify). Kept False by default so dev/demo flows aren't interrupted.
-REQUIRE_EMAIL_VERIFICATION = env.bool("REQUIRE_EMAIL_VERIFICATION", default=True)
+REQUIRE_EMAIL_VERIFICATION = env.bool("REQUIRE_EMAIL_VERIFICATION", default=False)
 EMAIL_OTP_TIMEOUT_MINUTES = env.int("EMAIL_OTP_TIMEOUT_MINUTES", default=15)
 # Email-verification + password-reset link lifetime (hours / Django default).
 EMAIL_VERIFICATION_TIMEOUT_HOURS = env.int("EMAIL_VERIFICATION_TIMEOUT_HOURS", default=48)
