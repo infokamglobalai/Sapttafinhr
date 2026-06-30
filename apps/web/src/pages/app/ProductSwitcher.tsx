@@ -166,7 +166,7 @@ export default function ProductSwitcher() {
             <ProductCard
               index={0}
               variant="finance"
-              name="fin-saptta"
+              name="Saptta Fin"
               headline="Accounts & Finance"
               description="GST invoicing, ledger, banking, vendor bills, GSTR returns & financial reports."
               features={[
