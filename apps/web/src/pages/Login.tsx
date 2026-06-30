@@ -366,38 +366,8 @@ export default function Login() {
 
 
 
-  // Already signed in (or just finished login) → hand off to the target product.
-
-  useEffect(() => {
-
-    if (!isAuthenticated || !redirectTarget || isLoading) return;
-
-    if (handoffOnceRef.current) return;
-
-    handoffOnceRef.current = true;
-
-    // Returned here via Back/Forward (e.g. came back from the product we already
-    // opened)? Don't re-open or show a loop error — just go to the switcher.
-
-    if (navigatedBackForward()) {
-
-      clearHandoffMarker();
-
-      navigate('/app', { replace: true });
-
-      return;
-
-    }
-
-    void performRedirect();
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-
-  }, [isAuthenticated, redirectTarget, workspaceParam, isLoading]);
-
-
-
-  if (isAuthenticated && !redirectTarget) return <Navigate to={landingFor(user)} replace />;
+  // Already signed in (or just finished login) -> go to switcher.
+  if (isAuthenticated) return <Navigate to={landingFor(user)} replace />;
 
 
 
@@ -500,8 +470,7 @@ export default function Login() {
       }
 
       const u = await hydrateSession(platformRes.workspace ?? workspaceParam);
-      if (redirectTarget) await performRedirect();
-      else navigate(landingFor(u), { replace: true });
+      navigate(landingFor(u), { replace: true });
     } catch (platformErr) {
       if (platformErr instanceof ApiError && platformErr.message.toLowerCase().includes('verify your email')) {
         setError(`${platformErr.message} Use the code from your email or open Sign up → verify.`);
@@ -548,6 +517,7 @@ export default function Login() {
 
     try {
 
+
       if (mfaChallenge.authType === 'hr_staff') {
 
         const finish = await hrStaffLoginMfa('verify', mfaChallenge.challenge_token, mfaCode, redirectTarget === 'hr' ? '/' : '/');
@@ -567,10 +537,7 @@ export default function Login() {
         await mfaVerifyLogin(mfaChallenge.challenge_token, mfaCode);
 
         const u = await hydrateSession(workspaceParam);
-
-        if (redirectTarget) await performRedirect();
-
-        else navigate(landingFor(u), { replace: true });
+        navigate(landingFor(u), { replace: true });
 
       }
 

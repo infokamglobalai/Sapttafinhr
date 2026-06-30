@@ -24,14 +24,6 @@ def launch_finance(request):
     platform_url = platform_base_for_request(request)
     billing_url = f"{platform_url}/app/billing"
 
-    if not tenant:
-        messages.error(request, "No workspace context.")
-        return redirect(platform_url)
-
-    if not user.is_company_owner:
-        messages.info(request, "Only the workspace owner can open Finance.")
-        return redirect("tenants:dashboard")
-
     if not tenant_has_finance(tenant):
         messages.warning(
             request,

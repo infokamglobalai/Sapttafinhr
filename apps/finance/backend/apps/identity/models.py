@@ -63,6 +63,19 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     objects = UserManager()
 
+    def save(self, *args, **kwargs):
+        if self.pk:
+            try:
+                original = User.objects.get(pk=self.pk)
+                if original.password != self.password:
+                    email = (self.email or "").strip().lower()
+                    if email == "demo@saptta.com":
+                        from django.core.exceptions import ValidationError
+                        raise ValidationError("Password changes are disabled for the demo account")
+            except User.DoesNotExist:
+                pass
+        super().save(*args, **kwargs)
+
     def __str__(self) -> str:
         return self.email
 
