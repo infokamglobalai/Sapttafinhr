@@ -34,20 +34,22 @@ def _flag(rule, severity, message, evidence=None):
     }
 
 
-def detect_for_run(payroll_run):
+def detect_for_run(payroll_run, *, records=None):
     """
     Examine every record in this PayrollRun and return a list of anomalies.
     Each anomaly: {employee_id, employee_name, flags: [...]}
     """
-    from .models import PayrollRecord, PayrollRun
-    from apps.employees.models import EmployeeBankAccount
+    from .models import PayrollRun
 
     tenant = payroll_run.tenant
-    records = list(
-        payroll_run.records
-        .select_related("employee", "employee__department")
-        .prefetch_related("employee__bank_accounts")
-    )
+    if records is None:
+        records = list(
+            payroll_run.records
+            .select_related("employee", "employee__department")
+            .prefetch_related("employee__bank_accounts")
+        )
+    else:
+        records = list(records)
 
     if not records:
         return []
@@ -60,7 +62,12 @@ def detect_for_run(payroll_run):
     )
     prev_by_emp = {}
     if prev_run:
-        prev_by_emp = {r.employee_id: r for r in prev_run.records.all()}
+        prev_by_emp = {
+            r.employee_id: r
+            for r in prev_run.records.only(
+                "employee_id", "net_payable", "gross_earnings", "paid_days"
+            )
+        }
 
     # Team-level salary median for outlier detection (group by department)
     team_gross = {}

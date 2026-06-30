@@ -1,11 +1,14 @@
 from django.conf import settings
+from django.core.cache import cache
 
 from django.urls import reverse
 
 from apps.accounts.platform import platform_base_for_request
 from utils.money import CURRENCY_SYMBOLS, currency_decimal_places
 from .jurisdiction import is_gcc_payroll, is_india_payroll, jurisdiction_label
-from .limits import DEFAULT_INCLUDED_EMPLOYEES, active_employee_count, employee_limit, seats_remaining
+from .limits import DEFAULT_INCLUDED_EMPLOYEES, employee_limit
+from .my_space_nav import annotate_my_space_nav, my_space_nav_groups, my_space_palette_links
+from .my_team_nav import annotate_my_team_nav, my_team_nav_groups, my_team_palette_links
 
 # Setup & Config only — org/people and HR Ops pages use their own nav sections.
 SETTINGS_URL_NAMES = frozenset({
@@ -25,7 +28,7 @@ NAV_CATEGORY_LABELS = {
     "payroll": "Payroll",
     "performance": "Performance",
     "hrOps": "HR operations",
-    "settings": "Setup & Config",
+    "settings": "Settings",
     "dashboard": "",
 }
 
@@ -42,6 +45,17 @@ def _settings_tab(request) -> str:
 
 
 _OWNER_SETTINGS_TABS = frozenset({"company", "billing", "email"})
+
+_MY_SPACE_EMPLOYEE_URLS = frozenset({"my_work", "directory", "colleague", "my_team"})
+_PEOPLE_EMPLOYEE_URLS = frozenset({
+    "list", "detail", "create", "edit", "export", "bulk_import", "bulk_provision",
+    "bulk_credentials", "team_access", "team_access_update",
+    "departments", "department_create", "department_deactivate", "department_restore",
+    "designations", "designation_create", "designation_deactivate", "designation_restore",
+    "locations", "location_create", "location_deactivate", "location_restore",
+    "attrition", "attrition_recompute", "org_chart_reassign",
+    "document_upload", "create_login", "credentials", "revoke_access", "restore_access", "id_card",
+})
 
 
 def _nav_active_category(request) -> str:
@@ -75,7 +89,15 @@ def _nav_active_category(request) -> str:
         ):
             return "mySpace"
     if app_name == "employees":
-        return "people"
+        if url_name == "my_team":
+            return "team"
+        if url_name in _MY_SPACE_EMPLOYEE_URLS - {"my_team"}:
+            return "mySpace"
+        if url_name == "org_chart":
+            return "people" if is_hr else "mySpace"
+        if url_name in _PEOPLE_EMPLOYEE_URLS:
+            return "people"
+        return "people" if is_hr else "mySpace"
     if url_name in SETTINGS_URL_NAMES:
         return "settings"
     if app_name == "attendance" and "shift" in url_name:
@@ -213,13 +235,24 @@ def _command_palette_links(user):
     return [x for x in links if x]
 
 
+def _merge_palette_links(base_links: list, extra_links: list) -> list:
+    """Append My Space links without duplicating URLs."""
+    seen = {x["url"] for x in base_links if x}
+    out = list(base_links)
+    for link in extra_links:
+        if link["url"] not in seen:
+            out.append(link)
+            seen.add(link["url"])
+    return out
+
+
 def _workspace_search(user):
     """Role-aware search target + placeholder for the topbar."""
     if not user or not getattr(user, "is_authenticated", False):
         return "", "Search…"
     if user.is_hr_admin:
-        return reverse("employees:list"), "Search employees…"
-    return reverse("employees:directory"), "Find colleague — name, email, dept…"
+        return reverse("employees:list"), "Search employees…  ⌘K to jump to any page"
+    return reverse("employees:directory"), "Find a colleague…  ⌘K to jump to any page"
 
 
 def _nav_role_hint(user) -> str:
@@ -270,10 +303,25 @@ def tenant_context(request):
         ctx["tenant_currency_symbol"] = CURRENCY_SYMBOLS.get(tenant.currency, f"{tenant.currency} ")
         ctx["tenant_ui_language"] = getattr(tenant, "ui_language", "en") or "en"
         ctx["tenant_ui_direction"] = "rtl" if ctx["tenant_ui_language"] == "ar" else "ltr"
-        ctx["seats_remaining"] = seats_remaining(tenant)
-        ctx["employee_limit"] = employee_limit(tenant)
-        ctx["active_employee_count"] = active_employee_count(tenant)
-        ctx["at_employee_cap"] = ctx["seats_remaining"] == 0
+        used = int(tenant.employee_count or 0)
+        limit = employee_limit(tenant)
+        remaining = max(0, limit - used)
+        pct = int(round(used / limit * 100)) if limit else 0
+        at_cap = remaining == 0 and limit > 0
+        ctx["active_employee_count"] = used
+        ctx["employee_limit"] = limit
+        ctx["seats_remaining"] = remaining
+        ctx["seat_usage_pct"] = pct
+        ctx["at_employee_cap"] = at_cap
+        if limit <= 0:
+            ctx["seat_alert_level"] = None
+        elif at_cap:
+            ctx["seat_alert_level"] = "critical"
+        elif pct >= 90 or remaining <= 3:
+            ctx["seat_alert_level"] = "warning"
+        else:
+            ctx["seat_alert_level"] = None
+        ctx["show_seat_limit_banner"] = False
         ctx["billing_settings_url"] = "/auth/settings/?tab=billing"
         suggested_seats = max(
             ctx["active_employee_count"] + 10,
@@ -281,6 +329,8 @@ def tenant_context(request):
             DEFAULT_INCLUDED_EMPLOYEES,
         )
         ctx["billing_upgrade_seats"] = suggested_seats
+        ctx["my_space_nav_groups"] = []
+        ctx["my_team_nav_groups"] = []
     else:
         ctx["tenant_logo_url"] = ""
         ctx["tenant_is_india_payroll"] = True
@@ -293,6 +343,9 @@ def tenant_context(request):
         ctx["seats_remaining"] = 0
         ctx["employee_limit"] = DEFAULT_INCLUDED_EMPLOYEES
         ctx["at_employee_cap"] = False
+        ctx["seat_alert_level"] = None
+        ctx["seat_usage_pct"] = 0
+        ctx["show_seat_limit_banner"] = False
         ctx["billing_settings_url"] = ""
     user = getattr(request, "user", None)
     if user and user.is_authenticated:
@@ -311,19 +364,47 @@ def tenant_context(request):
                 ).exists()
             except Exception:
                 ctx["employee_has_onboarding"] = False
+            groups = my_space_nav_groups(
+                tenant_is_india_payroll=ctx["tenant_is_india_payroll"],
+                employee_has_onboarding=ctx["employee_has_onboarding"],
+            )
+            ctx["my_space_nav_groups"] = annotate_my_space_nav(groups, request)
+            ctx["command_palette_links"] = _merge_palette_links(
+                ctx["command_palette_links"],
+                my_space_palette_links(groups),
+            )
+            if user.is_manager:
+                team_groups = my_team_nav_groups()
+                ctx["my_team_nav_groups"] = annotate_my_team_nav(team_groups, request)
+                ctx["command_palette_links"] = _merge_palette_links(
+                    ctx["command_palette_links"],
+                    my_team_palette_links(team_groups),
+                )
+            else:
+                ctx["my_team_nav_groups"] = []
         else:
             ctx["employee_has_onboarding"] = False
+            ctx["my_space_nav_groups"] = []
+            ctx["my_team_nav_groups"] = []
+        ctx["my_team_nav_groups"] = []
     else:
         ctx["workspace_search_url"] = ""
         ctx["workspace_search_placeholder"] = "Search…"
         ctx["command_palette_links"] = []
         ctx["employee_has_onboarding"] = False
+        ctx["my_space_nav_groups"] = []
+        ctx["my_team_nav_groups"] = []
     if user and user.is_authenticated and getattr(user, "tenant_id", None):
         try:
             from apps.hr_ops.models import Notification
-            ctx["unread_notif_count"] = Notification.objects.filter(
-                recipient=user, is_read=False
-            ).count()
+            notif_cache_key = f"unread_notif:{user.pk}"
+            count = cache.get(notif_cache_key)
+            if count is None:
+                count = Notification.objects.filter(
+                    recipient=user, is_read=False
+                ).count()
+                cache.set(notif_cache_key, count, 30)
+            ctx["unread_notif_count"] = count
         except Exception:
             pass
     # Product entitlements for cross-product menu (owner billing is authoritative).
@@ -339,6 +420,9 @@ def tenant_context(request):
         ctx["can_access_hr"] = tenant_has_hr(tenant)
         ctx["product_menu_label"] = product_menu_label(tenant)
         ctx["is_workspace_owner"] = user.is_company_owner
+        ctx["show_seat_limit_banner"] = (
+            user.is_hr_admin and bool(ctx.get("seat_alert_level"))
+        )
         ctx["platform_billing_url"] = (
             f"{ctx['PLATFORM_BASE_URL']}/app/billing?employees={ctx.get('billing_upgrade_seats', DEFAULT_INCLUDED_EMPLOYEES)}"
         )

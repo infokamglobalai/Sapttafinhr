@@ -2,7 +2,7 @@
 {# Customizable panels: By Department and below — reorder + half/full width #}
 <div x-data="dashboardPanelLayout()" x-init="init()" id="dash-more-insights">
   <div class="dash-layout-bar">
-    <div class="section-label" style="margin-bottom:0; flex:1;">More insights</div>
+    <div class="section-label" style="margin-bottom:0; flex:1;">Insights</div>
     <button type="button" class="dash-layout-btn" :class="{ 'is-active': editMode }" @click="editMode = !editMode">
       <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h7"/></svg>
       <span x-text="editMode ? 'Done' : 'Customize layout'"></span>
@@ -139,25 +139,95 @@
 
     {# ── Pending offer letters ── #}
     {% if pending_offer_count %}
-    <div class="premium-glass-card p-6 dash-panel dash-panel--alert" :class="panelClass('offer_pending')" :style="{ order: panelOrder('offer_pending') }">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="ch-title" style="margin: 0;">Offer letter pending <span class="badge badge-warning badge-sm ml-1">{{ pending_offer_count }}</span></h3>
-        <a href="{% url 'hr_ops:letter_history' %}" class="btn btn-ghost btn-xs text-indigo-600 font-extrabold">Letters</a>
+    <div class="premium-glass-card dash-panel dash-offer-panel dash-panel--full" :class="panelClass('offer_pending')" :style="{ order: panelOrder('offer_pending') }">
+      <div class="dash-panel-toolbar" x-show="editMode" x-cloak>
+        <span class="dash-panel-toolbar-label">Offer letters</span>
+        <button type="button" class="dash-panel-tool" @click="movePanel('offer_pending','up')" :disabled="!canMove('offer_pending','up')">↑</button>
+        <button type="button" class="dash-panel-tool" @click="movePanel('offer_pending','down')" :disabled="!canMove('offer_pending','down')">↓</button>
+        <button type="button" class="dash-panel-tool dash-panel-tool--wide" :class="{ 'is-on': panelWidth('offer_pending') === 'half' }" @click="setWidth('offer_pending','half')">½</button>
+        <button type="button" class="dash-panel-tool dash-panel-tool--wide" :class="{ 'is-on': panelWidth('offer_pending') === 'full' }" @click="setWidth('offer_pending','full')">Full</button>
       </div>
-      <p class="text-xs text-slate-500 mb-3">Joined employees without an issued offer letter — disappears once HR issues it.</p>
-      <div class="flex flex-col gap-2 mt-2">
-        {% for row in pending_offer_letters|slice:":5" %}
-        <div class="list-row">
-          <div class="flex items-center gap-3 min-width-0">
-            <div class="w-9 h-9 rounded-xl grad-avatar text-xs font-bold">{{ row.employee.first_name|first }}{{ row.employee.last_name|first }}</div>
-            <div style="min-width: 0;">
-              <div class="row-title font-bold" style="font-size:13.5px;">{{ row.employee.full_name }}</div>
-              <div class="row-sub text-xs">{{ row.join_status_label }} · {{ row.documentation_label }}</div>
-            </div>
+
+      <div class="dash-offer-panel__header">
+        <div class="dash-offer-panel__lead">
+          <span class="dash-offer-panel__icon" aria-hidden="true">
+            <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.6l5.4 5.4V18a2 2 0 01-2 2z"/>
+            </svg>
+          </span>
+          <div>
+            <h3 class="dash-offer-panel__title">Offer letters pending</h3>
+            <p class="dash-offer-panel__sub">Issue offer letters for joined employees — rows clear automatically once issued.</p>
           </div>
-          <a href="{% url 'hr_ops:employee_letter_picker' row.employee.pk %}" class="btn btn-primary btn-xs">Issue</a>
         </div>
-        {% endfor %}
+        <div class="dash-offer-panel__header-actions">
+          <div class="dash-offer-panel__metric" aria-label="{{ pending_offer_count }} pending">
+            <span class="dash-offer-panel__metric-value">{{ pending_offer_count }}</span>
+            <span class="dash-offer-panel__metric-label">Pending</span>
+          </div>
+          <a href="{% url 'hr_ops:letter_history' %}" class="btn btn-outline btn-sm">Letter history</a>
+        </div>
+      </div>
+
+      <div class="dash-offer-panel__body">
+        <div class="dash-offer-panel__table-wrap" role="region" aria-label="Employees awaiting offer letters">
+          <table class="dash-offer-table">
+            <thead>
+              <tr>
+                <th scope="col">Employee</th>
+                <th scope="col">Role</th>
+                <th scope="col">Joined</th>
+                <th scope="col">Documentation</th>
+                <th scope="col" class="dash-offer-table__action-col">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in pending_offer_letters|slice:":8" %}
+              <tr>
+                <td>
+                  <div class="dash-offer-emp">
+                    <span class="dash-offer-emp__avatar">{{ row.employee.first_name|first }}{{ row.employee.last_name|first }}</span>
+                    <div class="dash-offer-emp__text">
+                      <span class="dash-offer-emp__name">{{ row.employee.full_name }}</span>
+                      <span class="dash-offer-emp__code">{{ row.employee.employee_code }}</span>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <span class="dash-offer-emp__role">{{ row.employee.designation.name|default:"—" }}</span>
+                  {% if row.employee.department %}
+                  <span class="dash-offer-emp__dept">{{ row.employee.department.name }}</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <span class="dash-offer-chip dash-offer-chip--{{ row.join_status }}">{{ row.join_status_label }}</span>
+                  {% if row.employee.date_of_joining %}
+                  <span class="dash-offer-emp__date">{{ row.employee.date_of_joining|date:"d M Y" }}</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <div class="dash-offer-docs">
+                    <div class="dash-offer-docs__bar" aria-hidden="true">
+                      <span class="dash-offer-docs__fill dash-offer-docs__fill--{{ row.documentation_status }}" style="width: {{ row.documentation_pct }}%;"></span>
+                    </div>
+                    <span class="dash-offer-docs__label">{{ row.documentation_label }}</span>
+                  </div>
+                </td>
+                <td class="dash-offer-table__action-col">
+                  <a href="{% url 'hr_ops:employee_letter_picker' row.employee.pk %}" class="btn btn-primary btn-xs dash-offer-issue-btn">Issue letter</a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        {% if pending_offer_count > 8 %}
+        <div class="dash-offer-panel__footer">
+          <p class="dash-offer-panel__footer-note">Showing 8 of {{ pending_offer_count }} employees without an issued offer letter.</p>
+          <a href="{% url 'hr_ops:letter_history' %}" class="btn btn-ghost btn-sm">View all {{ pending_offer_count }}</a>
+        </div>
+        {% endif %}
       </div>
     </div>
     {% endif %}
@@ -273,9 +343,10 @@
       { id: 'dept', width: 'half', order: 0 },
       { id: 'gender', width: 'half', order: 1 },
       { id: 'upcoming-leave', width: 'half', order: 2 },
-      { id: 'joiners', width: 'half', order: 3 },
-      { id: 'payroll', width: 'half', order: 4 },
-      { id: 'performance', width: 'full', order: 5 },
+      { id: 'offer_pending', width: 'full', order: 3 },
+      { id: 'joiners', width: 'half', order: 4 },
+      { id: 'payroll', width: 'half', order: 5 },
+      { id: 'performance', width: 'full', order: 6 },
     ];
 
     return {
@@ -287,8 +358,18 @@
           const raw = localStorage.getItem(STORAGE_KEY);
           this.panels = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(DEFAULT_PANELS));
           this._normalizeOrders();
+          this._ensureOfferPanel();
         } catch {
           this.panels = JSON.parse(JSON.stringify(DEFAULT_PANELS));
+        }
+      },
+
+      _ensureOfferPanel() {
+        const hasOffer = document.querySelector('.dash-offer-panel');
+        if (!hasOffer) return;
+        if (!this.panels.find(x => x.id === 'offer_pending')) {
+          this.panels.push({ id: 'offer_pending', width: 'full', order: 3 });
+          this._normalizeOrders();
         }
       },
 
@@ -319,6 +400,7 @@
 
       panelWidth(id) {
         const p = this.panels.find(x => x.id === id);
+        if (id === 'offer_pending' && !p) return 'full';
         return p ? p.width : 'half';
       },
 

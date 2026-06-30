@@ -270,15 +270,58 @@ def holiday_create(request):
 # ---------------------------------------------------------------------------
 # Leave balance (HR admin view)
 # ---------------------------------------------------------------------------
+LEAVE_BALANCE_MIN_YEAR = 2000
+LEAVE_BALANCE_YEAR_TAB_SPAN = 5
+
+
+def leave_balance_year_context(selected_year: int, current_year: int | None = None) -> dict:
+    """Build prev/next + tab years for the leave balances admin screen."""
+    if current_year is None:
+        current_year = timezone.localdate().year
+    year = max(LEAVE_BALANCE_MIN_YEAR, min(int(selected_year), current_year))
+    span = LEAVE_BALANCE_YEAR_TAB_SPAN
+    end = current_year
+    start = max(LEAVE_BALANCE_MIN_YEAR, end - span + 1)
+    if year < start:
+        start = max(LEAVE_BALANCE_MIN_YEAR, year)
+        end = min(current_year, start + span - 1)
+    elif year > end:
+        end = year
+        start = max(LEAVE_BALANCE_MIN_YEAR, end - span + 1)
+    else:
+        # Keep selected year visible with neighbors when possible
+        start = max(LEAVE_BALANCE_MIN_YEAR, min(year - 2, current_year - span + 1))
+        end = min(current_year, start + span - 1)
+        start = max(LEAVE_BALANCE_MIN_YEAR, end - span + 1)
+    return {
+        "year": year,
+        "current_year": current_year,
+        "prev_year": year - 1,
+        "next_year": year + 1,
+        "can_go_prev": year > LEAVE_BALANCE_MIN_YEAR,
+        "can_go_next": year < current_year,
+        "year_tabs": list(range(start, end + 1)),
+    }
+
+
 @perm_required("leaves.approve_all")
 def leave_balance_admin(request):
     tenant = request.tenant
-    year = int(request.GET.get("year", timezone.localdate().year))
+    current_year = timezone.localdate().year
+    try:
+        requested_year = int(request.GET.get("year", current_year))
+    except (TypeError, ValueError):
+        requested_year = current_year
+    year_ctx = leave_balance_year_context(requested_year, current_year)
+    year = year_ctx["year"]
     balances = LeaveBalance.objects.filter(
         tenant=tenant, year=year
     ).select_related("employee", "leave_type").order_by("employee__first_name", "leave_type__code")
 
-    return render(request, "leaves/balances.html", {"balances": balances, "year": year})
+    return render(request, "leaves/balances.html", {
+        "balances": balances,
+        **year_ctx,
+    })
 
 
 # ---------------------------------------------------------------------------

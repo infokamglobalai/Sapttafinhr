@@ -16,7 +16,7 @@
       {% for emp in birthdays_soon %}
       <a href="{% url 'employees:detail' emp.pk %}" class="list-row">
         <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-xl grad-avatar text-xs font-bold" style="background:rgba(99, 102, 241,0.12);color:#4338ca;border-color:rgba(99, 102, 241,0.2);">🎂</div>
+          <div class="w-9 h-9 rounded-xl grad-avatar text-xs font-bold" style="background:rgba(30, 42, 120, 0.09);color:#1E2A78;border-color:rgba(30, 42, 120, 0.16);">🎂</div>
           <div>
             <div class="row-title font-bold text-[13px]">{{ emp.full_name }}</div>
             <div class="row-sub text-xs">{{ emp.date_of_birth|date:"j F" }}</div>

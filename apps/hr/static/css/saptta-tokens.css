@@ -1,89 +1,102 @@
 /* ============================================================
    SAPTTA DESIGN TOKENS — single source of truth
-   Load this file FIRST (before app.css / theme / responsive)
-
-   HOW PRO PRODUCTS USE COLOR (keep these rules):
-   ─────────────────────────────────────────────
-   1. Primary (blue)   → main actions: Save, Run Payroll, Submit, Add
-   2. Accent (orange)  → highlights, brand moments, PWA — sparingly
-   3. Module tones      → sidebar icons + KPI accents ONLY (never full buttons)
-   4. Neutrals (90%)    → backgrounds, text, borders — most of the UI
-   5. Status colors     → success / warning / error badges & alerts only
-   6. Never mix         → don’t use module colors for primary buttons
+   Logo palette: Navy #1E2A78 · Orange #FF6D00 · Clean neutrals
    ============================================================ */
 
 :root {
-  /* ── Brand (blue-first HR UI) ── */
-  --saptta-primary: #4f46e5;
-  --saptta-primary-hover: #4338ca;
-  --saptta-primary-soft: rgba(79, 70, 229, 0.12);
-  --saptta-primary-muted: rgba(79, 70, 229, 0.22);
-  --saptta-primary-ring: rgba(79, 70, 229, 0.28);
+  /* ── Brand (Saptta logo) ── */
+  --saptta-primary: #1E2A78;
+  --saptta-primary-hover: #24318F;
+  --saptta-primary-soft: rgba(30, 42, 120, 0.09);
+  --saptta-primary-muted: rgba(30, 42, 120, 0.16);
+  --saptta-primary-ring: rgba(30, 42, 120, 0.22);
 
-  --saptta-secondary: #6366F1;
-  --saptta-secondary-hover: #4F46E5;
-  --saptta-secondary-soft: rgba(99, 102, 241, 0.12);
-  --saptta-secondary-muted: rgba(99, 102, 241, 0.22);
+  --saptta-accent-orange: #FF6D00;
+  --saptta-accent-orange-hover: #FFA000;
+  --saptta-accent-orange-soft: rgba(255, 109, 0, 0.10);
+  --saptta-accent-orange-muted: rgba(255, 109, 0, 0.18);
 
-  --saptta-accent-orange: #6366f1;
-  --saptta-accent-orange-soft: rgba(99, 102, 241, 0.12);
+  --saptta-secondary: #8B5CF6;
+  --saptta-secondary-hover: #7C3AED;
+  --saptta-secondary-soft: rgba(139, 92, 246, 0.10);
 
-  /* ── Surfaces & text (Finance base: #f8fafc app canvas) ── */
+  /* ── Surfaces & text ── */
   --saptta-bg: #F8FAFC;
-  --saptta-bg-alt: #F1F5F9;
-  --saptta-bg-gradient: linear-gradient(160deg, #FFFFFF 0%, #F8FAFC 55%, #F1F5F9 100%);
+  --saptta-bg-alt: #F1F5F5;
+  --saptta-bg-gradient: linear-gradient(165deg, #FFFFFF 0%, #F8FAFC 48%, #F1F5F9 100%);
   --saptta-surface: #FFFFFF;
-  --saptta-surface-glass: rgba(255, 255, 255, 0.88);
-  --saptta-border: rgba(15, 23, 42, 0.08);
-  --saptta-border-strong: rgba(15, 23, 42, 0.12);
+  --saptta-surface-glass: rgba(255, 255, 255, 0.92);
+  --saptta-border: rgba(10, 17, 40, 0.07);
+  --saptta-border-strong: rgba(10, 17, 40, 0.11);
 
-  --saptta-text: #0F172A;
+  --saptta-text: #0A1128;
   --saptta-text-secondary: #475569;
   --saptta-text-tertiary: #94A3B8;
   --saptta-text-muted: #64748B;
 
   /* ── Status (semantic only) ── */
   --saptta-success: #059669;
-  --saptta-success-soft: rgba(5, 150, 105, 0.12);
+  --saptta-success-soft: rgba(5, 150, 105, 0.10);
   --saptta-warning: #D97706;
-  --saptta-warning-soft: rgba(217, 119, 6, 0.12);
+  --saptta-warning-soft: rgba(217, 119, 6, 0.10);
   --saptta-error: #DC2626;
-  --saptta-error-soft: rgba(220, 38, 38, 0.12);
-  --saptta-info: #4f46e5;
-  --saptta-info-soft: rgba(79, 70, 229, 0.12);
+  --saptta-error-soft: rgba(220, 38, 38, 0.10);
+  --saptta-info: #1E2A78;
+  --saptta-info-soft: rgba(30, 42, 120, 0.09);
 
-  /* ── Module tones — mono indigo (Finance base).
-     Brand/identity tones collapse to indigo; green/amber/rose kept ONLY
-     because they double as semantic status (success / warning / negative). ── */
-  --tone-orange: #6366f1;
-  --tone-orange-soft: rgba(99, 102, 241, 0.12);
-  --tone-blue: #4f46e5;
-  --tone-blue-soft: rgba(79, 70, 229, 0.12);
-  --tone-indigo: #6366F1;
-  --tone-indigo-soft: rgba(99, 102, 241, 0.12);
-  --tone-cyan: #4f46e5;
-  --tone-cyan-soft: rgba(79, 70, 229, 0.12);
-  --tone-green: #059669;
-  --tone-green-soft: rgba(5, 150, 105, 0.12);
-  --tone-amber: #D97706;
-  --tone-amber-soft: rgba(217, 119, 6, 0.12);
-  --tone-violet: #6366F1;
-  --tone-violet-soft: rgba(99, 102, 241, 0.12);
-  --tone-rose: #E11D48;
-  --tone-rose-soft: rgba(225, 29, 72, 0.12);
+  /* ── Module / chart tones (clean, not rainbow) ── */
+  --tone-navy: #1E2A78;
+  --tone-navy-soft: rgba(30, 42, 120, 0.09);
+  --tone-orange: #FF6D00;
+  --tone-orange-soft: rgba(255, 109, 0, 0.10);
+  --tone-violet: #8B5CF6;
+  --tone-violet-soft: rgba(139, 92, 246, 0.10);
   --tone-slate: #64748B;
-  --tone-slate-soft: rgba(100, 116, 139, 0.12);
+  --tone-slate-soft: rgba(100, 116, 139, 0.10);
+  --tone-green: #059669;
+  --tone-green-soft: rgba(5, 150, 105, 0.10);
+  --tone-amber: #D97706;
+  --tone-amber-soft: rgba(217, 119, 6, 0.10);
+
+  /* Legacy tone aliases */
+  --tone-blue: var(--tone-navy);
+  --tone-blue-soft: var(--tone-navy-soft);
+  --tone-indigo: var(--tone-navy);
+  --tone-indigo-soft: var(--tone-navy-soft);
+  --tone-cyan: var(--tone-navy);
+  --tone-cyan-soft: var(--tone-navy-soft);
+  --tone-rose: #E11D48;
+  --tone-rose-soft: rgba(225, 29, 72, 0.10);
+
+  /* ── Chart palette (dashboard graphs) ── */
+  --chart-1: #1E2A78;
+  --chart-2: #FF6D00;
+  --chart-3: #8B5CF6;
+  --chart-4: #0891B2;
+  --chart-5: #059669;
+  --chart-6: #D97706;
+  --chart-gender-male: #1E2A78;
+  --chart-gender-female: #FF6D00;
+  --chart-gender-other: #8B5CF6;
 
   /* ── Elevation ── */
-  --saptta-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
-  --saptta-shadow-md: 0 4px 20px rgba(15, 23, 42, 0.06);
-  --saptta-radius: 16px;
+  --saptta-shadow-sm: 0 1px 2px rgba(10, 17, 40, 0.04);
+  --saptta-shadow-md: 0 4px 24px rgba(10, 17, 40, 0.06);
+  --saptta-radius: 14px;
   --saptta-radius-pill: 999px;
-  /* Finance gradient brand fill (brand-600 → brand-500) */
-  --saptta-primary-gradient: linear-gradient(to right, #4f46e5, #6366f1);
-  --saptta-primary-gradient-hover: linear-gradient(to right, #3730a3, #4f46e5);
+  --saptta-primary-gradient: linear-gradient(135deg, #1E2A78 0%, #24318F 100%);
+  --saptta-primary-gradient-hover: linear-gradient(135deg, #24318F 0%, #2D3A8C 100%);
+  --saptta-accent-gradient: linear-gradient(135deg, #FF6D00 0%, #FFA000 100%);
 
-  /* ── Backward-compatible aliases (legacy CSS) ── */
+  /* ── Sidebar ── */
+  --sidebar-nav-accent: var(--saptta-primary);
+  --sidebar-nav-accent-soft: var(--saptta-primary-soft);
+  --sidebar-nav-highlight: var(--saptta-accent-orange);
+  --sidebar-nav-text: #334155;
+  --sidebar-nav-muted: #64748B;
+  --sidebar-nav-border: rgba(226, 232, 240, 0.95);
+
+  /* ── Backward-compatible aliases ── */
   --color-primary: var(--saptta-primary);
   --color-primary-hover: var(--saptta-primary-hover);
   --color-primary-soft: var(--saptta-primary-soft);
@@ -101,9 +114,9 @@
   --saptta-accent: var(--saptta-primary);
   --saptta-accent-soft: var(--saptta-primary-soft);
   --icon-orange: var(--tone-orange);
-  --icon-blue: var(--tone-blue);
-  --icon-indigo: var(--tone-indigo);
-  --icon-cyan: var(--tone-cyan);
+  --icon-blue: var(--tone-navy);
+  --icon-indigo: var(--tone-navy);
+  --icon-cyan: var(--tone-navy);
   --icon-green: var(--tone-green);
   --icon-amber: var(--tone-amber);
   --icon-violet: var(--tone-violet);
@@ -111,17 +124,17 @@
   --icon-slate: var(--tone-slate);
 }
 
-/* ── Module tone utilities (KPI cards, tags) ── */
+/* ── Module tone utilities (KPI cards) ── */
 .dash-refresh .stat--orange .stat-icon { background: var(--tone-orange-soft); color: var(--tone-orange); }
-.dash-refresh .stat--blue .stat-icon { background: var(--tone-blue-soft); color: var(--tone-blue); }
+.dash-refresh .stat--blue .stat-icon { background: var(--tone-navy-soft); color: var(--tone-navy); }
 .dash-refresh .stat--green .stat-icon { background: var(--tone-green-soft); color: var(--tone-green); }
 .dash-refresh .stat--amber .stat-icon { background: var(--tone-amber-soft); color: var(--tone-amber); }
 .dash-refresh .stat--rose .stat-icon { background: var(--tone-rose-soft); color: var(--tone-rose); }
-.dash-refresh .stat--indigo .stat-icon { background: var(--tone-indigo-soft); color: var(--tone-indigo); }
-.dash-refresh .stat--cyan .stat-icon { background: var(--tone-cyan-soft); color: var(--tone-cyan); }
+.dash-refresh .stat--indigo .stat-icon { background: var(--tone-navy-soft); color: var(--tone-navy); }
+.dash-refresh .stat--cyan .stat-icon { background: var(--tone-navy-soft); color: var(--tone-navy); }
 
 .dash-refresh .insight-icon--orange { background: var(--tone-orange-soft); color: var(--tone-orange); }
-.dash-refresh .insight-icon--blue { background: var(--tone-blue-soft); color: var(--tone-blue); }
+.dash-refresh .insight-icon--blue { background: var(--tone-navy-soft); color: var(--tone-navy); }
 .dash-refresh .insight-icon--green { background: var(--tone-green-soft); color: var(--tone-green); }
 .dash-refresh .insight-icon--violet { background: var(--tone-violet-soft); color: var(--tone-violet); }
 
@@ -131,27 +144,47 @@
 .badge-error, .badge.badge-error { background: var(--saptta-error-soft) !important; color: var(--saptta-error) !important; }
 .badge-info, .badge.badge-info { background: var(--saptta-info-soft) !important; color: var(--saptta-info) !important; }
 
-/* ── Primary / secondary actions (use these classes in templates) ── */
+/* ── Primary / secondary actions ── */
 .saptta-btn-primary,
-.saas-btn-solid {
+.saas-btn-solid,
+.btn-primary {
   background: var(--saptta-primary-gradient) !important;
   border-color: transparent !important;
   color: #fff !important;
 }
 .saptta-btn-primary:hover,
-.saas-btn-solid:hover {
+.saas-btn-solid:hover,
+.btn-primary:hover {
   background: var(--saptta-primary-gradient-hover) !important;
   border-color: transparent !important;
 }
 
 .saptta-btn-secondary,
 .saas-btn-outline {
-  background: var(--saptta-secondary-soft) !important;
-  border: 1px solid rgba(79, 70, 229, 0.25) !important;
-  color: var(--saptta-secondary) !important;
+  background: var(--saptta-primary-soft) !important;
+  border: 1px solid var(--saptta-primary-muted) !important;
+  color: var(--saptta-primary) !important;
 }
 .saptta-btn-secondary:hover,
 .saas-btn-outline:hover {
-  background: var(--saptta-secondary-muted) !important;
-  color: var(--saptta-secondary-hover) !important;
+  background: var(--saptta-primary-muted) !important;
+  color: var(--saptta-primary-hover) !important;
 }
+
+.saptta-btn-accent {
+  background: var(--saptta-accent-gradient) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+}
+
+/* Tailwind indigo utilities → Saptta navy within dashboard */
+.dash-refresh .text-indigo-600,
+.dash-refresh a.text-indigo-600,
+.dash-refresh .badge.text-indigo-600 {
+  color: var(--saptta-primary) !important;
+}
+.dash-refresh .text-indigo-400 { color: rgba(30, 42, 120, 0.55) !important; }
+.dash-refresh .text-indigo-300 { color: rgba(30, 42, 120, 0.45) !important; }
+.dash-refresh .bg-indigo-500 { background-color: var(--saptta-primary) !important; }
+.dash-refresh .from-indigo-500 { --tw-gradient-from: var(--saptta-primary) var(--tw-gradient-from-position); }
+.dash-refresh .to-pink-500 { --tw-gradient-to: var(--saptta-accent-orange) var(--tw-gradient-to-position); }

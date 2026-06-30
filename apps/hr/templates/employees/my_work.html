@@ -2,69 +2,136 @@
 {% load humanize static money_tags %}
 {% block page_title %}My Profile{% endblock %}
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/attendance-mobile.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'css/attendance-mobile.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'css/my-space-hub.css' %}?v=8">
 {% endblock %}
 {% block content %}
-<div class="my-space-page">
-  <div class="my-space-hero">
-    <div class="my-space-avatar">
-      {% if employee.profile_photo %}
-      <img src="{{ employee.profile_photo.url }}" alt="">
-      {% else %}
-      {{ employee.first_name|first }}{{ employee.last_name|first }}
+<div class="my-space-page my-space-page--v2">
+
+  <header class="my-space-hero-v2">
+    <div class="my-space-hero-v2__left">
+      <div class="my-space-avatar my-space-avatar--lg">
+        {% if employee.profile_photo %}
+        <img src="{{ employee.profile_photo.url }}" alt="">
+        {% else %}
+        {{ employee.first_name|first }}{{ employee.last_name|first }}
+        {% endif %}
+      </div>
+      <div class="my-space-hero-v2__info">
+        <p class="my-space-hero-v2__eyebrow">My Space</p>
+        <h1 class="my-space-hero-v2__title">{{ employee.directory_name }}</h1>
+        {% if employee.uses_preferred_name %}
+        <p class="my-space-hero-v2__legal">{{ employee.full_name }}</p>
+        {% endif %}
+        <p class="my-space-hero-v2__meta">
+          {{ employee.designation.name|default:"Employee" }}
+          {% if employee.department %} · {{ employee.department.name }}{% endif %}
+          · {{ employee.employee_code }}
+        </p>
+        <p class="my-space-hero-v2__meta my-space-hero-v2__meta--muted">
+          Joined {{ employee.date_of_joining|date:"d M Y" }}
+          {% if employee.reporting_manager %} · Reports to {{ employee.reporting_manager.full_name }}{% endif %}
+        </p>
+      </div>
+    </div>
+
+    <div class="my-space-hero-v2__stats">
+      <div class="my-space-stat">
+        <span class="my-space-stat__value">{{ leave_balances|length }}</span>
+        <span class="my-space-stat__label">Leave types</span>
+      </div>
+      <div class="my-space-stat">
+        <span class="my-space-stat__value">{{ projects|length }}</span>
+        <span class="my-space-stat__label">Active projects</span>
+      </div>
+      <div class="my-space-stat">
+        <span class="my-space-stat__value">{{ active_assets }}</span>
+        <span class="my-space-stat__label">Assigned assets</span>
+      </div>
+      {% if onboarding %}
+      <div class="my-space-stat my-space-stat--accent">
+        <span class="my-space-stat__value">{{ onboarding.completion_percentage }}%</span>
+        <span class="my-space-stat__label">Onboarding</span>
+      </div>
       {% endif %}
     </div>
-    <div style="flex:1;">
-      <h1 class="my-space-hero__title">{{ employee.directory_name }}</h1>
-      {% if employee.uses_preferred_name %}
-      <p class="text-sm text-base-content/50">{{ employee.full_name }}</p>
-      {% endif %}
-      <p class="my-space-hero__sub">
-        {{ employee.designation.name|default:"Employee" }}
-        {% if employee.department %} · {{ employee.department.name }}{% endif %}
-        · {{ employee.employee_code }}
-      </p>
-      <p class="my-space-meta" style="margin-top:6px;">
-        Joined {{ employee.date_of_joining|date:"d M Y" }}
-        {% if employee.reporting_manager %} · Reports to {{ employee.reporting_manager.full_name }}{% endif %}
-        {% if employee.location %} · {{ employee.location.name }}{% endif %}
-      </p>
-    </div>
-    <div class="flex flex-wrap gap-2">
-      <a href="{% url 'accounts:settings' %}?tab=profile" class="btn btn-outline btn-sm">{% if employee.profile_photo %}Edit profile{% else %}Add photo &amp; nickname{% endif %}</a>
-      <a href="{% url 'employees:directory' %}" class="btn btn-ghost btn-sm">Company directory</a>
-    </div>
-  </div>
 
-  <div class="my-space-kpis">
-    <div class="my-space-kpi">
-      <div class="my-space-kpi__label">Leave balances</div>
-      <div class="my-space-kpi__value">{{ leave_balances|length }}</div>
+    <div class="my-space-hero-v2__actions">
+      <a href="{% url 'accounts:settings' %}?tab=profile" class="btn btn-primary btn-sm">
+        {% if employee.profile_photo %}Edit profile{% else %}Add photo{% endif %}
+      </a>
+      <a href="{% url 'employees:directory' %}" class="btn btn-outline btn-sm">Directory</a>
     </div>
-    <div class="my-space-kpi">
-      <div class="my-space-kpi__label">Active projects</div>
-      <div class="my-space-kpi__value">{{ projects|length }}</div>
-    </div>
-    <div class="my-space-kpi">
-      <div class="my-space-kpi__label">Assigned assets</div>
-      <div class="my-space-kpi__value">{{ active_assets }}</div>
-    </div>
-    {% if onboarding %}
-    <div class="my-space-kpi">
-      <div class="my-space-kpi__label">Onboarding</div>
-      <div class="my-space-kpi__value">{{ onboarding.completion_percentage }}%</div>
-    </div>
-    {% endif %}
-  </div>
+  </header>
 
-  {% include "attendance/partials/punch_card.html" %}
+  <section class="my-space-spotlight" aria-label="Today and quick actions">
+    <div class="my-space-spotlight__attendance">
+      {% include "attendance/partials/punch_card.html" %}
+    </div>
+
+    <div class="my-space-spotlight__panel">
+      <div class="my-space-card my-space-card--flush">
+        <div class="my-space-card__head">
+          <h2 class="my-space-card__title">Leave balances</h2>
+          <span class="my-space-card__badge">{{ leave_balances.0.year|default:"This year" }}</span>
+        </div>
+        <ul class="my-space-leave-bars">
+          {% for b in leave_balances %}
+          <li class="my-space-leave-bar">
+            <div class="my-space-leave-bar__top">
+              <span>{{ b.leave_type.name }}</span>
+              <span><strong>{{ b.available }}</strong> left</span>
+            </div>
+            {% with total=b.taken|add:b.available %}
+            <div class="my-space-leave-bar__track" aria-hidden="true">
+              <span class="my-space-leave-bar__fill" style="width: {% if total %}{% widthratio b.taken total 100 %}{% else %}0{% endif %}%"></span>
+            </div>
+            {% endwith %}
+          </li>
+          {% empty %}
+          <li class="my-space-meta">No leave balances yet.</li>
+          {% endfor %}
+        </ul>
+        <div class="my-space-actions">
+          <a href="{% url 'leaves:apply' %}" class="btn btn-primary btn-sm">Apply leave</a>
+          <a href="{% url 'attendance:my_attendance' %}" class="btn btn-outline btn-sm">Attendance</a>
+        </div>
+      </div>
+
+      <div class="my-space-quick-tiles">
+        <a href="{% url 'payroll:my_payslips' %}" class="my-space-quick-tile">
+          <span class="my-space-quick-tile__icon my-space-quick-tile__icon--pay" aria-hidden="true"></span>
+          <span class="my-space-quick-tile__label">Payslips</span>
+        </a>
+        <a href="{% url 'hr_ops:announcements' %}" class="my-space-quick-tile">
+          <span class="my-space-quick-tile__icon my-space-quick-tile__icon--news" aria-hidden="true"></span>
+          <span class="my-space-quick-tile__label">News</span>
+        </a>
+        <a href="{% url 'hr_ops:my_assets' %}" class="my-space-quick-tile">
+          <span class="my-space-quick-tile__icon my-space-quick-tile__icon--assets" aria-hidden="true"></span>
+          <span class="my-space-quick-tile__label">Assets</span>
+        </a>
+        <a href="{% url 'hr_ops:my_service_requests' %}" class="my-space-quick-tile">
+          <span class="my-space-quick-tile__icon my-space-quick-tile__icon--help" aria-hidden="true"></span>
+          <span class="my-space-quick-tile__label">Help</span>
+        </a>
+        <a href="{% url 'hr_ops:employee_policies' %}" class="my-space-quick-tile">
+          <span class="my-space-quick-tile__icon my-space-quick-tile__icon--policy" aria-hidden="true"></span>
+          <span class="my-space-quick-tile__label">Policies</span>
+        </a>
+        <a href="{% url 'projects:my_timesheet' %}" class="my-space-quick-tile">
+          <span class="my-space-quick-tile__icon my-space-quick-tile__icon--time" aria-hidden="true"></span>
+          <span class="my-space-quick-tile__label">Timesheet</span>
+        </a>
+      </div>
+    </div>
+  </section>
 
   {% if exit_request %}
   <div class="my-space-card my-space-card--highlight">
     <h2 class="my-space-card__title">Exit &amp; settlement</h2>
     <p class="text-sm text-base-content/70 mb-3">
       Your exit is in progress. Review the settlement estimate below and acknowledge when ready.
-      You can acknowledge <strong>online here</strong> or sign a <strong>printed PDF</strong> collected by HR.
     </p>
     {% if settlement_info %}
     <p class="text-sm mb-3">
@@ -76,10 +143,18 @@
   </div>
   {% endif %}
 
-  <div class="my-space-grid">
+  <details class="my-space-hub-section" open>
+    <summary class="my-space-hub-fold__summary">
+      <span>Everything in My Space</span>
+      <span class="my-space-hub-fold__hint">Grouped shortcuts</span>
+    </summary>
+    {% include "partials/my_space_hub_grid.html" %}
+  </details>
+
+  <section class="my-space-grid my-space-grid--3" aria-label="Profile details">
     <div class="my-space-card">
       <h2 class="my-space-card__title">Job details</h2>
-      <ul class="my-space-list">
+      <ul class="my-space-list my-space-list--dense">
         <li><span>Official email</span><span class="my-space-meta">{{ employee.official_email|default:"—" }}</span></li>
         <li><span>Employment type</span><span class="my-space-meta">{{ employee.get_employment_type_display }}</span></li>
         <li><span>Status</span><span class="my-space-meta">{{ employee.get_employment_status_display }}</span></li>
@@ -91,58 +166,27 @@
     </div>
 
     <div class="my-space-card">
-      <h2 class="my-space-card__title">Leave balances ({{ leave_balances.0.year|default:"this year" }})</h2>
-      <ul class="my-space-list">
-        {% for b in leave_balances %}
-        <li>
-          <span>{{ b.leave_type.name }}</span>
-          <span><strong>{{ b.available }}</strong> available ({{ b.taken }} used)</span>
-        </li>
-        {% empty %}
-        <li><span class="my-space-meta">No leave balances yet.</span></li>
-        {% endfor %}
-      </ul>
-      <div class="my-space-actions">
-        <a href="{% url 'leaves:apply' %}" class="btn btn-primary btn-sm">Apply leave</a>
-        <a href="{% url 'attendance:my_attendance' %}" class="btn btn-outline btn-sm">My attendance</a>
-      </div>
-    </div>
-
-    <div class="my-space-card">
       <h2 class="my-space-card__title">My projects</h2>
       {% for p in projects %}
-      <a href="{% url 'projects:detail' p.pk %}" class="my-space-project-card">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
+      <a href="{% url 'projects:detail' p.pk %}" class="my-space-project-card my-space-project-card--compact">
+        <div class="my-space-project-card__head">
           <strong>{{ p.name }}</strong>
           <span class="my-space-status my-space-status--{{ p.status }}">{{ p.get_status_display }}</span>
         </div>
-        <div class="my-space-meta" style="margin-top:4px;">{{ p.code }}{% if p.lead %} · Lead: {{ p.lead.full_name }}{% endif %}</div>
+        <div class="my-space-meta">{{ p.code }}{% if p.lead %} · {{ p.lead.full_name }}{% endif %}</div>
       </a>
       {% empty %}
-      <p class="my-space-meta">You are not assigned to any active projects yet.</p>
+      <p class="my-space-meta">No active projects assigned.</p>
       {% endfor %}
       <div class="my-space-actions">
         <a href="{% url 'projects:my_projects' %}" class="btn btn-outline btn-sm">All projects</a>
-        <a href="{% url 'projects:my_timesheet' %}" class="btn btn-outline btn-sm">Log time</a>
       </div>
     </div>
 
     <div class="my-space-card">
-      <h2 class="my-space-card__title">Quick links</h2>
-      <div class="my-space-actions">
-        <a href="{% url 'payroll:my_payslips' %}" class="btn btn-outline btn-sm">Payslips</a>
-        <a href="{% url 'hr_ops:announcements' %}" class="btn btn-outline btn-sm">Announcements</a>
-        <a href="{% url 'hr_ops:my_assets' %}" class="btn btn-outline btn-sm">My assets</a>
-        <a href="{% url 'hr_ops:my_service_requests' %}" class="btn btn-outline btn-sm">Help &amp; requests</a>
-        <a href="{% url 'hr_ops:employee_policies' %}" class="btn btn-outline btn-sm">Policies</a>
-        <a href="{% url 'hr_ops:my_company_doc_requests' %}" class="btn btn-outline btn-sm">Company documents</a>
-        {% if onboarding %}
-        <a href="{% url 'hr_ops:my_onboarding' %}" class="btn btn-outline btn-sm">Onboarding checklist</a>
-        {% endif %}
-      </div>
+      <h2 class="my-space-card__title">Documents &amp; more</h2>
       {% if shared_letters %}
-      <h3 class="my-space-card__title" style="margin-top:16px;">Shared letters</h3>
-      <ul class="my-space-list">
+      <ul class="my-space-list my-space-list--dense">
         {% for letter in shared_letters %}
         <li>
           <span>{{ letter.get_letter_type_display|default:letter.letter_type }}</span>
@@ -152,8 +196,16 @@
         </li>
         {% endfor %}
       </ul>
+      {% else %}
+      <p class="my-space-meta">No shared letters yet.</p>
       {% endif %}
+      <div class="my-space-actions">
+        <a href="{% url 'hr_ops:my_company_doc_requests' %}" class="btn btn-outline btn-sm">Request documents</a>
+        {% if onboarding %}
+        <a href="{% url 'hr_ops:my_onboarding' %}" class="btn btn-outline btn-sm">Onboarding</a>
+        {% endif %}
+      </div>
     </div>
-  </div>
+  </section>
 </div>
 {% endblock %}

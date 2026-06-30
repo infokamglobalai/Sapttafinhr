@@ -377,6 +377,9 @@ def exit_finalize(request, pk):
         msg = f"{emp.full_name} marked as exited (last working day {result['exit_date'].strftime('%d %b %Y')})."
         if result["login_disabled"]:
             msg += " Application login disabled."
+        remaining = result.get("seats_remaining")
+        if remaining is not None:
+            msg += f" 1 seat freed — {remaining} seat(s) available to add a new employee (no upgrade needed)."
         messages.success(request, msg)
     return redirect("hr_ops:exit_list")
 

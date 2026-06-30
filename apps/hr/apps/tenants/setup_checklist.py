@@ -126,13 +126,19 @@ def get_setup_checklist(tenant) -> dict:
         else:
             i["dot_status"] = "pending"
 
+    complete = done_count == len(items)
+    setup_complete = bool(getattr(tenant, "setup_complete", False))
+    # Nudge only during first-run onboarding — not after the workspace is marked ready.
+    show_nudge = not setup_complete and not complete
+
     return {
         "items": items,
         "display_steps": display_steps,
         "done_count": done_count,
         "total": len(items),
         "percent": int(done_count / len(items) * 100) if items else 100,
-        "complete": done_count == len(items),
+        "complete": complete,
+        "show_nudge": show_nudge,
         "next_label": next_item["label"] if next_item else "",
         "next_url": next_item["url"] if next_item else reverse("tenants:setup"),
         "remaining": len(items) - done_count,

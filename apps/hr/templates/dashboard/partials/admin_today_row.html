@@ -2,7 +2,7 @@
   <div class="dash-chart-card dash-chart-card--half dash-chart-card--fill" x-data="{ trendRange: '14' }">
     <div class="dash-chart-card__head dash-chart-card__head--split">
       <div>
-        <h2 class="dash-chart-card__title">Attendance trend</h2>
+        <h2 class="dash-chart-card__title">Attendance Trend</h2>
         <p class="dash-chart-card__sub">
           Daily presence · <span id="attendance-trend-avg-label">{{ insights.avg_daily_present }}</span> average per day
         </p>
@@ -32,7 +32,7 @@
   <section class="dash-presence-card" aria-label="Who is in today" x-data="{ tab: 'present' }">
     <div class="dash-presence-card__head">
       <div>
-        <h2 class="dash-presence-card__title">Today's headcount</h2>
+        <h2 class="dash-presence-card__title">Today's Headcount</h2>
         <p class="dash-presence-card__sub">{{ today_presence.total }} active · live attendance</p>
       </div>
       <a href="{% url 'attendance:register' %}" class="dash-presence-card__link">Register</a>

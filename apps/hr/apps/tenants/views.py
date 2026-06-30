@@ -148,6 +148,12 @@ def dashboard(request):
 
     today = timezone.localdate()
     month_start = today.replace(day=1)
+
+    if user.is_hr_admin or user.is_manager:
+        from apps.employees.profile_link import ensure_user_employee_profile
+
+        ensure_user_employee_profile(user, tenant=tenant)
+
     emp_profile = user._employee_profile_or_none()
 
     ctx = {
@@ -207,6 +213,19 @@ def _grouped_chart_is_informative(chart: dict, *, placeholder_labels: frozenset 
     return True
 
 
+# Dashboard gender charts — Saptta logo palette (navy · orange · violet)
+GENDER_CHART_COLORS = {
+    "male": "#1E2A78",       # logo navy
+    "female": "#FF6D00",       # logo orange
+    "other": "#8B5CF6",        # logo purple accent
+}
+GENDER_CHART_COLORS_HOVER = {
+    "male": "#24318F",         # lighter navy
+    "female": "#FFA000",       # logo amber
+    "other": "#A78BFA",        # soft violet
+}
+
+
 def _gender_bucket(gender_value: str | None) -> str:
     if gender_value == "male":
         return "male"
@@ -235,15 +254,16 @@ def _build_dept_gender_chart(active_emps) -> dict:
         lookup[key] = lookup.get(key, 0) + row["count"]
 
     groups = [
-        ("male", "Male", "#3B82F6"),
-        ("female", "Female", "#EC4899"),
-        ("other", "Not Specified", "#94A3B8"),
+        ("male", "Male", GENDER_CHART_COLORS["male"]),
+        ("female", "Female", GENDER_CHART_COLORS["female"]),
+        ("other", "Not Specified", GENDER_CHART_COLORS["other"]),
     ]
     datasets = [
         {
             "label": label,
             "data": [lookup.get((dept_id, key), 0) for dept_id in dept_ids],
             "backgroundColor": color,
+            "hoverBackgroundColor": GENDER_CHART_COLORS_HOVER[key],
         }
         for key, label, color in groups
     ]
@@ -255,9 +275,9 @@ def _build_gender_diversity_chart(active_emps) -> dict:
     from apps.employees.models import Employee
 
     segments = [
-        ("male", "Male", "#3B82F6"),
-        ("female", "Female", "#EC4899"),
-        ("other", "Not Specified", "#CBD5E1"),
+        ("male", "Male", GENDER_CHART_COLORS["male"]),
+        ("female", "Female", GENDER_CHART_COLORS["female"]),
+        ("other", "Not Specified", GENDER_CHART_COLORS["other"]),
     ]
     lookup: dict[str, int] = {"male": 0, "female": 0, "other": 0}
     for row in active_emps.values("gender").annotate(count=Count("id")):
@@ -798,20 +818,20 @@ def _hr_admin_analytics(tenant, today, month_start):
     sparklines = {
         "attendance": _sparkline_paths(
             attendance_trend["data"],
-            "#10B981",
-            "rgba(16, 185, 129, 0.18)",
+            "#059669",
+            "rgba(5, 150, 105, 0.18)",
             "attendance",
         ),
         "open_roles": _sparkline_paths(
             _ramp_series(open_jobs),
-            "#3B82F6",
-            "rgba(59, 130, 246, 0.18)",
+            "#1E2A78",
+            "rgba(30, 42, 120, 0.18)",
             "roles",
         ),
         "pending": _sparkline_paths(
             _ramp_series(pending_total),
-            "#F97316",
-            "rgba(249, 115, 22, 0.18)",
+            "#FF6D00",
+            "rgba(255, 109, 0, 0.18)",
             "pending",
         ),
         "growth": _sparkline_paths(

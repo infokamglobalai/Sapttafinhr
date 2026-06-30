@@ -65,10 +65,27 @@ document.addEventListener('alpine:init', () => {
 document.addEventListener('DOMContentLoaded', () => {
   const root = document.getElementById('command-palette-root');
 
+  const openPalette = (query = '') => {
+    if (!root?._x_dataStack?.length) return;
+    const pal = root._x_dataStack[0];
+    if (!pal?.show) return;
+    pal.query = query;
+    pal.show();
+  };
+
   document.querySelectorAll('.topbar-search__kbd').forEach((kbd) => {
     kbd.addEventListener('click', (e) => {
       e.preventDefault();
-      if (root && root._x_dataStack) root._x_dataStack[0].show();
+      openPalette();
     });
   });
+
+  const topbarInput = document.getElementById('topbar-search-input');
+  if (topbarInput) {
+    topbarInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === 'Escape' || e.key === 'Tab') return;
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') return;
+      openPalette(topbarInput.value);
+    });
+  }
 });

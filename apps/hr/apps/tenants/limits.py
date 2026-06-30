@@ -57,6 +57,18 @@ def sync_employee_count(tenant) -> int:
     return count
 
 
+def sync_employee_count_and_alerts(tenant, *, was_at_cap: bool | None = None) -> int:
+    """Sync headcount and notify workspace owners when seat thresholds change."""
+    count = sync_employee_count(tenant)
+    try:
+        from apps.tenants.seat_alerts import sync_seat_limit_alerts
+
+        sync_seat_limit_alerts(tenant, was_at_cap=was_at_cap)
+    except Exception:
+        pass
+    return count
+
+
 def ensure_seat_cap_covers_active(tenant, *, headroom: int = 0) -> int:
     """Raise max_employees when active headcount exceeds the paid cap.
 

@@ -501,6 +501,9 @@ class Notification(models.Model):
         ("probation_ending", "Probation Ending"),
         ("calendar_reminder", "Calendar Reminder"),
         ("celebration", "Celebration"),
+        ("seat_limit_warning", "Seat Limit Warning"),
+        ("seat_limit_reached", "Seat Limit Reached"),
+        ("seat_freed", "Seat Available"),
         ("general", "General"),
     ]
 

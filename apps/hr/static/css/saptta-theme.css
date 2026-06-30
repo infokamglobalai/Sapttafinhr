@@ -14,12 +14,12 @@
   --soft-text: #0F172A;
   --soft-text-secondary: #475569;
   --soft-text-tertiary: #94A3B8;
-  --soft-accent: #4f46e5;
-  --soft-accent-hover: #4338ca;
-  --color-secondary: #4f46e5;
-  --color-secondary-hover: #4338ca;
-  --saptta-accent: #4f46e5;
-  --saptta-accent-soft: rgba(79, 70, 229, 0.12);
+  --soft-accent: var(--saptta-primary);
+  --soft-accent-hover: var(--saptta-primary-hover);
+  --color-secondary: var(--saptta-primary);
+  --color-secondary-hover: var(--saptta-primary-hover);
+  --saptta-accent: var(--saptta-primary);
+  --saptta-accent-soft: var(--saptta-primary-soft);
   --soft-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 20px rgba(0, 0, 0, 0.04);
   --soft-shadow-hover: 0 4px 8px rgba(0, 0, 0, 0.06), 0 12px 32px rgba(0, 0, 0, 0.06);
   --soft-radius: 14px;

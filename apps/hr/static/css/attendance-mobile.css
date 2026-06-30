@@ -106,4 +106,5 @@
 
 @media (min-width: 900px) {
   .punch-card { max-width: 520px; }
+  .my-space-spotlight__attendance .punch-card { max-width: none; }
 }

@@ -1,20 +1,15 @@
-{# Date & time — topbar actions rail, left of quick (+) button #}
+{# Date & time — single line, mockup style #}
 <div class="topbar-datetime topbar-datetime--actions"
   x-data="{
     time: '',
     tick() {
-      this.time = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+      this.time = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase();
     }
   }"
   x-init="tick(); setInterval(() => tick(), 30000)">
-  <span class="topbar-datetime__icon" aria-hidden="true">
-    <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-    </svg>
-  </span>
-  <div class="topbar-datetime__text">
+  <span class="topbar-datetime__line">
     <span class="topbar-datetime__date">{% now "l, j M Y" %}</span>
-    <span class="topbar-datetime__sep" aria-hidden="true">·</span>
+    <span class="topbar-datetime__sep" aria-hidden="true">|</span>
     <span class="topbar-datetime__time" x-text="time" aria-live="polite"></span>
-  </div>
+  </span>
 </div>

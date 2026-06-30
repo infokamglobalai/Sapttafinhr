@@ -4,12 +4,12 @@ from django.contrib import messages
 from django.http import HttpResponse, JsonResponse
 from django.core.paginator import Paginator
 from django.db.models import Q
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_http_methods
 
 from .models import Employee, Department, Designation, OfficeLocation, EmployeeDocument, AttritionScore
 from .forms import EmployeeForm, DepartmentForm, DesignationForm, OfficeLocationForm, DocumentUploadForm, COMPLIANCE_FIELD_NAMES
 from .search import filter_employees_by_search
-from .services import create_employee, bulk_import_employees, provision_employee_login, email_employee_invite, invite_delivery_message
+from .services import create_employee, bulk_import_employees, provision_employee_login, email_employee_invite, invite_delivery_message, EmployeeEmailInUse
 from apps.tenants.limits import EmployeeLimitExceeded, seats_remaining, employee_limit, active_employee_count
 from .access_services import (
     get_employee_access,
@@ -257,7 +257,14 @@ def employee_create(request):
                     )
                 return redirect("employees:detail", pk=emp.pk)
             except EmployeeLimitExceeded as exc:
+                from apps.tenants.seat_alerts import notify_owners_add_blocked
+
+                notify_owners_add_blocked(tenant)
                 messages.error(request, str(exc))
+            except EmployeeEmailInUse as exc:
+                messages.error(request, str(exc))
+                if exc.employee:
+                    form.add_error("official_email", str(exc))
             except Exception as exc:
                 messages.error(request, f"Error creating employee: {exc}")
     else:
@@ -531,8 +538,36 @@ def bulk_import(request):
 # ---------------------------------------------------------------------------
 # Org structure management
 # ---------------------------------------------------------------------------
+def _org_create_response(
+    request,
+    *,
+    list_template,
+    list_context,
+    form,
+    redirect_name,
+    created_name: str,
+    item_label: str,
+):
+    """Save org item, flash message, redirect (or re-render form with errors)."""
+    if form.is_valid():
+        messages.success(request, f"{item_label} «{created_name}» created successfully.")
+        if request.htmx:
+            from django.http import HttpResponse
+            from django.urls import reverse
+
+            return HttpResponse(headers={"HX-Redirect": reverse(redirect_name)})
+        return redirect(redirect_name)
+
+    messages.error(request, f"Could not create {item_label.lower()} — please fix the errors below.")
+    if request.htmx:
+        from django.http import HttpResponse
+        from django.urls import reverse
+
+        return HttpResponse(headers={"HX-Redirect": reverse(redirect_name)})
+    return render(request, list_template, {**list_context, "form": form})
+
+
 def _org_list_response(request, *, partial_template, context, redirect_name, success_msg=None, error_msg=None):
-    tenant = request.tenant
     if error_msg:
         messages.error(request, error_msg)
     elif success_msg:
@@ -553,24 +588,27 @@ def department_list(request):
 
 
 @perm_required("employees.edit")
+@require_POST
 def department_create(request):
     from .org_structure_services import departments_queryset
 
     tenant = request.tenant
-    if request.method == "POST":
-        form = DepartmentForm(tenant, request.POST)
-        if form.is_valid():
-            dept = form.save(commit=False)
-            dept.tenant = tenant
-            dept.save()
-            if request.htmx:
-                return render(
-                    request,
-                    "employees/partials/departments_list.html",
-                    {"departments": departments_queryset(tenant)},
-                )
-            return redirect("employees:departments")
-    return redirect("employees:departments")
+    form = DepartmentForm(tenant, request.POST)
+    created_name = ""
+    if form.is_valid():
+        dept = form.save(commit=False)
+        dept.tenant = tenant
+        dept.save()
+        created_name = dept.name
+    return _org_create_response(
+        request,
+        list_template="employees/departments.html",
+        list_context={"departments": departments_queryset(tenant)},
+        form=form,
+        redirect_name="employees:departments",
+        created_name=created_name,
+        item_label="Department",
+    )
 
 
 @perm_required("employees.edit")
@@ -620,24 +658,27 @@ def designation_list(request):
 
 
 @perm_required("employees.edit")
+@require_POST
 def designation_create(request):
     from .org_structure_services import designations_queryset
 
     tenant = request.tenant
-    if request.method == "POST":
-        form = DesignationForm(request.POST)
-        if form.is_valid():
-            desig = form.save(commit=False)
-            desig.tenant = tenant
-            desig.save()
-            if request.htmx:
-                return render(
-                    request,
-                    "employees/partials/designations_list.html",
-                    {"designations": designations_queryset(tenant)},
-                )
-            return redirect("employees:designations")
-    return redirect("employees:designations")
+    form = DesignationForm(request.POST)
+    created_name = ""
+    if form.is_valid():
+        desig = form.save(commit=False)
+        desig.tenant = tenant
+        desig.save()
+        created_name = desig.name
+    return _org_create_response(
+        request,
+        list_template="employees/designations.html",
+        list_context={"designations": designations_queryset(tenant)},
+        form=form,
+        redirect_name="employees:designations",
+        created_name=created_name,
+        item_label="Designation",
+    )
 
 
 @perm_required("employees.edit")
@@ -687,24 +728,27 @@ def location_list(request):
 
 
 @perm_required("employees.edit")
+@require_POST
 def location_create(request):
     from .org_structure_services import locations_queryset
 
     tenant = request.tenant
-    if request.method == "POST":
-        form = OfficeLocationForm(request.POST)
-        if form.is_valid():
-            loc = form.save(commit=False)
-            loc.tenant = tenant
-            loc.save()
-            if request.htmx:
-                return render(
-                    request,
-                    "employees/partials/locations_list.html",
-                    {"locations": locations_queryset(tenant)},
-                )
-            return redirect("employees:locations")
-    return redirect("employees:locations")
+    form = OfficeLocationForm(request.POST)
+    created_name = ""
+    if form.is_valid():
+        loc = form.save(commit=False)
+        loc.tenant = tenant
+        loc.save()
+        created_name = loc.name
+    return _org_create_response(
+        request,
+        list_template="employees/locations.html",
+        list_context={"locations": locations_queryset(tenant)},
+        form=form,
+        redirect_name="employees:locations",
+        created_name=created_name,
+        item_label="Location",
+    )
 
 
 @perm_required("employees.edit")
@@ -779,15 +823,29 @@ def attrition_dashboard(request):
     })
 
 
-@perm_required("reports.export")
-@require_POST
+@perm_required("reports.view")
+@require_http_methods(["GET", "POST"])
 def attrition_recompute(request):
     """Manually trigger a recompute for this tenant (also runs nightly via cron)."""
+    if request.method == "GET":
+        messages.info(
+            request,
+            "Use the “Recompute scores” button on the Attrition Risk page to refresh flight-risk scores.",
+        )
+        return redirect("employees:attrition")
+
     tenant = request.tenant
     from .attrition import recompute_all
-    counts = recompute_all(tenant)
+
+    try:
+        counts = recompute_all(tenant)
+    except Exception as exc:
+        messages.error(request, f"Could not recompute attrition scores: {exc}")
+        return redirect("employees:attrition")
+
     messages.success(
         request,
-        f"Attrition scored: {counts['high']} high, {counts['medium']} medium, {counts['low']} low.",
+        f"Attrition scored: {counts['high']} high, {counts['medium']} medium, {counts['low']} low "
+        f"({counts['total']} employees).",
     )
     return redirect("employees:attrition")

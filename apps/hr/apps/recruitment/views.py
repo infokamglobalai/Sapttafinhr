@@ -16,6 +16,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from apps.employees.models import Department, Designation, OfficeLocation
+from apps.employees.services import EmployeeEmailInUse
 from apps.tenants.limits import EmployeeLimitExceeded
 
 from .models import Candidate, JDTemplate, JobApplication, JobOpening, RankingJob, ScoringWeights
@@ -351,6 +352,12 @@ def convert_to_employee(request, pk):
     try:
         emp = convert_hired_application(app, created_by=request.user)
     except EmployeeLimitExceeded as exc:
+        from apps.tenants.seat_alerts import notify_owners_add_blocked
+
+        notify_owners_add_blocked(request.tenant)
+        messages.error(request, str(exc))
+        return redirect("recruitment:job_detail", pk=app.job_opening_id)
+    except EmployeeEmailInUse as exc:
         messages.error(request, str(exc))
         return redirect("recruitment:job_detail", pk=app.job_opening_id)
     messages.success(request, f"{emp.full_name} added as {emp.employee_code}. Onboarding started.")

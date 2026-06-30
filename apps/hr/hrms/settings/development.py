@@ -16,11 +16,21 @@ DATABASES = {
 }
 
 # ── No Redis in dev — use in-memory cache and DB-backed sessions ───────────
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+# When REDIS_URL is set (Docker), use Redis so billing/product caches are shared.
+_redis_url = config("REDIS_URL", default="")
+if _redis_url:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": _redis_url,
+        }
     }
-}
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        }
+    }
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
 SESSION_CACHE_ALIAS = "default"
 
@@ -30,9 +40,9 @@ CELERY_TASK_EAGER_PROPAGATES = True
 
 DEBUG = True
 
-INSTALLED_APPS += ["debug_toolbar"]  # noqa
-
-MIDDLEWARE = ["debug_toolbar.middleware.DebugToolbarMiddleware"] + MIDDLEWARE  # noqa
+if config("ENABLE_DEBUG_TOOLBAR", default=False, cast=bool):
+    INSTALLED_APPS += ["debug_toolbar"]  # noqa
+    MIDDLEWARE = ["debug_toolbar.middleware.DebugToolbarMiddleware"] + MIDDLEWARE  # noqa
 
 INTERNAL_IPS = ["127.0.0.1"]
 

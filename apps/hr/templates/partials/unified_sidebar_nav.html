@@ -2,11 +2,11 @@
 <a href="{% url 'tenants:dashboard' %}"
    class="nav-item nav-item--dashboard {% if request.resolver_match.app_name == 'tenants' and request.resolver_match.url_name == 'dashboard' %}active{% endif %}"
    {% if request.resolver_match.app_name == 'tenants' and request.resolver_match.url_name == 'dashboard' %}aria-current="page"{% endif %}
->
+   title="Dashboard">
   <span class="nav-item__icon nav-item__icon--dashboard" aria-hidden="true">
     {% include "partials/saptta_nav_icon.html" with icon="dashboard" %}
   </span>
-  Dashboard
+  <span class="nav-item__label">Dashboard</span>
 </a>
 
 {% if user.is_hr_admin %}
@@ -17,7 +17,8 @@
     class="nav-module__header {% if nav_active_category == 'people' %}is-active{% endif %}"
     :class="{ 'is-active': activeCategory === 'people', 'is-open': activeGroups.people }"
     :aria-expanded="activeGroups.people ? 'true' : 'false'"
-    @click="toggleGroup('people')">
+    @click="toggleGroup('people')"
+    title="People">
     <span class="nav-module__icon nav-module__icon--people" aria-hidden="true">
       {% include "partials/saptta_nav_icon.html" with icon="people" %}
     </span>
@@ -35,7 +36,8 @@
     class="nav-module__header {% if nav_active_category == 'timeLeave' %}is-active{% endif %}"
     :class="{ 'is-active': activeCategory === 'timeLeave', 'is-open': activeGroups.timeLeave }"
     :aria-expanded="activeGroups.timeLeave ? 'true' : 'false'"
-    @click="toggleGroup('timeLeave')">
+    @click="toggleGroup('timeLeave')"
+    title="Time &amp; Leave">
     <span class="nav-module__icon nav-module__icon--time" aria-hidden="true">
       {% include "partials/saptta_nav_icon.html" with icon="time" %}
     </span>
@@ -55,7 +57,8 @@
     class="nav-module__header {% if nav_active_category == 'payroll' %}is-active{% endif %}"
     :class="{ 'is-active': activeCategory === 'payroll', 'is-open': activeGroups.payroll }"
     :aria-expanded="activeGroups.payroll ? 'true' : 'false'"
-    @click="toggleGroup('payroll')">
+    @click="toggleGroup('payroll')"
+    title="Payroll">
     <span class="nav-module__icon nav-module__icon--payroll" aria-hidden="true">
       {% include "partials/saptta_nav_icon.html" with icon="payroll" %}
     </span>
@@ -73,7 +76,8 @@
     class="nav-module__header {% if nav_active_category == 'performance' %}is-active{% endif %}"
     :class="{ 'is-active': activeCategory === 'performance', 'is-open': activeGroups.performance }"
     :aria-expanded="activeGroups.performance ? 'true' : 'false'"
-    @click="toggleGroup('performance')">
+    @click="toggleGroup('performance')"
+    title="Performance">
     <span class="nav-module__icon nav-module__icon--performance" aria-hidden="true">
       {% include "partials/saptta_nav_icon.html" with icon="performance" %}
     </span>
@@ -93,7 +97,8 @@
     class="nav-module__header {% if nav_active_category == 'hrOps' %}is-active{% endif %}"
     :class="{ 'is-active': activeCategory === 'hrOps', 'is-open': activeGroups.hrOps }"
     :aria-expanded="activeGroups.hrOps ? 'true' : 'false'"
-    @click="toggleGroup('hrOps')">
+    @click="toggleGroup('hrOps')"
+    title="HR Operations">
     <span class="nav-module__icon nav-module__icon--hrops" aria-hidden="true">
       {% include "partials/saptta_nav_icon.html" with icon="hrops" %}
     </span>
@@ -111,7 +116,8 @@
     class="nav-module__header {% if nav_active_category == 'reports' %}is-active{% endif %}"
     :class="{ 'is-active': activeCategory === 'reports', 'is-open': activeGroups.reports }"
     :aria-expanded="activeGroups.reports ? 'true' : 'false'"
-    @click="toggleGroup('reports')">
+    @click="toggleGroup('reports')"
+    title="Reports">
     <span class="nav-module__icon nav-module__icon--reports" aria-hidden="true">
       {% include "partials/saptta_nav_icon.html" with icon="reports" %}
     </span>
@@ -130,43 +136,27 @@
 {% endif %}
 
 {% if user.employee_profile %}
-<div class="nav-module nav-module--myspace" data-module="mySpace">
-  <button type="button"
-    class="nav-module__header {% if nav_active_category == 'mySpace' %}is-active{% endif %}"
-    :class="{ 'is-active': activeCategory === 'mySpace', 'is-open': activeGroups.mySpace }"
-    :aria-expanded="activeGroups.mySpace ? 'true' : 'false'"
-    @click="toggleGroup('mySpace')">
-    <span class="nav-module__icon nav-module__icon--myspace" aria-hidden="true">
-      {% include "partials/saptta_nav_icon.html" with icon="myspace" %}
-    </span>
-    <span class="nav-module__label">My Space</span>
-    <svg class="nav-module__chevron" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-  </button>
-  <div class="nav-module__body{% if nav_active_category == 'mySpace' %} is-open{% endif %}"
-    :class="{ 'is-open': activeGroups.mySpace }">
-    {% include "partials/my_space_nav_items.html" %}
-  </div>
-</div>
+<a href="{% url 'employees:my_work' %}"
+   class="nav-item nav-item--myspace {% if nav_active_category == 'mySpace' %}active{% endif %}"
+   {% if nav_active_category == 'mySpace' %}aria-current="page"{% endif %}
+   title="My Space">
+  <span class="nav-item__icon nav-item__icon--myspace" aria-hidden="true">
+    {% include "partials/saptta_nav_icon.html" with icon="myspace" %}
+  </span>
+  <span class="nav-item__label">My Space</span>
+</a>
 {% endif %}
 
 {% if user.is_manager and user.employee_profile %}
-<div class="nav-module nav-module--team" data-module="team">
-  <button type="button"
-    class="nav-module__header {% if nav_active_category == 'team' %}is-active{% endif %}"
-    :class="{ 'is-active': activeCategory === 'team', 'is-open': activeGroups.team }"
-    :aria-expanded="activeGroups.team ? 'true' : 'false'"
-    @click="toggleGroup('team')">
-    <span class="nav-module__icon nav-module__icon--team" aria-hidden="true">
-      {% include "partials/saptta_nav_icon.html" with icon="team" %}
-    </span>
-    <span class="nav-module__label">My Team</span>
-    <svg class="nav-module__chevron" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-  </button>
-  <div class="nav-module__body{% if nav_active_category == 'team' %} is-open{% endif %}"
-    :class="{ 'is-open': activeGroups.team }">
-    {% include "partials/team_nav_items.html" %}
-  </div>
-</div>
+<a href="{% url 'employees:my_team' %}"
+   class="nav-item nav-item--team {% if nav_active_category == 'team' %}active{% endif %}"
+   {% if nav_active_category == 'team' %}aria-current="page"{% endif %}
+   title="My Team">
+  <span class="nav-item__icon nav-item__icon--team" aria-hidden="true">
+    {% include "partials/saptta_nav_icon.html" with icon="team" %}
+  </span>
+  <span class="nav-item__label">My Team</span>
+</a>
 {% endif %}
 
 {% if user.is_hr_admin %}
@@ -177,11 +167,12 @@
     class="nav-module__header {% if nav_active_category == 'settings' %}is-active{% endif %}"
     :class="{ 'is-active': activeCategory === 'settings', 'is-open': activeGroups.settings }"
     :aria-expanded="activeGroups.settings ? 'true' : 'false'"
-    @click="toggleGroup('settings')">
+    @click="toggleGroup('settings')"
+    title="Settings">
     <span class="nav-module__icon nav-module__icon--settings" aria-hidden="true">
       {% include "partials/saptta_nav_icon.html" with icon="settings" %}
     </span>
-    <span class="nav-module__label">Setup &amp; Config</span>
+    <span class="nav-module__label">Settings</span>
     <svg class="nav-module__chevron" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
   </button>
   <div class="nav-module__body{% if nav_active_category == 'settings' %} is-open{% endif %}"

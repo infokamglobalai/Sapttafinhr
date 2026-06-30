@@ -31,7 +31,7 @@
   height: 40px;
   border-radius: 12px;
   background: rgba(79, 70, 229, 0.1);
-  color: #4f46e5;
+  color: var(--saptta-primary, #1E2A78);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -64,7 +64,7 @@
 .dash-cal__month {
   font-size: 12px;
   font-weight: 700;
-  color: #4f46e5;
+  color: var(--saptta-primary, #1E2A78);
   padding: 6px 12px;
   border-radius: 999px;
   background: rgba(79, 70, 229, 0.08);
@@ -74,7 +74,7 @@
 .dash-cal__head-link {
   font-size: 12px;
   font-weight: 600;
-  color: #4f46e5;
+  color: var(--saptta-primary, #1E2A78);
   text-decoration: none;
   padding: 6px 10px;
   border-radius: 8px;
@@ -162,13 +162,13 @@
 .dash-cal__day--today {
   border-color: rgba(79, 70, 229, 0.35);
   background: rgba(79, 70, 229, 0.08);
-  color: #4f46e5;
+  color: var(--saptta-primary, #1E2A78);
   font-weight: 700;
 }
 
 .dash-cal__day--active {
-  background: #4f46e5;
-  border-color: #4f46e5;
+  background: var(--saptta-primary, #1E2A78);
+  border-color: var(--saptta-primary, #1E2A78);
   color: #fff;
   box-shadow: 0 4px 12px rgba(79, 70, 229, 0.28);
 }
@@ -190,7 +190,7 @@
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: #4f46e5;
+  background: var(--saptta-primary, #1E2A78);
 }
 
 .dash-cal__day--active .dash-cal__day-mark {
@@ -228,7 +228,7 @@
 }
 
 .dash-cal__legend-dot--marked {
-  background: #4f46e5;
+  background: var(--saptta-primary, #1E2A78);
 }
 
 .dash-cal__aside {
@@ -253,7 +253,7 @@
 }
 
 .dash-cal__metric-inline strong {
-  color: #4f46e5;
+  color: var(--saptta-primary, #1E2A78);
   font-weight: 800;
   margin-right: 3px;
 }
@@ -274,7 +274,7 @@
   display: block;
   font-size: 18px;
   font-weight: 800;
-  color: #4f46e5;
+  color: var(--saptta-primary, #1E2A78);
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
 }
@@ -348,7 +348,7 @@
 }
 
 .dash-cal__event--holiday {
-  border-left: 3px solid #4f46e5;
+  border-left: 3px solid var(--saptta-primary, #1E2A78);
 }
 
 .dash-cal__event-date {
@@ -362,7 +362,7 @@
 .dash-cal__event-day {
   font-size: 16px;
   font-weight: 800;
-  color: #4f46e5;
+  color: var(--saptta-primary, #1E2A78);
   line-height: 1;
 }
 
@@ -396,7 +396,7 @@
 
 .dash-cal__tag--holiday {
   background: rgba(79, 70, 229, 0.1);
-  color: #4338ca;
+  color: var(--saptta-primary-hover, #24318F);
 }
 
 .dash-cal__tag--leave {
@@ -433,7 +433,7 @@
 }
 
 .dash-cal__event:hover .dash-cal__event-arrow {
-  color: #4f46e5;
+  color: var(--saptta-primary, #1E2A78);
   transform: translateX(2px);
 }
 
@@ -471,12 +471,12 @@
 .dash-cal__foot-link {
   font-size: 12px;
   font-weight: 600;
-  color: #4f46e5;
+  color: var(--saptta-primary, #1E2A78);
   text-decoration: none;
 }
 
 .dash-cal__foot-link:hover {
-  color: #4338ca;
+  color: var(--saptta-primary-hover, #24318F);
   text-decoration: underline;
 }
 
@@ -570,7 +570,7 @@ body.dash-cal-modal-open {
   border-radius: 10px;
   border: 1px dashed rgba(79, 70, 229, 0.4);
   background: rgba(79, 70, 229, 0.06);
-  color: #4f46e5;
+  color: var(--saptta-primary, #1E2A78);
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
@@ -614,7 +614,7 @@ a.dash-cal-row:hover {
   background: #fff;
 }
 
-.dash-cal-row--holiday { border-left: 3px solid #4f46e5; }
+.dash-cal-row--holiday { border-left: 3px solid var(--saptta-primary, #1E2A78); }
 .dash-cal-row--leave { border-left: 3px solid #0891b2; }
 .dash-cal-row--birthday { border-left: 3px solid #d97706; }
 
@@ -682,7 +682,7 @@ a.dash-cal-row:hover {
   flex-shrink: 0;
 }
 
-.dash-cal-note__icon--meeting { background: #eef2ff; color: #4f46e5; }
+.dash-cal-note__icon--meeting { background: #EEF0F8; color: var(--saptta-primary, #1E2A78); }
 .dash-cal-note__icon--reminder { background: #fef3c7; color: #d97706; }
 .dash-cal-note__icon--task { background: #ecfdf5; color: #059669; }
 .dash-cal-note__icon--other { background: #f3f4f6; color: #64748b; }
@@ -761,7 +761,7 @@ a.dash-cal-row:hover {
   padding: 10px 14px;
   border-radius: 10px;
   border: none;
-  background: #4f46e5;
+  background: var(--saptta-primary, #1E2A78);
   color: #fff;
   font-size: 13px;
   font-weight: 700;

@@ -15,9 +15,18 @@ def tenant_product_codes(tenant: Tenant | None) -> frozenset[str]:
     if not tenant:
         return frozenset()
 
+    from django.core.cache import cache
+
+    cache_key = f"tenant_products:{tenant.pk}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return frozenset(cached)
+
     platform = fetch_platform_billing(tenant)
     if platform and platform.get("products"):
-        return frozenset(platform["products"])
+        codes = frozenset(platform["products"])
+        cache.set(cache_key, list(codes), 120)
+        return codes
 
     codes = set(
         tenant.product_entitlements.filter(
@@ -26,7 +35,9 @@ def tenant_product_codes(tenant: Tenant | None) -> frozenset[str]:
     )
     if not codes and tenant.has_product_access(ProductCode.HR):
         codes.add(ProductCode.HR)
-    return frozenset(codes)
+    result = frozenset(codes)
+    cache.set(cache_key, list(result), 120)
+    return result
 
 
 def tenant_has_finance(tenant: Tenant | None) -> bool:

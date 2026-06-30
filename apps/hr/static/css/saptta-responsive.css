@@ -276,7 +276,7 @@ button[type="submit"].btn-primary {
 }
 
 .dash-hero__btn--primary {
-  background: var(--saptta-primary, #6366f1);
+  background: var(--saptta-primary, #1E2A78);
   color: #fff;
 }
 
@@ -293,7 +293,7 @@ button[type="submit"].btn-primary {
 
 .dash-hero__btn--ghost:hover {
   border-color: rgba(79, 70, 229, 0.25);
-  color: #4f46e5;
+  color: var(--saptta-primary, #1E2A78);
   background: rgba(79, 70, 229, 0.04);
 }
 
@@ -325,7 +325,7 @@ button[type="submit"].btn-primary {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: conic-gradient(#4f46e5 calc(var(--pct) * 1%), #e0e7ff 0);
+  background: conic-gradient(var(--saptta-primary, #1E2A78) calc(var(--pct) * 1%), #e0e7ff 0);
   padding: 3px;
 }
 
@@ -339,7 +339,7 @@ button[type="submit"].btn-primary {
   justify-content: center;
   font-size: 11px;
   font-weight: 800;
-  color: #4338ca;
+  color: var(--saptta-primary-hover, #24318F);
   line-height: 1;
 }
 
@@ -367,9 +367,9 @@ button[type="submit"].btn-primary {
   border-radius: 999px;
 }
 
-.dash-setup-micro__seg--done { background: #4f46e5; }
+.dash-setup-micro__seg--done { background: var(--saptta-primary, #1E2A78); }
 .dash-setup-micro__seg--current {
-  background: linear-gradient(90deg, #4f46e5 50%, #c7d2fe 50%);
+  background: linear-gradient(90deg, var(--saptta-primary, #1E2A78) 50%, #c7d2fe 50%);
   box-shadow: 0 0 0 1px rgba(79, 70, 229, 0.2);
 }
 .dash-setup-micro__seg--pending { background: #E2E8F0; }
@@ -391,13 +391,13 @@ button[type="submit"].btn-primary {
   place-items: center;
   background: #fff;
   border: 1px solid rgba(79, 70, 229, 0.15);
-  color: #4f46e5;
+  color: var(--saptta-primary, #1E2A78);
 }
 
 .dash-setup-micro:hover .dash-setup-micro__go {
-  background: #4f46e5;
+  background: var(--saptta-primary, #1E2A78);
   color: #fff;
-  border-color: #4f46e5;
+  border-color: var(--saptta-primary, #1E2A78);
 }
 
 .dash-pulse {
@@ -579,8 +579,8 @@ a.dash-pulse-card:hover {
   box-shadow: 0 2px 8px rgba(245, 158, 11, 0.1);
 }
 
-.dash-attention__val { font-size: 1.25rem; font-weight: 800; color: #4f46e5; line-height: 1; }
-.dash-attention__val--blue { color: #4f46e5; }
+.dash-attention__val { font-size: 1.25rem; font-weight: 800; color: var(--saptta-primary, #1E2A78); line-height: 1; }
+.dash-attention__val--blue { color: var(--saptta-primary, #1E2A78); }
 .dash-attention__lbl { font-size: 10px; font-weight: 600; color: #78716C; }
 
 /* Legacy KPI tiles */

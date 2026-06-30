@@ -107,4 +107,8 @@ def provision_tenant(
     from .regional_packs import seed_regional_defaults
     seed_regional_defaults(tenant)
 
+    from apps.employees.profile_link import ensure_user_employee_profile
+
+    ensure_user_employee_profile(user, tenant=tenant)
+
     return tenant, user

@@ -30,7 +30,8 @@ class EmployeeLimitTest(TestCase):
         self.assertEqual(self.tenant.max_employees, 30)
 
     def test_blocks_over_limit(self):
-        self.tenant.max_employees = 1
+        # Owner already has an active employee profile from provision_tenant.
+        self.tenant.max_employees = 2
         self.tenant.save(update_fields=["max_employees"])
         create_employee(
             self.tenant,

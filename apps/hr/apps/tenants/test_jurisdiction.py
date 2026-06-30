@@ -37,6 +37,10 @@ class JurisdictionDefaultsTest(TestCase):
         self.assertTrue(is_gcc_payroll("KW"))
         self.assertFalse(is_gcc_payroll("IN"))
 
+    def test_normalise_accepts_tenant_object(self):
+        tenant = Tenant(name="T", subdomain="tobj", payroll_jurisdiction="AE")
+        self.assertEqual(normalise_jurisdiction(tenant), "AE")
+
 
 class KuwaitProvisioningTest(TestCase):
     @classmethod
@@ -70,6 +74,19 @@ class KuwaitProvisioningTest(TestCase):
         checklist = get_setup_checklist(tenant)
         keys = {item["key"] for item in checklist["items"]}
         self.assertNotIn("statutory", keys)
+
+    def test_setup_nudge_hidden_after_setup_complete(self):
+        tenant, _ = provision_tenant(
+            company_name="Done Co",
+            subdomain="doneco",
+            admin_email="hr@doneco.com",
+            admin_password="securepass123",
+            country="IN",
+        )
+        tenant.setup_complete = True
+        tenant.save(update_fields=["setup_complete"])
+        checklist = get_setup_checklist(tenant)
+        self.assertFalse(checklist["show_nudge"])
 
 
 class IndiaPayrollGateTest(TestCase):

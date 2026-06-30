@@ -5,9 +5,10 @@
   <div class="card">
     <div class="card-body">
       <h3 class="card-title text-base">Add Location</h3>
-      <form method="post" action="{% url 'employees:location_create' %}"
-            hx-post="{% url 'employees:location_create' %}"
-            hx-target="#loc-list" hx-swap="innerHTML">
+      {% if form.errors %}
+      <div class="alert alert-error text-sm mb-3">Please fix the highlighted fields below.</div>
+      {% endif %}
+      <form method="post" action="{% url 'employees:location_create' %}">
         {% csrf_token %}
         <div class="form-control mb-2"><label class="label"><span class="label-text">Name *</span></label>{{ form.name }}</div>
         <div class="form-control mb-2"><label class="label"><span class="label-text">City</span></label>{{ form.city }}</div>

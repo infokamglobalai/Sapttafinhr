@@ -79,6 +79,8 @@ SIGNUP_COUNTRY_CHOICES = [
 
 
 def normalise_jurisdiction(code: str | None) -> str:
+    if code is not None and not isinstance(code, str):
+        code = getattr(code, "payroll_jurisdiction", None)
     code = (code or INDIA).strip().upper()
     return code if code in SUPPORTED_JURISDICTIONS else INDIA
 

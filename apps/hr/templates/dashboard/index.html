@@ -6,6 +6,7 @@
 {% block hr_page_class %} hr-page--fluid{% endblock %}
 
 {% block extra_head %}
+  <link rel="stylesheet" href="{% static 'css/dashboard-v3.css' %}?v=3">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -16,16 +17,36 @@
   Chart.defaults.plugins.legend.labels.usePointStyle = true;
   Chart.defaults.plugins.legend.labels.boxWidth = 6;
   Chart.defaults.animation.duration = 600;
-  const PALETTE = ['#4F46E5', '#06B6D4', '#10B981', '#F59E0B', '#EC4899', '#8B5CF6', '#14B8A6', '#F97316'];
-  const GENDER_COLORS = { male: '#3B82F6', female: '#EC4899', other: '#94A3B8' };
-  const BRAND_ORANGE = (window.SAPTTA_THEME && window.SAPTTA_THEME.primary) || '#6366f1';
-  const BRAND_BLUE = (window.SAPTTA_THEME && window.SAPTTA_THEME.secondary) || '#4f46e5';
-  const DASH_PRIMARY = '#4f46e5';
+  const PALETTE = ['#1E2A78', '#FF6D00', '#8B5CF6', '#0891B2', '#059669', '#D97706', '#64748B', '#E11D48'];
+  const GENDER_COLORS = {
+    male: '#1E2A78',
+    female: '#FF6D00',
+    other: '#8B5CF6',
+  };
+  const GENDER_COLORS_HOVER = {
+    male: '#24318F',
+    female: '#FFA000',
+    other: '#A78BFA',
+  };
+  const GENDER_COLOR_FALLBACK = ['#1E2A78', '#FF6D00', '#8B5CF6'];
+
+  function genderHoverColors(labels, colors) {
+    const byLabel = {
+      Male: GENDER_COLORS_HOVER.male,
+      Female: GENDER_COLORS_HOVER.female,
+      'Not Specified': GENDER_COLORS_HOVER.other,
+    };
+    return (labels || []).map((lbl, i) => byLabel[lbl] || colors[i] || GENDER_COLORS_HOVER.other);
+  }
+  const BRAND_ORANGE = (window.SAPTTA_THEME && window.SAPTTA_THEME.secondary) || '#FF6D00';
+  const BRAND_BLUE = (window.SAPTTA_THEME && window.SAPTTA_THEME.primary) || '#1E2A78';
+  const DASH_PRIMARY = '#1E2A78';
 
   function applyBarStyle(datasets, { stacked = false, radius = 5 } = {}) {
     return datasets.map((ds, i, arr) => ({
       ...ds,
       borderWidth: 0,
+      hoverBackgroundColor: ds.hoverBackgroundColor || ds.backgroundColor,
       borderRadius: stacked
         ? (i === arr.length - 1 ? { topRight: radius, bottomRight: radius } : i === 0 ? { topLeft: radius, bottomLeft: radius } : 0)
         : radius,
@@ -61,7 +82,7 @@
 </script>
 <style>
   .dash-refresh {
-  --saas-brand: #4f46e5;
+  --saas-brand: #1E2A78;
     --saas-text-title: #1D1D1F;
     --saas-text-body: #6E6E73;
     --saas-border-color: rgba(0, 0, 0, 0.06);
@@ -72,8 +93,8 @@
     --warn-600: #F59E0B;
     --err-100: rgba(239, 68, 68, 0.05);
     --err-600: #EF4444;
-    --info-100: rgba(99, 102, 241, 0.05);
-    --info-600: #6366f1;
+    --info-100: rgba(30, 42, 120, 0.05);
+    --info-600: #1E2A78;
     
     font-family: 'Inter', -apple-system, sans-serif;
   }
@@ -362,7 +383,7 @@
     color: inherit;
   }
   .dash-refresh .insight-card:hover {
-    border-color: rgba(99, 102, 241, 0.2);
+    border-color: rgba(30, 42, 120, 0.18);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
     transform: translateY(-2px);
   }
@@ -375,8 +396,8 @@
     justify-content: center;
     flex-shrink: 0;
   }
-  .dash-refresh .insight-icon--orange { background: rgba(99, 102, 241, 0.12); color: #4338ca; }
-  .dash-refresh .insight-icon--blue { background: rgba(79, 70, 229, 0.12); color: #4f46e5; }
+  .dash-refresh .insight-icon--orange { background: rgba(255, 109, 0, 0.10); color: #FF6D00; }
+  .dash-refresh .insight-icon--blue { background: rgba(30, 42, 120, 0.09); color: #1E2A78; }
   .dash-refresh .insight-icon--green { background: rgba(16, 185, 129, 0.12); color: #059669; }
   .dash-refresh .insight-icon--violet { background: rgba(139, 92, 246, 0.12); color: #7C3AED; }
   .dash-refresh .insight-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #AEAEB2; }
@@ -384,12 +405,12 @@
   .dash-refresh .insight-sub { font-size: 11px; color: #6E6E73; margin-top: 2px; }
 
   /* Stat tone accents */
-  .dash-refresh .stat--orange .stat-icon { background: rgba(99, 102, 241, 0.12); color: #4338ca; }
-  .dash-refresh .stat--blue .stat-icon { background: rgba(79, 70, 229, 0.12); color: #4f46e5; }
+  .dash-refresh .stat--orange .stat-icon { background: rgba(255, 109, 0, 0.10); color: #FF6D00; }
+  .dash-refresh .stat--blue .stat-icon { background: rgba(30, 42, 120, 0.09); color: #1E2A78; }
   .dash-refresh .stat--green .stat-icon { background: rgba(16, 185, 129, 0.12); color: #059669; }
   .dash-refresh .stat--amber .stat-icon { background: rgba(245, 158, 11, 0.12); color: #D97706; }
   .dash-refresh .stat--rose .stat-icon { background: rgba(244, 63, 94, 0.12); color: #E11D48; }
-  .dash-refresh .stat--indigo .stat-icon { background: rgba(99, 102, 241, 0.12); color: #4F46E5; }
+  .dash-refresh .stat--indigo .stat-icon { background: rgba(30, 42, 120, 0.09); color: #1E2A78; }
   .dash-refresh .stat--cyan .stat-icon { background: rgba(6, 182, 212, 0.12); color: #0891B2; }
 
   /* Health ring */
@@ -445,7 +466,7 @@
     transition: all 150ms ease;
   }
   .dash-refresh .quick-link:hover {
-    color: #4338ca;
+    color: #1E2A78;
     border-color: rgba(99, 102, 241, 0.25);
     background: rgba(99, 102, 241, 0.06);
   }
@@ -494,8 +515,8 @@
   .dash-layout-btn:hover { border-color: rgba(99, 102, 241, 0.35); color: #4338ca; }
   .dash-layout-btn.is-active {
     background: rgba(99, 102, 241, 0.1);
-    border-color: rgba(99, 102, 241, 0.35);
-    color: #4338ca;
+    border-color: rgba(30, 42, 120, 0.35);
+    color: #1E2A78;
   }
   .dash-layout-btn--ghost { background: transparent; }
   .dash-layout-hint {
@@ -605,7 +626,7 @@
     width: 12px;
     height: 12px;
     border-radius: 999px;
-    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.95), 0 2px 8px rgba(30, 42, 120, 0.18);
   }
 
   .dash-refresh .dash-diversity__legend-label {
@@ -635,12 +656,12 @@
     color: #64748b;
     padding: 5px 10px;
     border-radius: 999px;
-    background: rgba(79, 70, 229, 0.06);
-    border: 1px solid rgba(79, 70, 229, 0.1);
+    background: rgba(255, 109, 0, 0.08);
+    border: 1px solid rgba(255, 109, 0, 0.14);
   }
 
   .dash-refresh .dash-diversity__chip strong {
-    color: #4338ca;
+    color: #FF6D00;
     font-weight: 700;
   }
 
@@ -660,8 +681,8 @@
     gap: 4px;
     margin-bottom: 12px;
     padding: 6px 8px;
-    background: rgba(99, 102, 241, 0.06);
-    border: 1px solid rgba(99, 102, 241, 0.15);
+    background: rgba(30, 42, 120, 0.06);
+    border: 1px solid rgba(30, 42, 120, 0.12);
     border-radius: 10px;
   }
   .dash-panel-toolbar-label {
@@ -669,7 +690,7 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    color: #4338ca;
+    color: #1E2A78;
     margin-right: auto;
   }
   .dash-panel-tool {
@@ -688,13 +709,13 @@
     transition: all 120ms ease;
   }
   .dash-panel-tool:hover:not(:disabled) {
-    border-color: rgba(99, 102, 241, 0.4);
-    color: #4338ca;
+    border-color: rgba(30, 42, 120, 0.4);
+    color: #1E2A78;
   }
   .dash-panel-tool:disabled { opacity: 0.35; cursor: not-allowed; }
   .dash-panel-tool.is-on {
-    background: #6366f1;
-    border-color: #6366f1;
+    background: #1E2A78;
+    border-color: #1E2A78;
     color: #fff;
   }
   .dash-panel-tool--wide { width: auto; padding: 0 10px; }
@@ -702,7 +723,7 @@
 {% endblock %}
 
 {% block content %}
-<section class="dash-refresh dash-refresh--admin">
+<section class="dash-refresh dash-refresh--admin dash-refresh--v3">
 
 {% if needs_employee_profile %}
 <div class="alert alert-warning mb-4 shadow-sm">
@@ -762,11 +783,14 @@
           labels: genderData.labels,
           datasets: [{
             data: genderData.data,
-            backgroundColor: genderData.colors || ['#3B82F6', '#EC4899', '#CBD5E1'],
-            borderWidth: 4,
+            backgroundColor: genderData.colors || GENDER_COLOR_FALLBACK,
+            hoverBackgroundColor: genderHoverColors(genderData.labels, genderData.colors),
+            borderWidth: 3,
             borderColor: '#ffffff',
-            hoverOffset: 12,
+            hoverOffset: 10,
             hoverBorderWidth: 0,
+            spacing: 3,
+            borderRadius: 8,
           }],
         },
         options: {
@@ -839,8 +863,8 @@
     function makeTrendGradient(ctx) {
       const h = ctx.canvas.parentElement?.clientHeight || ctx.canvas.height || 220;
       const grad = ctx.createLinearGradient(0, 0, 0, h);
-      grad.addColorStop(0, 'rgba(79, 70, 229, 0.22)');
-      grad.addColorStop(0.5, 'rgba(79, 70, 229, 0.06)');
+      grad.addColorStop(0, 'rgba(30, 42, 120, 0.22)');
+      grad.addColorStop(0.5, 'rgba(30, 42, 120, 0.06)');
       grad.addColorStop(1, 'rgba(255, 255, 255, 0.01)');
       return grad;
     }

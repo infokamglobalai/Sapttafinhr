@@ -6,8 +6,11 @@ from datetime import date, datetime
 from decimal import Decimal
 
 from django.conf import settings
+from django.core.cache import cache
 
 logger = logging.getLogger(__name__)
+
+BILLING_SNAPSHOT_CACHE_SECONDS = 120
 
 
 def _finance_headers() -> dict:
@@ -30,6 +33,11 @@ def fetch_platform_billing(tenant) -> dict | None:
     if not base or not secret or not tenant:
         return None
 
+    cache_key = f"platform_billing:{tenant.subdomain}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return None if cached == "__none__" else cached
+
     try:
         import requests
 
@@ -37,14 +45,18 @@ def fetch_platform_billing(tenant) -> dict | None:
             f"{base}/api/v1/saas/internal/billing-snapshot/",
             params={"workspace": tenant.subdomain},
             headers=_finance_headers(),
-            timeout=12,
+            timeout=5,
         )
         if resp.status_code == 404:
+            cache.set(cache_key, "__none__", BILLING_SNAPSHOT_CACHE_SECONDS)
             return None
         resp.raise_for_status()
-        return resp.json()
+        data = resp.json()
+        cache.set(cache_key, data, BILLING_SNAPSHOT_CACHE_SECONDS)
+        return data
     except Exception:
         logger.exception("Platform billing fetch failed for %s", tenant.subdomain)
+        cache.set(cache_key, "__none__", 30)
         return None
 
 

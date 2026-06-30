@@ -5,12 +5,118 @@ import csv
 import io
 import datetime
 from django.db import transaction
+from django.db.models import Q
 from django.contrib.auth import get_user_model
 from django.utils.crypto import get_random_string
 
 from .models import Employee, Department, Designation, OfficeLocation
 
 User = get_user_model()
+
+
+class EmployeeEmailInUse(Exception):
+    """Raised when official email is already tied to another employee or login."""
+
+    def __init__(self, email: str, employee: Employee | None = None):
+        self.email = email
+        self.employee = employee
+        if employee:
+            status = employee.get_employment_status_display()
+            if employee.employment_status in ("exited", "terminated"):
+                hint = (
+                    "Open their employee profile to rehire them, or use a different email "
+                    "for a new hire."
+                )
+            else:
+                hint = "Use a different official email or update the existing employee record."
+            super().__init__(
+                f"This official email is already used by {employee.full_name} "
+                f"({employee.employee_code}, {status}). {hint}"
+            )
+        else:
+            super().__init__(
+                f"The email {email} is already registered in this workspace. "
+                "Use a different official email."
+            )
+
+
+def normalize_employee_email(email: str) -> str:
+    if not email:
+        return ""
+    return User.objects.normalize_email(email.strip().lower())
+
+
+def check_employee_email_available(
+    tenant,
+    email: str,
+    *,
+    exclude_employee_id=None,
+) -> None:
+    """Raise EmployeeEmailInUse if email cannot be assigned to a new employee."""
+    email = normalize_employee_email(email)
+    if not email:
+        return
+
+    emp_qs = Employee.objects.filter(tenant=tenant).filter(
+        Q(official_email__iexact=email) | Q(personal_email__iexact=email)
+    )
+    if exclude_employee_id:
+        emp_qs = emp_qs.exclude(pk=exclude_employee_id)
+    conflict = emp_qs.first()
+    if conflict:
+        raise EmployeeEmailInUse(email, conflict)
+
+    existing_user = User.objects.filter(tenant=tenant, email__iexact=email).first()
+    if not existing_user:
+        return
+
+    try:
+        profile = existing_user.employee_profile
+    except Employee.DoesNotExist:
+        return  # orphan login — create_employee may reuse it
+
+    if exclude_employee_id and profile.pk == exclude_employee_id:
+        return
+    raise EmployeeEmailInUse(email, profile)
+
+
+def _attach_or_create_user(tenant, email: str, *, created_by=None, password=None):
+    """Return a login user for a new employee, reusing orphan accounts when safe."""
+    from apps.accounts.models import Role, UserRole
+
+    email = normalize_employee_email(email)
+    if not email:
+        return None
+
+    check_employee_email_available(tenant, email)
+
+    existing = User.objects.filter(tenant=tenant, email__iexact=email).first()
+    if existing:
+        user = existing
+        if password:
+            user.set_password(password)
+            user.is_active = True
+        elif not user.has_usable_password():
+            user.is_active = False
+        user.save()
+    else:
+        user = User.objects.create_user(
+            email=email,
+            tenant=tenant,
+            password=password or None,
+        )
+        if not password:
+            user.is_active = False
+            user.save(update_fields=["is_active"])
+
+    employee_role = Role.objects.filter(tenant=tenant, name="employee").first()
+    if employee_role:
+        UserRole.objects.get_or_create(
+            user=user,
+            role=employee_role,
+            defaults={"granted_by": created_by},
+        )
+    return user
 
 
 def _generate_temp_password(length: int = 12) -> str:
@@ -60,7 +166,7 @@ def create_employee(tenant, data: dict, created_by=None) -> Employee:
     data keys match Employee model fields plus optional 'password'.
     """
     from apps.accounts.models import Role, UserRole
-    from apps.tenants.limits import check_employee_capacity, sync_employee_count
+    from apps.tenants.limits import check_employee_capacity, sync_employee_count_and_alerts
 
     check_employee_capacity(tenant, additional=1)
 
@@ -69,25 +175,20 @@ def create_employee(tenant, data: dict, created_by=None) -> Employee:
     # Create login user. No explicit password → leave it None so the account is
     # created locked and the employee can only get in via the invite link.
     password = data.pop("password", None)
-    official_email = data.get("official_email") or data.get("personal_email", "")
+    official_email = normalize_employee_email(
+        data.get("official_email") or data.get("personal_email", "")
+    )
+    if official_email:
+        data["official_email"] = official_email
 
     user = None
     if official_email:
-        # No explicit password → the account is created LOCKED (inactive, no
-        # usable password). The only way in is the signed invite link the admin
-        # shares; accepting it sets the password and activates the account.
-        user = User.objects.create_user(
-            email=official_email,
-            tenant=tenant,
-            password=password or None,
+        user = _attach_or_create_user(
+            tenant,
+            official_email,
+            created_by=created_by,
+            password=password,
         )
-        if not password:
-            user.is_active = False
-            user.save(update_fields=["is_active"])
-        # Assign default 'employee' role
-        employee_role = Role.objects.filter(tenant=tenant, name="employee").first()
-        if employee_role:
-            UserRole.objects.create(user=user, role=employee_role, granted_by=created_by)
 
     emp = Employee.objects.create(
         tenant=tenant,
@@ -96,7 +197,7 @@ def create_employee(tenant, data: dict, created_by=None) -> Employee:
         **{k: v for k, v in data.items() if k not in ("password", "employee_code")},
     )
 
-    sync_employee_count(tenant)
+    sync_employee_count_and_alerts(tenant)
 
     # Auto-start onboarding from default template, if one exists
     try:
@@ -251,6 +352,9 @@ def bulk_import_employees(tenant, csv_file, created_by=None) -> dict:
         try:
             check_employee_capacity(tenant, additional=pending)
         except EmployeeLimitExceeded as exc:
+            from apps.tenants.seat_alerts import notify_owners_add_blocked
+
+            notify_owners_add_blocked(tenant)
             return {"created": 0, "errors": [{"row": 0, "error": str(exc)}]}
 
     # Fetch (or auto-create) a default salary structure so salary records can be inserted.

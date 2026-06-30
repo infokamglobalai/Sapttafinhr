@@ -60,19 +60,24 @@ def payroll_run_create(request):
 def payroll_run_detail(request, pk):
     tenant = request.tenant
     run = get_object_or_404(PayrollRun, pk=pk, tenant=tenant)
-    records = run.records.select_related(
-        "employee", "employee__department", "employee__designation"
-    ).order_by("employee__first_name")
-    # Run anomaly detection — pure local rules, no external API
+    records = list(
+        run.records.select_related(
+            "employee", "employee__department", "employee__designation"
+        ).order_by("employee__first_name")
+    )
+    # India-only statutory rules; skip for GCC until GCC-specific checks exist.
     from .anomaly import detect_for_run, summary
-    anomalies = detect_for_run(run)
+    if tenant.is_india_payroll:
+        anomalies = detect_for_run(run, records=records)
+    else:
+        anomalies = []
     from django.conf import settings
     finance_sync_available = bool(
         getattr(settings, "FIN_INTERNAL_BASE_URL", "")
         and getattr(settings, "SSO_SHARED_SECRET", "")
     )
     gcc_export_readiness = None
-    if is_gcc_payroll(tenant):
+    if tenant.is_gcc_payroll:
         from .gcc_export_validation import assess_gcc_export_readiness
         gcc_export_readiness = assess_gcc_export_readiness(tenant, run)
     return render(request, "payroll/run_detail.html", {

@@ -1,4 +1,4 @@
-{% if setup_checklist and setup_checklist.percent < 100 %}
+{% if setup_checklist and setup_checklist.show_nudge %}
 <a href="{{ setup_checklist.next_url }}" class="dash-setup-card dash-setup-card--compact" aria-label="Company setup {{ setup_checklist.percent }} percent complete">
   <div class="dash-setup-card__copy">
     <p class="dash-setup-card__title">Finish company setup</p>

@@ -117,6 +117,18 @@ class EmployeeForm(forms.ModelForm):
                 self.fields["bank_account_number"].initial = primary.account_number
                 self.fields["bank_ifsc"].initial = primary.ifsc_code
 
+    def clean_official_email(self):
+        email = (self.cleaned_data.get("official_email") or "").strip()
+        if not email or self.instance.pk:
+            return email
+        from .services import check_employee_email_available
+
+        try:
+            check_employee_email_available(self.tenant, email)
+        except Exception as exc:
+            raise forms.ValidationError(str(exc)) from exc
+        return email
+
     def cleaned_compliance_data(self) -> dict:
         """Compliance + bank fields stripped from Employee model create/update."""
         return {k: self.cleaned_data.get(k, "") for k in COMPLIANCE_FIELD_NAMES}

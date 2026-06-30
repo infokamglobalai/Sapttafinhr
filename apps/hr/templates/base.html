@@ -56,15 +56,15 @@
   <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css" rel="stylesheet">
 
   <!-- Design tokens first, then layers -->
-  <link rel="stylesheet" href="{% static 'css/saptta-tokens.css' %}?v=2">
+  <link rel="stylesheet" href="{% static 'css/saptta-tokens.css' %}?v=3">
   <link rel="stylesheet" href="{% static 'css/app.css' %}?v=14">
-  <link rel="stylesheet" href="{% static 'css/saptta-theme.css' %}?v=2">
-  <link rel="stylesheet" href="{% static 'css/saptta-responsive.css' %}?v=12">
+  <link rel="stylesheet" href="{% static 'css/saptta-theme.css' %}?v=3">
+  <link rel="stylesheet" href="{% static 'css/saptta-responsive.css' %}?v=13">
   <link rel="stylesheet" href="{% static 'css/saptta-sidebar.css' %}?v=18">
-  <link rel="stylesheet" href="{% static 'css/saptta-unified-sidebar.css' %}?v=13">
-  <link rel="stylesheet" href="{% static 'css/hr-ui-v2.css' %}?v=16">
-  <link rel="stylesheet" href="{% static 'css/people-hub.css' %}?v=3">
-  <link rel="stylesheet" href="{% static 'css/my-space-hub.css' %}?v=3">
+  <link rel="stylesheet" href="{% static 'css/saptta-unified-sidebar.css' %}?v=24">
+  <link rel="stylesheet" href="{% static 'css/hr-ui-v2.css' %}?v=17">
+  <link rel="stylesheet" href="{% static 'css/people-hub.css' %}?v=4">
+  <link rel="stylesheet" href="{% static 'css/my-space-hub.css' %}?v=6">
   <link rel="stylesheet" href="{% static 'css/saptta-pages.css' %}?v=3">
   <link rel="stylesheet" href="{% static 'css/saptta-design-enhanced.css' %}?v=4">
   <link rel="stylesheet" href="{% static 'css/recruitment.css' %}?v=3">
@@ -80,13 +80,13 @@
 
   <script>
     window.SAPTTA_THEME = {
-      primary: '#4F46E5',
-      secondary: '#6366F1',
-      accent: '#6366F1',
-      chart: ['#4F46E5', '#6366F1', '#818CF8', '#0891B2', '#059669', '#D97706', '#7C3AED', '#E11D48'],
+      primary: '#1E2A78',
+      secondary: '#FF6D00',
+      accent: '#8B5CF6',
+      chart: ['#1E2A78', '#FF6D00', '#8B5CF6', '#0891B2', '#059669', '#D97706', '#64748B', '#E11D48'],
       modules: {
-        dashboard: 'indigo', people: 'indigo', timeLeave: 'indigo', payroll: 'indigo',
-        performance: 'indigo', reports: 'indigo', hrOps: 'indigo', settings: 'indigo'
+        dashboard: 'navy', people: 'navy', timeLeave: 'navy', payroll: 'navy',
+        performance: 'navy', reports: 'navy', hrOps: 'navy', settings: 'navy'
       }
     };
   </script>
@@ -116,8 +116,8 @@
   </script>
   {% block extra_head %}{% endblock %}
   {% if user.is_authenticated %}
-  <link rel="stylesheet" href="{% static 'css/dashboard-soft-ui.css' %}?v=36">
-  <link rel="stylesheet" href="{% static 'css/dashboard-calendar.css' %}?v=3">
+  <link rel="stylesheet" href="{% static 'css/dashboard-soft-ui.css' %}?v=41">
+  <link rel="stylesheet" href="{% static 'css/dashboard-calendar.css' %}?v=4">
   {% endif %}
 </head>
 
@@ -127,9 +127,9 @@
   <div class="htmx-indicator"></div>
 
   {% if user.is_authenticated and not hide_app_chrome %}
-  <div class="app-shell" x-data="{
+  <div class="app-shell" :class="{ 'sidebar-desktop-collapsed': sidebarDesktopCollapsed }" x-data="{
   sidebarOpen: false,
-  dockHubOpen: false,
+  sidebarDesktopCollapsed: false,
   activeCategory: '{{ nav_active_category|default:'dashboard' }}',
   activeGroups: {
     mySpace: {% if nav_active_category == 'mySpace' %}true{% else %}false{% endif %},
@@ -142,7 +142,24 @@
     reports: {% if nav_active_category == 'reports' %}true{% else %}false{% endif %},
     settings: {% if nav_active_category == 'settings' %}true{% else %}false{% endif %}
   },
+  isDesktopNav() {
+    return window.matchMedia('(min-width: 1024px)').matches;
+  },
+  toggleNavMenu() {
+    if (this.isDesktopNav()) {
+      this.sidebarDesktopCollapsed = !this.sidebarDesktopCollapsed;
+      try {
+        localStorage.setItem('saptta_sidebar_collapsed', this.sidebarDesktopCollapsed ? '1' : '0');
+      } catch (e) {}
+    } else {
+      this.sidebarOpen = !this.sidebarOpen;
+    }
+  },
   toggleGroup(key) {
+    if (this.isDesktopNav() && this.sidebarDesktopCollapsed) {
+      this.sidebarDesktopCollapsed = false;
+      try { localStorage.setItem('saptta_sidebar_collapsed', '0'); } catch (e) {}
+    }
     const willOpen = !this.activeGroups[key];
     Object.keys(this.activeGroups).forEach((k) => { this.activeGroups[k] = false; });
     if (willOpen) this.activeGroups[key] = true;
@@ -151,6 +168,9 @@
     this.sidebarOpen = false;
   },
   init() {
+    try {
+      this.sidebarDesktopCollapsed = localStorage.getItem('saptta_sidebar_collapsed') === '1';
+    } catch (e) {}
     if (this.activeCategory && this.activeCategory !== 'dashboard') {
       Object.keys(this.activeGroups).forEach((k) => { this.activeGroups[k] = false; });
       if (this.activeGroups[this.activeCategory] !== undefined) {
@@ -179,9 +199,7 @@
         {% include "partials/unified_sidebar_nav.html" %}
       </nav>
 
-      <div class="sidebar-footer">
-        {% include "partials/unified_sidebar_footer.html" %}
-      </div>
+      {% include "partials/unified_sidebar_footer.html" %}
 
     </aside>
 
@@ -189,10 +207,16 @@
 
     {# ═══════ MAIN ═══════ #}
     <div class="app-main app-main--unified">
-      <header class="topbar{% block topbar_class %}{% if user.is_authenticated and workspace_search_url %} topbar--with-search{% endif %}{% endblock %}">
+      <header class="topbar topbar--pro{% block topbar_class %}{% if user.is_authenticated and workspace_search_url %} topbar--with-search{% endif %}{% endblock %}">
         <div class="flex items-center gap-3 topbar-leading">
-          <button @click="sidebarOpen = !sidebarOpen" class="icon-btn lg:hidden" aria-label="Menu">
-            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <button
+            type="button"
+            @click="toggleNavMenu()"
+            class="icon-btn topbar-menu-btn"
+            :aria-label="isDesktopNav() ? (sidebarDesktopCollapsed ? 'Open sidebar' : 'Close sidebar') : (sidebarOpen ? 'Close menu' : 'Open menu')"
+            :aria-expanded="isDesktopNav() ? (!sidebarDesktopCollapsed ? 'true' : 'false') : (sidebarOpen ? 'true' : 'false')"
+            title="Menu">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
@@ -238,6 +262,7 @@
         </div>
       </header>
 
+      <div class="app-main-body">
       {# Flash messages #}
       {% if messages %}
       <div class="hr-flash-region" role="region" aria-label="Notifications" aria-live="polite">
@@ -253,6 +278,8 @@
       </div>
       {% endif %}
 
+      {% include "partials/seat_limit_banner.html" %}
+
       <main class="page" id="main-content" tabindex="-1">
         <div class="hr-page{% block hr_page_class %}{% endblock %}">
         {% endif %}
@@ -262,6 +289,7 @@
         {% if user.is_authenticated and not hide_app_chrome %}
         </div>
       </main>
+      </div>
     </div>
   </div>
   {% endif %}

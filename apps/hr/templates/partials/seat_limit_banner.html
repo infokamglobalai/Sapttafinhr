@@ -1,0 +1,38 @@
+{% if show_seat_limit_banner and seat_alert_level %}
+<div
+  class="seat-limit-banner seat-limit-banner--{{ seat_alert_level }}"
+  role="status"
+  x-data="{ show: !sessionStorage.getItem('saptta_seat_banner_{{ seat_alert_level }}_{{ active_employee_count }}_{{ employee_limit }}') }"
+  x-show="show"
+  x-cloak
+>
+  <div class="seat-limit-banner__icon" aria-hidden="true">
+    {% if seat_alert_level == 'critical' %}⚠{% else %}ℹ{% endif %}
+  </div>
+  <div class="seat-limit-banner__body">
+    {% if seat_alert_level == 'critical' %}
+    <strong>Employee seat limit reached</strong>
+    <span>{{ active_employee_count }}/{{ employee_limit }} seats in use. You cannot add employees until you upgrade.</span>
+    {% else %}
+    <strong>Running low on seats</strong>
+    <span>{{ seats_remaining }} of {{ employee_limit }} seat(s) left ({{ seat_usage_pct }}% used).</span>
+    {% endif %}
+  </div>
+  <div class="seat-limit-banner__actions">
+    {% if is_workspace_owner %}
+    <a href="{{ platform_billing_url }}" class="seat-limit-banner__btn" target="_blank" rel="noopener">Upgrade seats</a>
+    {% else %}
+    <a href="{{ billing_settings_url }}" class="seat-limit-banner__btn">View billing</a>
+    {% endif %}
+    {% if not at_employee_cap %}
+    <a href="{% url 'employees:list' %}" class="seat-limit-banner__link">View directory</a>
+    {% endif %}
+    <button
+      type="button"
+      class="seat-limit-banner__dismiss"
+      aria-label="Dismiss"
+      @click="show=false; sessionStorage.setItem('saptta_seat_banner_{{ seat_alert_level }}_{{ active_employee_count }}_{{ employee_limit }}', '1')"
+    >✕</button>
+  </div>
+</div>
+{% endif %}

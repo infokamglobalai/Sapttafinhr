@@ -4,10 +4,17 @@
 <div class="hr-page-header">
   <div class="hr-page-header__main" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
     <h1 class="hr-page-header__title">Leave Balances</h1>
-    <div class="hr-tabs" style="margin:0;padding:2px;">
-      <a href="?year={{ year|add:'-1' }}" class="hr-tab">{{ year|add:'-1' }}</a>
-      <span class="hr-tab is-active">{{ year }}</span>
-    </div>
+    <nav class="hr-tabs leave-year-nav" aria-label="Select leave balance year" style="margin:0;padding:2px;">
+      {% if can_go_prev %}
+      <a href="?year={{ prev_year }}" class="hr-tab leave-year-nav__arrow" title="Previous year ({{ prev_year }})" aria-label="Previous year, {{ prev_year }}">←</a>
+      {% endif %}
+      {% for y in year_tabs %}
+      <a href="?year={{ y }}" class="hr-tab{% if y == year %} is-active{% endif %}"{% if y == year %} aria-current="page"{% endif %}>{{ y }}</a>
+      {% endfor %}
+      {% if can_go_next %}
+      <a href="?year={{ next_year }}" class="hr-tab leave-year-nav__arrow" title="Next year ({{ next_year }})" aria-label="Next year, {{ next_year }}">→</a>
+      {% endif %}
+    </nav>
   </div>
 </div>
 <div class="card hr-table-wrap">
@@ -40,4 +47,11 @@
     </tbody>
   </table>
 </div>
+<style>
+  .leave-year-nav .leave-year-nav__arrow {
+    min-width: 2.25rem;
+    font-weight: 700;
+    letter-spacing: 0;
+  }
+</style>
 {% endblock %}

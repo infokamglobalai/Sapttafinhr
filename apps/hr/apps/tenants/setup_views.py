@@ -162,6 +162,9 @@ def _handle_submit(request, tenant):
         try:
             check_employee_capacity(tenant, additional=1)
         except EmployeeLimitExceeded as exc:
+            from apps.tenants.seat_alerts import notify_owners_add_blocked
+
+            notify_owners_add_blocked(tenant)
             messages.error(request, str(exc))
             return render(
                 request,

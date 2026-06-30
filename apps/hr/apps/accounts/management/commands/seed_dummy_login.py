@@ -122,8 +122,12 @@ class Command(BaseCommand):
                 user.is_active = True
                 user.save(update_fields=["password", "is_active"])
                 self.stdout.write(self.style.WARNING("Password reset on existing user."))
-            else:
-                self.stdout.write(self.style.WARNING("Demo tenant already exists (use --reset-password to change password)."))
+        else:
+            self.stdout.write(self.style.WARNING("Demo tenant already exists (use --reset-password to change password)."))
+
+        from apps.employees.profile_link import ensure_user_employee_profile
+
+        ensure_user_employee_profile(user, tenant=tenant)
 
         base = f"http://{subdomain}.localhost:{port}"
         self.stdout.write("")

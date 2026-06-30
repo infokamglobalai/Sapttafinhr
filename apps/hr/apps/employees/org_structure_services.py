@@ -12,8 +12,8 @@ def departments_queryset(tenant):
         .select_related("parent")
         .annotate(
             employee_count=Count(
-                "employee_set",
-                filter=Q(employee_set__is_active=True, employee_set__employment_status="active"),
+                "employee",
+                filter=Q(employee__is_active=True, employee__employment_status="active"),
             )
         )
         .order_by("name")
@@ -25,8 +25,8 @@ def designations_queryset(tenant):
         Designation.objects.filter(tenant=tenant)
         .annotate(
             employee_count=Count(
-                "employee_set",
-                filter=Q(employee_set__is_active=True, employee_set__employment_status="active"),
+                "employee",
+                filter=Q(employee__is_active=True, employee__employment_status="active"),
             )
         )
         .order_by("level", "name")
@@ -38,8 +38,8 @@ def locations_queryset(tenant):
         OfficeLocation.objects.filter(tenant=tenant)
         .annotate(
             employee_count=Count(
-                "employee_set",
-                filter=Q(employee_set__is_active=True, employee_set__employment_status="active"),
+                "employee",
+                filter=Q(employee__is_active=True, employee__employment_status="active"),
             )
         )
         .order_by("name")

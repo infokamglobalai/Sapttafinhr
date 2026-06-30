@@ -10,9 +10,9 @@
 
   <header class="settings-hero settings-hero--v2">
     <div class="settings-hero__content">
-      <p class="settings-hero__eyebrow">Account &amp; workspace</p>
-      <h1>{% if tab == 'company' %}Company &amp; branding{% elif tab == 'billing' %}Billing &amp; plan{% elif tab == 'profile' %}My profile{% elif tab == 'email' %}Email &amp; invites{% elif tab == 'security' %}Security &amp; trust{% elif tab == 'support' %}Help &amp; support{% else %}Settings{% endif %}</h1>
-      <p>{% if tab == 'company' %}How your organisation appears to every employee in this HR workspace.{% elif tab == 'billing' %}Your subscription, seat usage, and GST invoices — visible only to the workspace owner.{% elif tab == 'profile' %}Your photo, preferred name, and contact details.{% else %}Manage your profile, company branding, billing, and support.{% endif %}</p>
+      <p class="settings-hero__eyebrow">Settings</p>
+      <h1>{% if tab == 'company' %}Company{% elif tab == 'billing' %}Billing{% elif tab == 'profile' %}My profile{% elif tab == 'email' %}Email{% elif tab == 'security' %}Security{% elif tab == 'support' %}Help{% else %}Settings{% endif %}</h1>
+      <p>{% if tab == 'company' %}Logo, address, and locale for your workspace.{% elif tab == 'billing' %}Subscription, seats, and invoices.{% elif tab == 'profile' %}Your photo, name, and contact details.{% else %}Profile, company, billing, and support.{% endif %}</p>
     </div>
     {% if tab == 'company' and tenant %}
     <div class="settings-hero__badge" aria-hidden="true">
@@ -206,21 +206,17 @@
             <div class="settings-sidebar-mock-line is-muted"></div>
           </div>
           <div class="settings-sidebar-mock-bottom">
-            <div class="dock-hub-trigger" style="pointer-events:none;cursor:default">
+            <div class="settings-sidebar-mock-chip">
               {% if tenant_logo_url %}
-              <img src="{{ tenant_logo_url }}" alt="" class="dock-hub-logo">
+              <img src="{{ tenant_logo_url }}" alt="" class="settings-sidebar-mock-chip__logo">
               {% else %}
-              <span class="dock-hub-initial">{{ tenant.name|slice:":1"|upper }}</span>
+              <span class="settings-sidebar-mock-chip__initial">{{ tenant.name|slice:":1"|upper }}</span>
               {% endif %}
-              <span class="dock-hub-text">
-                <span class="dock-hub-kicker">Your company</span>
-                <span class="dock-hub-name">{{ tenant.name|truncatechars:18 }}</span>
-              </span>
-              <svg class="dock-hub-chevron" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+              <span class="settings-sidebar-mock-chip__name">{{ tenant.name|truncatechars:18 }}</span>
             </div>
           </div>
         </div>
-        <p class="settings-preview-card__hint">Saptta stays at the top. Your logo and company name appear in the bottom company chip for every employee.</p>
+        <p class="settings-preview-card__hint">Your logo and company name appear in payslips, letters, and employee-facing pages.</p>
       </div>
 
       <ul class="settings-company-tips">

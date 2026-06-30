@@ -1,15 +1,32 @@
-{# Desktop: single unified sidebar (no dual panel) #}
-{% load static %}
-<aside class="sidebar-unified hidden lg:flex" aria-label="Main navigation">
-  <div class="sidebar-unified__brand">
-    <a href="{% url 'tenants:dashboard' %}" class="sidebar-unified__brand-link" aria-label="Saptta HR home">
-      <img src="{% static 'images/saptta-hr-logo.png' %}?v=3" alt="Saptta HR" class="brand-logo-wordmark brand-logo-wordmark--full" width="118" height="28">
-    </a>
-  </div>
-
-  <nav class="sidebar-unified__nav">
-    {% include "partials/unified_sidebar_nav.html" %}
-  </nav>
-
-  {% include "partials/unified_sidebar_footer.html" %}
-</aside>
+{# Desktop: single unified sidebar (no dual panel) #}
+{% load static %}
+<aside class="sidebar-unified hidden lg:flex"
+  :class="{ 'is-collapsed': sidebarDesktopCollapsed }"
+  aria-label="Main navigation">
+  <div class="sidebar-unified__brand">
+    <div class="sidebar-unified__brand-row">
+      <a href="{% url 'tenants:dashboard' %}" class="sidebar-unified__brand-link" aria-label="Saptta HR home">
+        <img src="{% static 'images/saptta-hr-logo.png' %}?v=3" alt="Saptta HR" class="brand-logo-wordmark brand-logo-wordmark--full" width="118" height="28">
+        <img src="{% static 'images/saptta-s.png' %}" alt="" class="brand-logo-mark brand-logo-mark--rail" width="28" height="28">
+      </a>
+      <button
+        type="button"
+        class="sidebar-unified__collapse-btn"
+        @click="toggleNavMenu()"
+        :aria-label="sidebarDesktopCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+        :title="sidebarDesktopCollapsed ? 'Expand sidebar' : 'Collapse sidebar'">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+          <rect x="3" y="4" width="14" height="16" rx="2"/>
+          <path stroke-linecap="round" d="M9 8v8"/>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M16 12h5m0 0l-2-2m2 2l-2 2"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <nav class="sidebar-unified__nav">
+    {% include "partials/unified_sidebar_nav.html" %}
+  </nav>
+
+  {% include "partials/unified_sidebar_footer.html" %}
+</aside>

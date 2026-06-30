@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% load static %}
+{% block page_title %}My Team{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/my-team.css' %}?v=2">
+{% endblock %}
+{% block content %}
+<div class="my-team-page">
+
+  <header class="my-team-header">
+    <div>
+      <h1 class="my-team-header__title">My Team</h1>
+      <p class="my-team-header__sub">{{ team_scope.subtitle }}</p>
+      {% if team_scope.mode != 'empty' %}
+      <div class="my-team-header__meta">
+        {% if team_scope.mode == 'org' %}
+        <span class="my-team-pill">{{ team_size }} active employee{{ team_size|pluralize }}</span>
+        {% else %}
+        <span class="my-team-pill">{{ team_size }} direct report{{ team_size|pluralize }}</span>
+        {% endif %}
+        <span class="my-team-pill">{{ present_today }} present today</span>
+        {% if on_leave_today %}<span class="my-team-pill">{{ on_leave_today }} on leave</span>{% endif %}
+        {% if pending_total %}<span class="my-team-pill my-team-pill--warn">{{ pending_total }} need{{ pending_total|pluralize }} action</span>{% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </header>
+
+  {% if team_scope.mode == 'empty' %}
+  <div class="my-team-empty">
+    <div class="my-team-empty__icon" aria-hidden="true">
+      <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+        <path stroke-linecap="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+      </svg>
+    </div>
+    <h2 class="my-team-empty__title">No direct reports yet</h2>
+    <p class="my-team-empty__text">Ask HR to set a reporting manager on employee profiles. Once people report to you, they will appear here with pending approvals.</p>
+  </div>
+
+  {% else %}
+
+  <section class="my-team-section" aria-label="{{ team_scope.section_title }}">
+    <div class="my-team-section__head">
+      <h2 class="my-team-section__title">{{ team_scope.section_title }}</h2>
+      {% if team_scope.mode == 'org' %}
+      <a href="{% url 'employees:list' %}" class="btn btn-outline btn-xs">All {{ team_size }} employees</a>
+      {% endif %}
+    </div>
+    <div class="my-team-grid">
+      {% for member in team %}
+      <a href="{% if team_scope.use_hr_profile %}{% url 'employees:detail' member.pk %}{% else %}{% url 'employees:colleague' member.pk %}{% endif %}" class="my-team-member">
+        <span class="my-team-member__avatar">{{ member.first_name|first }}{{ member.last_name|first }}</span>
+        <span>
+          <span class="my-team-member__name">{{ member.directory_name }}</span>
+          <span class="my-team-member__role">{{ member.designation.name|default:"Team member" }}{% if member.department %} · {{ member.department.name }}{% endif %}</span>
+        </span>
+      </a>
+      {% endfor %}
+    </div>
+    {% if team_scope.mode == 'org' and team_size > team|length %}
+    <p class="my-team-section__note">Showing {{ team|length }} most recent joiners · <a href="{% url 'employees:list' %}">open full directory</a></p>
+    {% endif %}
+  </section>
+
+  {% if pending_leaves_list %}
+  <section class="my-team-section" aria-label="Pending leave">
+    <div class="my-team-section__head">
+      <h2 class="my-team-section__title">Leave waiting for approval</h2>
+      <a href="{% url 'leaves:pending' %}" class="btn btn-outline btn-xs">Open queue</a>
+    </div>
+    <ul class="my-team-queue">
+      {% for req in pending_leaves_list %}
+      <li class="my-team-queue__item">
+        <div>
+          <strong>{{ req.employee.directory_name }}</strong>
+          <span class="my-team-queue__meta">{{ req.leave_type.name }} · {{ req.from_date|date:"d M" }} – {{ req.to_date|date:"d M" }}</span>
+        </div>
+        <a href="{% url 'leaves:pending' %}" class="btn btn-primary btn-xs">Review</a>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  <section class="my-team-section" aria-label="Team approvals">
+    <div class="my-team-section__head">
+      <h2 class="my-team-section__title">Approvals</h2>
+      {% if team_scope.mode == 'org' %}<span class="my-team-section__hint">Company-wide queue</span>{% endif %}
+    </div>
+    <div class="my-team-actions">
+      {% for action in team_actions %}
+      <a href="{{ action.url }}" class="my-team-action">
+        <span class="my-team-action__label">{{ action.label }}</span>
+        <span class="my-team-action__count{% if action.count %} my-team-action__count--active{% endif %}">{{ action.count|default:0 }}</span>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="my-team-section" aria-label="Team tools">
+    <div class="my-team-section__head">
+      <h2 class="my-team-section__title">Team tools</h2>
+    </div>
+    <div class="my-team-actions">
+      {% for tool in team_tools %}
+      <a href="{{ tool.url }}" class="my-team-action my-team-action--tool">
+        <span class="my-team-action__label">{{ tool.label }}</span>
+        <span class="my-team-action__count" aria-hidden="true">→</span>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+
+  {% endif %}
+</div>
+{% endblock %}

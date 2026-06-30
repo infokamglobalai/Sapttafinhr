@@ -11,9 +11,12 @@
   <div class="card">
     <div class="card-body">
       <h3 class="card-title text-base">Add Department</h3>
-      <form method="post" action="{% url 'employees:department_create' %}"
-            hx-post="{% url 'employees:department_create' %}"
-            hx-target="#dept-list" hx-swap="innerHTML">
+      {% if form.errors %}
+      <div class="alert alert-error text-sm mb-3">
+        Please fix the highlighted fields below.
+      </div>
+      {% endif %}
+      <form method="post" action="{% url 'employees:department_create' %}">
         {% csrf_token %}
         <div class="form-control mb-3">
           <label class="label"><span class="label-text">Name *</span></label>

@@ -6,6 +6,7 @@ app_name = "employees"
 
 urlpatterns = [
     path("my-work/", ess_views.my_work, name="my_work"),
+    path("my-team/", ess_views.my_team, name="my_team"),
     path("directory/", views.company_directory, name="directory"),
     path("org-chart/", views.org_chart, name="org_chart"),
     path("org-chart/reassign/<int:pk>/", views.org_chart_reassign, name="org_chart_reassign"),

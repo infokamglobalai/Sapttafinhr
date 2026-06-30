@@ -198,7 +198,8 @@ def recompute_all(tenant, today=None):
         employment_status="exited"
     )
 
-    counts = {"low": 0, "medium": 0, "high": 0}
+    counts = {"low": 0, "medium": 0, "high": 0, "total": 0}
+    active_ids = []
     for emp in active:
         score, band, factors = score_employee(emp, today)
         AttritionScore.objects.update_or_create(
@@ -206,5 +207,12 @@ def recompute_all(tenant, today=None):
             defaults={"score": score, "risk_band": band, "factors": factors},
         )
         counts[band] += 1
+        counts["total"] += 1
+        active_ids.append(emp.pk)
+
+    if active_ids:
+        AttritionScore.objects.filter(tenant=tenant).exclude(employee_id__in=active_ids).delete()
+    else:
+        AttritionScore.objects.filter(tenant=tenant).delete()
 
     return counts

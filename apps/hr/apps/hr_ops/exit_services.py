@@ -19,6 +19,11 @@ def finalize_exit(exit_request: ExitRequest, actor=None, *, disable_login: bool 
     today = timezone.localdate()
     exit_date = exit_request.last_working_date or today
 
+    from apps.tenants.limits import seats_remaining, sync_employee_count_and_alerts
+    from apps.tenants.seat_alerts import seat_usage_snapshot
+
+    was_at_cap = seat_usage_snapshot(tenant)["at_cap"]
+
     changed = False
     if employee.employment_status != "exited":
         employee.employment_status = "exited"
@@ -31,8 +36,7 @@ def finalize_exit(exit_request: ExitRequest, actor=None, *, disable_login: bool 
         changed = True
     if changed:
         employee.save(update_fields=["employment_status", "date_of_exit", "is_active"])
-        tenant.employee_count = Employee.objects.filter(tenant=tenant, is_active=True).count()
-        tenant.save(update_fields=["employee_count"])
+        sync_employee_count_and_alerts(tenant, was_at_cap=was_at_cap)
 
     if exit_request.status in ("pending", "accepted"):
         if exit_request.status != "accepted":
@@ -78,6 +82,7 @@ def finalize_exit(exit_request: ExitRequest, actor=None, *, disable_login: bool 
         "employee": employee,
         "exit_date": exit_date,
         "login_disabled": login_disabled,
+        "seats_remaining": seats_remaining(tenant),
     }
 
 
