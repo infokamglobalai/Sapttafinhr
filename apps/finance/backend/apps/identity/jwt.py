@@ -75,18 +75,32 @@ class SapttaTokenObtainPairSerializer(TokenObtainPairSerializer):
             )
 
         from . import mfa as mfa_service
+        from .login_otp import issue_and_send_login_otp
 
-        if mfa_service.user_needs_mfa_setup(user):
-            return {
-                "mfa_required": True,
-                "mfa_setup_required": True,
-                "challenge_token": mfa_service.mint_login_challenge(user.id, "setup"),
-                "email": user.email,
-            }
-        if mfa_service.user_needs_mfa_verify(user):
+        if mfa_service.mfa_required_for_user(user):
+            workspace_name = ""
+            try:
+                from apps.core.models import Tenant
+
+                t = (
+                    Tenant.objects.exclude(schema_name="public")
+                    .filter(billing_email__iexact=user.email)
+                    .first()
+                )
+                if t:
+                    workspace_name = t.name
+            except Exception:  # noqa: BLE001
+                pass
+            try:
+                issue_and_send_login_otp(user, workspace_name=workspace_name)
+            except Exception as exc:
+                raise serializers.ValidationError(
+                    {"detail": "Could not send verification email. Check SMTP settings."}
+                ) from exc
             return {
                 "mfa_required": True,
                 "mfa_setup_required": False,
+                "mfa_method": "email_otp",
                 "challenge_token": mfa_service.mint_login_challenge(user.id, "verify"),
                 "email": user.email,
             }

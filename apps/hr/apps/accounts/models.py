@@ -48,6 +48,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     mfa_enabled = models.BooleanField(default=False)
     mfa_enrolled_at = models.DateTimeField(null=True, blank=True)
     mfa_backup_codes = models.JSONField(default=list, blank=True)
+    login_otp_hash = models.CharField(max_length=128, blank=True, default="")
+    login_otp_sent_at = models.DateTimeField(null=True, blank=True)
 
     objects = UserManager()
 

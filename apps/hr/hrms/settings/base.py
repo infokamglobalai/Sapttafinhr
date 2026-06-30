@@ -320,7 +320,7 @@ CORS_ALLOW_HEADERS = [
 ]
 
 # Multi-factor authentication (TOTP) — required for all HR logins when enabled.
-MFA_REQUIRED = config("MFA_REQUIRED", default=True, cast=bool)
+MFA_REQUIRED = config("MFA_REQUIRED", default=False, cast=bool)
 MFA_CHALLENGE_MAX_AGE_SECONDS = config("MFA_CHALLENGE_MAX_AGE_SECONDS", default=300, cast=int)
 # Finance backend (server-to-server) for in-account billing + invoices.
 FIN_INTERNAL_BASE_URL = config("FIN_INTERNAL_BASE_URL", default="http://fin-backend:8000")

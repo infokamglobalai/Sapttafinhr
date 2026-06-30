@@ -1,0 +1,35 @@
+{# Company calendar + birthdays — side by side below attendance row #}
+<div class="dash-cal-birthday-row stagger">
+  <div class="dash-cal-birthday-row__cal">
+    {% include "dashboard/partials/admin_calendar_widget.html" %}
+  </div>
+
+  <div class="premium-glass-card p-6 dash-birthdays-card">
+    <div class="flex justify-between items-start mb-4">
+      <div>
+        <div class="ch-title">Birthdays This Week</div>
+        <div class="ch-sub" style="margin-bottom:0;">Celebrate your team</div>
+      </div>
+      <a href="{% url 'hr_ops:people_pulse' %}" class="btn btn-ghost btn-xs text-indigo-600 font-extrabold">View all</a>
+    </div>
+    <div class="flex flex-col gap-2 dash-birthdays-card__list">
+      {% for emp in birthdays_soon %}
+      <a href="{% url 'employees:detail' emp.pk %}" class="list-row">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl grad-avatar text-xs font-bold" style="background:rgba(99, 102, 241,0.12);color:#4338ca;border-color:rgba(99, 102, 241,0.2);">🎂</div>
+          <div>
+            <div class="row-title font-bold text-[13px]">{{ emp.full_name }}</div>
+            <div class="row-sub text-xs">{{ emp.date_of_birth|date:"j F" }}</div>
+          </div>
+        </div>
+      </a>
+      {% empty %}
+      <div class="dash-list-empty">
+        <span class="dash-list-empty__icon" aria-hidden="true">🎂</span>
+        <p class="dash-list-empty__title">No birthdays this week</p>
+        <p class="dash-list-empty__sub">Add date of birth on profiles to celebrate your team.</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>

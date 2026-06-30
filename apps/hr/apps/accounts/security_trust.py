@@ -46,9 +46,9 @@ def get_security_trust_context() -> dict:
                     "status": "active",
                 },
                 {
-                    "title": "Two-factor authentication (TOTP)",
-                    "detail": "Authenticator app required for all sign-ins. Secrets encrypted at rest; backup codes on enrollment.",
-                    "status": "active" if getattr(settings, "MFA_REQUIRED", True) else "configured",
+                    "title": "Email verification at sign-in (optional)",
+                    "detail": "Workspace owners can require a one-time email code after password sign-in for extra protection.",
+                    "status": "active",
                 },
             ],
         },

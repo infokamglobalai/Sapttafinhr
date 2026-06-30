@@ -60,6 +60,9 @@ class Tenant(models.Model):
     # it (company info, departments, leave types, holidays, first employees…).
     setup_complete = models.BooleanField(default=False)
 
+    # When enabled, users must enter a one-time code emailed after password sign-in.
+    login_email_otp_enabled = models.BooleanField(default=False)
+
     # Denormalized for quick billing/limit checks
     employee_count = models.PositiveIntegerField(default=0)
     max_employees = models.PositiveIntegerField(default=30)

@@ -1,9 +1,7 @@
-"""TOTP multi-factor authentication helpers for platform (Finance) users."""
+"""Login second factor — workspace email OTP (optional per tenant)."""
 from __future__ import annotations
 
 import io
-import secrets
-import string
 
 import pyotp
 import qrcode
@@ -15,6 +13,15 @@ from django.utils import timezone
 
 MFA_SIGNER_SALT = "saptta.fin.mfa-challenge"
 ISSUER = "Saptta"
+
+_DEMO_EMAILS = frozenset({
+    "demo@saptta.com",
+    "kuwit@saptta.com",
+    "sp@saptta.com",
+    "admin@acme.test",
+    "manager@saptta.com",
+    "manju@saptta.com",
+})
 
 
 def _encrypt(value: str) -> str:
@@ -29,33 +36,44 @@ def _decrypt(token: str) -> str:
     return decrypt(token)
 
 
-def mfa_required_for_user(user) -> bool:
-    # Demo accounts do not require MFA
-    email = (getattr(user, "email", "") or "").strip().lower()
-    if (
-        email in (
-            "demo@saptta.com",
-            "kuwit@saptta.com",
-            "sp@saptta.com",
-            "admin@acme.test",
-            "manager@saptta.com",
-            "manju@saptta.com",
+def _is_demo_email(email: str) -> bool:
+    email = (email or "").strip().lower()
+    return email in _DEMO_EMAILS or email.startswith("demo@") or email.startswith("kuwit@")
+
+
+def _fin_tenant_otp_enabled(user) -> bool:
+    try:
+        from apps.core.models import Tenant
+
+        tenant = (
+            Tenant.objects.exclude(schema_name="public")
+            .filter(billing_email__iexact=user.email)
+            .order_by("created_on")
+            .first()
         )
-        or email.startswith("demo@")
-        or email.startswith("kuwit@")
-    ):
+        if tenant:
+            return bool(tenant.login_email_otp_enabled)
+    except Exception:  # noqa: BLE001
+        pass
+    return False
+
+
+def mfa_required_for_user(user) -> bool:
+    if _is_demo_email(getattr(user, "email", "")):
         return False
-    if not getattr(settings, "MFA_REQUIRED", True):
-        return False
-    return bool(getattr(user, "is_active", True))
+    return _fin_tenant_otp_enabled(user)
 
 
 def user_needs_mfa_setup(user) -> bool:
-    return mfa_required_for_user(user) and not getattr(user, "mfa_enabled", False)
+    return False
 
 
 def user_needs_mfa_verify(user) -> bool:
-    return mfa_required_for_user(user) and getattr(user, "mfa_enabled", False)
+    return mfa_required_for_user(user)
+
+
+def login_uses_email_otp(user) -> bool:
+    return mfa_required_for_user(user)
 
 
 def generate_totp_secret() -> str:
@@ -87,6 +105,10 @@ def read_totp_secret(user) -> str:
 
 
 def verify_totp(user, code: str) -> bool:
+    from . import login_otp as login_otp_service
+
+    if login_uses_email_otp(user):
+        return login_otp_service.verify_login_otp(user, code)
     secret = read_totp_secret(user)
     if not secret:
         return False
@@ -122,6 +144,9 @@ def unsign_login_challenge(token: str) -> tuple[str, str] | None:
 
 
 def generate_backup_codes(count: int = 8) -> list[str]:
+    import secrets
+    import string
+
     alphabet = string.ascii_uppercase + string.digits
     return ["".join(secrets.choice(alphabet) for _ in range(8)) for _ in range(count)]
 

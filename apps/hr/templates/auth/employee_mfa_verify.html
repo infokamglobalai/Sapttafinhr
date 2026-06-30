@@ -7,8 +7,8 @@
     <div class="auth-card__brand">
       <img src="{% static 'images/saptta-hr-logo.png' %}?v=3" alt="Saptta HR" width="140" height="35">
     </div>
-    <h1 class="auth-card__title">Two-factor verification</h1>
-    <p class="auth-card__sub">Enter the 6-digit code from your authenticator app for <strong>{{ email }}</strong>.</p>
+    <h1 class="auth-card__title">Verify sign-in</h1>
+    <p class="auth-card__sub">We sent a 6-digit code to <strong>{{ email }}</strong>. Enter it below to finish signing in.</p>
 
     {% if messages %}{% for m in messages %}
     <div class="alert alert-{% if m.tags == 'error' %}error{% else %}success{% endif %} mb-4"><span>{{ m }}</span></div>
@@ -17,10 +17,15 @@
     <form method="post">
       {% csrf_token %}
       <div class="mb-4">
-        <label class="hr-label">Authentication code</label>
-        <input type="text" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9A-Za-z\\-\\s]{6,12}" class="input input-bordered w-full" required autofocus>
+        <label class="hr-label">Verification code</label>
+        <input type="text" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" class="input input-bordered w-full" required autofocus placeholder="123456">
       </div>
       <button type="submit" class="btn btn-primary">Verify and sign in</button>
+    </form>
+    <form method="post" class="mt-4 text-center">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="resend">
+      <button type="submit" class="auth-link text-sm bg-transparent border-0 cursor-pointer">Resend code</button>
     </form>
     <p class="auth-card__footer text-sm mt-6 text-center text-base-content/60">
       <a href="{% url 'accounts:employee_login' %}" class="auth-link">Back to sign in</a>

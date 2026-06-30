@@ -555,6 +555,33 @@
 
       </div>
 
+      {% if is_owner and security_form %}
+      <section class="settings-card">
+        <div class="settings-card__head">
+          <h2 class="settings-card__title">Sign-in security</h2>
+          <p class="settings-card__desc">Control whether users need an email verification code after their password.</p>
+        </div>
+        <form method="post" class="settings-card__body">
+          {% csrf_token %}
+          <input type="hidden" name="tab" value="security">
+          <input type="hidden" name="action" value="save_security">
+          <label class="flex items-start gap-4 cursor-pointer">
+            {{ security_form.login_email_otp_enabled }}
+            <span>
+              <span class="font-medium block">Require email verification code at sign-in</span>
+              <span class="text-sm text-base-content/60 block mt-1">
+                When on, a 6-digit code is emailed automatically after password sign-in.
+                When off, users sign in with email and password only.
+              </span>
+            </span>
+          </label>
+          <div class="settings-form-actions mt-4">
+            <button type="submit" class="btn btn-primary btn-sm">Save sign-in security</button>
+          </div>
+        </form>
+      </section>
+      {% endif %}
+
 
 
       <div class="settings-security-highlights">

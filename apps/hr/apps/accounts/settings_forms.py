@@ -68,6 +68,22 @@ class EmailTestForm(forms.Form):
     )
 
 
+class WorkspaceSecurityForm(forms.ModelForm):
+    login_email_otp_enabled = forms.BooleanField(
+        required=False,
+        label="Email verification code at sign-in",
+        help_text=(
+            "When enabled, everyone in this workspace enters a one-time code sent to their "
+            "email after their password. When disabled, sign-in is email and password only."
+        ),
+        widget=forms.CheckboxInput(attrs={"class": "toggle toggle-primary"}),
+    )
+
+    class Meta:
+        model = Tenant
+        fields = ["login_email_otp_enabled"]
+
+
 def get_subscription_snapshot(tenant) -> dict:
     """Read-only billing snapshot from HR entitlements (owner-facing)."""
     from apps.tenants.limits import active_employee_count, sync_employee_count

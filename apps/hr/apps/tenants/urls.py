@@ -6,6 +6,7 @@ from .stats_api import hr_stats
 from apps.accounts.staff_sso_api import (
     staff_login_api,
     staff_login_mfa_api,
+    staff_mfa_resend_api,
     staff_mfa_setup_confirm_api,
     staff_mfa_setup_start_api,
 )
@@ -18,6 +19,7 @@ urlpatterns = [
     path("internal/stats/", hr_stats, name="internal_stats"),
     path("internal/staff-login/", staff_login_api, name="internal_staff_login"),
     path("internal/staff-login/mfa/", staff_login_mfa_api, name="internal_staff_login_mfa"),
+    path("internal/staff-login/mfa/resend/", staff_mfa_resend_api, name="internal_staff_mfa_resend"),
     path("internal/staff-login/mfa/setup/start/", staff_mfa_setup_start_api, name="internal_staff_mfa_setup_start"),
     path("internal/staff-login/mfa/setup/confirm/", staff_mfa_setup_confirm_api, name="internal_staff_mfa_setup_confirm"),
     path("setup/", setup, name="setup"),

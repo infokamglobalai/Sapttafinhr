@@ -137,40 +137,6 @@
       </div>
     </div>
 
-    {# ── Birthdays ── #}
-    <div class="premium-glass-card p-6 dash-panel" :class="panelClass('birthdays')" :style="{ order: panelOrder('birthdays') }">
-      <div class="dash-panel-toolbar" x-show="editMode" x-cloak>
-        <span class="dash-panel-toolbar-label">Birthdays</span>
-        <button type="button" class="dash-panel-tool" @click="movePanel('birthdays','up')" :disabled="!canMove('birthdays','up')">↑</button>
-        <button type="button" class="dash-panel-tool" @click="movePanel('birthdays','down')" :disabled="!canMove('birthdays','down')">↓</button>
-        <button type="button" class="dash-panel-tool dash-panel-tool--wide" :class="{ 'is-on': panelWidth('birthdays') === 'half' }" @click="setWidth('birthdays','half')">½</button>
-        <button type="button" class="dash-panel-tool dash-panel-tool--wide" :class="{ 'is-on': panelWidth('birthdays') === 'full' }" @click="setWidth('birthdays','full')">Full</button>
-      </div>
-      <div class="mb-4">
-        <div class="ch-title">Birthdays This Week</div>
-        <div class="ch-sub" style="margin-bottom:0;">Celebrate your team</div>
-      </div>
-      <div class="flex flex-col gap-2">
-        {% for emp in birthdays_soon %}
-        <a href="{% url 'employees:detail' emp.pk %}" class="list-row">
-          <div class="flex items-center gap-3">
-            <div class="w-9 h-9 rounded-xl grad-avatar text-xs font-bold" style="background:rgba(99, 102, 241,0.12);color:#4338ca;border-color:rgba(99, 102, 241,0.2);">🎂</div>
-            <div>
-              <div class="row-title font-bold text-[13px]">{{ emp.full_name }}</div>
-              <div class="row-sub text-xs">{{ emp.date_of_birth|date:"j F" }}</div>
-            </div>
-          </div>
-        </a>
-        {% empty %}
-        <div class="dash-list-empty">
-          <span class="dash-list-empty__icon" aria-hidden="true">🎂</span>
-          <p class="dash-list-empty__title">No birthdays this week</p>
-          <p class="dash-list-empty__sub">Add date of birth on profiles to celebrate your team.</p>
-        </div>
-        {% endfor %}
-      </div>
-    </div>
-
     {# ── Pending offer letters ── #}
     {% if pending_offer_count %}
     <div class="premium-glass-card p-6 dash-panel dash-panel--alert" :class="panelClass('offer_pending')" :style="{ order: panelOrder('offer_pending') }">
@@ -302,15 +268,14 @@
 
 <script>
   function dashboardPanelLayout() {
-    const STORAGE_KEY = 'saptta-dashboard-panels-v1';
+    const STORAGE_KEY = 'saptta-dashboard-panels-v2';
     const DEFAULT_PANELS = [
       { id: 'dept', width: 'half', order: 0 },
       { id: 'gender', width: 'half', order: 1 },
       { id: 'upcoming-leave', width: 'half', order: 2 },
-      { id: 'birthdays', width: 'half', order: 3 },
-      { id: 'joiners', width: 'half', order: 4 },
-      { id: 'payroll', width: 'half', order: 5 },
-      { id: 'performance', width: 'full', order: 6 },
+      { id: 'joiners', width: 'half', order: 3 },
+      { id: 'payroll', width: 'half', order: 4 },
+      { id: 'performance', width: 'full', order: 5 },
     ];
 
     return {

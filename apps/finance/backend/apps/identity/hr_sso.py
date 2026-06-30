@@ -216,7 +216,10 @@ class HrStaffLoginMfaView(APIView):
             "client": (request.data.get("client") or "").strip().lower(),
         }
         action = (request.data.get("action") or "verify").strip().lower()
-        if action == "setup_start":
+        if action == "resend":
+            path = "/internal/staff-login/mfa/resend/"
+            payload = {"challenge_token": payload["challenge_token"]}
+        elif action == "setup_start":
             path = "/internal/staff-login/mfa/setup/start/"
             payload = {"challenge_token": payload["challenge_token"]}
         elif action == "setup_confirm":

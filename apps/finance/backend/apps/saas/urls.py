@@ -42,6 +42,7 @@ from .billing import ConfirmPaymentView, CreateOrderView, DevActivateView, Valid
 from .internal_billing import billing_snapshot, invoice_detail
 from .internal_handoff import finance_handoff
 from .internal_payroll import payroll_journal
+from .internal_security import tenant_security
 from .signup_views import ProvisioningStatusView, SignupView
 from .views import (
     PlanAdminViewSet,
@@ -78,6 +79,7 @@ urlpatterns = [
     path("internal/finance-handoff/", finance_handoff, name="internal_finance_handoff"),
     path("internal/invoices/<int:invoice_id>/", invoice_detail, name="internal_invoice_detail"),
     path("internal/payroll-journal/", payroll_journal, name="internal_payroll_journal"),
+    path("internal/tenant-security/", tenant_security, name="internal_tenant_security"),
     path("admin/analytics/", AdminAnalyticsView.as_view(), name="admin_analytics"),
     path("admin/audit/", AdminAuditView.as_view(), name="admin_audit"),
     # Phase 9 — observability & platform health

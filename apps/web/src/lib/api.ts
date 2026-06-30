@@ -229,6 +229,7 @@ export type LoginMfaChallenge = {
   setup: boolean;
   email: string;
   authType: 'platform' | 'hr_staff';
+  mfaMethod?: 'email_otp' | 'totp';
 };
 
 export type LoginTokens = {
@@ -258,6 +259,7 @@ type RawLoginResponse = {
   workspace?: string | null;
   mfa_required?: boolean;
   mfa_setup_required?: boolean;
+  mfa_method?: string;
   challenge_token?: string;
   email?: string;
 };
@@ -273,6 +275,7 @@ function parseLoginResponse(
       setup: !!data.mfa_setup_required,
       email: data.email || '',
       authType,
+      mfaMethod: data.mfa_method === 'email_otp' ? 'email_otp' : 'totp',
     };
   }
   if (!data.access || !data.refresh) {
@@ -313,6 +316,29 @@ export async function mfaVerifyLogin(challengeToken: string, code: string): Prom
   if (parsed.kind !== 'tokens') throw new ApiError(500, 'Unexpected MFA response', data);
   if (data.backup_codes) parsed.backup_codes = data.backup_codes;
   return parsed;
+}
+
+export async function mfaResendLogin(challengeToken: string): Promise<void> {
+  await rawRequest<{ detail: string }>(
+    '/auth/mfa/resend/',
+    { surface: 'platform', method: 'POST', body: { challenge_token: challengeToken }, auth: false },
+    null,
+  );
+}
+
+export async function hrStaffLoginMfaResend(challengeToken: string): Promise<void> {
+  const platformUrl =
+    typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8080';
+  await rawRequest<{ detail: string }>(
+    '/auth/hr-staff-login/mfa/',
+    {
+      surface: 'platform',
+      method: 'POST',
+      body: { challenge_token: challengeToken, action: 'resend', platform_url: platformUrl },
+      auth: false,
+    },
+    null,
+  );
 }
 
 export async function mfaSetupStart(challengeToken: string): Promise<MfaSetupPayload> {
@@ -369,6 +395,7 @@ export async function hrStaffLogin(
       setup: !!data.mfa_setup_required,
       email: data.email || email,
       authType: 'hr_staff',
+      mfaMethod: data.mfa_method === 'email_otp' ? 'email_otp' : 'totp',
     };
   }
   if (!data.redirect_url) throw new ApiError(500, 'Unexpected HR login response', data);

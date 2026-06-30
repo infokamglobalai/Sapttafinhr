@@ -43,16 +43,16 @@ class MfaVerifyLoginView(APIView):
         blocked = email_verification_block_response(user)
         if blocked:
             return blocked
-        if not mfa_service.user_needs_mfa_verify(user):
-            return Response({"detail": "MFA is not enabled for this account."}, status=400)
+        if not mfa_service.mfa_required_for_user(user):
+            return Response({"detail": "Two-factor sign-in is not enabled for this workspace."}, status=400)
         if not mfa_service.verify_totp(user, code):
             return Response({"detail": "Invalid verification code."}, status=401)
 
         return Response(issue_auth_tokens(user))
 
 
-class MfaSetupStartView(APIView):
-    """POST /auth/mfa/setup/start/  { challenge_token } → QR + provisioning URI."""
+class MfaResendView(APIView):
+    """POST /auth/mfa/resend/  { challenge_token } → send a fresh email OTP."""
 
     permission_classes = [AllowAny]
     throttle_scope = "login"
@@ -62,53 +62,59 @@ class MfaSetupStartView(APIView):
         if not token:
             return Response({"detail": "challenge_token is required."}, status=400)
 
-        user, err = _user_from_challenge(token, {"setup"})
+        user, err = _user_from_challenge(token, {"verify"})
         if err:
             return err
-        if not mfa_service.user_needs_mfa_setup(user):
-            return Response({"detail": "MFA is already enabled."}, status=400)
+        if not mfa_service.mfa_required_for_user(user):
+            return Response({"detail": "Two-factor sign-in is not enabled for this workspace."}, status=400)
 
-        secret = mfa_service.generate_totp_secret()
-        mfa_service.store_totp_secret(user, secret, enabled=False)
-        uri = mfa_service.provisioning_uri(user.email, secret)
-        return Response(
-            {
-                "provisioning_uri": uri,
-                "qr_svg": mfa_service.qr_svg(uri),
-                "manual_secret": secret,
-                "email": user.email,
-            }
-        )
+        from .login_otp import issue_and_send_login_otp
+
+        workspace_name = ""
+        try:
+            from apps.core.models import Tenant
+
+            t = (
+                Tenant.objects.exclude(schema_name="public")
+                .filter(billing_email__iexact=user.email)
+                .first()
+            )
+            if t:
+                workspace_name = t.name
+        except Exception:  # noqa: BLE001
+            pass
+
+        try:
+            issue_and_send_login_otp(user, workspace_name=workspace_name)
+        except Exception:
+            return Response(
+                {"detail": "Could not send verification email. Check SMTP settings."},
+                status=503,
+            )
+        return Response({"detail": "A new verification code was sent to your email."})
 
 
-class MfaSetupConfirmView(APIView):
-    """POST /auth/mfa/setup/confirm/  { challenge_token, code } → enable MFA + JWT."""
+class MfaSetupStartView(APIView):
+    """Legacy — login uses workspace email OTP; no authenticator enrollment."""
 
     permission_classes = [AllowAny]
     throttle_scope = "login"
 
     def post(self, request):
-        token = (request.data.get("challenge_token") or "").strip()
-        code = (request.data.get("code") or "").strip()
-        if not token or not code:
-            return Response({"detail": "challenge_token and code are required."}, status=400)
+        return Response(
+            {"detail": "Authenticator setup is not required. Check your email for the sign-in code."},
+            status=400,
+        )
 
-        user, err = _user_from_challenge(token, {"setup"})
-        if err:
-            return err
 
-        secret = mfa_service.read_totp_secret(user)
-        if not secret:
-            return Response({"detail": "Start MFA setup first."}, status=400)
+class MfaSetupConfirmView(APIView):
+    """Legacy — login uses workspace email OTP; no authenticator enrollment."""
 
-        ok, backup_codes = mfa_service.enable_mfa(user, secret, code)
-        if not ok:
-            return Response({"detail": "Invalid verification code."}, status=401)
+    permission_classes = [AllowAny]
+    throttle_scope = "login"
 
-        blocked = email_verification_block_response(user)
-        if blocked:
-            return blocked
-
-        payload = issue_auth_tokens(user)
-        payload["backup_codes"] = backup_codes
-        return Response(payload)
+    def post(self, request):
+        return Response(
+            {"detail": "Authenticator setup is not required. Check your email for the sign-in code."},
+            status=400,
+        )

@@ -10,12 +10,14 @@ from .settings_forms import (
     CompanyBrandingForm,
     EmailTestForm,
     ProfileEditForm,
+    WorkspaceSecurityForm,
     describe_email_backend,
     get_subscription_snapshot,
     send_test_invite_email,
 )
 from .billing_services import fetch_platform_billing, merge_billing_snapshot
 from .product_access import tenant_has_finance
+from .security_sync import sync_login_otp_to_finance
 from .security_trust import get_security_trust_context
 from .views import _ensure_self_employee
 
@@ -34,7 +36,7 @@ def account_settings(request):
     is_owner = user.is_company_owner
     is_admin = user.is_hr_admin
 
-    if tab in ("company", "billing", "email") and not is_owner:
+    if tab in ("company", "billing", "email", "security") and not is_owner:
         tab = "profile"
         messages.info(request, "Company and billing settings are only available to the workspace owner.")
 
@@ -42,6 +44,7 @@ def account_settings(request):
     profile_form = ProfileEditForm(instance=employee) if employee else None
     company_form = CompanyBrandingForm(instance=tenant) if tenant and is_owner else None
     email_form = EmailTestForm(initial={"recipient": user.email}) if is_owner else None
+    security_form = WorkspaceSecurityForm(instance=tenant) if tenant and is_owner else None
     email_info = describe_email_backend()
 
     if request.method == "POST":
@@ -79,6 +82,23 @@ def account_settings(request):
                     )
                 return redirect("/auth/settings/?tab=email")
 
+        elif action == "save_security" and tenant and is_owner:
+            security_form = WorkspaceSecurityForm(request.POST, instance=tenant)
+            if security_form.is_valid():
+                security_form.save()
+                synced = sync_login_otp_to_finance(
+                    tenant,
+                    enabled=tenant.login_email_otp_enabled,
+                )
+                if tenant.login_email_otp_enabled:
+                    msg = "Email verification at sign-in is now enabled for this workspace."
+                else:
+                    msg = "Email verification at sign-in is now disabled."
+                if not synced:
+                    msg += " (Platform sync is pending — try again if platform login does not match.)"
+                messages.success(request, msg)
+                return redirect("/auth/settings/?tab=security")
+
     subscription = None
     if tenant and is_owner:
         local = get_subscription_snapshot(tenant)
@@ -98,6 +118,7 @@ def account_settings(request):
         "profile_form": profile_form,
         "company_form": company_form,
         "email_form": email_form,
+        "security_form": security_form,
         "email_info": email_info,
         "subscription": subscription,
         "platform_url": platform_url,

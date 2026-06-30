@@ -10,7 +10,7 @@ from .auth_views import (
 from .general_ai_views import GeneralAIChatView, GuestAIChatView
 from .hr_sso import HrSsoTokenView, HrStaffLoginView, HrStaffLoginMfaView, HrStatsView
 from .jwt import SapttaTokenObtainPairView
-from .mfa_views import MfaSetupConfirmView, MfaSetupStartView, MfaVerifyLoginView
+from .mfa_views import MfaResendView, MfaSetupConfirmView, MfaSetupStartView, MfaVerifyLoginView
 from .views import MeView
 
 urlpatterns = [
@@ -18,6 +18,7 @@ urlpatterns = [
     path("refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("me/", MeView.as_view(), name="me"),
     path("mfa/verify/", MfaVerifyLoginView.as_view(), name="mfa_verify"),
+    path("mfa/resend/", MfaResendView.as_view(), name="mfa_resend"),
     path("mfa/setup/start/", MfaSetupStartView.as_view(), name="mfa_setup_start"),
     path("mfa/setup/confirm/", MfaSetupConfirmView.as_view(), name="mfa_setup_confirm"),
     path("hr-sso-token/", HrSsoTokenView.as_view(), name="hr_sso_token"),

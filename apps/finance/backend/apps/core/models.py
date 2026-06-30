@@ -26,6 +26,8 @@ class Tenant(TenantMixin):
         choices=ProvisionStatus.choices,
         default=ProvisionStatus.READY,
     )
+    # Workspace setting mirrored from HR — email OTP after password for platform login.
+    login_email_otp_enabled = models.BooleanField(default=False)
 
     auto_create_schema = True
     auto_drop_schema = False  # never silently drop in prod

@@ -1,16 +1,22 @@
 """Tests for unified HR staff login (platform → HR SSO)."""
+import re
+
 from django.contrib.auth import get_user_model
+from django.core import mail
 from django.test import Client, TestCase, override_settings
 
 from apps.accounts.models import Role, UserRole
 from apps.tenants.models import Tenant
-from utils import mfa as mfa_service
 
 User = get_user_model()
 SECRET = "test-sso-secret-for-staff-login-1234567890"
 
 
-@override_settings(SSO_SHARED_SECRET=SECRET, HR_PUBLIC_BASE_URL="http://hr.test")
+@override_settings(
+    SSO_SHARED_SECRET=SECRET,
+    HR_PUBLIC_BASE_URL="http://hr.test",
+    EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+)
 class StaffLoginApiTests(TestCase):
     def setUp(self):
         self.tenant = Tenant.objects.create(name="Test Co", subdomain="testco", status="trial")
@@ -31,17 +37,7 @@ class StaffLoginApiTests(TestCase):
             HTTP_AUTHORIZATION=f"Bearer {SECRET}",
         )
 
-    @override_settings(MFA_REQUIRED=True)
-    def test_valid_credentials_require_mfa_setup(self):
-        resp = self._post("/internal/staff-login/", {"email": "staff@testco.com", "password": "Staff@1234"})
-        self.assertEqual(resp.status_code, 200)
-        data = resp.json()
-        self.assertTrue(data["mfa_required"])
-        self.assertTrue(data["mfa_setup_required"])
-        self.assertIn("challenge_token", data)
-
-    @override_settings(MFA_REQUIRED=False)
-    def test_valid_credentials_return_redirect_when_mfa_off(self):
+    def test_valid_credentials_skip_otp_when_disabled(self):
         resp = self._post("/internal/staff-login/", {"email": "staff@testco.com", "password": "Staff@1234"})
         self.assertEqual(resp.status_code, 200)
         data = resp.json()
@@ -49,16 +45,28 @@ class StaffLoginApiTests(TestCase):
         self.assertIn("token=", data["redirect_url"])
         self.assertEqual(data["workspace"], "testco")
 
-    @override_settings(MFA_REQUIRED=True)
+    def test_valid_credentials_require_email_otp_when_enabled(self):
+        self.tenant.login_email_otp_enabled = True
+        self.tenant.save(update_fields=["login_email_otp_enabled"])
+        resp = self._post("/internal/staff-login/", {"email": "staff@testco.com", "password": "Staff@1234"})
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertTrue(data["mfa_required"])
+        self.assertFalse(data["mfa_setup_required"])
+        self.assertEqual(data["mfa_method"], "email_otp")
+        self.assertIn("challenge_token", data)
+        self.assertEqual(len(mail.outbox), 1)
+
     def test_mfa_verify_returns_redirect(self):
-        secret = mfa_service.generate_totp_secret()
-        mfa_service.enable_mfa(self.user, secret, pyotp_code(secret))
+        self.tenant.login_email_otp_enabled = True
+        self.tenant.save(update_fields=["login_email_otp_enabled"])
         resp = self._post("/internal/staff-login/", {"email": "staff@testco.com", "password": "Staff@1234"})
         token = resp.json()["challenge_token"]
-        code = pyotp_code(secret)
+        body = mail.outbox[0].body
+        otp = re.search(r"(\d{6})", body).group(1)
         mfa_resp = self._post(
             "/internal/staff-login/mfa/",
-            {"challenge_token": token, "code": code, "platform_url": "http://platform.test", "next": "/"},
+            {"challenge_token": token, "code": otp, "platform_url": "http://platform.test", "next": "/"},
         )
         self.assertEqual(mfa_resp.status_code, 200)
         self.assertIn("redirect_url", mfa_resp.json())
@@ -74,9 +82,3 @@ class StaffLoginApiTests(TestCase):
             content_type="application/json",
         )
         self.assertEqual(resp.status_code, 401)
-
-
-def pyotp_code(secret: str) -> str:
-    import pyotp
-
-    return pyotp.TOTP(secret).now()

@@ -362,5 +362,5 @@ LOGGING = {
 
 # ===== Encryption / MFA =====
 FIELD_ENCRYPTION_KEY = env("FIELD_ENCRYPTION_KEY", default=env("HR_FIELD_ENCRYPTION_KEY", default=""))
-MFA_REQUIRED = env.bool("MFA_REQUIRED", default=True)
+MFA_REQUIRED = env.bool("MFA_REQUIRED", default=False)
 MFA_CHALLENGE_MAX_AGE_SECONDS = env.int("MFA_CHALLENGE_MAX_AGE_SECONDS", default=300)

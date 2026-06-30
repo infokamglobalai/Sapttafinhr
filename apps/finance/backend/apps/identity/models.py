@@ -55,6 +55,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     mfa_backup_codes = models.JSONField(default=list, blank=True)
     email_verify_otp_hash = models.CharField(max_length=128, blank=True, default="")
     email_verify_otp_sent_at = models.DateTimeField(null=True, blank=True)
+    login_otp_hash = models.CharField(max_length=128, blank=True, default="")
+    login_otp_sent_at = models.DateTimeField(null=True, blank=True)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []

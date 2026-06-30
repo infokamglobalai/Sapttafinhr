@@ -62,15 +62,21 @@ def employee_login(request):
             from utils import mfa as mfa_service
             from .mfa_views import begin_mfa_pending
 
-            if mfa_service.user_needs_mfa_setup(user):
-                begin_mfa_pending(request, user, setup=True)
-                clear_failures("emplogin", request, email)
-                next_q = request.GET.urlencode()
-                url = reverse("accounts:employee_mfa_setup")
-                if next_q:
-                    url = f"{url}?{next_q}"
-                return redirect(url)
-            if mfa_service.user_needs_mfa_verify(user):
+            if mfa_service.mfa_required_for_user(user):
+                from utils.login_otp import issue_and_send_login_otp
+
+                try:
+                    issue_and_send_login_otp(user)
+                except Exception:
+                    messages.error(
+                        request,
+                        "Could not send verification email. Ask your administrator to check SMTP settings.",
+                    )
+                    return render(request, "auth/employee_login.html", {
+                        "form": LoginForm(request),
+                        "platform_login_url": platform_login_url("hr", request),
+                        "hide_app_chrome": True,
+                    })
                 begin_mfa_pending(request, user, setup=False)
                 clear_failures("emplogin", request, email)
                 next_q = request.GET.urlencode()

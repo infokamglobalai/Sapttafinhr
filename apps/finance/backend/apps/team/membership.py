@@ -27,6 +27,18 @@ def resolve_tenant_role(user) -> str:
 
     schema = getattr(connection, "schema_name", "public")
     if not schema or schema == "public":
+        # Platform login runs on public schema — infer owner from billing_email.
+        try:
+            from apps.core.models import Tenant
+
+            if (
+                Tenant.objects.exclude(schema_name="public")
+                .filter(billing_email__iexact=user.email)
+                .exists()
+            ):
+                return TenantMember.Role.OWNER
+        except Exception:  # noqa: BLE001
+            pass
         return TenantMember.Role.VIEWER
 
     member = (

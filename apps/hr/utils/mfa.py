@@ -1,9 +1,7 @@
-"""TOTP multi-factor authentication helpers for HR users."""
+"""Login second factor — workspace email OTP (optional per tenant)."""
 from __future__ import annotations
 
 import io
-import secrets
-import string
 
 import pyotp
 import qrcode
@@ -18,36 +16,48 @@ from utils.encryption import decrypt, encrypt
 MFA_SIGNER_SALT = "saptta.hr.mfa-challenge"
 ISSUER = "Saptta HR"
 
+_DEMO_EMAILS = frozenset({
+    "demo@saptta.com",
+    "kuwit@saptta.com",
+    "sp@saptta.com",
+    "admin@acme.test",
+    "manager@saptta.com",
+    "manju@saptta.com",
+})
+
+
+def _is_demo_email(email: str) -> bool:
+    email = (email or "").strip().lower()
+    return email in _DEMO_EMAILS or email.startswith("demo@") or email.startswith("kuwit@")
+
+
+def tenant_login_otp_enabled(user) -> bool:
+    tenant = getattr(user, "tenant", None)
+    if tenant is not None:
+        return bool(getattr(tenant, "login_email_otp_enabled", False))
+    return False
+
 
 def mfa_required_for_user(user) -> bool:
-    # Demo accounts do not require MFA
-    email = (getattr(user, "email", "") or "").strip().lower()
-    if (
-        email in (
-            "demo@saptta.com",
-            "kuwit@saptta.com",
-            "sp@saptta.com",
-            "admin@acme.test",
-            "manager@saptta.com",
-            "manju@saptta.com",
-        )
-        or email.startswith("demo@")
-        or email.startswith("kuwit@")
-    ):
+    if _is_demo_email(getattr(user, "email", "")):
         return False
-    if not getattr(settings, "MFA_REQUIRED", True):
-        return False
-    return bool(getattr(user, "is_active", True))
+    return tenant_login_otp_enabled(user)
 
 
 def user_needs_mfa_setup(user) -> bool:
-    return mfa_required_for_user(user) and not getattr(user, "mfa_enabled", False)
+    """Email OTP has no authenticator setup step."""
+    return False
 
 
 def user_needs_mfa_verify(user) -> bool:
-    return mfa_required_for_user(user) and getattr(user, "mfa_enabled", False)
+    return mfa_required_for_user(user)
 
 
+def login_uses_email_otp(user) -> bool:
+    return mfa_required_for_user(user)
+
+
+# Legacy TOTP helpers (kept for any enrolled accounts; login flow uses email OTP).
 def generate_totp_secret() -> str:
     return pyotp.random_base32()
 
@@ -77,6 +87,10 @@ def read_totp_secret(user) -> str:
 
 
 def verify_totp(user, code: str) -> bool:
+    from utils import login_otp as login_otp_service
+
+    if login_uses_email_otp(user):
+        return login_otp_service.verify_login_otp(user, code)
     secret = read_totp_secret(user)
     if not secret:
         return False
@@ -112,6 +126,9 @@ def unsign_login_challenge(token: str) -> tuple[str, str] | None:
 
 
 def generate_backup_codes(count: int = 8) -> list[str]:
+    import secrets
+    import string
+
     alphabet = string.ascii_uppercase + string.digits
     return ["".join(secrets.choice(alphabet) for _ in range(8)) for _ in range(count)]
 

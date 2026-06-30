@@ -8,7 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 import { openFinanceApp, openHrApp } from '../lib/products';
 
-import { getWorkspace, setWorkspace, hrStaffLogin, login as apiLogin, mfaSetupStart, mfaSetupConfirm, mfaVerifyLogin, hrStaffLoginMfa, ApiError, type LoginMfaChallenge, type MfaSetupPayload } from '../lib/api';
+import { getWorkspace, setWorkspace, hrStaffLogin, login as apiLogin, mfaVerifyLogin, hrStaffLoginMfa, mfaResendLogin, hrStaffLoginMfaResend, ApiError, type LoginMfaChallenge } from '../lib/api';
 
 
 
@@ -254,8 +254,7 @@ export default function Login() {
 
   const [mfaChallenge, setMfaChallenge] = useState<LoginMfaChallenge | null>(null);
   const [mfaCode, setMfaCode] = useState('');
-  const [mfaSetup, setMfaSetup] = useState<MfaSetupPayload | null>(null);
-  const [backupCodes, setBackupCodes] = useState<string[] | null>(null);
+  const [mfaResendMessage, setMfaResendMessage] = useState('');
 
   const handoffOnceRef = useRef(false);
 
@@ -497,10 +496,6 @@ export default function Login() {
 
       if (platformRes.kind === 'mfa') {
         setMfaChallenge(platformRes);
-        if (platformRes.setup) {
-          const setup = await mfaSetupStart(platformRes.challenge_token);
-          setMfaSetup(setup);
-        }
         return;
       }
 
@@ -524,15 +519,6 @@ export default function Login() {
 
         if (hrRes.kind === 'mfa') {
           setMfaChallenge(hrRes);
-          if (hrRes.setup) {
-            const setup = await hrStaffLoginMfa(
-              'setup_start',
-              hrRes.challenge_token,
-              '',
-              redirectTarget === 'hr' ? '/' : '/',
-            ) as MfaSetupPayload;
-            setMfaSetup(setup);
-          }
           return;
         }
 
@@ -561,42 +547,6 @@ export default function Login() {
     setError('');
 
     try {
-
-      if (mfaChallenge.setup) {
-
-        const finish = mfaChallenge.authType === 'hr_staff'
-
-          ? await hrStaffLoginMfa('setup_confirm', mfaChallenge.challenge_token, mfaCode, redirectTarget === 'hr' ? '/' : '/')
-
-          : await mfaSetupConfirm(mfaChallenge.challenge_token, mfaCode);
-
-        if ('redirect_url' in finish && finish.redirect_url) {
-
-          if (finish.backup_codes?.length) setBackupCodes(finish.backup_codes);
-
-          if (finish.workspace) setWorkspace(finish.workspace);
-
-          window.location.href = finish.redirect_url;
-
-          return;
-
-        }
-
-        if ('kind' in finish && finish.kind === 'tokens') {
-
-          if (finish.backup_codes?.length) setBackupCodes(finish.backup_codes);
-
-          const u = await hydrateSession(finish.workspace ?? workspaceParam);
-
-          if (redirectTarget) await performRedirect();
-
-          else navigate(landingFor(u), { replace: true });
-
-        }
-
-        return;
-
-      }
 
       if (mfaChallenge.authType === 'hr_staff') {
 
@@ -627,6 +577,38 @@ export default function Login() {
     } catch {
 
       setError('Invalid verification code.');
+
+    }
+
+  };
+
+
+
+  const handleMfaResend = async () => {
+
+    if (!mfaChallenge) return;
+
+    setError('');
+
+    setMfaResendMessage('');
+
+    try {
+
+      if (mfaChallenge.authType === 'hr_staff') {
+
+        await hrStaffLoginMfaResend(mfaChallenge.challenge_token);
+
+      } else {
+
+        await mfaResendLogin(mfaChallenge.challenge_token);
+
+      }
+
+      setMfaResendMessage(`A new code was sent to ${mfaChallenge.email}.`);
+
+    } catch {
+
+      setError('Could not resend the code. Try again in a minute.');
 
     }
 
@@ -675,19 +657,11 @@ export default function Login() {
 
                 </Link>
 
-                <h1 className="login-page__title">
-
-                  {mfaChallenge.setup ? 'Set up two-factor authentication' : 'Verify sign-in'}
-
-                </h1>
+                <h1 className="login-page__title">Verify sign-in</h1>
 
                 <p className="login-page__subtitle">
 
-                  {mfaChallenge.setup
-
-                    ? `Scan the QR code with your authenticator app for ${mfaChallenge.email}.`
-
-                    : `Enter the 6-digit code from your authenticator app for ${mfaChallenge.email}.`}
+                  We sent a 6-digit code to <strong>{mfaChallenge.email}</strong>. Enter it below to finish signing in.
 
                 </p>
 
@@ -695,33 +669,11 @@ export default function Login() {
 
 
 
-              {mfaSetup?.qr_svg ? (
+              {mfaResendMessage ? (
 
-                <div
+                <div className="login-page__error" role="status" style={{ color: 'var(--saptta-success, #16a34a)' }}>
 
-                  className="login-page__mfa-qr"
-
-                  dangerouslySetInnerHTML={{ __html: mfaSetup.qr_svg }}
-
-                />
-
-              ) : null}
-
-
-
-              {mfaSetup?.manual_secret ? (
-
-                <p className="login-page__subtitle text-sm">Manual key: <code>{mfaSetup.manual_secret}</code></p>
-
-              ) : null}
-
-
-
-              {backupCodes?.length ? (
-
-                <div className="login-page__error" role="status">
-
-                  Save these backup codes in a safe place: {backupCodes.join(', ')}
+                  {mfaResendMessage}
 
                 </div>
 
@@ -733,7 +685,7 @@ export default function Login() {
 
                 <div className="login-page__field">
 
-                  <label htmlFor="login-mfa-code">Authentication code</label>
+                  <label htmlFor="login-mfa-code">Verification code</label>
 
                   <input
 
@@ -765,7 +717,7 @@ export default function Login() {
 
                 <button type="submit" className="login-page__submit login-page__submit--brand" disabled={isLoading}>
 
-                  {isLoading ? 'Verifying…' : mfaChallenge.setup ? 'Enable MFA and continue' : 'Verify and sign in'}
+                  {isLoading ? 'Verifying…' : 'Verify and sign in'}
 
                 </button>
 
@@ -783,7 +735,29 @@ export default function Login() {
 
                   style={{ background: 'none', border: 'none', cursor: 'pointer' }}
 
-                  onClick={() => { setMfaChallenge(null); setMfaSetup(null); setMfaCode(''); setError(''); }}
+                  onClick={() => void handleMfaResend()}
+
+                >
+
+                  Resend code
+
+                </button>
+
+              </p>
+
+
+
+              <p className="login-page__signup-inline">
+
+                <button
+
+                  type="button"
+
+                  className="login-page__link"
+
+                  style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+
+                  onClick={() => { setMfaChallenge(null); setMfaCode(''); setMfaResendMessage(''); setError(''); }}
 
                 >
 

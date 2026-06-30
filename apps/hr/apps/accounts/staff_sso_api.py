@@ -164,21 +164,21 @@ def staff_login_api(request):
     if err:
         return err
 
-    if mfa_service.user_needs_mfa_setup(user):
-        return JsonResponse(
-            {
-                "mfa_required": True,
-                "mfa_setup_required": True,
-                "challenge_token": mfa_service.mint_login_challenge(user.pk, "setup"),
-                "email": user.email,
-                "auth_type": "hr_staff",
-            }
-        )
-    if mfa_service.user_needs_mfa_verify(user):
+    if mfa_service.mfa_required_for_user(user):
+        from utils.login_otp import issue_and_send_login_otp
+
+        try:
+            issue_and_send_login_otp(user)
+        except Exception:
+            return JsonResponse(
+                {"detail": "Could not send verification email. Check SMTP settings."},
+                status=503,
+            )
         return JsonResponse(
             {
                 "mfa_required": True,
                 "mfa_setup_required": False,
+                "mfa_method": "email_otp",
                 "challenge_token": mfa_service.mint_login_challenge(user.pk, "verify"),
                 "email": user.email,
                 "auth_type": "hr_staff",
@@ -191,7 +191,7 @@ def staff_login_api(request):
 @csrf_exempt
 @require_http_methods(["POST"])
 def staff_login_mfa_api(request):
-    """POST /internal/staff-login/mfa/  verify TOTP and return SSO redirect."""
+    """POST /internal/staff-login/mfa/  verify email OTP and return SSO redirect."""
     if not _authorized(request):
         return JsonResponse({"detail": "Unauthorized."}, status=401)
 
@@ -219,7 +219,8 @@ def staff_login_mfa_api(request):
 
 @csrf_exempt
 @require_http_methods(["POST"])
-def staff_mfa_setup_start_api(request):
+def staff_mfa_resend_api(request):
+    """POST /internal/staff-login/mfa/resend/  resend email OTP for pending login."""
     if not _authorized(request):
         return JsonResponse({"detail": "Unauthorized."}, status=401)
 
@@ -231,56 +232,37 @@ def staff_mfa_setup_start_api(request):
     if not token:
         return JsonResponse({"detail": "challenge_token is required."}, status=400)
 
-    user, err = _user_from_challenge(token, {"setup"})
+    user, err = _user_from_challenge(token, {"verify"})
     if err:
         return err
-    if not mfa_service.user_needs_mfa_setup(user):
-        return JsonResponse({"detail": "MFA is already enabled."}, status=400)
+    if not mfa_service.mfa_required_for_user(user):
+        return JsonResponse({"detail": "Two-factor sign-in is not enabled for this workspace."}, status=400)
 
-    secret = mfa_service.generate_totp_secret()
-    mfa_service.store_totp_secret(user, secret, enabled=False)
-    uri = mfa_service.provisioning_uri(user.email, secret)
+    from utils.login_otp import issue_and_send_login_otp
+
+    try:
+        issue_and_send_login_otp(user)
+    except Exception:
+        return JsonResponse(
+            {"detail": "Could not send verification email. Check SMTP settings."},
+            status=503,
+        )
+    return JsonResponse({"detail": "A new verification code was sent to your email."})
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def staff_mfa_setup_start_api(request):
     return JsonResponse(
-        {
-            "provisioning_uri": uri,
-            "qr_svg": mfa_service.qr_svg(uri),
-            "manual_secret": secret,
-            "email": user.email,
-        }
+        {"detail": "Authenticator setup is not required. Check your email for the sign-in code."},
+        status=400,
     )
 
 
 @csrf_exempt
 @require_http_methods(["POST"])
 def staff_mfa_setup_confirm_api(request):
-    if not _authorized(request):
-        return JsonResponse({"detail": "Unauthorized."}, status=401)
-
-    data = _parse_json(request)
-    if data is None:
-        return JsonResponse({"detail": "Invalid JSON."}, status=400)
-
-    token = (data.get("challenge_token") or "").strip()
-    code = (data.get("code") or "").strip()
-    platform_url = (data.get("platform_url") or "").strip()
-    next_path = (data.get("next") or "/").strip() or "/"
-    client = (data.get("client") or "").strip().lower()
-
-    if not token or not code:
-        return JsonResponse({"detail": "challenge_token and code are required."}, status=400)
-
-    user, err = _user_from_challenge(token, {"setup"})
-    if err:
-        return err
-
-    secret = mfa_service.read_totp_secret(user)
-    if not secret:
-        return JsonResponse({"detail": "Start MFA setup first."}, status=400)
-
-    ok, backup_codes = mfa_service.enable_mfa(user, secret, code)
-    if not ok:
-        return JsonResponse({"detail": "Invalid verification code."}, status=401)
-
-    payload = _staff_success_payload(user, platform_url=platform_url, next_path=next_path, client=client)
-    payload["backup_codes"] = backup_codes
-    return JsonResponse(payload)
+    return JsonResponse(
+        {"detail": "Authenticator setup is not required. Check your email for the sign-in code."},
+        status=400,
+    )

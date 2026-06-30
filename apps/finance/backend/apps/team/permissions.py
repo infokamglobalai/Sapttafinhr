@@ -78,11 +78,13 @@ class TenantRolePermission(BasePermission):
                 )
 
         role = resolve_tenant_role(request.user)
-        try:
-            token = getattr(request, "auth", None)
-            if token is not None:
-                role = token.get("fin_role") or role
-        except (AttributeError, TypeError):
-            pass
+        # JWT fin_role is minted on public schema; inside a tenant always use live membership.
+        if schema == "public":
+            try:
+                token = getattr(request, "auth", None)
+                if token is not None:
+                    role = token.get("fin_role") or role
+            except (AttributeError, TypeError):
+                pass
 
         return role_rank(role) >= role_rank(min_role)
