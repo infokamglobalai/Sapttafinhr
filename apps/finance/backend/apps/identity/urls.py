@@ -12,9 +12,11 @@ from .hr_sso import HrSsoTokenView, HrStaffLoginView, HrStaffLoginMfaView, HrSta
 from .jwt import SapttaTokenObtainPairView
 from .mfa_views import MfaResendView, MfaSetupConfirmView, MfaSetupStartView, MfaVerifyLoginView
 from .views import MeView
+from .demo_login import DemoLoginView
 
 urlpatterns = [
     path("login/", SapttaTokenObtainPairView.as_view(), name="token_obtain"),
+    path("demo-login/", DemoLoginView.as_view(), name="demo_login"),
     path("refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("me/", MeView.as_view(), name="me"),
     path("mfa/verify/", MfaVerifyLoginView.as_view(), name="mfa_verify"),

@@ -95,16 +95,28 @@ def finance_handoff(request):
             status=403,
         )
 
-    owner_email = (tenant.billing_email or "").strip().lower()
-    if owner_email and email != owner_email:
-        return JsonResponse(
-            {"detail": "Only the workspace owner can open Finance from HR."},
-            status=403,
-        )
-
     user = User.objects.filter(email__iexact=email, is_active=True).first()
     if not user:
         return JsonResponse({"detail": "No platform account found for this user."}, status=404)
+
+    owner_email = (tenant.billing_email or "").strip().lower()
+    is_owner = bool(owner_email and email == owner_email)
+
+    if not is_owner:
+        from django_tenants.utils import schema_context
+        from apps.team.models import TenantMember
+        with schema_context(tenant.schema_name):
+            is_member = TenantMember.objects.filter(
+                user_id=user.id, is_active=True
+            ).exists() or TenantMember.objects.filter(
+                email__iexact=user.email, is_active=True
+            ).exists()
+        
+        if not is_member:
+            return JsonResponse(
+                {"detail": "You do not have access to this workspace in Finance."},
+                status=403,
+            )
 
     return JsonResponse(
         {

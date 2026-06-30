@@ -149,8 +149,36 @@ def _handle_submit(request, tenant):
         dept, _ = Department.objects.get_or_create(tenant=tenant, name=name)
         dept_by_name[name.lower()] = dept
 
+    from decimal import Decimal
+
+    standard_defaults = {
+        "CL": {"is_paid": True, "accrual_type": "upfront", "accrual_value": Decimal("12.00"), "max_annual_balance": Decimal("12.00"), "applicable_gender": "all"},
+        "SL": {"is_paid": True, "accrual_type": "upfront", "accrual_value": Decimal("12.00"), "max_annual_balance": Decimal("12.00"), "applicable_gender": "all"},
+        "EL": {"is_paid": True, "accrual_type": "yearly", "accrual_value": Decimal("15.00"), "max_annual_balance": Decimal("18.00"), "applicable_gender": "all"},
+        "AL": {"is_paid": True, "accrual_type": "upfront", "accrual_value": Decimal("30.00"), "max_annual_balance": Decimal("30.00"), "applicable_gender": "all"},
+        "ML": {"is_paid": True, "accrual_type": "upfront", "accrual_value": Decimal("84.00"), "max_annual_balance": Decimal("84.00"), "applicable_gender": "female"},
+        "PL": {"is_paid": True, "accrual_type": "upfront", "accrual_value": Decimal("15.00"), "max_annual_balance": Decimal("15.00"), "applicable_gender": "male"},
+        "BL": {"is_paid": True, "accrual_type": "upfront", "accrual_value": Decimal("3.00"), "max_annual_balance": Decimal("3.00"), "applicable_gender": "all"},
+        "LOP": {"is_paid": False, "accrual_type": "manual", "accrual_value": Decimal("0.00"), "applicable_gender": "all"},
+    }
+
     for name, code in cleaned["leave_rows"]:
-        LeaveType.objects.get_or_create(tenant=tenant, code=code, defaults={"name": name})
+        code_upper = code.strip().upper()
+        cfg = standard_defaults.get(code_upper, {"is_paid": True, "accrual_type": "upfront", "accrual_value": Decimal("12.00"), "max_annual_balance": Decimal("12.00"), "applicable_gender": "all"})
+        LeaveType.objects.get_or_create(
+            tenant=tenant,
+            code=code_upper,
+            defaults={
+                "name": name,
+                "is_paid": cfg["is_paid"],
+                "accrual_type": cfg["accrual_type"],
+                "accrual_value": cfg["accrual_value"],
+                "max_annual_balance": cfg["max_annual_balance"],
+                "applicable_gender": cfg["applicable_gender"],
+                "is_active": True,
+            }
+        )
+
 
     new_employees = []
     for row in cleaned["emp_rows"]:
