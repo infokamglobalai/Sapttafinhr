@@ -12,7 +12,7 @@ import {
 } from '@ant-design/icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { SapttaLogo } from '../../components/layout/Navbar';
-import { openFinanceApp, openHrApp, installFinanceApp, installHrApp } from '../../lib/products';
+import { openFinanceApp, openHrApp } from '../../lib/products';
 import { isRecentPostCheckout, resolveActiveProducts } from '../../lib/entitlements';
 import type { ProductSlug } from '../../lib/api';
 
@@ -178,7 +178,6 @@ export default function ProductSwitcher() {
               logo="/saptta-fin.png"
               locked={!products.includes('finance')}
               onOpen={() => openFinanceApp(user?.tenantId, true)}
-              onInstall={() => installFinanceApp(user?.tenantId)}
               onUpgrade={() => navigate('/pricing')}
             />
             <ProductCard
@@ -196,7 +195,6 @@ export default function ProductSwitcher() {
               logo="/saptta-hr.png"
               locked={!products.includes('hrms')}
               onOpen={() => openHrApp(true)}
-              onInstall={() => installHrApp()}
               onUpgrade={() => navigate('/pricing')}
             />
           </div>
@@ -255,7 +253,6 @@ interface CardProps {
   locked?: boolean;
   onOpen: () => void;
   onUpgrade?: () => void;
-  onInstall?: () => void;
 }
 
 function ProductCard({
@@ -269,7 +266,6 @@ function ProductCard({
   locked = false,
   onOpen,
   onUpgrade,
-  onInstall,
 }: CardProps) {
   return (
     <article
@@ -348,16 +344,6 @@ function ProductCard({
             >
               Open {name} <ArrowRightOutlined />
             </Button>
-            {onInstall && (
-              <Button
-                block
-                onClick={onInstall}
-                icon={<AppstoreOutlined />}
-                className="product-switcher__desktop-btn"
-              >
-                Use as Desktop App
-              </Button>
-            )}
           </>
         )}
       </div>
