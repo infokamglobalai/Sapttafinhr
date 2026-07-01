@@ -337,11 +337,11 @@ export default function Footer() {
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, color: '#94A3B8' }}>
                 <span style={{ display: 'inline-flex', color: '#64748B', marginTop: 3 }}><MapPinIcon /></span>
                 <span style={{ lineHeight: 1.4 }}>
-                  India HQ: No. 45, 3rd Floor, 80 Feet Road, Koramangala 4th Block, Bengaluru, Karnataka - 560034
+                  India HQ: No.612, 1St Floor, 5TH A CROSS, SECOND BLOCK, RT Nagar, Bengaluru, Karnataka - 560032
                 </span>
               </div>
               <div style={{ fontSize: 12, color: '#475569', marginTop: 4 }}>
-                GSTIN: 29AAFCS7072R1Z5
+                GSTIN: 29ABTCS9423Q1Z1
               </div>
             </div>
           </div>
