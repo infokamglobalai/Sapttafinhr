@@ -41,18 +41,21 @@ def employees_pending_offer_letter(tenant, *, today=None, lookback_days: int = 9
             | Q(date_of_joining__isnull=True)
             | Q(date_of_joining__gte=cutoff)
         )
-        .select_related("department", "designation", "reporting_manager")
+        .select_related("tenant", "department", "designation", "reporting_manager")
         .order_by("-date_of_joining", "first_name")
     )
     return [_enrich_joiner_row(emp, today) for emp in qs[:20]]
 
 
 def _enrich_joiner_row(employee, today):
-    onboarding = (
-        EmployeeOnboarding.objects.filter(tenant=employee.tenant, employee=employee)
-        .prefetch_related("items")
-        .first()
-    )
+    tenant = getattr(employee, "tenant", None)
+    onboarding = None
+    if tenant:
+        onboarding = (
+            EmployeeOnboarding.objects.filter(tenant=tenant, employee=employee)
+            .prefetch_related("items")
+            .first()
+        )
     doc_status = "pending"
     doc_pct = 0
     if onboarding:
