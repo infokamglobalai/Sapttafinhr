@@ -76,6 +76,20 @@ class Command(BaseCommand):
             domain="kuwait.localhost", tenant=kuwait, defaults={"is_primary": True}
         )
 
+        # Omega tenant
+        omega, created = Tenant.objects.get_or_create(
+            schema_name="omega",
+            defaults={"name": "Omega Corp", "billing_email": "omega@saptta.com"},
+        )
+        if not omega.billing_email:
+            omega.billing_email = "omega@saptta.com"
+            omega.save(update_fields=["billing_email"])
+        if created:
+            self.stdout.write(self.style.SUCCESS("Created Omega tenant + schema."))
+        Domain.objects.get_or_create(
+            domain="omega.localhost", tenant=omega, defaults={"is_primary": True}
+        )
+
         from apps.saas.plan_catalog import seed_catalog_plans
 
         n = seed_catalog_plans()
@@ -121,6 +135,21 @@ class Command(BaseCommand):
                 defaults={"status": SubscriptionEntitlement.Status.ACTIVE},
             )
 
+        omega_subscription, created = Subscription.objects.get_or_create(
+            tenant=omega,
+            defaults={"plan": plan, "status": Subscription.Status.ACTIVE},
+        )
+        if not created:
+            omega_subscription.status = Subscription.Status.ACTIVE
+            omega_subscription.plan = plan
+            omega_subscription.save(update_fields=["status", "plan", "updated_at"])
+        for product in [ProductCode.FIN, ProductCode.HR]:
+            SubscriptionEntitlement.objects.update_or_create(
+                subscription=omega_subscription,
+                product=product,
+                defaults={"status": SubscriptionEntitlement.Status.ACTIVE},
+            )
+
         # 3. Superuser (lives in public/shared)
         if not User.objects.filter(email="sp@saptta.com").exists():
             User.objects.create_superuser(
@@ -131,7 +160,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS("Created superuser sp@saptta.com / Saptta@2026"))
 
         # Dev/demo logins must stay pre-verified so REQUIRE_EMAIL_VERIFICATION does not block them.
-        User.objects.filter(email__in=["demo@saptta.com", "kuwit@saptta.com"], is_verified=False).update(
+        User.objects.filter(email__in=["demo@saptta.com", "kuwit@saptta.com", "omega@saptta.com"], is_verified=False).update(
             is_verified=True
         )
 
@@ -154,6 +183,16 @@ class Command(BaseCommand):
                 is_verified=True,
             )
             self.stdout.write(self.style.SUCCESS("Created demo kuwit kuwit@saptta.com / Kuwit@1234"))
+
+        # Create Omega demo user
+        if not User.objects.filter(email="omega@saptta.com").exists():
+            User.objects.create_user(
+                email="omega@saptta.com",
+                password="Omega@1234",
+                full_name="Demo Omega",
+                is_verified=True,
+            )
+            self.stdout.write(self.style.SUCCESS("Created demo omega omega@saptta.com / Omega@1234"))
 
         # 4. Inside Acme schema: Company + COA + FY
         with schema_context("acme"):
@@ -267,6 +306,28 @@ class Command(BaseCommand):
                 defaults={"start_date": start, "end_date": end, "is_active": True},
             )
             self.stdout.write(self.style.SUCCESS(f"Ensured fiscal year {fy_name} for Kuwait."))
+
+        # 6. Inside Omega schema: Company + COA + FY
+        with schema_context("omega"):
+            omega_company, created = Company.objects.get_or_create(
+                name="Omega Corp",
+                defaults={
+                    "legal_name": "Omega Corporation",
+                    "state_code": "US",
+                    "base_currency": "USD",
+                },
+            )
+            if created:
+                self.stdout.write(self.style.SUCCESS("Created Omega company."))
+
+            seed_coa(omega_company)
+            start, end, fy_name = fy_dates_for(date.today())
+            FiscalYear.objects.get_or_create(
+                company=omega_company,
+                name=fy_name,
+                defaults={"start_date": start, "end_date": end, "is_active": True},
+            )
+            self.stdout.write(self.style.SUCCESS(f"Ensured fiscal year {fy_name} for Omega."))
 
         # 6. Demo coupon codes (billing page / superadmin coupons)
         from apps.saas.models import CouponCode
