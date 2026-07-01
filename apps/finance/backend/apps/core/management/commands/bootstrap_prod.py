@@ -154,6 +154,16 @@ class Command(BaseCommand):
         else:
             User.objects.filter(email="kuwit@saptta.com").update(is_verified=True)
 
+        from apps.team.membership import ensure_owner_member
+
+        def _seed_bootstrap_owner(email: str) -> None:
+            """Seed the tenant's billing owner as a TenantMember. Must be called
+            inside a schema_context so TenantMember lands in the tenant schema —
+            without it the owner resolves to VIEWER and is locked out of setup."""
+            u = User.objects.filter(email__iexact=email).first()
+            if u:
+                ensure_owner_member(user_id=u.id, email=u.email, full_name=u.full_name)
+
         # 5. Inside Acme schema: seed Company, COA, Fiscal Year, and basic data
         with schema_context("acme"):
             company, created = Company.objects.get_or_create(
@@ -177,6 +187,8 @@ class Command(BaseCommand):
                 defaults={"start_date": start, "end_date": end, "is_active": True},
             )
             self.stdout.write(self.style.SUCCESS(f"Ensured fiscal year {fy_name}."))
+
+            _seed_bootstrap_owner("demo@saptta.com")
 
             # Demo HSN codes + items + sample customer/vendor
             hsn_8523, _ = HSNCode.objects.get_or_create(
@@ -266,6 +278,7 @@ class Command(BaseCommand):
                 defaults={"start_date": start, "end_date": end, "is_active": True},
             )
             self.stdout.write(self.style.SUCCESS(f"Ensured fiscal year {fy_name} for Kuwait."))
+            _seed_bootstrap_owner("kuwit@saptta.com")
 
         self.stdout.write(self.style.SUCCESS("Bootstrap complete."))
         self.stdout.write(f"Login at http://acme.{base_domain}/  (demo@saptta.com / Demo@1234)")

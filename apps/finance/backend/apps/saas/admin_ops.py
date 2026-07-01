@@ -329,7 +329,7 @@ class AdminProvisionCompanyView(APIView):
     def post(self, request):
         # Operator/sales-led provisioning stays synchronous (not latency-bound
         # like public signup). Reuse the shared seed/HR helpers from tasks.
-        from apps.saas.tasks import _provision_hr, _seed_finance
+        from apps.saas.tasks import _provision_hr, _seed_finance, _seed_team_owner
 
         name = (request.data.get("company_name") or "").strip()
         email = (request.data.get("email") or "").strip().lower()
@@ -379,6 +379,14 @@ class AdminProvisionCompanyView(APIView):
                 _seed_finance(schema_name, name, country)
             except Exception:  # noqa: BLE001 — seeding must not abort provisioning
                 pass
+        # Seed the owner as a TenantMember so their forced setup-wizard writes pass
+        # TenantRolePermission. Without this the owner resolves to VIEWER and is
+        # locked out of setup (mirrors the self-signup path in tasks.run_provision).
+        try:
+            _seed_team_owner(schema_name, user_id=user.id, email=user.email,
+                             full_name=user.full_name)
+        except Exception:  # noqa: BLE001 — must not abort provisioning
+            pass
         if ProductCode.HR in products:
             try:
                 _provision_hr(name=name, subdomain=schema_name, email=email, country=country)
