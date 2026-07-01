@@ -51,8 +51,7 @@
   var badge = document.getElementById('punch-status-badge');
 
   function csrf() {
-    var m = document.cookie.match(/csrftoken=([^;]+)/);
-    return m ? m[1] : '';
+    return '{{ csrf_token }}';
   }
 
   function showMsg(text, type) {
