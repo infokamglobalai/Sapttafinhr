@@ -105,7 +105,7 @@ def job_create(request):
                 designation_id=p.get("designation") or None,
                 location_id=p.get("location") or None,
                 employment_type=p.get("employment_type", "full_time"),
-                positions_count=int(p.get("positions_count") or 1),
+                positions_count=max(1, min(9999, int(p.get("positions_count") or 1))),
                 experience_min=int(p.get("experience_min") or 0),
                 experience_max=int(p.get("experience_max")) if p.get("experience_max") else None,
                 description=p.get("description", ""),

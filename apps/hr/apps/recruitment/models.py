@@ -16,7 +16,7 @@ class JobOpening(models.Model):
     designation = models.ForeignKey("employees.Designation", on_delete=models.SET_NULL, null=True, blank=True)
     location = models.ForeignKey("employees.OfficeLocation", on_delete=models.SET_NULL, null=True, blank=True)
     employment_type = models.CharField(max_length=20, default="full_time")
-    positions_count = models.PositiveSmallIntegerField(default=1)
+    positions_count = models.PositiveIntegerField(default=1)
     experience_min = models.PositiveSmallIntegerField(default=0)
     experience_max = models.PositiveSmallIntegerField(null=True, blank=True)
     salary_min = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
