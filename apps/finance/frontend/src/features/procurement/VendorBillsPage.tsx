@@ -191,7 +191,7 @@ function BillScanModal({
     try {
       const fd = new FormData();
       fd.append('file', file);
-      const r = await api.post<ScannedBill>('/procurement/bills/scan/', fd, {
+      const r = await api.post<ScannedBill>('/procurement/vendor-bills/scan/', fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       setResult(r.data);

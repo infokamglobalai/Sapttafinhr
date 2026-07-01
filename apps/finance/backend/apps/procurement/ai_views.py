@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class VendorBillScanView(APIView):
-    """POST /api/v1/procurement/bills/scan/ — upload a vendor bill PDF/image.
+    """POST /api/v1/procurement/vendor-bills/scan/ — upload a vendor bill PDF/image.
     Returns extracted field values to pre-fill the vendor bill form.
     """
     parser_classes = [MultiPartParser]
