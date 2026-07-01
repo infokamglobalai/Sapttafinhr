@@ -27,6 +27,7 @@ urlpatterns = [
     path("<int:pk>/restore-access/", views.employee_restore_access, name="restore_access"),
     path("<int:pk>/id-card/", views.id_card_pdf, name="id_card"),
     path("<int:employee_pk>/documents/upload/", views.document_upload, name="document_upload"),
+    path("documents/<int:pk>/download/", views.document_download, name="document_download"),
     # Org structure
     path("departments/", views.department_list, name="departments"),
     path("departments/create/", views.department_create, name="department_create"),

@@ -849,3 +849,34 @@ def attrition_recompute(request):
         f"({counts['total']} employees).",
     )
     return redirect("employees:attrition")
+
+
+@login_required
+def document_download(request, pk):
+    """Serve an employee document through an auth + tenant + permission gate.
+
+    Never expose the raw storage URL: only the document's own employee or a user
+    with employees.view (or HR admin) may read it, and only within their tenant.
+    """
+    tenant = request.tenant
+    doc = get_object_or_404(EmployeeDocument, pk=pk, tenant=tenant)
+
+    is_owner = getattr(request.user, "employee_profile", None) == doc.employee
+    has_perm = request.user.is_hr_admin or request.user.has_perm_code("employees.view")
+    if not (is_owner or has_perm):
+        from django.core.exceptions import PermissionDenied
+        raise PermissionDenied("You do not have permission to access this document.")
+
+    import os
+    from django.http import FileResponse, Http404
+
+    if not doc.file or not doc.file.storage.exists(doc.file.name):
+        raise Http404("File does not exist.")
+
+    response = FileResponse(
+        doc.file.open("rb"),
+        content_type=getattr(doc, "mime_type", None) or "application/octet-stream",
+    )
+    filename = os.path.basename(doc.file.name)
+    response["Content-Disposition"] = f'inline; filename="{filename}"'
+    return response
