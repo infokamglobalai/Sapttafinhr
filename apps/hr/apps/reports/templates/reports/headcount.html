@@ -5,7 +5,7 @@
 {% block report_subtitle %}{{ total }} employee(s){% if status %} · {{ status|title }} status{% endif %}{% endblock %}
 
 {% block report_actions %}
-<a href="{% url 'reports:headcount_export' %}{% if status %}?status={{ status }}{% endif %}" class="btn btn-primary btn-sm">Export Excel</a>
+<a href="{% url 'reports:headcount_export' %}?status={{ status|default:'active' }}" class="btn btn-primary btn-sm">Export Excel</a>
 {% endblock %}
 
 {% block report_kpis %}
@@ -35,7 +35,7 @@
       <label class="label py-0"><span class="label-text">Employment status</span></label>
       <select name="status" class="select select-bordered select-sm w-44">
         <option value="active" {% if status == 'active' %}selected{% endif %}>Active</option>
-        <option value="" {% if not status %}selected{% endif %}>All</option>
+        <option value="all" {% if status == 'all' %}selected{% endif %}>All</option>
         <option value="notice_period" {% if status == 'notice_period' %}selected{% endif %}>Notice period</option>
         <option value="exited" {% if status == 'exited' %}selected{% endif %}>Exited</option>
       </select>

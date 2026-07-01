@@ -162,7 +162,7 @@ def headcount_report(request):
     tenant = request.tenant
     employees = Employee.objects.filter(tenant=tenant).select_related("department", "designation")
     status = request.GET.get("status", "active")
-    if status:
+    if status and status != "all":
         employees = employees.filter(employment_status=status)
 
     by_dept = employees.values("department__name").annotate(count=Count("id")).order_by("-count")
@@ -184,7 +184,7 @@ def headcount_report_export(request):
     tenant = request.tenant
     employees = Employee.objects.filter(tenant=tenant).select_related("department", "designation")
     status = request.GET.get("status", "active")
-    if status:
+    if status and status != "all":
         employees = employees.filter(employment_status=status)
 
     wb = make_workbook()
