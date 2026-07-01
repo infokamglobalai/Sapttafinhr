@@ -1223,6 +1223,14 @@ const INDUSTRIES: {
   imageKey: MarketingImageKey;
 }[] = [
   {
+    icon: <CodeOutlined />,
+    name: 'IT Services & Startups',
+    desc: 'Remote attendance, expense reimbursements, TDS filings, and clean financial reports for investors.',
+    accent: '#7C3AED',
+    tags: ['Remote work', 'Expense claims', 'Investor reports'],
+    imageKey: 'industryIt',
+  },
+  {
     icon: <BuildOutlined />,
     name: 'Construction & Real Estate',
     desc: 'Manage geofenced attendance for site workers, contractor payroll, and project-wise cost tracking.',
@@ -1245,14 +1253,6 @@ const INDUSTRIES: {
     accent: '#059669',
     tags: ['Factory workforce', 'PF & ESI', 'Inventory accounting'],
     imageKey: 'industryManufacturing',
-  },
-  {
-    icon: <CodeOutlined />,
-    name: 'IT Services & Startups',
-    desc: 'Remote attendance, expense reimbursements, TDS filings, and clean financial reports for investors.',
-    accent: '#7C3AED',
-    tags: ['Remote work', 'Expense claims', 'Investor reports'],
-    imageKey: 'industryIt',
   },
   {
     icon: <MedicineBoxOutlined />,
@@ -1286,7 +1286,7 @@ function IndustriesSection({ isMobile }: { isMobile: boolean }) {
           <HomeSectionHeader
             eyebrow="Industry solutions"
             title="Built for Every"
-            titleHighlight="Indian Business"
+            titleHighlight="Business"
             titleHighlightSameLine
             subtitle="Whether you run a factory, a clinic, or a startup — Saptta adapts to your workforce structure, compliance requirements, and accounting needs."
             theme="navy"
